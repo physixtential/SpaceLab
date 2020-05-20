@@ -2,6 +2,7 @@
 //
 
 #include <iostream>
+#include "../initializations.h"
 
 int main()
 {
