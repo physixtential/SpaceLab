@@ -141,6 +141,11 @@
   <ItemGroup>
     <ClCompile Include="Generator.cpp" />
   </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\initializations.h" />
+    <ClInclude Include="..\..\objects.h" />
+    <ClInclude Include="..\..\vector3d.h" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

@@ -5,7 +5,7 @@
 
 int main()
 {
-    std::cout << "This is Generator\n";
+    std::cout << G;
 }
 
 // Run program: Ctrl + F5 or Debug > Start Without Debugging menu

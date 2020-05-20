@@ -9,6 +9,13 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Generator", "Generator\Gene
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ColliderCUDA", "ColliderCUDA\ColliderCUDA.vcxproj", "{5B527C31-AA89-4D30-B9C0-60201CAFC300}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{66B8E982-AB97-4B92-9D86-36AB864AD0DB}"
+	ProjectSection(SolutionItems) = preProject
+		..\initializations.h = ..\initializations.h
+		..\objects.h = ..\objects.h
+		..\vector3d.h = ..\vector3d.h
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
