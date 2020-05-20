@@ -15,7 +15,7 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="ColliderOMP.cpp">
+    <ClCompile Include="ColliderSingleCore.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

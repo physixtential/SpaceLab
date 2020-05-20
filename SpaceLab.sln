@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
 VisualStudioVersion = 16.0.30114.105
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Collider", "Collider\Collider.vcxproj", "{BCB96F84-C90D-4FA9-B9DF-E3BA4D7947A0}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ColliderOMP", "Collider\Collider.vcxproj", "{BCB96F84-C90D-4FA9-B9DF-E3BA4D7947A0}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Generator", "Generator\Generator.vcxproj", "{4415E36A-0B6D-42E1-A4B2-6D4211D4ACC1}"
 EndProject
@@ -16,6 +16,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		objects.h = objects.h
 		vector3d.h = vector3d.h
 	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ColliderSingleCore", "ColliderSingleCore\ColliderSingleCore.vcxproj", "{A1E54E96-5AE4-4F7F-AB08-9AA47A1863AF}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -47,6 +49,14 @@ Global
 		{5B527C31-AA89-4D30-B9C0-60201CAFC300}.Release|x64.ActiveCfg = Release|x64
 		{5B527C31-AA89-4D30-B9C0-60201CAFC300}.Release|x64.Build.0 = Release|x64
 		{5B527C31-AA89-4D30-B9C0-60201CAFC300}.Release|x86.ActiveCfg = Release|x64
+		{A1E54E96-5AE4-4F7F-AB08-9AA47A1863AF}.Debug|x64.ActiveCfg = Debug|x64
+		{A1E54E96-5AE4-4F7F-AB08-9AA47A1863AF}.Debug|x64.Build.0 = Debug|x64
+		{A1E54E96-5AE4-4F7F-AB08-9AA47A1863AF}.Debug|x86.ActiveCfg = Debug|Win32
+		{A1E54E96-5AE4-4F7F-AB08-9AA47A1863AF}.Debug|x86.Build.0 = Debug|Win32
+		{A1E54E96-5AE4-4F7F-AB08-9AA47A1863AF}.Release|x64.ActiveCfg = Release|x64
+		{A1E54E96-5AE4-4F7F-AB08-9AA47A1863AF}.Release|x64.Build.0 = Release|x64
+		{A1E54E96-5AE4-4F7F-AB08-9AA47A1863AF}.Release|x86.ActiveCfg = Release|Win32
+		{A1E54E96-5AE4-4F7F-AB08-9AA47A1863AF}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
