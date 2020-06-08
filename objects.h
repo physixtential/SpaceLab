@@ -1,7 +1,6 @@
 #include "vector3d.h"
 #include "initializations.h"
-#include <vector>
-// Commit test
+
 
 #pragma once
 
@@ -9,21 +8,21 @@ struct ball
 {
 	vector3d pos, vel, velh, acc, w;
 	double m = 0, R = 0, moi = 0, compression = 0;
-	std::vector<double> distances;
+	double* distances; // Placeholder for new array after size determined.
 };
 
 struct cluster
 {
 	vector3d com, momentum, angularMomentum;
 	double m = 0, radius = 0, PE = 0, KE = 0;
-	std::vector<ball> balls;
+	ball* balls;
 
-	void calcCom()
+	void calcCom(size_t numBalls)
 	{
 		if (m > 0)
 		{
 			vector3d comNumerator = { 0, 0, 0 };
-			for (int Ball = 0; Ball < balls.size(); Ball++)
+			for (int Ball = 0; Ball < numBalls; Ball++)
 			{
 				comNumerator += balls[Ball].m * balls[Ball].pos;
 			}
