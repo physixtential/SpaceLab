@@ -11,7 +11,7 @@ G = 6.67e-8,   // Gravitational constant
 density = 2.7, // Typically based on some rock density
 mu = 0.3,      // Coeff of friction
 cor = 0.8,     // Coeff of restitution
-kin = 1e18,      // Spring constant
+kin = 1e18,    // Spring constant
 kout = cor * kin;
 //spin = 0.0006;
 
@@ -23,6 +23,7 @@ genBalls = 1250,
 attempts = 200; // How many times to try moving every ball touching another in generator.
 
 int numThreads = 1; // omp parallel thread count.
+int numBalls = 0;
 
 double
 scaleBalls = 750000, // scales ball radius

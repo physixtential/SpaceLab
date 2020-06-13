@@ -17,7 +17,7 @@ struct cluster
 	double m = 0, radius = 0, PE = 0, KE = 0;
 	ball* balls;
 
-	void calcCom(size_t numBalls)
+	void calcCom()
 	{
 		if (m > 0)
 		{
@@ -38,7 +38,7 @@ struct cluster
 	void comSpinner(double spinX, double spinY, double spinZ)
 	{
 		vector3d comRot = { spinX, spinY, spinZ }; // Rotation axis and magnitude
-		for (int Ball = 0; Ball < balls.size(); Ball++)
+		for (int Ball = 0; Ball < numBalls; Ball++)
 		{
 			balls[Ball].vel += comRot.cross(balls[Ball].pos - com); // If I compute com of this cluster and subtract it from pos[Ball] I can do this without it being at origin.
 			balls[Ball].w += comRot;
@@ -48,7 +48,7 @@ struct cluster
 	// offset cluster
 	void offset(double rad1, double rad2, double impactParam)
 	{
-		for (int Ball = 0; Ball < balls.size(); Ball++)
+		for (int Ball = 0; Ball < numBalls; Ball++)
 		{
 			balls[Ball].pos.x += (rad1 + rad2) * cos(impactParam);
 			balls[Ball].pos.y += (rad1 + rad2) * sin(impactParam);
@@ -58,7 +58,7 @@ struct cluster
 
 	void rotAll(char axis, double angle)
 	{
-		for (int Ball = 0; Ball < balls.size(); Ball++)
+		for (int Ball = 0; Ball < numBalls; Ball++)
 		{
 			balls[Ball].pos = balls[Ball].pos.rot(axis, angle);
 			balls[Ball].vel = balls[Ball].vel.rot(axis, angle);
@@ -74,21 +74,16 @@ struct cluster
 		PE = 0;
 		momentum = { 0,0,0 };
 		angularMomentum = { 0,0,0 };
-		if (balls.size() > 1)
+		if (numBalls > 1)
 		{
 			vector3d comNumerator = { 0, 0, 0 };
-			for (int A = 0; A < balls.size(); A++)
-			{
-				balls[A].distances.resize(balls.size());
-			}
-
-			for (int A = 0; A < balls.size(); A++)
+			for (int A = 0; A < numBalls; A++)
 			{
 				ball& a = balls[A];
 				m += a.m;
 				comNumerator += a.m * a.pos;
 
-				for (int B = A + 1; B < balls.size(); B++)
+				for (int B = A + 1; B < numBalls; B++)
 				{
 					ball& b = balls[B];
 					double sumRaRb = a.R + b.R;
@@ -166,7 +161,7 @@ struct cluster
 	// Kick projectile at target
 	void kick(double velocity)
 	{
-		for (int Ball = 0; Ball < balls.size(); Ball++)
+		for (int Ball = 0; Ball < numBalls; Ball++)
 		{
 			balls[Ball].vel.x += velocity;
 		}
@@ -176,7 +171,7 @@ struct cluster
 	{
 		vector3d pTotal = { 0,0,0 };
 		double mass = 0;
-		for (int Ball = 0; Ball < balls.size(); Ball++)
+		for (int Ball = 0; Ball < numBalls; Ball++)
 		{
 			pTotal += balls[Ball].m * balls[Ball].vel;
 			mass += balls[Ball].m;
@@ -189,8 +184,8 @@ struct universe
 {
 	vector3d com, momentum, angularMomentum;
 	double mTotal = 0, KE = 0, PE = 0, spaceRange = 0;
-	std::vector<ball> balls;
-	std::vector<cluster> clusters;
+	ball* balls = 0;
+	cluster* clusters = 0;
 
 	// Initialize accelerations and energy calculations:
 	void initConditions()
@@ -198,18 +193,14 @@ struct universe
 		mTotal = KE = PE = 0;
 		momentum = angularMomentum = { 0,0,0 };
 		vector3d comNumerator = { 0, 0, 0 };
-		for (int A = 0; A < balls.size(); A++)
-		{
-			balls[A].distances.resize(balls.size());
-		}
 
-		for (int A = 0; A < balls.size(); A++)
+		for (int A = 0; A < numBalls; A++)
 		{
 			ball& a = balls[A];
 			mTotal += a.m;
 			comNumerator += a.m * a.pos;
 
-			for (int B = A + 1; B < balls.size(); B++)
+			for (int B = A + 1; B < numBalls; B++)
 			{
 				ball& b = balls[B];
 				double sumRaRb = a.R + b.R;
@@ -275,7 +266,7 @@ struct universe
 	{
 		vector3d comNumerator = { 0, 0, 0 };
 		mTotal = 0;
-		for (int Ball = 0; Ball < balls.size(); Ball++)
+		for (int Ball = 0; Ball < numBalls; Ball++)
 		{
 			mTotal += balls[Ball].m;
 			comNumerator += balls[Ball].m * balls[Ball].pos;
@@ -287,7 +278,7 @@ struct universe
 	{
 		vector3d pTotal = { 0,0,0 };
 		double mass = 0;
-		for (int Ball = 0; Ball < balls.size(); Ball++)
+		for (int Ball = 0; Ball < numBalls; Ball++)
 		{
 			pTotal += balls[Ball].m * balls[Ball].vel;
 			mass += balls[Ball].m;
@@ -300,18 +291,18 @@ struct universe
 		// Something about this is wrong. It is not zeroing momentum.
 		vector3d pTotal = { 0,0,0 };
 		double mass = 0;
-		for (int Ball = 0; Ball < balls.size(); Ball++)
+		for (int Ball = 0; Ball < numBalls; Ball++)
 		{
 			pTotal += balls[Ball].m * balls[Ball].vel;
 			mass += balls[Ball].m;
 		}
-		for (int Ball = 0; Ball < balls.size(); Ball++)
+		for (int Ball = 0; Ball < numBalls; Ball++)
 		{
 			balls[Ball].vel -= (pTotal / mass);
 		}
 
 		pTotal = { 0,0,0 };
-		for (int Ball = 0; Ball < balls.size(); Ball++)
+		for (int Ball = 0; Ball < numBalls; Ball++)
 		{
 			pTotal += balls[Ball].m * balls[Ball].vel;
 		}

@@ -23,8 +23,7 @@ ballBuffer,
 energyBuffer;
 
 // Function Prototypes
-int countBalls(std::string initDataFileName);
-cluster initFromFile(std::string initDataFileName, std::string initConstFileName, bool zeroMotion);
+cluster clusterFromFile(std::string initDataFileName, std::string initConstFileName, bool zeroMotion);
 
 // Main function
 int main(int argc, char const* argv[])
@@ -55,12 +54,9 @@ int main(int argc, char const* argv[])
 	if (true)
 	{
 		// Count balls in files, reserve space, then load file data:
-		int count = 0;
 		std::cerr << "File 1: " << clusterAName << '\t' << "File 2: " << clusterBName << std::endl;
-		count += countBalls(path + clusterAName + "simData.csv");
-		count += countBalls(path + clusterBName + "simData.csv");
-		cluster clusA = initFromFile(path + clusterAName + "simData.csv", path + clusterAName + "constants.csv", 0);
-		cluster clusB = initFromFile(path + clusterBName + "simData.csv", path + clusterBName + "constants.csv", 0);
+		cluster clusA = clusterFromFile(path + clusterAName + "simData.csv", path + clusterAName + "constants.csv", 0);
+		cluster clusB = clusterFromFile(path + clusterBName + "simData.csv", path + clusterBName + "constants.csv", 0);
 
 		clusA.offset(clusA.radius, clusB.radius + (clusA.balls[0].R * 1.), impactParameter); // Adding 3 times the radius of one ball gaurantees total separation between clusters.
 		double PEsys = clusA.PE + clusB.PE + (-G * clusA.m * clusB.m / (clusA.com - clusB.com).norm());
@@ -80,8 +76,10 @@ int main(int argc, char const* argv[])
 		clusB.kick(vBig);
 		clusA.checkMomentum();
 		clusB.checkMomentum();
-		cosmos.balls.insert(cosmos.balls.end(), clusA.balls.begin(), clusA.balls.end());
-		cosmos.balls.insert(cosmos.balls.end(), clusB.balls.begin(), clusB.balls.end());
+		cosmos.balls = new ball[numBalls];
+		memcpy(cosmos.balls, clusA.balls, )
+		delete[] clusA.balls;
+		delete[] clusB.balls;
 	}
 
 	// Future multicluster sim:
@@ -95,8 +93,7 @@ int main(int argc, char const* argv[])
 	{
 		// Count balls in files, reserve space, then load file data:
 		int count = 0;
-		count += countBalls(clusterAName + "simData.csv");
-		cluster clusA = initFromFile(clusterAName + "simData.csv", clusterAName + "constants.csv", 0);
+		cluster clusA = clusterFromFile(clusterAName + "simData.csv", clusterAName + "constants.csv", 0);
 		// Rotate
 		clusA.rotAll('z', z0Rot);
 		clusA.rotAll('y', y0Rot);
@@ -337,7 +334,7 @@ int main(int argc, char const* argv[])
 				}
 				double k;
 
-				ball& a = all[A]; // THIS IS BAD. But necessary because collapse doesn't like
+				ball& a = all[A]; // THIS IS BAD. But necessary because collapse doesn't like it between for loops
 				ball& b = all[B];
 				double sumRaRb = a.R + b.R;
 				double dist = (a.pos - b.pos).norm();
@@ -522,60 +519,10 @@ int main(int argc, char const* argv[])
 	exit(EXIT_SUCCESS);
 } // end main
 
-
-
-/////////////////////////////////////////////////////////////////////////////////////
-// Sets ICs from file:
-/////////////////////////////////////////////////////////////////////////////////////
-int countBalls(std::string initDataFileName)
+cluster clusterFromFile(std::string initDataFileName, std::string initConstFileName, bool zeroMotion)
 {
-	// Get position and angular velocity data:
-	std::ifstream initDataStream;
-	std::string line, lineElement;
-	initDataStream.open(initDataFileName, std::ifstream::in);
-	if (initDataStream.is_open())
-	{
-		initDataStream.seekg(-1, std::ios_base::end); // go to one spot before the EOF
-
-		bool keepLooping = true;
-		while (keepLooping)
-		{
-			char ch;
-			initDataStream.get(ch); // Get current byte's data
-
-			if ((int)initDataStream.tellg() <= 1)
-			{                            // If the data was at or before the 0th byte
-				initDataStream.seekg(0); // The first line is the last line
-				keepLooping = false;     // So stop there
-			}
-			else if (ch == '\n')
-			{                        // If the data was a newline
-				keepLooping = false; // Stop at the current position.
-			}
-			else
-			{                                                 // If the data was neither a newline nor at the 0 byte
-				initDataStream.seekg(-2, std::ios_base::cur); // Move to the front of that data, then to the front of the data before it
-			}
-		}
-
-		std::getline(initDataStream, line); // Read the current line
-	}
-	else
-	{
-		std::cout << "File not found.\n";
-		std::string garbo;
-		std::cin >> garbo;
-	}
-	////////////////////////////////////////////////////
-	//////////// check if we can use this line to count them cleaner. maybe has to do with error in mass and radius calc in first cluster
-	//////////////////////////////////////
-	int ballsInFile = std::count(line.begin(), line.end(), ',') / properties + 1; // Get number of balls in file
-	return ballsInFile;
-}
-
-cluster initFromFile(std::string initDataFileName, std::string initConstFileName, bool zeroMotion)
-{
-	cluster tclus;
+	cluster tempClus;
+	size_t ballsInFile = 0;
 	// Get position and angular velocity data:
 	if (auto simDataStream = std::ifstream(initDataFileName, std::ifstream::in))
 	{
@@ -607,13 +554,15 @@ cluster initFromFile(std::string initDataFileName, std::string initConstFileName
 
 
 		std::getline(simDataStream, line);                                              // Read the current line
-		tclus.balls.resize(std::count(line.begin(), line.end(), ',') / properties + 1); // Get number of balls in file
+		ballsInFile = std::count(line.begin(), line.end(), ',') / properties + 1;
+		tempClus.balls = new ball[ballsInFile]; // Set cluster ball array to number of balls in file
+		numBalls += ballsInFile;
 
 		std::stringstream chosenLine(line); // This is the last line of the read file, containing all data for all balls at last time step
 
-		for (int A = 0; A < tclus.balls.size(); A++)
+		for (int A = 0; A < ballsInFile; A++)
 		{
-			ball& a = tclus.balls[A];
+			ball& a = tempClus.balls[A];
 
 			for (int i = 0; i < 3; i++) // Position
 			{
@@ -648,9 +597,9 @@ cluster initFromFile(std::string initDataFileName, std::string initConstFileName
 	if (auto ConstStream = std::ifstream(initConstFileName, std::ifstream::in))
 	{
 		std::string line, lineElement;
-		for (int A = 0; A < tclus.balls.size(); A++)
+		for (int A = 0; A < ballsInFile; A++)
 		{
-			ball& a = tclus.balls[A];
+			ball& a = tempClus.balls[A];
 			std::getline(ConstStream, line); // Ball line.
 			std::stringstream chosenLine(line);
 			std::getline(chosenLine, lineElement, ','); // Radius.
@@ -669,40 +618,40 @@ cluster initFromFile(std::string initDataFileName, std::string initConstFileName
 	// Zero all angular momenta and velocity:
 	if (zeroMotion)
 	{
-		for (int Ball = 0; Ball < tclus.balls.size(); Ball++)
+		for (int Ball = 0; Ball < ballsInFile; Ball++)
 		{
-			tclus.balls[Ball].w = { 0, 0, 0 };
-			tclus.balls[Ball].vel = { 0, 0, 0 };
+			tempClus.balls[Ball].w = { 0, 0, 0 };
+			tempClus.balls[Ball].vel = { 0, 0, 0 };
 		}
 	}
 
 	// Calculate approximate radius of imported cluster and center mass at origin:
 	vector3d comNumerator;
-	for (int Ball = 0; Ball < tclus.balls.size(); Ball++)
+	for (int Ball = 0; Ball < ballsInFile; Ball++)
 	{
-		ball& a = tclus.balls[Ball];
-		tclus.m += a.m;
+		ball& a = tempClus.balls[Ball];
+		tempClus.m += a.m;
 		comNumerator += a.m * a.pos;
 	}
-	tclus.com = comNumerator / tclus.m;
+	tempClus.com = comNumerator / tempClus.m;
 
-	for (int Ball = 0; Ball < tclus.balls.size(); Ball++)
+	for (int Ball = 0; Ball < ballsInFile; Ball++)
 	{
-		double dist = (tclus.balls[Ball].pos - tclus.com).norm();
-		if (dist > tclus.radius)
+		double dist = (tempClus.balls[Ball].pos - tempClus.com).norm();
+		if (dist > tempClus.radius)
 		{
-			tclus.radius = dist;
+			tempClus.radius = dist;
 		}
 		// Center cluster mass at origin:
-		tclus.balls[Ball].pos -= tclus.com;
+		tempClus.balls[Ball].pos -= tempClus.com;
 	}
 
-	tclus.com = { 0, 0, 0 }; // We just moved all balls to center the com.
-	tclus.initConditions();
+	tempClus.com = { 0, 0, 0 }; // We just moved all balls to center the com.
+	tempClus.initConditions();
 
-	std::cout << "Balls in current file: " << tclus.balls.size() << std::endl;
-	std::cout << "Mass in current file: " << tclus.m << std::endl;
-	std::cout << "Approximate radius of current file: " << tclus.radius << " centimeters.\n";
-	return tclus;
+	std::cout << "Balls in current file: " << ballsInFile << std::endl;
+	std::cout << "Mass in current file: " << tempClus.m << std::endl;
+	std::cout << "Approximate radius of current file: " << tempClus.radius << " centimeters.\n";
+	return tempClus;
 }
 
