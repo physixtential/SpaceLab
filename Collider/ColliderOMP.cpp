@@ -55,10 +55,7 @@ int main(int argc, char const* argv[])
 	if (true)
 	{
 		// Count balls in files, reserve space, then load file data:
-		int count = 0;
 		std::cerr << "File 1: " << clusterAName << '\t' << "File 2: " << clusterBName << std::endl;
-		count += countBalls(path + clusterAName + "simData.csv");
-		count += countBalls(path + clusterBName + "simData.csv");
 		cluster clusA = initFromFile(path + clusterAName + "simData.csv", path + clusterAName + "constants.csv", 0);
 		cluster clusB = initFromFile(path + clusterBName + "simData.csv", path + clusterBName + "constants.csv", 0);
 
@@ -94,8 +91,6 @@ int main(int argc, char const* argv[])
 	if (false)
 	{
 		// Count balls in files, reserve space, then load file data:
-		int count = 0;
-		count += countBalls(clusterAName + "simData.csv");
 		cluster clusA = initFromFile(clusterAName + "simData.csv", clusterAName + "constants.csv", 0);
 		// Rotate
 		clusA.rotAll('z', z0Rot);
@@ -522,56 +517,6 @@ int main(int argc, char const* argv[])
 	exit(EXIT_SUCCESS);
 } // end main
 
-
-
-/////////////////////////////////////////////////////////////////////////////////////
-// Sets ICs from file:
-/////////////////////////////////////////////////////////////////////////////////////
-int countBalls(std::string initDataFileName)
-{
-	// Get position and angular velocity data:
-	std::ifstream initDataStream;
-	std::string line, lineElement;
-	initDataStream.open(initDataFileName, std::ifstream::in);
-	if (initDataStream.is_open())
-	{
-		initDataStream.seekg(-1, std::ios_base::end); // go to one spot before the EOF
-
-		bool keepLooping = true;
-		while (keepLooping)
-		{
-			char ch;
-			initDataStream.get(ch); // Get current byte's data
-
-			if ((int)initDataStream.tellg() <= 1)
-			{                            // If the data was at or before the 0th byte
-				initDataStream.seekg(0); // The first line is the last line
-				keepLooping = false;     // So stop there
-			}
-			else if (ch == '\n')
-			{                        // If the data was a newline
-				keepLooping = false; // Stop at the current position.
-			}
-			else
-			{                                                 // If the data was neither a newline nor at the 0 byte
-				initDataStream.seekg(-2, std::ios_base::cur); // Move to the front of that data, then to the front of the data before it
-			}
-		}
-
-		std::getline(initDataStream, line); // Read the current line
-	}
-	else
-	{
-		std::cout << "File not found.\n";
-		std::string garbo;
-		std::cin >> garbo;
-	}
-	////////////////////////////////////////////////////
-	//////////// check if we can use this line to count them cleaner. maybe has to do with error in mass and radius calc in first cluster
-	//////////////////////////////////////
-	int ballsInFile = std::count(line.begin(), line.end(), ',') / properties + 1; // Get number of balls in file
-	return ballsInFile;
-}
 
 cluster initFromFile(std::string initDataFileName, std::string initConstFileName, bool zeroMotion)
 {
