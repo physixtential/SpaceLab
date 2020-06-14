@@ -7,8 +7,6 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ColliderOMP", "Collider\Col
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Generator", "Generator\Generator.vcxproj", "{4415E36A-0B6D-42E1-A4B2-6D4211D4ACC1}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ColliderCUDA", "ColliderCUDA\ColliderCUDA.vcxproj", "{5B527C31-AA89-4D30-B9C0-60201CAFC300}"
-EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{66B8E982-AB97-4B92-9D86-36AB864AD0DB}"
 	ProjectSection(SolutionItems) = preProject
 		initializations.h = initializations.h
@@ -43,12 +41,6 @@ Global
 		{4415E36A-0B6D-42E1-A4B2-6D4211D4ACC1}.Release|x64.Build.0 = Release|x64
 		{4415E36A-0B6D-42E1-A4B2-6D4211D4ACC1}.Release|x86.ActiveCfg = Release|Win32
 		{4415E36A-0B6D-42E1-A4B2-6D4211D4ACC1}.Release|x86.Build.0 = Release|Win32
-		{5B527C31-AA89-4D30-B9C0-60201CAFC300}.Debug|x64.ActiveCfg = Debug|x64
-		{5B527C31-AA89-4D30-B9C0-60201CAFC300}.Debug|x64.Build.0 = Debug|x64
-		{5B527C31-AA89-4D30-B9C0-60201CAFC300}.Debug|x86.ActiveCfg = Debug|x64
-		{5B527C31-AA89-4D30-B9C0-60201CAFC300}.Release|x64.ActiveCfg = Release|x64
-		{5B527C31-AA89-4D30-B9C0-60201CAFC300}.Release|x64.Build.0 = Release|x64
-		{5B527C31-AA89-4D30-B9C0-60201CAFC300}.Release|x86.ActiveCfg = Release|x64
 		{A1E54E96-5AE4-4F7F-AB08-9AA47A1863AF}.Debug|x64.ActiveCfg = Debug|x64
 		{A1E54E96-5AE4-4F7F-AB08-9AA47A1863AF}.Debug|x64.Build.0 = Debug|x64
 		{A1E54E96-5AE4-4F7F-AB08-9AA47A1863AF}.Debug|x86.ActiveCfg = Debug|Win32
