@@ -1,12 +1,21 @@
+#define _USE_MATH_DEFINES
+#include <iostream>
+#include <cmath>
+#include <fstream>
+#include <sstream>
+#include <iomanip>
+#include <algorithm>
+#include "../vector3d.h"
+#include "../initializations.h"
+#include "../objects.h"
 
 #include "cuda_runtime.h"
 #include "device_launch_parameters.h"
-#include <stdio.h>
 
 // Create handy shorthand for error checking each step of CUDA without a bulky conditional every time:
 #define CHECK (cudaStatus != cudaSuccess) ? fprintf(stderr, "Error at line %i\n", __LINE__ - 1) : NULL;
 
-cudaError_t addWithCuda(int* c, const int* a, const int* b, unsigned int size);
+cudaError_t intAddWithCuda(int* c, const int* a, const int* b, unsigned int size);
 
 __global__ void addKernel(int* c, const int* a, const int* b)
 {
@@ -14,15 +23,25 @@ __global__ void addKernel(int* c, const int* a, const int* b)
 	c[i] = a[i] + b[i];
 }
 
+size_t numBalls = 1 << 10;
+size_t blockSize = 64;
+size_t numBlocks = numBalls / blockSize;
+dim3 tpb = (blockSize, 1, 1);
+dim3 grid = (numBlocks, 1, 1);
+
 int main()
 {
-	const int arraySize = 5;
-	const int a[arraySize] = { 1, 2, 3, 4, 5 };
-	const int b[arraySize] = { 10, 20, 30, 40, 50 };
-	int c[arraySize] = { 0 };
+	int* a = new int[numBalls];
+	int* b = new int[numBalls];
+	for (size_t i = 0; i < numBalls; i++)
+	{
+		a[i] = i;
+		b[i] = i;
+	}
+	int* c = new int[numBalls];
 
 	// Add vectors in parallel.
-	cudaError_t cudaStatus = addWithCuda(c, a, b, arraySize);
+	cudaError_t cudaStatus = intAddWithCuda(c, a, b, numBalls);
 
 	// cudaDeviceReset must be called before exiting in order for profiling and
 	// tracing tools such as Nsight and Visual Profiler to show complete traces.
@@ -31,7 +50,7 @@ int main()
 }
 
 // Helper function for using CUDA to add vectors in parallel.
-cudaError_t addWithCuda(int* c, const int* a, const int* b, unsigned int size)
+cudaError_t intAddWithCuda(int* c, const int* a, const int* b, unsigned int size)
 {
 	int* dev_a = 0;
 	int* dev_b = 0;
@@ -57,7 +76,7 @@ cudaError_t addWithCuda(int* c, const int* a, const int* b, unsigned int size)
 	CHECK;
 
 	// Launch a kernel on the GPU with one thread for each element.
-	addKernel << <1, size >> > (dev_c, dev_a, dev_b);
+	addKernel << <grid, tpb >> > (dev_c, dev_a, dev_b);
 
 	// Check for any errors launching the kernel
 	cudaStatus = cudaGetLastError();
