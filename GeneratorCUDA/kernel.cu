@@ -19,15 +19,14 @@ cudaError_t intAddWithCuda(int* c, const int* a, const int* b, unsigned int size
 
 __global__ void addKernel(int* c, const int* a, const int* b)
 {
-	int i = threadIdx.x;
-	c[i] = a[i] + b[i];
+	unsigned int gid = blockIdx.x * blockDim.x + threadIdx.x;
+	c[gid] = a[gid] + b[gid];
 }
 
-size_t numBalls = 1 << 10;
+size_t numBalls = 1 << 24;
 size_t blockSize = 64;
 size_t numBlocks = numBalls / blockSize;
-dim3 tpb = (blockSize, 1, 1);
-dim3 grid = (numBlocks, 1, 1);
+
 
 int main()
 {
@@ -42,10 +41,7 @@ int main()
 
 	// Add vectors in parallel.
 	cudaError_t cudaStatus = intAddWithCuda(c, a, b, numBalls);
-
-	// cudaDeviceReset must be called before exiting in order for profiling and
-	// tracing tools such as Nsight and Visual Profiler to show complete traces.
-
+	
 	return 0;
 }
 
@@ -76,7 +72,7 @@ cudaError_t intAddWithCuda(int* c, const int* a, const int* b, unsigned int size
 	CHECK;
 
 	// Launch a kernel on the GPU with one thread for each element.
-	addKernel << <grid, tpb >> > (dev_c, dev_a, dev_b);
+	addKernel <<<numBlocks, blockSize >>> (dev_c, dev_a, dev_b);
 
 	// Check for any errors launching the kernel
 	cudaStatus = cudaGetLastError();
@@ -91,8 +87,9 @@ cudaError_t intAddWithCuda(int* c, const int* a, const int* b, unsigned int size
 	cudaStatus = cudaMemcpy(c, dev_c, size * sizeof(int), cudaMemcpyDeviceToHost);
 	CHECK;
 
+	cudaStatus = cudaDeviceSynchronize();
+	CHECK;
 
-Error:
 	cudaFree(dev_c);
 	cudaFree(dev_a);
 	cudaFree(dev_b);
