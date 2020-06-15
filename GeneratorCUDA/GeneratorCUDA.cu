@@ -17,10 +17,12 @@
 
 cudaError_t intAddWithCuda(int* c, const int* a, const int* b, unsigned int size);
 
-__global__ void addKernel(int* c, const int* a, const int* b)
+__global__ void addKernel(double* velh, double* pos, const double* vel, double* acc, const double dt)
 {
 	unsigned int gid = blockIdx.x * blockDim.x + threadIdx.x;
-	c[gid] = a[gid] + b[gid];
+	velh[gid] = fma(.5 * dt, acc[gid], vel[gid]);
+	pos[gid] = fma(velh[gid], dt, pos[gid]);
+	acc[gid] = 0;
 }
 
 size_t numBalls = genBalls;
@@ -339,7 +341,6 @@ int main(int argc, char const* argv[])
 
 
 		// FIRST PASS - Position, send to buffer, velocity half step:
-		//begin = std::chrono::high_resolution_clock::now();
 		for (int Ball = 0; Ball < ballTotal; Ball++)
 		{
 			// Update velocity half step:
@@ -351,11 +352,9 @@ int main(int argc, char const* argv[])
 			// Reinitialize acceleration to be recalculated:
 			all[Ball].acc = { 0, 0, 0 };
 		}
-		/*endch = std::chrono::high_resolution_clock::now();
-		std::cout << "First pass: " << std::chrono::duration_cast<std::chrono::nanoseconds>(endch - begin).count() / 1000000 << " milliseconds\n";*/
+
 
 		// SECOND PASS - Check for collisions, apply forces and torques:
-		//begin = std::chrono::high_resolution_clock::now();
 		double k;
 		for (int A = 0; A < ballTotal; A++) //cuda
 		{
@@ -600,7 +599,7 @@ cudaError_t intAddWithCuda(int* c, const int* a, const int* b, unsigned int size
 	CHECK;
 
 	// Launch a kernel on the GPU with one thread for each element.
-	addKernel <<<numBlocks, blockSize >>> (dev_c, dev_a, dev_b);
+	addKernel << <numBlocks, blockSize >> > (dev_c, dev_a, dev_b);
 
 	// Check for any errors launching the kernel
 	cudaStatus = cudaGetLastError();
