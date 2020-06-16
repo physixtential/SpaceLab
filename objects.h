@@ -5,6 +5,9 @@
 
 #pragma once
 
+double* balls;
+balls = new double[10];
+
 struct ball
 {
 	vector3d pos, vel, velh, acc, w;

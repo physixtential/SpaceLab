@@ -17,7 +17,7 @@
 
 cudaError_t intAddWithCuda(int* c, const int* a, const int* b, unsigned int size);
 
-__global__ void addKernel(double* velh, double* pos, const double* vel, double* acc, const double dt)
+__global__ void updatePosition(double* velh, double* pos, const double* vel, double* acc, const double dt)
 {
 	unsigned int gid = blockIdx.x * blockDim.x + threadIdx.x;
 	velh[gid] = fma(.5 * dt, acc[gid], vel[gid]);
@@ -350,7 +350,7 @@ int main(int argc, char const* argv[])
 			all[Ball].pos += all[Ball].velh * dt;
 
 			// Reinitialize acceleration to be recalculated:
-			all[Ball].acc = { 0, 0, 0 };
+			all[Ball].acc = { 0, 0, 0 }; // Don't really need to do this because setting = now not +=, but safer in case of += usage.
 		}
 
 
@@ -367,7 +367,7 @@ int main(int argc, char const* argv[])
 				double sumRaRb = a.R + b.R;
 				double dist = (a.pos - b.pos).norm();
 				vector3d rVecab = b.pos - a.pos;
-				vector3d rVecba = a.pos - b.pos;
+				vector3d rVecba = -1 * rVecab;
 
 				// Check for collision between Ball and otherBall:
 				double overlap = sumRaRb - dist;
@@ -451,18 +451,15 @@ int main(int argc, char const* argv[])
 					}
 				}
 				// Newton's equal and opposite forces applied to acceleration of each ball:
-				a.acc += totalForce / a.m;
-				b.acc -= totalForce / b.m;
+				a.acc = totalForce / a.m;
+				b.acc = -totalForce / b.m;
 
 				// So last distance can be known for cor:
 				a.distances[B] = b.distances[A] = dist;
 			}
 		}
-		//endch = std::chrono::high_resolution_clock::now();
-		//std::cout << "Second pass: " << std::chrono::duration_cast<std::chrono::nanoseconds>(endch - begin).count() / 1000000 << " milliseconds\n";
 
 		// THIRD PASS - Calculate velocity for next step:
-		//begin = std::chrono::high_resolution_clock::now();
 		if (writeStep)
 		{
 			ballBuffer << std::endl; // Prepares a new line for incoming data.
@@ -532,8 +529,6 @@ int main(int argc, char const* argv[])
 				lastWrite = time(NULL);
 			} // Data export end
 		}     // THIRD PASS END
-			  //endch = std::chrono::high_resolution_clock::now();
-			  //std::cout << "Third pass: " << std::chrono::duration_cast<std::chrono::nanoseconds>(endch - begin).count() / 1000000 << " milliseconds\n";
 	}         // Steps end
 	double end = time(NULL);
 	//////////////////////////////////////////////////////////
