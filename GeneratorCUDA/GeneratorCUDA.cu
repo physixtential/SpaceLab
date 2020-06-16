@@ -594,7 +594,7 @@ cudaError_t intAddWithCuda(int* c, const int* a, const int* b, unsigned int size
 	CHECK;
 
 	// Launch a kernel on the GPU with one thread for each element.
-	addKernel << <numBlocks, blockSize >> > (dev_c, dev_a, dev_b);
+	updatePosition << <numBlocks, blockSize >> > (dev_c, dev_a, dev_b);
 
 	// Check for any errors launching the kernel
 	cudaStatus = cudaGetLastError();
