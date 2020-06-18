@@ -5,15 +5,29 @@
 
 #pragma once
 
+// Balls
 double* balls;
-balls = new double[10];
+// Easy motion component reference in array structure:
+constexpr unsigned int x = 0;
+constexpr unsigned int y = 1;
+constexpr unsigned int z = 2;
+constexpr unsigned int vx = 3;
+constexpr unsigned int vy = 4;
+constexpr unsigned int vz = 5;
+constexpr unsigned int ax = 6;
+constexpr unsigned int ay = 7;
+constexpr unsigned int az = 8;
+constexpr unsigned int wx = 9;
+constexpr unsigned int wy = 10;
+constexpr unsigned int wz = 11;
+constexpr unsigned int R = 12;
+constexpr unsigned int m = 13;
+constexpr unsigned int moi = 14;
+// Therefore:
+constexpr unsigned int numProps = 15;
 
-struct ball
-{
-	vector3d pos, vel, velh, acc, w;
-	double m = 0, R = 0, moi = 0, compression = 0;
-	std::vector<double> distances;
-};
+// Distance between all balls
+size_t
 
 struct cluster
 {
