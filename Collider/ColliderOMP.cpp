@@ -46,7 +46,9 @@ int main(int argc, char const* argv[])
 		//y1Rot = atof(argv[8]);
 		clusterAName = argv[2];
 		clusterBName = argv[3];
-		KEfactor = atoi(argv[4]);
+		KEfactor = atof(argv[4]);
+		impactParameter = atof(argv[5]);
+		printf("\nKE=%.1f\tIP=%.1f\n", KEfactor, impactParameter);
 	}
 
 	universe cosmos;
@@ -56,8 +58,8 @@ int main(int argc, char const* argv[])
 	{
 		// Count balls in files, reserve space, then load file data:
 		std::cerr << "File 1: " << clusterAName << '\t' << "File 2: " << clusterBName << std::endl;
-		cluster clusA = initFromFile(path + clusterAName + "simData.csv", path + clusterAName + "constants.csv", 0);
-		cluster clusB = initFromFile(path + clusterBName + "simData.csv", path + clusterBName + "constants.csv", 0);
+		cluster clusA = initFromFile(path + clusterAName + "simData.csv", path + clusterAName + "constants.csv", 1);
+		cluster clusB = initFromFile(path + clusterBName + "simData.csv", path + clusterBName + "constants.csv", 1);
 
 		clusA.offset(clusA.radius, clusB.radius + (clusA.balls[0].R * 1.), impactParameter); // Adding 3 times the radius of one ball gaurantees total separation between clusters.
 		double PEsys = clusA.PE + clusB.PE + (-G * clusA.m * clusB.m / (clusA.com - clusB.com).norm());
@@ -128,12 +130,12 @@ int main(int argc, char const* argv[])
 	outputPrefix =
 		std::to_string(ballTotal) +
 		clusterAName + clusterBName +
-		"-T" + rounder(KEfactor, 3) +
+		"-EDA" + rounder(KEfactor, 3) +
 		"-IP" + rounder(impactParameter * 180 / 3.14159, 2) +
-		"spin" + spinCombo +
-		"-k" + scientific(kin) +
-		"-cor" + rounder(pow(cor, 2), 4) +
-		"-rho" + rounder(density, 4) +
+		//"spin" + spinCombo +
+		//"-k" + scientific(kin) +
+		//"-cor" + rounder(pow(cor, 2), 4) +
+		//"-rho" + rounder(density, 4) +
 		"-dt" + rounder(dt, 4) +
 		"_";
 
