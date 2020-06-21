@@ -128,7 +128,7 @@ int main(int argc, char const* argv[])
 	}
 
 	outputPrefix =
-		std::to_string(ballTotal) +
+		//std::to_string(ballTotal) +
 		clusterAName + clusterBName +
 		"-EDA" + rounder(KEfactor, 3) +
 		"-IP" + rounder(impactParameter * 180 / 3.14159, 2) +
