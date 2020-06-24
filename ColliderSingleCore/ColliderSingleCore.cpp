@@ -107,7 +107,7 @@ int main(int argc, char const* argv[])
 	}
 
 	// Cosmos has been filled with balls. Size is known:
-	int ballTotal = (int)cosmos.balls.size();
+	int ballTotal = (int)cosmos.numBalls;
 	std::vector<ball>& all = cosmos.balls;
 	cosmos.checkMomentum(); // Is total momentum zero like it should be?
 
@@ -602,7 +602,7 @@ cluster initFromFile(std::string initDataFileName, std::string initConstFileName
 
 		std::stringstream chosenLine(line); // This is the last line of the read file, containing all data for all balls at last time step
 
-		for (int A = 0; A < tclus.balls.size(); A++)
+		for (int A = 0; A < tclus.numBalls; A++)
 		{
 			ball& a = tclus.balls[A];
 
@@ -639,7 +639,7 @@ cluster initFromFile(std::string initDataFileName, std::string initConstFileName
 	if (auto ConstStream = std::ifstream(initConstFileName, std::ifstream::in))
 	{
 		std::string line, lineElement;
-		for (int A = 0; A < tclus.balls.size(); A++)
+		for (int A = 0; A < tclus.numBalls; A++)
 		{
 			ball& a = tclus.balls[A];
 			std::getline(ConstStream, line); // Ball line.
@@ -660,7 +660,7 @@ cluster initFromFile(std::string initDataFileName, std::string initConstFileName
 	// Zero all angular momenta and velocity:
 	if (zeroMotion)
 	{
-		for (int Ball = 0; Ball < tclus.balls.size(); Ball++)
+		for (int Ball = 0; Ball < tclus.numBalls; Ball++)
 		{
 			tclus.balls[Ball].w = { 0, 0, 0 };
 			tclus.balls[Ball].vel = { 0, 0, 0 };
@@ -669,7 +669,7 @@ cluster initFromFile(std::string initDataFileName, std::string initConstFileName
 
 	// Calculate approximate radius of imported cluster and center mass at origin:
 	vector3d comNumerator;
-	for (int Ball = 0; Ball < tclus.balls.size(); Ball++)
+	for (int Ball = 0; Ball < tclus.numBalls; Ball++)
 	{
 		ball& a = tclus.balls[Ball];
 		tclus.m += a.m;
@@ -677,7 +677,7 @@ cluster initFromFile(std::string initDataFileName, std::string initConstFileName
 	}
 	tclus.com = comNumerator / tclus.m;
 
-	for (int Ball = 0; Ball < tclus.balls.size(); Ball++)
+	for (int Ball = 0; Ball < tclus.numBalls; Ball++)
 	{
 		double dist = (tclus.balls[Ball].pos - tclus.com).norm();
 		if (dist > tclus.radius)
@@ -691,7 +691,7 @@ cluster initFromFile(std::string initDataFileName, std::string initConstFileName
 	tclus.com = { 0, 0, 0 }; // We just moved all balls to center the com.
 	tclus.initConditions();
 
-	std::cout << "Balls in current file: " << tclus.balls.size() << std::endl;
+	std::cout << "Balls in current file: " << tclus.numBalls << std::endl;
 	std::cout << "Mass in current file: " << tclus.m << std::endl;
 	std::cout << "Approximate radius of current file: " << tclus.radius << " centimeters.\n";
 	return tclus;

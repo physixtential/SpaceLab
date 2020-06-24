@@ -114,7 +114,7 @@ cluster generateBallField()
 	std::cout << "Final spacerange: " << spaceRange << std::endl;
 	// Calculate approximate radius of imported cluster and center mass at origin:
 	vector3d comNumerator;
-	for (int Ball = 0; Ball < clus.balls.size(); Ball++)
+	for (int Ball = 0; Ball < clus.numBalls; Ball++)
 	{
 		ball& a = clus.balls[Ball];
 		clus.m += a.m;
@@ -122,7 +122,7 @@ cluster generateBallField()
 	}
 	clus.com = comNumerator / clus.m;
 
-	for (int Ball = 0; Ball < clus.balls.size(); Ball++)
+	for (int Ball = 0; Ball < clus.numBalls; Ball++)
 	{
 		double dist = (clus.balls[Ball].pos - clus.com).norm();
 		if (dist > clus.radius)
@@ -141,7 +141,7 @@ int main(int argc, char const* argv[])
 	cluster clus = generateBallField();
 
 	// Cosmos has been filled with balls. Size is known:
-	int ballTotal = clus.balls.size();
+	int ballTotal = clus.numBalls;
 	std::vector<ball>& all = clus.balls;
 
 	clus.initConditions();
