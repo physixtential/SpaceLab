@@ -27,7 +27,7 @@ constexpr unsigned int moi = 14;
 constexpr unsigned int numProps = 15;
 
 // Distance between all balls
-size_t numBalls
+size_t dist[(numBalls * numBalls / 2) - (numBalls / 2)]; // This is the number ball comparisons actually done.
 
 struct cluster
 {
