@@ -1,7 +1,6 @@
 #include "vector3d.h"
 #include "initializations.h"
 #include <vector>
-// Commit test
 
 #pragma once
 
