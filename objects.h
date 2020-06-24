@@ -2,29 +2,30 @@
 #include "initializations.h"
 #include <vector>
 
+
 #pragma once
 
 // Balls
 double* balls;
 // Easy motion component reference in array structure:
-constexpr unsigned int ix = 0;
-constexpr unsigned int iy = 1;
-constexpr unsigned int iz = 2;
-constexpr unsigned int ivx = 3;
-constexpr unsigned int ivy = 4;
-constexpr unsigned int ivz = 5;
-constexpr unsigned int ivhx = 6;
-constexpr unsigned int ivhy = 7;
-constexpr unsigned int ivhz = 8;
-constexpr unsigned int iax = 9;
-constexpr unsigned int iay = 10;
-constexpr unsigned int iaz = 11;
-constexpr unsigned int iwx = 12;
-constexpr unsigned int iwy = 13;
-constexpr unsigned int iwz = 14;
-constexpr unsigned int iR = 15;
-constexpr unsigned int im = 16;
-constexpr unsigned int imoi = 17;
+constexpr unsigned int x_ = 0;
+constexpr unsigned int y_ = 1;
+constexpr unsigned int z_ = 2;
+constexpr unsigned int vx_ = 3;
+constexpr unsigned int vy_ = 4;
+constexpr unsigned int vz_ = 5;
+constexpr unsigned int vhx_ = 6;
+constexpr unsigned int vhy_ = 7;
+constexpr unsigned int vhz_ = 8;
+constexpr unsigned int ax_ = 9;
+constexpr unsigned int ay_ = 10;
+constexpr unsigned int az_ = 11;
+constexpr unsigned int wx_ = 12;
+constexpr unsigned int wy_ = 13;
+constexpr unsigned int wz_ = 14;
+constexpr unsigned int R_ = 15;
+constexpr unsigned int m_ = 16;
+constexpr unsigned int moi_ = 17;
 // Therefore:
 constexpr unsigned int numProps = 18;
 
@@ -33,7 +34,7 @@ size_t dist[(numBalls * numBalls / 2) - (numBalls / 2)]; // This is the number b
 
 struct cluster
 {
-	vector3d com, mom, angMom;
+	vector3d com, mom, angMom; // Can be vector3d because they only matter for writing out to file. Can process on host.
 	double m = 0, radius = 0;
 	double PE = 0, KE = 0;
 	int numBalls = 1;
@@ -47,8 +48,8 @@ struct cluster
 			for (int Ball = 0; Ball < numBalls; Ball++)
 			{
 				int idx = Ball * numProps;
-				vector3d posVec = { balls[idx + ix],balls[idx + iy],balls[idx + iz] };
-				comNumerator += balls[idx + im] * posVec;
+				vector3d posVec = { balls[idx + x_],balls[idx + y_],balls[idx + z_] };
+				comNumerator += balls[idx + m_] * posVec;
 			}
 			com = comNumerator / m;
 		}
@@ -65,17 +66,17 @@ struct cluster
 		for (int Ball = 0; Ball < numBalls; Ball++)
 		{
 			int idx = Ball * numProps;
-			vector3d pos = { balls[idx + ix], balls[idx + iy], balls[idx + iz] };
-			vector3d vel = { balls[idx + ivx], balls[idx + ivy], balls[idx + ivz] };
+			vector3d pos = { balls[idx + x_], balls[idx + y_], balls[idx + z_] };
+			vector3d vel = { balls[idx + vx_], balls[idx + vy_], balls[idx + vz_] };
 			vector3d cross = comRot.cross(pos - com);
 
-			balls[idx + ivx] += cross.x;
-			balls[idx + ivy] += cross.y;
-			balls[idx + ivz] += cross.z;
+			balls[idx + vx_] += cross.x;
+			balls[idx + vy_] += cross.y;
+			balls[idx + vz_] += cross.z;
 
-			balls[idx + iwx] += comRot.x;
-			balls[idx + iwx] += comRot.y;
-			balls[idx + iwx] += comRot.z;
+			balls[idx + wx_] += comRot.x;
+			balls[idx + wx_] += comRot.y;
+			balls[idx + wx_] += comRot.z;
 		}
 	}
 
@@ -84,8 +85,10 @@ struct cluster
 	{
 		for (int Ball = 0; Ball < numBalls; Ball++)
 		{
-			balls[Ball].pos.x += (rad1 + rad2) * cos(impactParam);
-			balls[Ball].pos.y += (rad1 + rad2) * sin(impactParam);
+			int idx = Ball * numProps;
+
+			balls[idx + xi] += (rad1 + rad2) * cos(impactParam);
+			balls[idx + yi] += (rad1 + rad2) * sin(impactParam);
 		}
 		calcCom(); // Update com.
 	}
@@ -94,32 +97,35 @@ struct cluster
 	{
 		for (int Ball = 0; Ball < numBalls; Ball++)
 		{
-			balls[Ball].pos = balls[Ball].pos.rot(axis, angle);
-			balls[Ball].vel = balls[Ball].vel.rot(axis, angle);
-			balls[Ball].w = balls[Ball].w.rot(axis, angle);
+			int idx = Ball * numProps;
+
+			vector3d pos = { balls[idx + x_], balls[idx + y_], balls[idx + z_] };
+			vector3d vel = { balls[idx + vx_], balls[idx + vy_], balls[idx + vz_] };
+			vector3d w = { balls[idx + vx_], balls[idx + vy_], balls[idx + vz_] };
+
+			pos = pos.rot(axis, angle);
+			vel = vel.rot(axis, angle);
+			w = w.rot(axis, angle);
 		}
 	}
 
-	// Initialize accelerations and energy calculations:
+	// Initialzie accelerations and energy calculations:
 	void initConditions()
 	{
 		m = 0;
 		KE = 0;
 		PE = 0;
-		momentum = { 0,0,0 };
-		angularMomentum = { 0,0,0 };
-		if (numBalls > 1)
+		mom = { 0,0,0 };
+		angMom = { 0,0,0 };
+		if (numBalls > 1) // Code below only necessary for effects between balls.
 		{
 			vector3d comNumerator = { 0, 0, 0 };
-			for (int A = 0; A < numBalls; A++)
-			{
-				balls[A].distances.resize(numBalls);
-			}
 
 			for (int A = 0; A < numBalls; A++)
 			{
-				ball& a = balls[A];
-				m += a.m;
+				int idx = A * numProps;
+				double* a = &balls[idx];
+				m += *(a + m_);
 				comNumerator += a.m * a.pos;
 
 				for (int B = A + 1; B < numBalls; B++)
@@ -228,7 +234,7 @@ struct universe
 	std::vector<ball> balls;
 	std::vector<cluster> clusters;
 
-	// Initialize accelerations and energy calculations:
+	// Initialzie accelerations and energy calculations:
 	void initConditions()
 	{
 		mTotal = KE = PE = 0;
@@ -236,7 +242,7 @@ struct universe
 		vector3d comNumerator = { 0, 0, 0 };
 		for (int A = 0; A < numBalls; A++)
 		{
-			balls[A].distances.resize(numBalls);
+			balls[A].distances.reszie(numBalls);
 		}
 
 		for (int A = 0; A < numBalls; A++)
