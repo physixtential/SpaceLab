@@ -35,9 +35,9 @@ size_t dist[(numBalls * numBalls / 2) - (numBalls / 2)]; // This is the number b
 struct cluster
 {
 	vector3d com, mom, angMom;
-	const double m = 0, radius = 0;
+	double m = 0, radius = 0;
 	double PE = 0, KE = 0;
-	const int numBalls = 1;
+	int numBalls = 1;
 	double* balls;
 
 	void calcCom()
@@ -65,8 +65,18 @@ struct cluster
 		vector3d comRot = { spinX, spinY, spinZ }; // Rotation axis and magnitude
 		for (int Ball = 0; Ball < numBalls; Ball++)
 		{
-			balls[Ball].vel += comRot.cross(balls[Ball].pos - com); // If I compute com of this cluster and subtract it from pos[Ball] I can do this without it being at origin.
-			balls[Ball].w += comRot;
+			int idx = Ball * numProps;
+			vector3d pos = { balls[idx + ix], balls[idx + iy], balls[idx + iz] };
+			vector3d vel = { balls[idx + ivx], balls[idx + ivy], balls[idx + ivz] };
+			vector3d cross = comRot.cross(pos - com);
+
+			balls[idx + ivx] += cross.x;
+			balls[idx + ivy] += cross.y;
+			balls[idx + ivz] += cross.z;
+
+			balls[idx + iwx] += comRot.x;
+			balls[idx + iwx] += comRot.y;
+			balls[idx + iwx] += comRot.z;
 		}
 	}
 
