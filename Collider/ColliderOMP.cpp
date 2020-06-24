@@ -294,11 +294,10 @@ int main(int argc, char const* argv[])
 			writeStep = true;
 
 			// Progress reporting:
-			float eta = ((time(NULL) - startProgress) / 500.0 * (steps - Step)) / 3600.; // In seconds.
-			sizeof(int);
+			float eta = ((time(NULL) - startProgress) / skip * (steps - Step)) / 3600.; // In hours.
 			float elapsed = (time(NULL) - start) / 3600.;
 			float progress = ((float)Step / (float)steps * 100.f);
-			printf("Step: %i\tProgress: %2.0f%%\tETA: %5.2lf\tElapsed: %5.2f\n", Step, progress, eta, elapsed);
+			printf("Step: %i\tProgress: %2.0f%%\tETA: %5.2lf\tElapsed: %5.2f\r", Step, progress, eta, elapsed);
 			startProgress = time(NULL);
 		}
 		else
