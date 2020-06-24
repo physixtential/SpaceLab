@@ -482,7 +482,7 @@ int main(int argc, char const* argv[])
 			////////////////////////////////////////////////////////////////////
 			if (time(NULL) - lastWrite > 1800 || Step / skip % 20 == 0 || Step == steps - 1)
 			{
-				std::cout << "\nData Write" << std::endl;
+				std::cout << "\nWriting to file.\n" << std::endl;
 
 				// Write simData to file and clear buffer.
 				ballWrite.open(simDataName, myOpenMode);
