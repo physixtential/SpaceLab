@@ -11,10 +11,22 @@
 //#include "../initializations.h"
 //#include "../objects.h"
 
-
+double m = 0;
 
 int main()
 {
-	char* ptr;
-	
+	double* arr;
+	arr = new double[5];
+
+	arr[0] = 1.0;
+	arr[1] = 1.1;
+	arr[2] = 1.2;
+	arr[3] = 1.3;
+	arr[4] = 1.4;
+
+	double* a = &arr[2];
+
+	m += *(a + 2);
+
+	std::cout << m;
 }

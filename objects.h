@@ -87,8 +87,8 @@ struct cluster
 		{
 			int idx = Ball * numProps;
 
-			balls[idx + xi] += (rad1 + rad2) * cos(impactParam);
-			balls[idx + yi] += (rad1 + rad2) * sin(impactParam);
+			balls[idx + x_] += (rad1 + rad2) * cos(impactParam);
+			balls[idx + y_] += (rad1 + rad2) * sin(impactParam);
 		}
 		calcCom(); // Update com.
 	}
