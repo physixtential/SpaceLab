@@ -1,46 +1,32 @@
+#define _USE_MATH_DEFINES
+#include <iostream>
 #include <cmath>
-#include <stdio.h>
+#include <fstream>
+#include <time.h>
+#include <sstream>
+#include <iomanip>
+#include <algorithm>
+#include <omp.h>
+#include "../vector3d.h"
+//#include "../initializations.h"
+//#include "../objects.h"
 
-size_t numBalls = 1 << 10;
-double* balls;
-// Easy motion component reference in array structure:
-constexpr unsigned int x = 0;
-constexpr unsigned int y = 1;
-constexpr unsigned int z = 2;
-constexpr unsigned int vx = 3;
-constexpr unsigned int vy = 4;
-constexpr unsigned int vz = 5;
-constexpr unsigned int ax = 6;
-constexpr unsigned int ay = 7;
-constexpr unsigned int az = 8;
-constexpr unsigned int wx = 9;
-constexpr unsigned int wy = 10;
-constexpr unsigned int wz = 11;
-constexpr unsigned int R = 12;
-constexpr unsigned int m = 13;
-constexpr unsigned int moi = 14;
-// Therefore:
-constexpr unsigned int numProps = 15;
+double m = 0;
 
 int main()
 {
-	balls = new double[numBalls * numProps];
+	double* arr;
+	arr = new double[5];
 
-	for (size_t i = 0; i < numBalls; i++)
-	{
-		for (size_t j = 0; j < numProps; j++)
-		{
-			balls[numProps * i + j] = i + j;
-		}
-	}
+	arr[0] = 1.0;
+	arr[1] = 1.1;
+	arr[2] = 1.2;
+	arr[3] = 1.3;
+	arr[4] = 1.4;
 
-	size_t ball = 3;
+	double* a = &arr[2];
 
-	double test = balls[numProps * ball + y];
+	m += *(a + 2);
 
-	printf("%lf", test);
-
-	delete[] balls;
-	return 0;
+	std::cout << m;
 }
-
