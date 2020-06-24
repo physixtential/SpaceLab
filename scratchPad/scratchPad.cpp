@@ -24,7 +24,7 @@ int main()
 	arr[3] = 1.3;
 	arr[4] = 1.4;
 
-	double* a = &arr[2];
+	double* a = &arr[2];//
 
 	m += *(a + 2);
 

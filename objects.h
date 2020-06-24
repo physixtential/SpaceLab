@@ -124,8 +124,8 @@ struct cluster
 			for (int A = 0; A < numBalls; A++)
 			{
 				int idx = A * numProps;
-				double* a = &balls[idx];
-				m += *(a + m_);
+				double& a = balls[idx];
+				m += (a + m_);
 				comNumerator += a.m * a.pos;
 
 				for (int B = A + 1; B < numBalls; B++)
