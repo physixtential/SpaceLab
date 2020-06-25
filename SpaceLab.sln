@@ -9,6 +9,7 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Generator", "Generator\Gene
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{66B8E982-AB97-4B92-9D86-36AB864AD0DB}"
 	ProjectSection(SolutionItems) = preProject
+		cuVectorMath.h = cuVectorMath.h
 		initializations.h = initializations.h
 		Notes.txt = Notes.txt
 		objects.h = objects.h
@@ -19,7 +20,7 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ColliderSingleCore", "Colli
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "GeneratorCUDA", "GeneratorCUDA\GeneratorCUDA.vcxproj", "{A45F3D13-CB07-41B2-9129-61EDC8C9EFC3}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "scratchpad", "scratchpad\scratchpad.vcxproj", "{3E4795CB-DD66-4155-9D0A-166C8AE0BB0B}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "scratchpadCUDA", "scratchpadCUDA\scratchpadCUDA.vcxproj", "{1AFADBE2-A0F3-446E-BDCB-09F45114A52C}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -59,14 +60,12 @@ Global
 		{A45F3D13-CB07-41B2-9129-61EDC8C9EFC3}.Release|x64.ActiveCfg = Release|x64
 		{A45F3D13-CB07-41B2-9129-61EDC8C9EFC3}.Release|x64.Build.0 = Release|x64
 		{A45F3D13-CB07-41B2-9129-61EDC8C9EFC3}.Release|x86.ActiveCfg = Release|x64
-		{3E4795CB-DD66-4155-9D0A-166C8AE0BB0B}.Debug|x64.ActiveCfg = Debug|x64
-		{3E4795CB-DD66-4155-9D0A-166C8AE0BB0B}.Debug|x64.Build.0 = Debug|x64
-		{3E4795CB-DD66-4155-9D0A-166C8AE0BB0B}.Debug|x86.ActiveCfg = Debug|Win32
-		{3E4795CB-DD66-4155-9D0A-166C8AE0BB0B}.Debug|x86.Build.0 = Debug|Win32
-		{3E4795CB-DD66-4155-9D0A-166C8AE0BB0B}.Release|x64.ActiveCfg = Release|x64
-		{3E4795CB-DD66-4155-9D0A-166C8AE0BB0B}.Release|x64.Build.0 = Release|x64
-		{3E4795CB-DD66-4155-9D0A-166C8AE0BB0B}.Release|x86.ActiveCfg = Release|Win32
-		{3E4795CB-DD66-4155-9D0A-166C8AE0BB0B}.Release|x86.Build.0 = Release|Win32
+		{1AFADBE2-A0F3-446E-BDCB-09F45114A52C}.Debug|x64.ActiveCfg = Debug|x64
+		{1AFADBE2-A0F3-446E-BDCB-09F45114A52C}.Debug|x64.Build.0 = Debug|x64
+		{1AFADBE2-A0F3-446E-BDCB-09F45114A52C}.Debug|x86.ActiveCfg = Debug|x64
+		{1AFADBE2-A0F3-446E-BDCB-09F45114A52C}.Release|x64.ActiveCfg = Release|x64
+		{1AFADBE2-A0F3-446E-BDCB-09F45114A52C}.Release|x64.Build.0 = Release|x64
+		{1AFADBE2-A0F3-446E-BDCB-09F45114A52C}.Release|x86.ActiveCfg = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

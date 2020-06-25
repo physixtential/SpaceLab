@@ -8,6 +8,8 @@
 #include <algorithm>
 #include <omp.h>
 #include "../vector3d.h"
+#include "../cuVectorMath.h"
+
 //#include "../initializations.h"
 //#include "../objects.h"
 
@@ -28,8 +30,6 @@ int main()
 
 	m = *(a + 2);
 	m = arr[2 + 2];
-
-	int operator+()
 
 	std::cout << m;
 }
