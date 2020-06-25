@@ -125,10 +125,6 @@ inline __host__ __device__ double3 make_double3(double s)
 {
     return make_double3(s, s, s);
 }
-inline __host__ __device__ double3 make_double3(double s)
-{
-    return make_double3(s, s, s);
-}
 inline __host__ __device__ double3 make_double3(double2 a)
 {
     return make_double3(a.x, a.y, 0.0f);
@@ -1264,7 +1260,6 @@ inline __host__ __device__ double dot(double4 a, double4 b)
 {
     return a.x * b.x + a.y * b.y + a.z * b.z + a.w * b.w;
 }
-
 inline __host__ __device__ int dot(int2 a, int2 b)
 {
     return a.x * b.x + a.y * b.y;
