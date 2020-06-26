@@ -30,10 +30,12 @@ int main()
 	m = *(a + 2);
 	m = arr[2 + 2];
 
-	double3 test = make_double3(1, 2, 3);
-	test = test + test;
-	test *= test;
-	test += dot(test, test);
+	double3 test1 = make_double3(1, 2, 3);
+	double3 test2 = make_double3(2, 2, 3);
+	double3 test3 = make_double3(1.5, 2, 3);
+	double3 test4 = make_double3(0, 0, 0);
 
-	std::cout << test.x << test.y << test.z;
+	test4 = smoothstep(test1, test3, test2);
+
+	std::cout << test4.x <<'\t'<< test4.y << '\t' << test4.z;
 }

@@ -25,8 +25,6 @@ __global__ void updatePosition(double* velh, double* pos, const double* vel, dou
 	acc[gid] = 0;
 }
 
-double3
-
 size_t blockSize = 64;
 size_t numBlocks = numBalls / blockSize;
 

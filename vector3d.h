@@ -136,7 +136,6 @@ public:
 	{
 		return vector3d(y * v.z - z * v.y, z * v.x - x * v.z, x * v.y - y * v.x);
 	}
-
 	double norm() const
 	{
 		return sqrt(x * x + y * y + z * z);
