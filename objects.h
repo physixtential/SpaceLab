@@ -1,4 +1,4 @@
-#include "vector3d.h"
+#include "cuVectorMath.h"
 #include "initializations.h"
 #include <vector>
 
@@ -34,7 +34,7 @@ size_t dist[(numBalls * numBalls / 2) - (numBalls / 2)]; // This is the number b
 
 struct cluster
 {
-	vector3d com, mom, angMom; // Can be vector3d because they only matter for writing out to file. Can process on host.
+	double3 com, mom, angMom; // Can be double3 because they only matter for writing out to file. Can process on host.
 	double m = 0, radius = 0;
 	double PE = 0, KE = 0;
 	int numBalls = 1;
@@ -44,11 +44,11 @@ struct cluster
 	{
 		if (m > 0)
 		{
-			vector3d comNumerator = { 0, 0, 0 };
+			double3 comNumerator = { 0, 0, 0 };
 			for (int Ball = 0; Ball < numBalls; Ball++)
 			{
 				int idx = Ball * numProps;
-				vector3d posVec = { balls[idx + x_],balls[idx + y_],balls[idx + z_] };
+				double3 posVec = { balls[idx + x_],balls[idx + y_],balls[idx + z_] };
 				comNumerator += balls[idx + m_] * posVec;
 			}
 			com = comNumerator / m;
@@ -62,13 +62,13 @@ struct cluster
 	// Set velocity of all balls such that the cluster spins:
 	void comSpinner(double spinX, double spinY, double spinZ)
 	{
-		vector3d comRot = { spinX, spinY, spinZ }; // Rotation axis and magnitude
+		double3 comRot = { spinX, spinY, spinZ }; // Rotation axis and magnitude
 		for (int Ball = 0; Ball < numBalls; Ball++)
 		{
 			int idx = Ball * numProps;
-			vector3d pos = { balls[idx + x_], balls[idx + y_], balls[idx + z_] };
-			vector3d vel = { balls[idx + vx_], balls[idx + vy_], balls[idx + vz_] };
-			vector3d cross = comRot.cross(pos - com);
+			double3 pos = { balls[idx + x_], balls[idx + y_], balls[idx + z_] };
+			double3 vel = { balls[idx + vx_], balls[idx + vy_], balls[idx + vz_] };
+			double3 cross = comRot.cross(pos - com);
 
 			balls[idx + vx_] += cross.x;
 			balls[idx + vy_] += cross.y;
@@ -99,9 +99,9 @@ struct cluster
 		{
 			int idx = Ball * numProps;
 
-			vector3d pos = { balls[idx + x_], balls[idx + y_], balls[idx + z_] };
-			vector3d vel = { balls[idx + vx_], balls[idx + vy_], balls[idx + vz_] };
-			vector3d w = { balls[idx + vx_], balls[idx + vy_], balls[idx + vz_] };
+			double3 pos = { balls[idx + x_], balls[idx + y_], balls[idx + z_] };
+			double3 vel = { balls[idx + vx_], balls[idx + vy_], balls[idx + vz_] };
+			double3 w = { balls[idx + vx_], balls[idx + vy_], balls[idx + vz_] };
 
 			pos = pos.rot(axis, angle);
 			vel = vel.rot(axis, angle);
@@ -119,7 +119,7 @@ struct cluster
 		angMom = { 0,0,0 };
 		if (numBalls > 1) // Code below only necessary for effects between balls.
 		{
-			vector3d comNumerator = { 0, 0, 0 };
+			double3 comNumerator = { 0, 0, 0 };
 
 			for (int A = 0; A < numBalls; A++)
 			{
@@ -133,23 +133,23 @@ struct cluster
 					ball& b = balls[B];
 					double sumRaRb = a.R + b.R;
 					double dist = (a.pos - b.pos).norm();
-					vector3d rVecab = b.pos - a.pos;
-					vector3d rVecba = a.pos - b.pos;
+					double3 rVecab = b.pos - a.pos;
+					double3 rVecba = a.pos - b.pos;
 
 					// Check for collision between Ball and otherBall:
 					double overlap = sumRaRb - dist;
-					vector3d totalForce = { 0, 0, 0 };
-					vector3d aTorque = { 0, 0, 0 };
-					vector3d bTorque = { 0, 0, 0 };
+					double3 totalForce = { 0, 0, 0 };
+					double3 aTorque = { 0, 0, 0 };
+					double3 bTorque = { 0, 0, 0 };
 
 					// Check for collision between Ball and otherBall.
 					if (overlap > 0)
 					{
 						// Calculate force and torque for a:
-						vector3d dVel = b.vel - a.vel;
-						vector3d relativeVelOfA = (dVel)-((dVel).dot(rVecab)) * (rVecab / (dist * dist)) - a.w.cross(a.R / sumRaRb * rVecab) - b.w.cross(b.R / sumRaRb * rVecab);
-						vector3d elasticForceOnA = -kin * overlap * .5 * (rVecab / dist);
-						vector3d frictionForceOnA = { 0,0,0 };
+						double3 dVel = b.vel - a.vel;
+						double3 relativeVelOfA = (dVel)-((dVel).dot(rVecab)) * (rVecab / (dist * dist)) - a.w.cross(a.R / sumRaRb * rVecab) - b.w.cross(b.R / sumRaRb * rVecab);
+						double3 elasticForceOnA = -kin * overlap * .5 * (rVecab / dist);
+						double3 frictionForceOnA = { 0,0,0 };
 						if (relativeVelOfA.norm() > 1e-14) // When relative velocity is very low, dividing its vector components by its magnitude below is unstable.
 						{
 							frictionForceOnA = mu * elasticForceOnA.norm() * (relativeVelOfA / relativeVelOfA.norm());
@@ -158,16 +158,16 @@ struct cluster
 
 						// Calculate force and torque for b:
 						dVel = a.vel - b.vel;
-						vector3d relativeVelOfB = (dVel)-((dVel).dot(rVecba)) * (rVecba / (dist * dist)) - b.w.cross(b.R / sumRaRb * rVecba) - a.w.cross(a.R / sumRaRb * rVecba);
-						vector3d elasticForceOnB = -kin * overlap * .5 * (rVecba / dist);
-						vector3d frictionForceOnB = { 0,0,0 };
+						double3 relativeVelOfB = (dVel)-((dVel).dot(rVecba)) * (rVecba / (dist * dist)) - b.w.cross(b.R / sumRaRb * rVecba) - a.w.cross(a.R / sumRaRb * rVecba);
+						double3 elasticForceOnB = -kin * overlap * .5 * (rVecba / dist);
+						double3 frictionForceOnB = { 0,0,0 };
 						if (relativeVelOfB.norm() > 1e-14)
 						{
 							frictionForceOnB = mu * elasticForceOnB.norm() * (relativeVelOfB / relativeVelOfB.norm());
 						}
 						bTorque = (b.R / sumRaRb) * rVecba.cross(frictionForceOnB);
 
-						vector3d gravForceOnA = (G * a.m * b.m / pow(dist, 2)) * (rVecab / dist);
+						double3 gravForceOnA = (G * a.m * b.m / pow(dist, 2)) * (rVecab / dist);
 						totalForce = gravForceOnA + elasticForceOnA + frictionForceOnA;
 						a.w += aTorque / a.moi * dt;
 						b.w += bTorque / b.moi * dt;
@@ -176,7 +176,7 @@ struct cluster
 					else
 					{
 						// No collision: Include gravity only:
-						vector3d gravForceOnA = (G * a.m * b.m / pow(dist, 2)) * (rVecab / dist);
+						double3 gravForceOnA = (G * a.m * b.m / pow(dist, 2)) * (rVecab / dist);
 						totalForce = gravForceOnA;
 						PE += -G * a.m * b.m / dist;
 					}
@@ -216,7 +216,7 @@ struct cluster
 
 	void checkMomentum()
 	{
-		vector3d pTotal = { 0,0,0 };
+		double3 pTotal = { 0,0,0 };
 		double mass = 0;
 		for (int Ball = 0; Ball < numBalls; Ball++)
 		{
@@ -229,7 +229,7 @@ struct cluster
 
 struct universe
 {
-	vector3d com, momentum, angularMomentum;
+	double3 com, momentum, angularMomentum;
 	double mTotal = 0, KE = 0, PE = 0, spaceRange = 0;
 	std::vector<ball> balls;
 	std::vector<cluster> clusters;
@@ -239,7 +239,7 @@ struct universe
 	{
 		mTotal = KE = PE = 0;
 		momentum = angularMomentum = { 0,0,0 };
-		vector3d comNumerator = { 0, 0, 0 };
+		double3 comNumerator = { 0, 0, 0 };
 		for (int A = 0; A < numBalls; A++)
 		{
 			balls[A].distances.reszie(numBalls);
@@ -256,21 +256,21 @@ struct universe
 				ball& b = balls[B];
 				double sumRaRb = a.R + b.R;
 				double dist = (a.pos - b.pos).norm();
-				vector3d rVecab = b.pos - a.pos;
-				vector3d rVecba = a.pos - b.pos;
+				double3 rVecab = b.pos - a.pos;
+				double3 rVecba = a.pos - b.pos;
 
 				// Check for collision between Ball and otherBall:
 				double overlap = sumRaRb - dist;
-				vector3d totalForce = { 0, 0, 0 };
-				vector3d aTorque = { 0, 0, 0 };
-				vector3d bTorque = { 0, 0, 0 };
+				double3 totalForce = { 0, 0, 0 };
+				double3 aTorque = { 0, 0, 0 };
+				double3 bTorque = { 0, 0, 0 };
 				if (overlap > 0)
 				{
 					// Calculate force and torque for a:
-					vector3d dVel = b.vel - a.vel;
-					vector3d relativeVelOfA = (dVel)-((dVel).dot(rVecab)) * (rVecab / (dist * dist)) - a.w.cross(a.R / sumRaRb * rVecab) - b.w.cross(b.R / sumRaRb * rVecab);
-					vector3d elasticForceOnA = -kin * overlap * .5 * (rVecab / dist);
-					vector3d frictionForceOnA = { 0,0,0 };
+					double3 dVel = b.vel - a.vel;
+					double3 relativeVelOfA = (dVel)-((dVel).dot(rVecab)) * (rVecab / (dist * dist)) - a.w.cross(a.R / sumRaRb * rVecab) - b.w.cross(b.R / sumRaRb * rVecab);
+					double3 elasticForceOnA = -kin * overlap * .5 * (rVecab / dist);
+					double3 frictionForceOnA = { 0,0,0 };
 					if (relativeVelOfA.norm() > 1e-14) // When relative velocity is very low, dividing its vector components by its magnitude below is unstable.
 					{
 						frictionForceOnA = mu * elasticForceOnA.norm() * (relativeVelOfA / relativeVelOfA.norm());
@@ -279,16 +279,16 @@ struct universe
 
 					// Calculate force and torque for b:
 					dVel = a.vel - b.vel;
-					vector3d relativeVelOfB = (dVel)-((dVel).dot(rVecba)) * (rVecba / (dist * dist)) - b.w.cross(b.R / sumRaRb * rVecba) - a.w.cross(a.R / sumRaRb * rVecba);
-					vector3d elasticForceOnB = -kin * overlap * .5 * (rVecba / dist);
-					vector3d frictionForceOnB = { 0,0,0 };
+					double3 relativeVelOfB = (dVel)-((dVel).dot(rVecba)) * (rVecba / (dist * dist)) - b.w.cross(b.R / sumRaRb * rVecba) - a.w.cross(a.R / sumRaRb * rVecba);
+					double3 elasticForceOnB = -kin * overlap * .5 * (rVecba / dist);
+					double3 frictionForceOnB = { 0,0,0 };
 					if (relativeVelOfB.norm() > 1e-14)
 					{
 						frictionForceOnB = mu * elasticForceOnB.norm() * (relativeVelOfB / relativeVelOfB.norm());
 					}
 					bTorque = (b.R / sumRaRb) * rVecba.cross(frictionForceOnB);
 
-					vector3d gravForceOnA = (G * a.m * b.m / pow(dist, 2)) * (rVecab / dist);
+					double3 gravForceOnA = (G * a.m * b.m / pow(dist, 2)) * (rVecab / dist);
 					totalForce = gravForceOnA + elasticForceOnA + frictionForceOnA;
 					a.w += aTorque / a.moi * dt;
 					b.w += bTorque / b.moi * dt;
@@ -297,7 +297,7 @@ struct universe
 				else
 				{
 					// No collision: Include gravity only:
-					vector3d gravForceOnA = (G * a.m * b.m / pow(dist, 2)) * (rVecab / dist);
+					double3 gravForceOnA = (G * a.m * b.m / pow(dist, 2)) * (rVecab / dist);
 					totalForce = gravForceOnA;
 					PE += -G * a.m * b.m / dist;
 				}
@@ -315,7 +315,7 @@ struct universe
 
 	void calcComAndMass()
 	{
-		vector3d comNumerator = { 0, 0, 0 };
+		double3 comNumerator = { 0, 0, 0 };
 		mTotal = 0;
 		for (int Ball = 0; Ball < numBalls; Ball++)
 		{
@@ -327,7 +327,7 @@ struct universe
 
 	void checkMomentum()
 	{
-		vector3d pTotal = { 0,0,0 };
+		double3 pTotal = { 0,0,0 };
 		double mass = 0;
 		for (int Ball = 0; Ball < numBalls; Ball++)
 		{
@@ -340,7 +340,7 @@ struct universe
 	void zeroMomentum()
 	{
 		// Something about this is wrong. It is not zeroing momentum.
-		vector3d pTotal = { 0,0,0 };
+		double3 pTotal = { 0,0,0 };
 		double mass = 0;
 		for (int Ball = 0; Ball < numBalls; Ball++)
 		{

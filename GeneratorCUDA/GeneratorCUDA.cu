@@ -5,9 +5,9 @@
 #include <sstream>
 #include <iomanip>
 #include <algorithm>
-#include "../vector3d.h"
 #include "../initializations.h"
 #include "../objects.h"
+#include "../cuVectorMath.h"
 
 #include "cuda_runtime.h"
 #include "device_launch_parameters.h"
@@ -132,7 +132,7 @@ cluster generateBallField()
 	}
 	std::cout << "Final spacerange: " << spaceRange << std::endl;
 	// Calculate approximate radius of imported cluster and center mass at origin:
-	vector3d comNumerator;
+	double3 comNumerator;
 	for (int Ball = 0; Ball < clus.numBalls; Ball++)
 	{
 		ball& a = clus.balls[Ball];
@@ -364,14 +364,14 @@ int main(int argc, char const* argv[])
 				ball& b = all[B];
 				double sumRaRb = a.R + b.R;
 				double dist = (a.pos - b.pos).norm();
-				vector3d rVecab = b.pos - a.pos;
-				vector3d rVecba = -1 * rVecab;
+				double3 rVecab = b.pos - a.pos;
+				double3 rVecba = -1 * rVecab;
 
 				// Check for collision between Ball and otherBall:
 				double overlap = sumRaRb - dist;
-				vector3d totalForce = { 0, 0, 0 };
-				vector3d aTorque = { 0, 0, 0 };
-				vector3d bTorque = { 0, 0, 0 };
+				double3 totalForce = { 0, 0, 0 };
+				double3 aTorque = { 0, 0, 0 };
+				double3 bTorque = { 0, 0, 0 };
 
 				// Check for collision between Ball and otherBall.
 				if (overlap > 0)
@@ -403,10 +403,10 @@ int main(int argc, char const* argv[])
 					}
 
 					// Calculate force and torque for a:
-					vector3d dVel = b.vel - a.vel;
-					vector3d relativeVelOfA = (dVel)-((dVel).dot(rVecab)) * (rVecab / (dist * dist)) - a.w.cross(a.R / sumRaRb * rVecab) - b.w.cross(b.R / sumRaRb * rVecab);
-					vector3d elasticForceOnA = -k * overlap * .5 * (rVecab / dist);
-					vector3d frictionForceOnA = { 0,0,0 };
+					double3 dVel = b.vel - a.vel;
+					double3 relativeVelOfA = (dVel)-((dVel).dot(rVecab)) * (rVecab / (dist * dist)) - a.w.cross(a.R / sumRaRb * rVecab) - b.w.cross(b.R / sumRaRb * rVecab);
+					double3 elasticForceOnA = -k * overlap * .5 * (rVecab / dist);
+					double3 frictionForceOnA = { 0,0,0 };
 					if (relativeVelOfA.norm() > 1e-14) // When relative velocity is very low, dividing its vector components by its magnitude below is unstable.
 					{
 						frictionForceOnA = mu * elasticForceOnA.norm() * (relativeVelOfA / relativeVelOfA.norm());
@@ -415,16 +415,16 @@ int main(int argc, char const* argv[])
 
 					// Calculate force and torque for b:
 					dVel = a.vel - b.vel;
-					vector3d relativeVelOfB = (dVel)-((dVel).dot(rVecba)) * (rVecba / (dist * dist)) - b.w.cross(b.R / sumRaRb * rVecba) - a.w.cross(a.R / sumRaRb * rVecba);
-					vector3d elasticForceOnB = -k * overlap * .5 * (rVecba / dist);
-					vector3d frictionForceOnB = { 0,0,0 };
+					double3 relativeVelOfB = (dVel)-((dVel).dot(rVecba)) * (rVecba / (dist * dist)) - b.w.cross(b.R / sumRaRb * rVecba) - a.w.cross(a.R / sumRaRb * rVecba);
+					double3 elasticForceOnB = -k * overlap * .5 * (rVecba / dist);
+					double3 frictionForceOnB = { 0,0,0 };
 					if (relativeVelOfB.norm() > 1e-14)
 					{
 						frictionForceOnB = mu * elasticForceOnB.norm() * (relativeVelOfB / relativeVelOfB.norm());
 					}
 					bTorque = (b.R / sumRaRb) * rVecba.cross(frictionForceOnB);
 
-					vector3d gravForceOnA = (G * a.m * b.m / pow(dist, 2)) * (rVecab / dist);
+					double3 gravForceOnA = (G * a.m * b.m / pow(dist, 2)) * (rVecab / dist);
 					totalForce = gravForceOnA + elasticForceOnA + frictionForceOnA;
 					a.w += aTorque / a.moi * dt;
 					b.w += bTorque / b.moi * dt;
@@ -441,7 +441,7 @@ int main(int argc, char const* argv[])
 				else
 				{
 					// No collision: Include gravity only:
-					vector3d gravForceOnA = (G * a.m * b.m / pow(dist, 2)) * (rVecab / dist);
+					double3 gravForceOnA = (G * a.m * b.m / pow(dist, 2)) * (rVecab / dist);
 					totalForce = gravForceOnA;
 					if (writeStep)
 					{
