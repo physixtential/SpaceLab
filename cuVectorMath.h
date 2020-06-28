@@ -1456,4 +1456,9 @@ inline __device__ __host__ double4 smoothstep(double4 a, double4 b, double4 x)
     return (y*y*(make_double4(3.0f) - (make_double4(2.0f)*y)));
 }
 
+// Generate a random double from -.5lim to .5lim so that numbers are distributed evenly around 0:
+double randDouble(double lim)
+{
+    return lim * ((double)rand() / (double)RAND_MAX - .5);
+}
 #endif
