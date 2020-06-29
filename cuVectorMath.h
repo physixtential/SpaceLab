@@ -64,9 +64,9 @@ inline int min(int a, int b)
     return a < b ? a : b;
 }
 
-inline double rsqrtf(double x)
+inline double rsqrt(double x)
 {
-    return 1.0f / sqrtf(x);
+    return 1.0f / sqrt(x);
 }
 #endif
 
@@ -1292,15 +1292,35 @@ inline __host__ __device__ uint dot(uint4 a, uint4 b)
 
 inline __host__ __device__ double length(double2 v)
 {
-    return sqrtf(dot(v, v));
+    return sqrt(dot(v, v));
 }
 inline __host__ __device__ double length(double3 v)
 {
-    return sqrtf(dot(v, v));
+    return sqrt(dot(v, v));
 }
 inline __host__ __device__ double length(double4 v)
 {
-    return sqrtf(dot(v, v));
+    return sqrt(dot(v, v));
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// magnitude
+////////////////////////////////////////////////////////////////////////////////
+
+inline __host__ __device__ double mag(double2 v)
+{
+    double len = sqrt(dot(v, v));
+    return len;
+}
+inline __host__ __device__ double mag(double3 v)
+{
+    double len = sqrt(dot(v, v));
+    return len;
+}
+inline __host__ __device__ double mag(double4 v)
+{
+    double len = sqrt(dot(v, v));
+    return len;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -1309,17 +1329,17 @@ inline __host__ __device__ double length(double4 v)
 
 inline __host__ __device__ double2 normalize(double2 v)
 {
-    double invLen = rsqrtf(dot(v, v));
+    double invLen = rsqrt(dot(v, v));
     return v * invLen;
 }
 inline __host__ __device__ double3 normalize(double3 v)
 {
-    double invLen = rsqrtf(dot(v, v));
+    double invLen = rsqrt(dot(v, v));
     return v * invLen;
 }
 inline __host__ __device__ double4 normalize(double4 v)
 {
-    double invLen = rsqrtf(dot(v, v));
+    double invLen = rsqrt(dot(v, v));
     return v * invLen;
 }
 

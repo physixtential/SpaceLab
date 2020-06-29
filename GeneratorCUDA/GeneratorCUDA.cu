@@ -17,12 +17,12 @@
 #define CHECK (cudaStatus != cudaSuccess) ? fprintf(stderr, "Error at line %i\n", __LINE__ - 1) : NULL;
 
 
-__global__ void updatePosition(double3 velh, double* pos, const double* vel, double* acc, const double dt)
+__global__ void updatePosition(double3* velh, double3* pos, const double3* vel, double3* acc, const double dt)
 {
 	unsigned int gid = blockIdx.x * blockDim.x + threadIdx.x;
-	velh[gid] = fma(.5 * dt, acc[gid], vel[gid]);
-	pos[gid] = fma(velh[gid], dt, pos[gid]);
-	acc[gid] = 0;
+	velh[gid] = .5 * dt * acc[gid] + vel[gid];
+	pos[gid] = velh[gid] * dt + pos[gid];
+	acc[gid] = make_double3(0, 0, 0);
 }
 
 size_t blockSize = 64;
@@ -47,22 +47,21 @@ cudaError_t intAddWithCuda(int* c, const int* a, const int* b, unsigned int size
 
 int main(int argc, char const* argv[])
 {
-	cluster clus = generateBallField();
+	cluster clus = generateBallField(numBalls, numProps, scaleBalls);
 
-	// Cosmos has been filled with balls. Size is known:
-	int ballTotal = clus.numBalls;
-	std::vector<ball>& all = clus.balls;
+	// Cluster has been filled with balls. Size is known
 
 	clus.initConditions();
-	// Re-center universe mass to origin:
-	for (int Ball = 0; Ball < ballTotal; Ball++)
+
+	// Re-center cluster mass to origin:
+	for (int Ball = 0; Ball < numBalls; Ball++)
 	{
 		clus.balls[Ball].pos -= clus.com;
 	}
 	clus.com = { 0, 0, 0 };
 
 	outputPrefix =
-		std::to_string(ballTotal) +
+		std::to_string(numBalls) +
 		"-R" + scientific(clus.radius) +
 		"-k" + scientific(kin) +
 		"-cor" + rounder(pow(cor, 2), 4) +
@@ -101,7 +100,7 @@ int main(int argc, char const* argv[])
 	// Make column headers:
 	energyWrite << "Time,PE,KE,E,p,L,Bound,Unbound,m";
 	ballWrite << "x0,y0,z0,w_x0,w_y0,w_z0,w_mag0,v_x0,v_y0,v_z0,comp0";
-	for (int Ball = 1; Ball < ballTotal; Ball++) // Start at 2nd ball because first one was just written^.
+	for (int Ball = 1; Ball < numBalls; Ball++) // Start at 2nd ball because first one was just written^.
 	{
 		std::string thisBall = std::to_string(Ball);
 		ballWrite
@@ -121,7 +120,7 @@ int main(int argc, char const* argv[])
 	std::cout << "\nSim data, energy, and constants file streams and headers created.";
 
 	// Write constant data:
-	for (int Ball = 0; Ball < ballTotal; Ball++)
+	for (int Ball = 0; Ball < numBalls; Ball++)
 	{
 
 		constWrite
@@ -168,7 +167,7 @@ int main(int argc, char const* argv[])
 		<< all[0].vel.y << ','
 		<< all[0].vel.z << ','
 		<< 0; //bound[0];
-	for (int Ball = 1; Ball < ballTotal; Ball++)
+	for (int Ball = 1; Ball < numBalls; Ball++)
 	{
 		ballBuffer
 			<< ',' << all[Ball].pos.x << ','
@@ -229,7 +228,7 @@ int main(int argc, char const* argv[])
 
 
 		// FIRST PASS - Position, send to buffer, velocity half step:
-		for (int Ball = 0; Ball < ballTotal; Ball++)
+		for (int Ball = 0; Ball < numBalls; Ball++)
 		{
 			// Update velocity half step:
 			all[Ball].velh = all[Ball].vel + .5 * all[Ball].acc * dt;
@@ -244,11 +243,11 @@ int main(int argc, char const* argv[])
 
 		// SECOND PASS - Check for collisions, apply forces and torques:
 		double k;
-		for (int A = 0; A < ballTotal; A++) //cuda
+		for (int A = 0; A < numBalls; A++) //cuda
 		{
 			ball& a = all[A];
 
-			for (int B = A + 1; B < ballTotal; B++)
+			for (int B = A + 1; B < numBalls; B++)
 			{
 
 				ball& b = all[B];
@@ -352,7 +351,7 @@ int main(int argc, char const* argv[])
 		{
 			ballBuffer << std::endl; // Prepares a new line for incoming data.
 		}
-		for (int Ball = 0; Ball < ballTotal; Ball++)
+		for (int Ball = 0; Ball < numBalls; Ball++)
 		{
 			ball& a = all[Ball];
 
@@ -424,7 +423,7 @@ int main(int argc, char const* argv[])
 	////////////////////////////////////////////////////////
 
 	std::cout << "Simulation complete!\n"
-		<< ballTotal << " Particles and " << steps << " Steps.\n"
+		<< numBalls << " Particles and " << steps << " Steps.\n"
 		<< "Simulated time: " << steps * dt << " seconds\n"
 		<< "Computation time: " << end - start << " seconds\n";
 	std::cout << "\n===============================================================\n";
@@ -435,12 +434,8 @@ int main(int argc, char const* argv[])
 	return 0;
 }
 
-
-cluster generateBallField(const size_t nBalls, const int nProps, const double ballMaxR, const double range)
+cluster generateRandomCluster(const size_t nBalls, const int nProps, const double ballMaxR, const double range)
 {
-	cluster clus;
-	clus.balls = new double[nBalls * nProps];
-
 	// Create new random number set.
 	int seedSave = time(NULL);
 	srand(seedSave);
@@ -450,77 +445,55 @@ cluster generateBallField(const size_t nBalls, const int nProps, const double ba
 	int mediums = std::round((double)nBalls * 27 / (8 * 31.375));
 	int larges = std::round((double)nBalls * 1 / 31.375);
 
+	double3* pos = new double3[nBalls];
+	double3* vel = new double3[nBalls];
+	double3* velh = new double3[nBalls];
+	double3* acc = new double3[nBalls];
+	double3* w = new double3[nBalls];
+	double* R = new double[nBalls];
+	double* m = new double[nBalls];
+	double* moi = new double[nBalls];
 
 	for (int Ball = 0; Ball < larges; Ball++)
 	{
-		int a = Ball * nProps;
-
-		balls[a + R_] = 3. * ballMaxR;
-		balls[a + m_] = density * 4. / 3. * M_PI * pow(balls[a + R_], 3);
-		balls[a + moi_] = .4 * balls[a + m_] * balls[a + R_] * balls[a + R_];
-
-		balls[a + wx_] = 0;
-		balls[a + wy_] = 0;
-		balls[a + wz_] = 0;
-
-		balls[a + x_] = randDouble(range);
-		balls[a + y_] = randDouble(range);
-		balls[a + z_] = randDouble(range);
+		R[Ball] = 3. * ballMaxR;
+		m[Ball] = density * 4. / 3. * M_PI * pow(R[Ball], 3);
+		moi[Ball] = .4 * m[Ball] * R[Ball] * R[Ball];
+		w[Ball] = make_double3(0, 0, 0);
+		pos[Ball] = make_double3(randDouble(range), randDouble(range), randDouble(range));
 	}
 
 	for (int Ball = larges; Ball < (larges + mediums); Ball++)
 	{
-		int a = Ball * nProps;
-
-		balls[a + R_] = 2. * ballMaxR;
-		balls[a + m_] = density * 4. / 3. * M_PI * pow(balls[a + R_], 3);
-		balls[a + moi_] = .4 * balls[a + m_] * balls[a + R_] * balls[a + R_];
-
-		balls[a + wx_] = 0;
-		balls[a + wy_] = 0;
-		balls[a + wz_] = 0;
-
-		balls[a + x_] = randDouble(range);
-		balls[a + y_] = randDouble(range);
-		balls[a + z_] = randDouble(range);
+		R[Ball] = 2. * ballMaxR;
+		m[Ball] = density * 4. / 3. * M_PI * pow(R[Ball], 3);
+		moi[Ball] = .4 * m[Ball] * R[Ball] * R[Ball];
+		w[Ball] = make_double3(0, 0, 0);
+		pos[Ball] = make_double3(randDouble(range), randDouble(range), randDouble(range));
 	}
-	for (int Ball = (larges + mediums); Ball < numBalls; Ball++)
+	for (int Ball = (larges + mediums); Ball < nBalls; Ball++)
 	{
-		int a = Ball * nProps;
-
-		balls[a + R_] = 1. * ballMaxR;
-		balls[a + m_] = density * 4. / 3. * M_PI * pow(balls[a + R_], 3);
-		balls[a + moi_] = .4 * balls[a + m_] * balls[a + R_] * balls[a + R_];
-
-		balls[a + wx_] = 0;
-		balls[a + wy_] = 0;
-		balls[a + wz_] = 0;
-
-		balls[a + x_] = randDouble(range);
-		balls[a + y_] = randDouble(range);
-		balls[a + z_] = randDouble(range);
+		R[Ball] = 1. * ballMaxR;
+		m[Ball] = density * 4. / 3. * M_PI * pow(R[Ball], 3);
+		moi[Ball] = .4 * m[Ball] * R[Ball] * R[Ball];
+		w[Ball] = make_double3(0, 0, 0);
+		pos[Ball] = make_double3(randDouble(range), randDouble(range), randDouble(range));
 	}
 
 	std::cout << "Smalls: " << smalls << " Mediums: " << mediums << " Larges: " << larges << std::endl;
 
 	// Generate non-overlapping spherical particle field:
 	int collisionDetected = 0;
-	int oldCollisions = numBalls;
+	int oldCollisions = nBalls;
 
 	for (int failed = 0; failed < attempts; failed++)
 	{
-		for (int A = 0; A < numBalls; A++)
+		for (int A = 0; A < nBalls; A++)
 		{
-			int a = A * nProps;
-
-			for (int B = A + 1; B < numBalls; B++)
+			for (int B = A + 1; B < nBalls; B++)
 			{
-				int b = B * nProps;
-
-				double3 
-
 				// Check for Ball overlap.
-				double dist = (a.pos - b.pos).norm();
+				double dist = normalize(pos[A] - pos[B]);
 				double sumRaRb = balls[a + R_] + b.R;
 				double overlap = dist - sumRaRb;
 				if (overlap < 0)
@@ -541,12 +514,12 @@ cluster generateBallField(const size_t nBalls, const int nProps, const double ba
 			std::cout << "\nSuccess!\n";
 			break;
 		}
-		if (failed == attempts - 1 || collisionDetected > int(1.5 * (double)numBalls)) // Added the second part to speed up spatial constraint increase when there are clearly too many collisions for the space to be feasable.
+		if (failed == attempts - 1 || collisionDetected > int(1.5 * (double)nBalls)) // Added the second part to speed up spatial constraint increase when there are clearly too many collisions for the space to be feasable.
 		{
 			std::cout << "Failed " << spaceRange << ". Increasing range " << spaceRangeIncrement << "cm^3.\n";
 			spaceRange += spaceRangeIncrement;
 			failed = 0;
-			for (int Ball = 0; Ball < numBalls; Ball++)
+			for (int Ball = 0; Ball < nBalls; Ball++)
 			{
 				clus.balls[Ball].pos = randVec(spaceRange, spaceRange, spaceRange); // Each time we fail and increase range, redistribute all balls randomly so we don't end up with big balls near mid and small balls outside.
 			}
@@ -556,7 +529,7 @@ cluster generateBallField(const size_t nBalls, const int nProps, const double ba
 	std::cout << "Final spacerange: " << spaceRange << std::endl;
 	// Calculate approximate radius of imported cluster and center mass at origin:
 	double3 comNumerator;
-	for (int Ball = 0; Ball < clus.numBalls; Ball++)
+	for (int Ball = 0; Ball < clus.nBalls; Ball++)
 	{
 		ball& a = clus.balls[Ball];
 		clus.m += balls[a + m_];
@@ -564,7 +537,7 @@ cluster generateBallField(const size_t nBalls, const int nProps, const double ba
 	}
 	clus.com = comNumerator / clus.m;
 
-	for (int Ball = 0; Ball < clus.numBalls; Ball++)
+	for (int Ball = 0; Ball < clus.nBalls; Ball++)
 	{
 		double dist = (clus.balls[Ball].pos - clus.com).norm();
 		if (dist > clus.radius)

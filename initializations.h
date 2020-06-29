@@ -28,7 +28,7 @@ attempts = 200,				// How many times to try moving every ball touching another i
 properties = 11;			// Number of columns in simData file per ball
 
 const size_t
-numBalls = 1 << 10;				// Total balls in simulation.
+//numBalls = 1 << 10;				// Total balls in simulation.
 
 
 // Parallelism

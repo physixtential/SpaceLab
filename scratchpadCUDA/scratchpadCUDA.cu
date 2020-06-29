@@ -4,19 +4,7 @@
 #include "../cuVectorMath.h"
 #include <iostream>
 
-// nvcc does not seem to like variadic macros, so we have to define
-// one for each kernel parameter list:
-#ifdef __CUDACC__
-#define KERNEL_ARGS2(grid, block) <<< grid, block >>>
-#define KERNEL_ARGS3(grid, block, sh_mem) <<< grid, block, sh_mem >>>
-#define KERNEL_ARGS4(grid, block, sh_mem, stream) <<< grid, block, sh_mem, stream >>>
-#else
-#define KERNEL_ARGS2(grid, block)
-#define KERNEL_ARGS3(grid, block, sh_mem)
-#define KERNEL_ARGS4(grid, block, sh_mem, stream)
-#endif
-
-cudaError_t addWithCuda(double3* pos, const double3* vel, const double3* acc, unsigned int size);
+cudaError_t double3Math(double3* pos, const double3* vel, const double3* acc, unsigned int size);
 
 __global__ void addKernel(double3* pos, const double3* vel, const double3* acc)
 {
@@ -24,8 +12,17 @@ __global__ void addKernel(double3* pos, const double3* vel, const double3* acc)
 	pos[i] = vel[i] * acc[i];
 }
 
+struct MyStruct
+{
+	int numBalls;
+	MyStruct(int n) : numBalls(n) {}
+};
+
 int main()
 {
+	MyStruct test(10);
+
+
 	const int arraySize = 5;
 	double3* pos = new double3[arraySize];
 	double3* vel = new double3[arraySize];
@@ -33,12 +30,12 @@ int main()
 
 	for (size_t i = 0; i < arraySize; i++)
 	{
-		vel[i] = make_double3((double)i, (double)i, (double)i);
-		acc[i] = make_double3((double)i, (double)i, (double)i);
+		vel[i] = make_double3(i, i, i);
+		acc[i] = make_double3(i, i, i);
 	}
 
 	// Add vectors in parallel.
-	cudaError_t cudaStatus = addWithCuda(pos, vel, acc, arraySize);
+	cudaError_t cudaStatus = double3Math(pos, vel, acc, arraySize);
 	if (cudaStatus != cudaSuccess)
 	{
 		fprintf(stderr, "addWithCuda failed!");
@@ -53,6 +50,8 @@ int main()
 		printf("Position:\t%lf\t%lf\t%lf\n", pos[i].x, pos[i].y, pos[i].z);
 	}
 
+	printf("MyStruct numBalls = %d", test.numBalls);
+
 	// cudaDeviceReset must be called before exiting in order for profiling and
 	// tracing tools such as Nsight and Visual Profiler to show complete traces.
 	cudaStatus = cudaDeviceReset();
@@ -66,12 +65,12 @@ int main()
 }
 
 // Helper function for using CUDA to add vectors in parallel.
-cudaError_t addWithCuda(double3* pos, const double3* vel, const double3* acc, unsigned int size)
+cudaError_t double3Math(double3* ans, const double3* a, const double3* b, unsigned int size)
 {
 
-	double3* dev_pos;
-	double3* dev_vel;
-	double3* dev_acc;
+	double3* dev_ans;
+	double3* dev_a;
+	double3* dev_b;
 	cudaError_t cudaStatus;
 
 	// Choose which GPU to run on, change this on a multi-GPU system.
@@ -83,20 +82,20 @@ cudaError_t addWithCuda(double3* pos, const double3* vel, const double3* acc, un
 	}
 
 	// Allocate GPU buffers for three vectors (two input, one output).
-	cudaStatus = cudaMalloc((void**)&dev_pos, size * sizeof(double3));
-	cudaStatus = cudaMalloc((void**)&dev_vel, size * sizeof(double3));
-	cudaStatus = cudaMalloc((void**)&dev_acc, size * sizeof(double3));
+	cudaStatus = cudaMalloc((void**)&dev_ans, size * sizeof(double3));
+	cudaStatus = cudaMalloc((void**)&dev_a, size * sizeof(double3));
+	cudaStatus = cudaMalloc((void**)&dev_b, size * sizeof(double3));
 
 	// Copy input vectors from host memory to GPU buffers.
-	cudaStatus = cudaMemcpy(dev_vel, vel, size * sizeof(double3), cudaMemcpyHostToDevice);
-	cudaStatus = cudaMemcpy(dev_acc, acc, size * sizeof(double3), cudaMemcpyHostToDevice);
+	cudaStatus = cudaMemcpy(dev_a, a, size * sizeof(double3), cudaMemcpyHostToDevice);
+	cudaStatus = cudaMemcpy(dev_b, b, size * sizeof(double3), cudaMemcpyHostToDevice);
 
 	// Launch a kernel on the GPU with one thread for each element.
-
+	// Later set blockSize to 64 or something to make multiple warps per SM.
 	dim3 numBlocks(1, 1, 1);
 	dim3 tpb(size, 1, 1);
 
-	addKernel << <numBlocks, tpb >> > (dev_pos, dev_vel, dev_acc);
+	addKernel << <numBlocks, tpb >> > (dev_ans, dev_a, dev_b);
 
 	// Check for any errors launching the kernel
 	cudaStatus = cudaGetLastError();
@@ -108,15 +107,15 @@ cudaError_t addWithCuda(double3* pos, const double3* vel, const double3* acc, un
 
 	// cudaDeviceSynchronize waits for the kernel to finish, and returns
 	// any errors encountered during the launch.
-	cudaStatus = cudaDeviceSynchronize();
-	if (cudaStatus != cudaSuccess)
-	{
-		fprintf(stderr, "cudaDeviceSynchronize returned error code %d after launching addKernel!\n", cudaStatus);
-		goto Error;
-	}
+	//cudaStatus = cudaDeviceSynchronize();
+	//if (cudaStatus != cudaSuccess)
+	//{
+	//	fprintf(stderr, "cudaDeviceSynchronize returned error code %d after launching addKernel!\n", cudaStatus);
+	//	goto Error;
+	//}
 
 	// Copy output vector from GPU buffer to host memory.
-	cudaStatus = cudaMemcpy(pos, dev_pos, size * sizeof(double3), cudaMemcpyDeviceToHost);
+	cudaStatus = cudaMemcpy(ans, dev_ans, size * sizeof(double3), cudaMemcpyDeviceToHost);
 	if (cudaStatus != cudaSuccess)
 	{
 		fprintf(stderr, "cudaMemcpy failed!");
@@ -124,9 +123,9 @@ cudaError_t addWithCuda(double3* pos, const double3* vel, const double3* acc, un
 	}
 
 Error:
-	cudaFree(dev_pos);
-	cudaFree(dev_vel);
-	cudaFree(dev_acc);
+	cudaFree(dev_ans);
+	cudaFree(dev_a);
+	cudaFree(dev_b);
 
 	return cudaStatus;
 }

@@ -5,40 +5,28 @@
 
 #pragma once
 
-// Balls
-double* balls;
 // Easy motion component reference in array structure:
-constexpr unsigned int x_ = 0;
-constexpr unsigned int y_ = 1;
-constexpr unsigned int z_ = 2;
-constexpr unsigned int vx_ = 3;
-constexpr unsigned int vy_ = 4;
-constexpr unsigned int vz_ = 5;
-constexpr unsigned int vhx_ = 6;
-constexpr unsigned int vhy_ = 7;
-constexpr unsigned int vhz_ = 8;
-constexpr unsigned int ax_ = 9;
-constexpr unsigned int ay_ = 10;
-constexpr unsigned int az_ = 11;
-constexpr unsigned int wx_ = 12;
-constexpr unsigned int wy_ = 13;
-constexpr unsigned int wz_ = 14;
-constexpr unsigned int R_ = 15;
-constexpr unsigned int m_ = 16;
-constexpr unsigned int moi_ = 17;
+constexpr unsigned int pos_ = 0;	// x, y, z
+constexpr unsigned int vel_ = 1;	// x, y, z
+constexpr unsigned int velh_ = 2;	// x, y, z
+constexpr unsigned int acc_ = 3;	// x, y, z
+constexpr unsigned int w_ = 4;		// x, y, z
+constexpr unsigned int Rmi_ = 5;	// R, m, moi
 // Therefore:
-constexpr unsigned int numProps = 18;
+constexpr unsigned int numProps = 6;
 
 // Distance between all balls
 size_t dist[(numBalls * numBalls / 2) - (numBalls / 2)]; // This is the number ball comparisons actually done.
 
 struct cluster
 {
+	int numBalls;
+	cluster(int n) : numBalls(n) {} // Clusters must declare number of balls.
+
 	double3 com, mom, angMom; // Can be double3 because they only matter for writing out to file. Can process on host.
 	double m = 0, radius = 0;
 	double PE = 0, KE = 0;
-	int numBalls = 1;
-	double* balls;
+	double3* balls3 = 0; // We could allocate here, but then it would be easier to forget to delete. Do it in main code.
 
 	void calcCom()
 	{
@@ -48,8 +36,7 @@ struct cluster
 			for (int Ball = 0; Ball < numBalls; Ball++)
 			{
 				int idx = Ball * numProps;
-				double3 posVec = { balls[idx + x_],balls[idx + y_],balls[idx + z_] };
-				comNumerator += balls[idx + m_] * posVec;
+				comNumerator += balls3[idx+ * posVec;
 			}
 			com = comNumerator / m;
 		}
@@ -123,10 +110,10 @@ struct cluster
 
 			for (int A = 0; A < numBalls; A++)
 			{
-				int idx = A * numProps;
+				int a = A * numProps;
 
-				m += balls[idx + m_];
-				comNumerator += a.m * a.pos;
+				m += balls[a + m_];
+				comNumerator += balls[a + m_] * balls[a + pos_];
 
 				for (int B = A + 1; B < numBalls; B++)
 				{
