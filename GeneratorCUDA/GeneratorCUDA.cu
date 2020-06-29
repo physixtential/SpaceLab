@@ -41,15 +41,13 @@ ballBuffer,
 energyBuffer;
 
 // Prototypes
-cluster generateBallField(const size_t nBalls, const int nProps, const double ballMaxR);
+cluster* generateRandomCluster(const size_t nBalls, const double ballR, double range);
 cudaError_t intAddWithCuda(int* c, const int* a, const int* b, unsigned int size);
 
 
 int main(int argc, char const* argv[])
 {
-	cluster clus = generateBallField(numBalls, numProps, scaleBalls);
-
-	// Cluster has been filled with balls. Size is known
+	cluster clus = *generateRandomCluster(numBalls, scaleBalls, spaceRange);
 
 	clus.initConditions();
 
@@ -434,8 +432,10 @@ int main(int argc, char const* argv[])
 	return 0;
 }
 
-cluster generateRandomCluster(const size_t nBalls, const int nProps, const double ballMaxR, const double range)
+cluster* generateRandomCluster(const size_t nBalls, const double ballR, double range)
 {
+	cluster clus;
+
 	// Create new random number set.
 	int seedSave = time(NULL);
 	srand(seedSave);
@@ -445,39 +445,30 @@ cluster generateRandomCluster(const size_t nBalls, const int nProps, const doubl
 	int mediums = std::round((double)nBalls * 27 / (8 * 31.375));
 	int larges = std::round((double)nBalls * 1 / 31.375);
 
-	double3* pos = new double3[nBalls];
-	double3* vel = new double3[nBalls];
-	double3* velh = new double3[nBalls];
-	double3* acc = new double3[nBalls];
-	double3* w = new double3[nBalls];
-	double* R = new double[nBalls];
-	double* m = new double[nBalls];
-	double* moi = new double[nBalls];
-
 	for (int Ball = 0; Ball < larges; Ball++)
 	{
-		R[Ball] = 3. * ballMaxR;
-		m[Ball] = density * 4. / 3. * M_PI * pow(R[Ball], 3);
-		moi[Ball] = .4 * m[Ball] * R[Ball] * R[Ball];
-		w[Ball] = make_double3(0, 0, 0);
-		pos[Ball] = make_double3(randDouble(range), randDouble(range), randDouble(range));
+		clus.R[Ball] = 1. * ballR;
+		clus.m[Ball] = density * 4. / 3. * M_PI * pow(clus.R[Ball], 3);
+		clus.moi[Ball] = .4 * clus.m[Ball] * clus.R[Ball] * clus.R[Ball];
+		clus.w[Ball] = make_double3(0, 0, 0);
+		clus.pos[Ball] = make_double3(randDouble(range), randDouble(range), randDouble(range));
 	}
 
 	for (int Ball = larges; Ball < (larges + mediums); Ball++)
 	{
-		R[Ball] = 2. * ballMaxR;
-		m[Ball] = density * 4. / 3. * M_PI * pow(R[Ball], 3);
-		moi[Ball] = .4 * m[Ball] * R[Ball] * R[Ball];
-		w[Ball] = make_double3(0, 0, 0);
-		pos[Ball] = make_double3(randDouble(range), randDouble(range), randDouble(range));
+		clus.R[Ball] = 2. * ballR;
+		clus.m[Ball] = density * 4. / 3. * M_PI * pow(clus.R[Ball], 3);
+		clus.moi[Ball] = .4 * clus.m[Ball] * clus.R[Ball] * clus.R[Ball];
+		clus.w[Ball] = make_double3(0, 0, 0);
+		clus.pos[Ball] = make_double3(randDouble(range), randDouble(range), randDouble(range));
 	}
 	for (int Ball = (larges + mediums); Ball < nBalls; Ball++)
 	{
-		R[Ball] = 1. * ballMaxR;
-		m[Ball] = density * 4. / 3. * M_PI * pow(R[Ball], 3);
-		moi[Ball] = .4 * m[Ball] * R[Ball] * R[Ball];
-		w[Ball] = make_double3(0, 0, 0);
-		pos[Ball] = make_double3(randDouble(range), randDouble(range), randDouble(range));
+		clus.R[Ball] = 3. * ballR;
+		clus.m[Ball] = density * 4. / 3. * M_PI * pow(clus.R[Ball], 3);
+		clus.moi[Ball] = .4 * clus.m[Ball] * clus.R[Ball] * clus.R[Ball];
+		clus.w[Ball] = make_double3(0, 0, 0);
+		clus.pos[Ball] = make_double3(randDouble(range), randDouble(range), randDouble(range));
 	}
 
 	std::cout << "Smalls: " << smalls << " Mediums: " << mediums << " Larges: " << larges << std::endl;
@@ -493,14 +484,14 @@ cluster generateRandomCluster(const size_t nBalls, const int nProps, const doubl
 			for (int B = A + 1; B < nBalls; B++)
 			{
 				// Check for Ball overlap.
-				double dist = normalize(pos[A] - pos[B]);
-				double sumRaRb = balls[a + R_] + b.R;
+				double dist = mag(clus.pos[A] - clus.pos[B]);
+				double sumRaRb = clus.R[A] + clus.R[B];
 				double overlap = dist - sumRaRb;
 				if (overlap < 0)
 				{
 					collisionDetected += 1;
 					// Move B:
-					b.pos = randVec(spaceRange, spaceRange, spaceRange);
+					clus.pos[B] = randVec(range, range, range);
 				}
 			}
 		}
@@ -516,39 +507,42 @@ cluster generateRandomCluster(const size_t nBalls, const int nProps, const doubl
 		}
 		if (failed == attempts - 1 || collisionDetected > int(1.5 * (double)nBalls)) // Added the second part to speed up spatial constraint increase when there are clearly too many collisions for the space to be feasable.
 		{
-			std::cout << "Failed " << spaceRange << ". Increasing range " << spaceRangeIncrement << "cm^3.\n";
-			spaceRange += spaceRangeIncrement;
+			std::cout << "Failed " << range << ". Increasing range " << ballR*3 << "cm^3.\n";
+			range += ballR*3;
 			failed = 0;
 			for (int Ball = 0; Ball < nBalls; Ball++)
 			{
-				clus.balls[Ball].pos = randVec(spaceRange, spaceRange, spaceRange); // Each time we fail and increase range, redistribute all balls randomly so we don't end up with big balls near mid and small balls outside.
+				clus.pos[Ball] = randVec(range, range, range); // Each time we fail and increase range, redistribute all balls randomly so we don't end up with big balls near mid and small balls outside.
 			}
 		}
 		collisionDetected = 0;
 	}
-	std::cout << "Final spacerange: " << spaceRange << std::endl;
-	// Calculate approximate radius of imported cluster and center mass at origin:
-	double3 comNumerator;
-	for (int Ball = 0; Ball < clus.nBalls; Ball++)
-	{
-		ball& a = clus.balls[Ball];
-		clus.m += balls[a + m_];
-		comNumerator += balls[a + m_] * a.pos;
-	}
-	clus.com = comNumerator / clus.m;
+	
+	std::cout << "Final range: " << range << std::endl;
 
-	for (int Ball = 0; Ball < clus.nBalls; Ball++)
+	// Center of mass:
+	double3 comNumerator;
+	for (int Ball = 0; Ball < nBalls; Ball++)
 	{
-		double dist = (clus.balls[Ball].pos - clus.com).norm();
+		clus.mTotal += clus.m[Ball];
+		comNumerator += clus.m[Ball] * clus.pos[Ball];
+	}
+	clus.com = comNumerator / clus.mTotal;
+
+	// Cluster Radius (uncollapsed)
+	for (int Ball = 0; Ball < nBalls; Ball++)
+	{
+		double dist = mag(clus.pos[Ball] - clus.com);
 		if (dist > clus.radius)
 		{
 			clus.radius = dist;
 		}
 	}
+
 	std::cout << "Initial Radius: " << clus.radius << std::endl;
 	std::cout << "Mass: " << clus.m << std::endl;
 
-	return clus;
+	return &clus;
 }
 
 

@@ -1476,9 +1476,73 @@ inline __device__ __host__ double4 smoothstep(double4 a, double4 b, double4 x)
     return (y*y*(make_double4(3.0f) - (make_double4(2.0f)*y)));
 }
 
+//////////////////
+// Rotate
+//////////////////
+inline __host__ __device__ double3 rot(char axis, double angle, double3 v)
+{
+    double rotx[3][3] = { {1, 0, 0}, {0, cos(angle), -sin(angle)}, {0, sin(angle), cos(angle)} },
+        roty[3][3] = { {cos(angle), 0, sin(angle)}, {0, 1, 0}, {-sin(angle), 0, cos(angle)} },
+        rotz[3][3] = { {cos(angle), -sin(angle), 0}, {sin(angle), cos(angle), 0}, {0, 0, 1} };
+    double3 newVec;
+    switch (axis)
+    {
+    case 'x':
+        newVec.x = rotx[0][0] * v.x + rotx[0][1] * v.y + rotx[0][2] * v.z;
+        newVec.y = rotx[1][0] * v.x + rotx[1][1] * v.y + rotx[1][2] * v.z;
+        newVec.z = rotx[2][0] * v.x + rotx[2][1] * v.y + rotx[2][2] * v.z;
+        break;
+    case 'y':
+        newVec.x = roty[0][0] * v.x + roty[0][1] * v.y + roty[0][2] * v.z;
+        newVec.y = roty[1][0] * v.x + roty[1][1] * v.y + roty[1][2] * v.z;
+        newVec.z = roty[2][0] * v.x + roty[2][1] * v.y + roty[2][2] * v.z;
+        break;
+    case 'z':
+        newVec.x = rotz[0][0] * v.x + rotz[0][1] * v.y + rotz[0][2] * v.z;
+        newVec.y = rotz[1][0] * v.x + rotz[1][1] * v.y + rotz[1][2] * v.z;
+        newVec.z = rotz[2][0] * v.x + rotz[2][1] * v.y + rotz[2][2] * v.z;
+        break;
+    default:
+        printf("Must choose x, y, or z rotation axis.");
+        break;
+    }
+    return newVec;
+}
+
+
+
+
+
 // Generate a random double from -.5lim to .5lim so that numbers are distributed evenly around 0:
-double randDouble(double lim)
+inline double randDouble(double lim)
 {
     return lim * ((double)rand() / (double)RAND_MAX - .5);
+}
+
+// Returns a vector within the desired radius, resulting in spherical random distribution
+inline double3 randVec(double lim1, double lim2, double lim3)
+{
+    double3 vec = make_double3(randDouble(lim1), randDouble(lim2), randDouble(lim3));
+    double halfLim = lim1 * .5;
+    while (mag(vec) > halfLim)
+    {
+        vec = make_double3(randDouble(lim1), randDouble(lim2), randDouble(lim3));
+    }
+    return vec;
+}
+
+// Rounding
+std::string rounder(double value, int digits)
+{
+    return std::to_string(value).substr(0, digits);
+}
+
+// Scientific Notation
+std::string scientific(double value)
+{
+    std::stringstream ss;
+    ss << value;
+    std::string conversion = ss.str();
+    return conversion;
 }
 #endif

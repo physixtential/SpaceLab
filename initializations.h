@@ -28,7 +28,7 @@ attempts = 200,				// How many times to try moving every ball touching another i
 properties = 11;			// Number of columns in simData file per ball
 
 const size_t
-//numBalls = 1 << 10;				// Total balls in simulation.
+numBalls = 1 << 10;				// Total balls in simulation.
 
 
 // Parallelism
@@ -37,13 +37,12 @@ int numThreads = 1; // omp parallel thread count.
 double
 scaleBalls = 750000, // scales ball radius
 spaceRange = pow(scaleBalls * numBalls, 1. / 3.), // Rough minimum space required
-spaceRangeIncrement = scaleBalls * 3,
 KEfactor = 3.,			// Determines collision velocity based on KE/PE
-impactParameter = 0,	// Impact angle
-z0Rot = 0,				// Cluster one z axis rotation
-y0Rot = 0,				// Cluster one y axis rotation
-z1Rot = 0,				// Cluster two z axis rotation
-y1Rot = 0;				// Cluster two y axis rotation
+impactParameter = 0;	// Impact angle
+//z0Rot = 0,				// Cluster one z axis rotation
+//y0Rot = 0,				// Cluster one y axis rotation
+//z1Rot = 0,				// Cluster two z axis rotation
+//y1Rot = 0;				// Cluster two y axis rotation
 
 const bool
 springTest = false; // If true, spring compression is checked against ball radius. If compression > .1R, send warning to console. 

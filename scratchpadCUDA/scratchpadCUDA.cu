@@ -30,8 +30,8 @@ int main()
 
 	for (size_t i = 0; i < arraySize; i++)
 	{
-		vel[i] = make_double3(i, i, i);
-		acc[i] = make_double3(i, i, i);
+		vel[i] = { (double)i, (double)i, (double)i };
+		acc[i] = { (double)i,(double)i, (double)i };
 	}
 
 	// Add vectors in parallel.

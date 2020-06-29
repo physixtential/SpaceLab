@@ -5,28 +5,24 @@
 
 #pragma once
 
-// Easy motion component reference in array structure:
-constexpr unsigned int pos_ = 0;	// x, y, z
-constexpr unsigned int vel_ = 1;	// x, y, z
-constexpr unsigned int velh_ = 2;	// x, y, z
-constexpr unsigned int acc_ = 3;	// x, y, z
-constexpr unsigned int w_ = 4;		// x, y, z
-constexpr unsigned int Rmi_ = 5;	// R, m, moi
-// Therefore:
-constexpr unsigned int numProps = 6;
-
 // Distance between all balls
-size_t dist[(numBalls * numBalls / 2) - (numBalls / 2)]; // This is the number ball comparisons actually done.
+//size_t dist[(numBalls * numBalls / 2) - (numBalls / 2)]; // This is the number ball comparisons actually done.
 
 struct cluster
 {
 	int numBalls;
-	cluster(int n) : numBalls(n) {} // Clusters must declare number of balls.
-
 	double3 com, mom, angMom; // Can be double3 because they only matter for writing out to file. Can process on host.
-	double m = 0, radius = 0;
+	double mTotal = 0, radius = 0;
 	double PE = 0, KE = 0;
-	double3* balls3 = 0; // We could allocate here, but then it would be easier to forget to delete. Do it in main code.
+
+	double3* pos = 0;
+	double3* vel = 0;
+	double3* velh = 0;
+	double3* acc = 0;
+	double3* w = 0;
+	double* R = 0;
+	double* m = 0;
+	double* moi = 0;
 
 	void calcCom()
 	{
@@ -36,7 +32,7 @@ struct cluster
 			for (int Ball = 0; Ball < numBalls; Ball++)
 			{
 				int idx = Ball * numProps;
-				comNumerator += balls3[idx+ * posVec;
+				comNumerator += balls3[idx + *posVec;
 			}
 			com = comNumerator / m;
 		}
@@ -84,12 +80,6 @@ struct cluster
 	{
 		for (int Ball = 0; Ball < numBalls; Ball++)
 		{
-			int idx = Ball * numProps;
-
-			double3 pos = { balls[idx + x_], balls[idx + y_], balls[idx + z_] };
-			double3 vel = { balls[idx + vx_], balls[idx + vy_], balls[idx + vz_] };
-			double3 w = { balls[idx + vx_], balls[idx + vy_], balls[idx + vz_] };
-
 			pos = pos.rot(axis, angle);
 			vel = vel.rot(axis, angle);
 			w = w.rot(axis, angle);
@@ -99,29 +89,26 @@ struct cluster
 	// Initialzie accelerations and energy calculations:
 	void initConditions()
 	{
-		m = 0;
+		mTotal = 0;
 		KE = 0;
 		PE = 0;
-		mom = { 0,0,0 };
-		angMom = { 0,0,0 };
+		mom = make_double3(0, 0, 0);
+		angMom = make_double3(0, 0, 0);
 		if (numBalls > 1) // Code below only necessary for effects between balls.
 		{
 			double3 comNumerator = { 0, 0, 0 };
 
 			for (int A = 0; A < numBalls; A++)
 			{
-				int a = A * numProps;
-
-				m += balls[a + m_];
-				comNumerator += balls[a + m_] * balls[a + pos_];
+				mTotal += m[A];
+				comNumerator += m[A] * pos[A];
 
 				for (int B = A + 1; B < numBalls; B++)
 				{
-					ball& b = balls[B];
-					double sumRaRb = a.R + b.R;
-					double dist = (a.pos - b.pos).norm();
-					double3 rVecab = b.pos - a.pos;
-					double3 rVecba = a.pos - b.pos;
+					double sumRaRb = R[A] + R[B];
+					double dist = (pos[A] - pos[B]).norm();
+					double3 rVecab = pos[B] - pos[A];
+					double3 rVecba = pos[A] - pos[B];
 
 					// Check for collision between Ball and otherBall:
 					double overlap = sumRaRb - dist;
@@ -134,25 +121,25 @@ struct cluster
 					{
 						// Calculate force and torque for a:
 						double3 dVel = b.vel - a.vel;
-						double3 relativeVelOfA = (dVel)-((dVel).dot(rVecab)) * (rVecab / (dist * dist)) - a.w.cross(a.R / sumRaRb * rVecab) - b.w.cross(b.R / sumRaRb * rVecab);
+						double3 relativeVelOfA = (dVel)-((dVel).dot(rVecab)) * (rVecab / (dist * dist)) - a.w.cross(R[A] / sumRaRb * rVecab) - b.w.cross(R[B] / sumRaRb * rVecab);
 						double3 elasticForceOnA = -kin * overlap * .5 * (rVecab / dist);
 						double3 frictionForceOnA = { 0,0,0 };
 						if (relativeVelOfA.norm() > 1e-14) // When relative velocity is very low, dividing its vector components by its magnitude below is unstable.
 						{
 							frictionForceOnA = mu * elasticForceOnA.norm() * (relativeVelOfA / relativeVelOfA.norm());
 						}
-						aTorque = (a.R / sumRaRb) * rVecab.cross(frictionForceOnA);
+						aTorque = (R[A] / sumRaRb) * rVecab.cross(frictionForceOnA);
 
 						// Calculate force and torque for b:
 						dVel = a.vel - b.vel;
-						double3 relativeVelOfB = (dVel)-((dVel).dot(rVecba)) * (rVecba / (dist * dist)) - b.w.cross(b.R / sumRaRb * rVecba) - a.w.cross(a.R / sumRaRb * rVecba);
+						double3 relativeVelOfB = (dVel)-((dVel).dot(rVecba)) * (rVecba / (dist * dist)) - b.w.cross(R[B] / sumRaRb * rVecba) - a.w.cross(R[A] / sumRaRb * rVecba);
 						double3 elasticForceOnB = -kin * overlap * .5 * (rVecba / dist);
 						double3 frictionForceOnB = { 0,0,0 };
 						if (relativeVelOfB.norm() > 1e-14)
 						{
 							frictionForceOnB = mu * elasticForceOnB.norm() * (relativeVelOfB / relativeVelOfB.norm());
 						}
-						bTorque = (b.R / sumRaRb) * rVecba.cross(frictionForceOnB);
+						bTorque = (R[B] / sumRaRb) * rVecba.cross(frictionForceOnB);
 
 						double3 gravForceOnA = (G * a.m * b.m / pow(dist, 2)) * (rVecab / dist);
 						totalForce = gravForceOnA + elasticForceOnA + frictionForceOnA;
@@ -174,7 +161,7 @@ struct cluster
 				}
 				KE += .5 * a.m * a.vel.normsquared() + .5 * a.moi * a.w.normsquared();
 				momentum += a.m * a.vel;
-				angularMomentum += a.m * a.pos.cross(a.vel) + a.moi * a.w;
+				angularMomentum += a.m * pos[A].cross(a.vel) + a.moi * a.w;
 			}
 			com = comNumerator / m;
 		}
@@ -185,8 +172,8 @@ struct cluster
 			PE = 0;
 			KE = .5 * a.m * a.vel.normsquared() + .5 * a.moi * a.w.normsquared();
 			momentum = a.m * a.vel;
-			angularMomentum = a.m * a.pos.cross(a.vel) + a.moi * a.w;
-			radius = a.R;
+			angularMomentum = a.m * pos[A].cross(a.vel) + a.moi * a.w;
+			radius = R[A];
 		}
 	}
 
@@ -236,15 +223,15 @@ struct universe
 		{
 			ball& a = balls[A];
 			mTotal += a.m;
-			comNumerator += a.m * a.pos;
+			comNumerator += a.m * pos[A];
 
 			for (int B = A + 1; B < numBalls; B++)
 			{
 				ball& b = balls[B];
-				double sumRaRb = a.R + b.R;
-				double dist = (a.pos - b.pos).norm();
-				double3 rVecab = b.pos - a.pos;
-				double3 rVecba = a.pos - b.pos;
+				double sumRaRb = R[A] + R[B];
+				double dist = (pos[A] - pos[B]).norm();
+				double3 rVecab = pos[B] - pos[A];
+				double3 rVecba = pos[A] - pos[B];
 
 				// Check for collision between Ball and otherBall:
 				double overlap = sumRaRb - dist;
@@ -255,25 +242,25 @@ struct universe
 				{
 					// Calculate force and torque for a:
 					double3 dVel = b.vel - a.vel;
-					double3 relativeVelOfA = (dVel)-((dVel).dot(rVecab)) * (rVecab / (dist * dist)) - a.w.cross(a.R / sumRaRb * rVecab) - b.w.cross(b.R / sumRaRb * rVecab);
+					double3 relativeVelOfA = (dVel)-((dVel).dot(rVecab)) * (rVecab / (dist * dist)) - a.w.cross(R[A] / sumRaRb * rVecab) - b.w.cross(R[B] / sumRaRb * rVecab);
 					double3 elasticForceOnA = -kin * overlap * .5 * (rVecab / dist);
 					double3 frictionForceOnA = { 0,0,0 };
 					if (relativeVelOfA.norm() > 1e-14) // When relative velocity is very low, dividing its vector components by its magnitude below is unstable.
 					{
 						frictionForceOnA = mu * elasticForceOnA.norm() * (relativeVelOfA / relativeVelOfA.norm());
 					}
-					aTorque = (a.R / sumRaRb) * rVecab.cross(frictionForceOnA);
+					aTorque = (R[A] / sumRaRb) * rVecab.cross(frictionForceOnA);
 
 					// Calculate force and torque for b:
 					dVel = a.vel - b.vel;
-					double3 relativeVelOfB = (dVel)-((dVel).dot(rVecba)) * (rVecba / (dist * dist)) - b.w.cross(b.R / sumRaRb * rVecba) - a.w.cross(a.R / sumRaRb * rVecba);
+					double3 relativeVelOfB = (dVel)-((dVel).dot(rVecba)) * (rVecba / (dist * dist)) - b.w.cross(R[B] / sumRaRb * rVecba) - a.w.cross(R[A] / sumRaRb * rVecba);
 					double3 elasticForceOnB = -kin * overlap * .5 * (rVecba / dist);
 					double3 frictionForceOnB = { 0,0,0 };
 					if (relativeVelOfB.norm() > 1e-14)
 					{
 						frictionForceOnB = mu * elasticForceOnB.norm() * (relativeVelOfB / relativeVelOfB.norm());
 					}
-					bTorque = (b.R / sumRaRb) * rVecba.cross(frictionForceOnB);
+					bTorque = (R[B] / sumRaRb) * rVecba.cross(frictionForceOnB);
 
 					double3 gravForceOnA = (G * a.m * b.m / pow(dist, 2)) * (rVecab / dist);
 					totalForce = gravForceOnA + elasticForceOnA + frictionForceOnA;
@@ -295,7 +282,7 @@ struct universe
 			}
 			KE += .5 * a.m * a.vel.normsquared() + .5 * a.moi * a.w.normsquared();
 			momentum += a.m * a.vel;
-			angularMomentum += a.m * a.pos.cross(a.vel) + a.moi * a.w;
+			angularMomentum += a.m * pos[A].cross(a.vel) + a.moi * a.w;
 		}
 		com = comNumerator / mTotal;
 	}
