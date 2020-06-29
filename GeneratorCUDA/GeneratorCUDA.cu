@@ -49,7 +49,7 @@ int main(int argc, char const* argv[])
 {
 	cluster clus = *generateRandomCluster(numBalls, scaleBalls, spaceRange);
 
-	clus.initConditions();
+	clus.initConditions(numBalls);
 
 	// Re-center cluster mass to origin:
 	for (int Ball = 0; Ball < numBalls; Ball++)
@@ -137,8 +137,8 @@ int main(int argc, char const* argv[])
 		<< clus.PE << ','
 		<< clus.KE << ','
 		<< clus.PE + clus.KE << ','
-		<< clus.momentum.norm() << ','
-		<< clus.angularMomentum.norm() << ','
+		<< mag(clus.mom) << ','
+		<< mag(clus.angMom) << ','
 		<< 0 << ',' //boundMass
 		<< 0 << ',' //unboundMass
 		<< clus.m;
@@ -148,22 +148,22 @@ int main(int argc, char const* argv[])
 	// Reinitialize energies for next step:
 	clus.KE = 0;
 	clus.PE = 0;
-	clus.momentum = { 0, 0, 0 };
-	clus.angularMomentum = { 0, 0, 0 };
+	clus.mom = { 0, 0, 0 };
+	clus.angMom = { 0, 0, 0 };
 
 	// ball buffer:
 	ballBuffer << std::endl; // Necessary new line after header.
 	ballBuffer
-		<< all[0].pos.x << ','
-		<< all[0].pos.y << ','
-		<< all[0].pos.z << ','
-		<< all[0].w.x << ','
-		<< all[0].w.y << ','
-		<< all[0].w.z << ','
-		<< all[0].w.norm() << ','
-		<< all[0].vel.x << ','
-		<< all[0].vel.y << ','
-		<< all[0].vel.z << ','
+		<< clus.pos.x << ','
+		<< clus.pos.y << ','
+		<< clus.pos.z << ','
+		<< clus.w.x << ','
+		<< clus.w.y << ','
+		<< clus.w.z << ','
+		<< clus.w.norm() << ','
+		<< clus.vel.x << ','
+		<< clus.vel.y << ','
+		<< clus.vel.z << ','
 		<< 0; //bound[0];
 	for (int Ball = 1; Ball < numBalls; Ball++)
 	{
@@ -373,20 +373,20 @@ int main(int argc, char const* argv[])
 
 				clus.KE += .5 * balls[a + m_] * a.vel.normsquared() + .5 * balls[a + moi_] * a.w.normsquared(); // Now includes rotational kinetic energy.
 				clus.momentum += balls[a + m_] * a.vel;
-				clus.angularMomentum += balls[a + m_] * a.pos.cross(a.vel) + balls[a + moi_] * a.w;
+				clus.angMom += balls[a + m_] * a.pos.cross(a.vel) + balls[a + moi_] * a.w;
 			}
 		}
 		if (writeStep)
 		{
 			// Write energy to stream:
 			energyBuffer << std::endl
-				<< dt * Step << ',' << clus.PE << ',' << clus.KE << ',' << clus.PE + clus.KE << ',' << clus.momentum.norm() << ',' << clus.angularMomentum.norm() << ',' << 0 << ',' << 0 << ',' << clus.m; // the two zeros are bound and unbound mass
+				<< dt * Step << ',' << clus.PE << ',' << clus.KE << ',' << clus.PE + clus.KE << ',' << clus.momentum.norm() << ',' << clus.angMom.norm() << ',' << 0 << ',' << 0 << ',' << clus.m; // the two zeros are bound and unbound mass
 
    // Reinitialize energies for next step:
 			clus.KE = 0;
 			clus.PE = 0;
 			clus.momentum = { 0, 0, 0 };
-			clus.angularMomentum = { 0, 0, 0 };
+			clus.angMom = { 0, 0, 0 };
 			// unboundMass = 0;
 			// boundMass = clus.m;
 
@@ -435,6 +435,17 @@ int main(int argc, char const* argv[])
 cluster* generateRandomCluster(const size_t nBalls, const double ballR, double range)
 {
 	cluster clus;
+
+	distances = new double[(cNumBalls * cNumBalls / 2) - (cNumBalls / 2)];
+
+	pos = new double3[cNumBalls];
+	vel = new double3[cNumBalls];
+	velh = new double3[cNumBalls];
+	acc = new double3[cNumBalls];
+	w = new double3[cNumBalls];
+	R = new double[cNumBalls];
+	m = new double[cNumBalls];
+	moi = new double[cNumBalls];
 
 	// Create new random number set.
 	int seedSave = time(NULL);

@@ -6,14 +6,17 @@
 #pragma once
 
 // Distance between all balls
-//size_t dist[(numBalls * numBalls / 2) - (numBalls / 2)]; // This is the number ball comparisons actually done.
+//size_t dist[(NumBalls * NumBalls / 2) - (NumBalls / 2)]; // This is the number ball comparisons actually done.
 
 struct cluster
 {
-	int numBalls;
+	int cNumBalls = 0;
+
 	double3 com, mom, angMom; // Can be double3 because they only matter for writing out to file. Can process on host.
 	double mTotal = 0, radius = 0;
 	double PE = 0, KE = 0;
+
+	double* distances = 0;
 
 	double3* pos = 0;
 	double3* vel = 0;
@@ -26,15 +29,14 @@ struct cluster
 
 	void calcCom()
 	{
-		if (m > 0)
+		if (mTotal > 0)
 		{
 			double3 comNumerator = { 0, 0, 0 };
-			for (int Ball = 0; Ball < numBalls; Ball++)
+			for (int Ball = 0; Ball < cNumBalls; Ball++)
 			{
-				int idx = Ball * numProps;
-				comNumerator += balls3[idx + *posVec;
+				comNumerator += m[Ball] * pos[Ball];
 			}
-			com = comNumerator / m;
+			com = comNumerator / mTotal;
 		}
 		else
 		{
@@ -45,68 +47,81 @@ struct cluster
 	// Set velocity of all balls such that the cluster spins:
 	void comSpinner(double spinX, double spinY, double spinZ)
 	{
-		double3 comRot = { spinX, spinY, spinZ }; // Rotation axis and magnitude
-		for (int Ball = 0; Ball < numBalls; Ball++)
+		double3 comRot = make_double3(spinX, spinY, spinZ); // Rotation axis and magnitude
+		for (int Ball = 0; Ball < cNumBalls; Ball++)
 		{
-			int idx = Ball * numProps;
-			double3 pos = { balls[idx + x_], balls[idx + y_], balls[idx + z_] };
-			double3 vel = { balls[idx + vx_], balls[idx + vy_], balls[idx + vz_] };
-			double3 cross = comRot.cross(pos - com);
-
-			balls[idx + vx_] += cross.x;
-			balls[idx + vy_] += cross.y;
-			balls[idx + vz_] += cross.z;
-
-			balls[idx + wx_] += comRot.x;
-			balls[idx + wx_] += comRot.y;
-			balls[idx + wx_] += comRot.z;
+			vel[Ball] += cross(comRot, (pos[Ball] - com));
+			w[Ball] += comRot;
 		}
 	}
 
 	// offset cluster
 	void offset(double rad1, double rad2, double impactParam)
 	{
-		for (int Ball = 0; Ball < numBalls; Ball++)
+		for (int Ball = 0; Ball < cNumBalls; Ball++)
 		{
-			int idx = Ball * numProps;
-
-			balls[idx + x_] += (rad1 + rad2) * cos(impactParam);
-			balls[idx + y_] += (rad1 + rad2) * sin(impactParam);
+			pos[Ball].x += (rad1 + rad2) * cos(impactParam);
+			pos[Ball].y += (rad1 + rad2) * sin(impactParam);
 		}
 		calcCom(); // Update com.
 	}
 
 	void rotAll(char axis, double angle)
 	{
-		for (int Ball = 0; Ball < numBalls; Ball++)
+		for (int Ball = 0; Ball < cNumBalls; Ball++)
 		{
-			pos = pos.rot(axis, angle);
-			vel = vel.rot(axis, angle);
-			w = w.rot(axis, angle);
+			pos[Ball] = rot(axis, angle, pos[Ball]);
+			vel[Ball] = rot(axis, angle, vel[Ball]);
+			w[Ball] = rot(axis, angle, w[Ball]);
 		}
 	}
 
-	// Initialzie accelerations and energy calculations:
-	void initConditions()
+	// Deallocate heap memory.
+	void freeMemory()
 	{
+		delete[] distances;
+		delete[] pos;
+		delete[] vel;
+		delete[] velh;
+		delete[] acc;
+		delete[] w;
+		delete[] R;
+		delete[] m;
+		delete[] moi;
+	}
+
+	// Initialzie accelerations and energy calculations:
+	void initConditions(int cNumBalls)
+	{
+		distances = new double[(cNumBalls * cNumBalls / 2) - (cNumBalls / 2)];
+
+		pos = new double3[cNumBalls];
+		vel = new double3[cNumBalls];
+		velh = new double3[cNumBalls];
+		acc = new double3[cNumBalls];
+		w = new double3[cNumBalls];
+		R = new double[cNumBalls];
+		m = new double[cNumBalls];
+		moi = new double[cNumBalls];
+
 		mTotal = 0;
 		KE = 0;
 		PE = 0;
 		mom = make_double3(0, 0, 0);
 		angMom = make_double3(0, 0, 0);
-		if (numBalls > 1) // Code below only necessary for effects between balls.
+		if (cNumBalls > 1) // Code below only necessary for effects between balls.
 		{
 			double3 comNumerator = { 0, 0, 0 };
 
-			for (int A = 0; A < numBalls; A++)
+			for (int A = 0; A < cNumBalls; A++)
 			{
 				mTotal += m[A];
 				comNumerator += m[A] * pos[A];
 
-				for (int B = A + 1; B < numBalls; B++)
+				for (int B = A + 1; B < cNumBalls; B++)
 				{
 					double sumRaRb = R[A] + R[B];
-					double dist = (pos[A] - pos[B]).norm();
+					double dist = mag(pos[A] - pos[B]);
 					double3 rVecab = pos[B] - pos[A];
 					double3 rVecba = pos[A] - pos[B];
 
@@ -120,218 +135,213 @@ struct cluster
 					if (overlap > 0)
 					{
 						// Calculate force and torque for a:
-						double3 dVel = b.vel - a.vel;
-						double3 relativeVelOfA = (dVel)-((dVel).dot(rVecab)) * (rVecab / (dist * dist)) - a.w.cross(R[A] / sumRaRb * rVecab) - b.w.cross(R[B] / sumRaRb * rVecab);
+						double3 dVel = vel[B] - vel[A];
+						double3 relativeVelOfA = dVel - dot(dVel, rVecab) * (rVecab / (dist * dist)) - cross(w[A], R[A] / sumRaRb * rVecab) - cross(w[B], R[B] / sumRaRb * rVecab);
 						double3 elasticForceOnA = -kin * overlap * .5 * (rVecab / dist);
 						double3 frictionForceOnA = { 0,0,0 };
-						if (relativeVelOfA.norm() > 1e-14) // When relative velocity is very low, dividing its vector components by its magnitude below is unstable.
+						if (mag(relativeVelOfA) > 1e-12) // When relative velocity is very low, dividing its vector components by its magnitude below is unstable.
 						{
-							frictionForceOnA = mu * elasticForceOnA.norm() * (relativeVelOfA / relativeVelOfA.norm());
+							frictionForceOnA = mu * mag(elasticForceOnA) * (relativeVelOfA / mag(relativeVelOfA));
 						}
-						aTorque = (R[A] / sumRaRb) * rVecab.cross(frictionForceOnA);
+						aTorque = (R[A] / sumRaRb) * cross(rVecab, frictionForceOnA);
 
 						// Calculate force and torque for b:
-						dVel = a.vel - b.vel;
-						double3 relativeVelOfB = (dVel)-((dVel).dot(rVecba)) * (rVecba / (dist * dist)) - b.w.cross(R[B] / sumRaRb * rVecba) - a.w.cross(R[A] / sumRaRb * rVecba);
+						dVel = vel[A] - vel[B];
+						double3 relativeVelOfB = dVel - dot(dVel, rVecba) * (rVecba / (dist * dist)) - cross(w[B], R[B] / sumRaRb * rVecba) - cross(w[A], R[A] / sumRaRb * rVecba);
 						double3 elasticForceOnB = -kin * overlap * .5 * (rVecba / dist);
 						double3 frictionForceOnB = { 0,0,0 };
-						if (relativeVelOfB.norm() > 1e-14)
+						if (mag(relativeVelOfB) > 1e-12)
 						{
-							frictionForceOnB = mu * elasticForceOnB.norm() * (relativeVelOfB / relativeVelOfB.norm());
+							frictionForceOnB = mu * mag(elasticForceOnB) * (relativeVelOfB / mag(relativeVelOfB));
 						}
-						bTorque = (R[B] / sumRaRb) * rVecba.cross(frictionForceOnB);
+						bTorque = (R[B] / sumRaRb) * cross(rVecba, frictionForceOnB);
 
-						double3 gravForceOnA = (G * a.m * b.m / pow(dist, 2)) * (rVecab / dist);
+						double3 gravForceOnA = (G * m[A] * m[B] / pow(dist, 2)) * (rVecab / dist);
 						totalForce = gravForceOnA + elasticForceOnA + frictionForceOnA;
-						a.w += aTorque / a.moi * dt;
-						b.w += bTorque / b.moi * dt;
-						PE += -G * a.m * b.m / dist + kin * pow((sumRaRb - dist) * .5, 2);
+						w[A] += aTorque / moi[A] * dt;
+						w[B] += bTorque / moi[B] * dt;
+						PE += -G * m[A] * m[B] / dist + kin * pow((sumRaRb - dist) * .5, 2);
 					}
 					else
 					{
 						// No collision: Include gravity only:
-						double3 gravForceOnA = (G * a.m * b.m / pow(dist, 2)) * (rVecab / dist);
+						double3 gravForceOnA = (G * m[A] * m[B] / pow(dist, 2)) * (rVecab / dist);
 						totalForce = gravForceOnA;
-						PE += -G * a.m * b.m / dist;
+						PE += -G * m[A] * m[B] / dist;
 					}
 					// Newton's equal and opposite forces applied to acceleration of each ball:
-					a.acc += totalForce / a.m;
-					b.acc -= totalForce / b.m;
+					acc[A] += totalForce / m[A];
+					acc[B] -= totalForce / m[B];
 					a.distances[B] = b.distances[A] = dist;
 				}
-				KE += .5 * a.m * a.vel.normsquared() + .5 * a.moi * a.w.normsquared();
-				momentum += a.m * a.vel;
-				angularMomentum += a.m * pos[A].cross(a.vel) + a.moi * a.w;
+				KE += .5 * m[A] * dot(vel[A], vel[A]) + .5 * moi[A] * dot(w[A], w[A]);
+				mom += m[A] * vel[A];
+				angMom += m[A] * cross(pos[A], vel[A]) + moi[A] * w[A];
 			}
-			com = comNumerator / m;
+			com = comNumerator / mTotal;
 		}
 		else // For the case of just one ball:
 		{
-			ball& a = balls[0];
-			m = a.m;
+			mTotal = m[0];
 			PE = 0;
-			KE = .5 * a.m * a.vel.normsquared() + .5 * a.moi * a.w.normsquared();
-			momentum = a.m * a.vel;
-			angularMomentum = a.m * pos[A].cross(a.vel) + a.moi * a.w;
-			radius = R[A];
+			KE = .5 * m[0] * dot(vel[0], vel[0]) + .5 * moi[0] * dot(w[0], w[0]);
+			mom = m[0] * vel[0];
+			angMom = m[0] * cross(pos[0], vel[0]) + moi[0] * w[0];
+			radius = R[0];
 		}
 	}
 
 	// Kick projectile at target
 	void kick(double vx, double vy, double vz)
 	{
-		for (int Ball = 0; Ball < numBalls; Ball++)
+		for (int Ball = 0; Ball < cNumBalls; Ball++)
 		{
-			balls[Ball].vel.x += vx;
-			balls[Ball].vel.y += vy;
-			balls[Ball].vel.z += vz;
+			vel[Ball] += make_double3(vx, vy, vz);
 		}
 	}
 
 	void checkMomentum()
 	{
 		double3 pTotal = { 0,0,0 };
-		double mass = 0;
-		for (int Ball = 0; Ball < numBalls; Ball++)
+		for (int Ball = 0; Ball < cNumBalls; Ball++)
 		{
-			pTotal += balls[Ball].m * balls[Ball].vel;
-			mass += balls[Ball].m;
+			pTotal += m[Ball] * vel[Ball];
 		}
 		printf("Cluster Momentum Check: %.2e, %.2e, %.2e\n", pTotal.x, pTotal.y, pTotal.z);
 	}
 };
 
-struct universe
-{
-	double3 com, momentum, angularMomentum;
-	double mTotal = 0, KE = 0, PE = 0, spaceRange = 0;
-	std::vector<ball> balls;
-	std::vector<cluster> clusters;
-
-	// Initialzie accelerations and energy calculations:
-	void initConditions()
-	{
-		mTotal = KE = PE = 0;
-		momentum = angularMomentum = { 0,0,0 };
-		double3 comNumerator = { 0, 0, 0 };
-		for (int A = 0; A < numBalls; A++)
-		{
-			balls[A].distances.reszie(numBalls);
-		}
-
-		for (int A = 0; A < numBalls; A++)
-		{
-			ball& a = balls[A];
-			mTotal += a.m;
-			comNumerator += a.m * pos[A];
-
-			for (int B = A + 1; B < numBalls; B++)
-			{
-				ball& b = balls[B];
-				double sumRaRb = R[A] + R[B];
-				double dist = (pos[A] - pos[B]).norm();
-				double3 rVecab = pos[B] - pos[A];
-				double3 rVecba = pos[A] - pos[B];
-
-				// Check for collision between Ball and otherBall:
-				double overlap = sumRaRb - dist;
-				double3 totalForce = { 0, 0, 0 };
-				double3 aTorque = { 0, 0, 0 };
-				double3 bTorque = { 0, 0, 0 };
-				if (overlap > 0)
-				{
-					// Calculate force and torque for a:
-					double3 dVel = b.vel - a.vel;
-					double3 relativeVelOfA = (dVel)-((dVel).dot(rVecab)) * (rVecab / (dist * dist)) - a.w.cross(R[A] / sumRaRb * rVecab) - b.w.cross(R[B] / sumRaRb * rVecab);
-					double3 elasticForceOnA = -kin * overlap * .5 * (rVecab / dist);
-					double3 frictionForceOnA = { 0,0,0 };
-					if (relativeVelOfA.norm() > 1e-14) // When relative velocity is very low, dividing its vector components by its magnitude below is unstable.
-					{
-						frictionForceOnA = mu * elasticForceOnA.norm() * (relativeVelOfA / relativeVelOfA.norm());
-					}
-					aTorque = (R[A] / sumRaRb) * rVecab.cross(frictionForceOnA);
-
-					// Calculate force and torque for b:
-					dVel = a.vel - b.vel;
-					double3 relativeVelOfB = (dVel)-((dVel).dot(rVecba)) * (rVecba / (dist * dist)) - b.w.cross(R[B] / sumRaRb * rVecba) - a.w.cross(R[A] / sumRaRb * rVecba);
-					double3 elasticForceOnB = -kin * overlap * .5 * (rVecba / dist);
-					double3 frictionForceOnB = { 0,0,0 };
-					if (relativeVelOfB.norm() > 1e-14)
-					{
-						frictionForceOnB = mu * elasticForceOnB.norm() * (relativeVelOfB / relativeVelOfB.norm());
-					}
-					bTorque = (R[B] / sumRaRb) * rVecba.cross(frictionForceOnB);
-
-					double3 gravForceOnA = (G * a.m * b.m / pow(dist, 2)) * (rVecab / dist);
-					totalForce = gravForceOnA + elasticForceOnA + frictionForceOnA;
-					a.w += aTorque / a.moi * dt;
-					b.w += bTorque / b.moi * dt;
-					PE += -G * a.m * b.m / dist + kin * pow((sumRaRb - dist) * .5, 2);
-				}
-				else
-				{
-					// No collision: Include gravity only:
-					double3 gravForceOnA = (G * a.m * b.m / pow(dist, 2)) * (rVecab / dist);
-					totalForce = gravForceOnA;
-					PE += -G * a.m * b.m / dist;
-				}
-				// Newton's equal and opposite forces applied to acceleration of each ball:
-				a.acc += totalForce / a.m;
-				b.acc -= totalForce / b.m;
-				a.distances[B] = b.distances[A] = dist;
-			}
-			KE += .5 * a.m * a.vel.normsquared() + .5 * a.moi * a.w.normsquared();
-			momentum += a.m * a.vel;
-			angularMomentum += a.m * pos[A].cross(a.vel) + a.moi * a.w;
-		}
-		com = comNumerator / mTotal;
-	}
-
-	void calcComAndMass()
-	{
-		double3 comNumerator = { 0, 0, 0 };
-		mTotal = 0;
-		for (int Ball = 0; Ball < numBalls; Ball++)
-		{
-			mTotal += balls[Ball].m;
-			comNumerator += balls[Ball].m * balls[Ball].pos;
-		}
-		com = comNumerator / mTotal;
-	}
-
-	void checkMomentum()
-	{
-		double3 pTotal = { 0,0,0 };
-		double mass = 0;
-		for (int Ball = 0; Ball < numBalls; Ball++)
-		{
-			pTotal += balls[Ball].m * balls[Ball].vel;
-			mass += balls[Ball].m;
-		}
-		printf("Universe Momentum Check: %.2e, %.2e, %.2e\n", pTotal.x, pTotal.y, pTotal.z);
-	}
-
-	void zeroMomentum()
-	{
-		// Something about this is wrong. It is not zeroing momentum.
-		double3 pTotal = { 0,0,0 };
-		double mass = 0;
-		for (int Ball = 0; Ball < numBalls; Ball++)
-		{
-			pTotal += balls[Ball].m * balls[Ball].vel;
-			mass += balls[Ball].m;
-		}
-		for (int Ball = 0; Ball < numBalls; Ball++)
-		{
-			balls[Ball].vel -= (pTotal / mass);
-		}
-
-		pTotal = { 0,0,0 };
-		for (int Ball = 0; Ball < numBalls; Ball++)
-		{
-			pTotal += balls[Ball].m * balls[Ball].vel;
-		}
-		std::cout << "\nCorrected momentum = " << pTotal.tostr() << std::endl;
-	}
-};
+//struct universe
+//{
+//	double3 com, momentum, angularMomentum;
+//	double mTotal = 0, KE = 0, PE = 0, spaceRange = 0;
+//	std::vector<ball> balls;
+//	std::vector<cluster> clusters;
+//
+//	// Initialzie accelerations and energy calculations:
+//	void initConditions()
+//	{
+//		mTotal = KE = PE = 0;
+//		momentum = angularMomentum = { 0,0,0 };
+//		double3 comNumerator = { 0, 0, 0 };
+//		for (int A = 0; A < cNumBalls; A++)
+//		{
+//			balls[A].distances.reszie(cNumBalls);
+//		}
+//
+//		for (int A = 0; A < cNumBalls; A++)
+//		{
+//			ball& a = balls[A];
+//			mTotal += m[A];
+//			comNumerator += m[A] * pos[A];
+//
+//			for (int B = A + 1; B < cNumBalls; B++)
+//			{
+//				ball& b = balls[B];
+//				double sumRaRb = R[A] + R[B];
+//				double dist = (pos[A] - pos[B]).norm();
+//				double3 rVecab = pos[B] - pos[A];
+//				double3 rVecba = pos[A] - pos[B];
+//
+//				// Check for collision between Ball and otherBall:
+//				double overlap = sumRaRb - dist;
+//				double3 totalForce = { 0, 0, 0 };
+//				double3 aTorque = { 0, 0, 0 };
+//				double3 bTorque = { 0, 0, 0 };
+//				if (overlap > 0)
+//				{
+//					// Calculate force and torque for a:
+//					double3 dVel = vel[B] - vel[A];
+//					double3 relativeVelOfA = (dVel)-((dVel).dot(rVecab)) * (rVecab / (dist * dist)) - a.w.cross(R[A] / sumRaRb * rVecab) - b.w.cross(R[B] / sumRaRb * rVecab);
+//					double3 elasticForceOnA = -kin * overlap * .5 * (rVecab / dist);
+//					double3 frictionForceOnA = { 0,0,0 };
+//					if (relativeVelOfA.norm() > 1e-14) // When relative velocity is very low, dividing its vector components by its magnitude below is unstable.
+//					{
+//						frictionForceOnA = mu * elasticForceOnA.norm() * (relativeVelOfA / relativeVelOfA.norm());
+//					}
+//					aTorque = (R[A] / sumRaRb) * rVecab.cross(frictionForceOnA);
+//
+//					// Calculate force and torque for b:
+//					dVel = vel[A] - vel[B];
+//					double3 relativeVelOfB = (dVel)-((dVel).dot(rVecba)) * (rVecba / (dist * dist)) - b.w.cross(R[B] / sumRaRb * rVecba) - a.w.cross(R[A] / sumRaRb * rVecba);
+//					double3 elasticForceOnB = -kin * overlap * .5 * (rVecba / dist);
+//					double3 frictionForceOnB = { 0,0,0 };
+//					if (relativeVelOfB.norm() > 1e-14)
+//					{
+//						frictionForceOnB = mu * elasticForceOnB.norm() * (relativeVelOfB / relativeVelOfB.norm());
+//					}
+//					bTorque = (R[B] / sumRaRb) * rVecba.cross(frictionForceOnB);
+//
+//					double3 gravForceOnA = (G * m[A] * m[B] / pow(dist, 2)) * (rVecab / dist);
+//					totalForce = gravForceOnA + elasticForceOnA + frictionForceOnA;
+//					a.w += aTorque / moi[A] * dt;
+//					b.w += bTorque / moi[B] * dt;
+//					PE += -G * m[A] * m[B] / dist + kin * pow((sumRaRb - dist) * .5, 2);
+//				}
+//				else
+//				{
+//					// No collision: Include gravity only:
+//					double3 gravForceOnA = (G * m[A] * m[B] / pow(dist, 2)) * (rVecab / dist);
+//					totalForce = gravForceOnA;
+//					PE += -G * m[A] * m[B] / dist;
+//				}
+//				// Newton's equal and opposite forces applied to acceleration of each ball:
+//				a.acc += totalForce / m[A];
+//				b.acc -= totalForce / m[B];
+//				a.distances[B] = b.distances[A] = dist;
+//			}
+//			KE += .5 * m[A] * vel[A].normsquared() + .5 * moi[A] * a.w.normsquared();
+//			momentum += m[A] * vel[A];
+//			angularMomentum += m[A] * pos[A].cross(vel[A]) + moi[A] * a.w;
+//		}
+//		com = comNumerator / mTotal;
+//	}
+//
+//	void calcComAndMass()
+//	{
+//		double3 comNumerator = { 0, 0, 0 };
+//		mTotal = 0;
+//		for (int Ball = 0; Ball < cNumBalls; Ball++)
+//		{
+//			mTotal += balls[Ball].m;
+//			comNumerator += balls[Ball].m * balls[Ball].pos;
+//		}
+//		com = comNumerator / mTotal;
+//	}
+//
+//	void checkMomentum()
+//	{
+//		double3 pTotal = { 0,0,0 };
+//		double mass = 0;
+//		for (int Ball = 0; Ball < cNumBalls; Ball++)
+//		{
+//			pTotal += balls[Ball].m * balls[Ball].vel;
+//			mass += balls[Ball].m;
+//		}
+//		printf("Universe Momentum Check: %.2e, %.2e, %.2e\n", pTotal.x, pTotal.y, pTotal.z);
+//	}
+//
+//	void zeroMomentum()
+//	{
+//		// Something about this is wrong. It is not zeroing momentum.
+//		double3 pTotal = { 0,0,0 };
+//		double mass = 0;
+//		for (int Ball = 0; Ball < cNumBalls; Ball++)
+//		{
+//			pTotal += balls[Ball].m * balls[Ball].vel;
+//			mass += balls[Ball].m;
+//		}
+//		for (int Ball = 0; Ball < cNumBalls; Ball++)
+//		{
+//			balls[Ball].vel -= (pTotal / mass);
+//		}
+//
+//		pTotal = { 0,0,0 };
+//		for (int Ball = 0; Ball < cNumBalls; Ball++)
+//		{
+//			pTotal += balls[Ball].m * balls[Ball].vel;
+//		}
+//		std::cout << "\nCorrected momentum = " << pTotal.tostr() << std::endl;
+//	}
+//};
 
