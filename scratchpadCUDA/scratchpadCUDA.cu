@@ -14,14 +14,20 @@ __global__ void addKernel(double3* pos, const double3* vel, const double3* acc)
 
 struct MyStruct
 {
-	int numBalls;
-	MyStruct(int n) : numBalls(n) {}
+	int numBalls = 0;
+	int doThing()
+	{
+		numBalls = 12;
+		return 13;
+	}
 };
 
 int main()
 {
-	MyStruct test(10);
+	MyStruct test;
+	int val = test.doThing();
 
+	printf("MyStruct numBalls = %d val = %d", test.numBalls, val);
 
 	const int arraySize = 5;
 	double3* pos = new double3[arraySize];
@@ -50,7 +56,6 @@ int main()
 		printf("Position:\t%lf\t%lf\t%lf\n", pos[i].x, pos[i].y, pos[i].z);
 	}
 
-	printf("MyStruct numBalls = %d", test.numBalls);
 
 	// cudaDeviceReset must be called before exiting in order for profiling and
 	// tracing tools such as Nsight and Visual Profiler to show complete traces.

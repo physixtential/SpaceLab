@@ -1,6 +1,13 @@
+// There are 4 important steps to creating a new random cluster:
+// 1- populate(size) the cluster
+// 2- generateRandomCluster() which sets positions, radii, masses, etc.
+// 3- initConditions() to set correct first step physics
+// 4- freeMemory() to clear the arrays from memory when done.
+
 #include "cuVectorMath.h"
 #include "initializations.h"
 #include <vector>
+#include "misc.h"
 
 
 #pragma once
@@ -27,8 +34,163 @@ struct cluster
 	double* m = 0;
 	double* moi = 0;
 
-	void calcCom()
+	// Allocate ball property arrays.
+	void populate(int nBalls)
 	{
+		cNumBalls = nBalls;
+
+		distances = new double[(cNumBalls * cNumBalls / 2) - (cNumBalls / 2)];
+
+		pos = new double3[cNumBalls];
+		vel = new double3[cNumBalls];
+		velh = new double3[cNumBalls];
+		acc = new double3[cNumBalls];
+		w = new double3[cNumBalls];
+		R = new double[cNumBalls];
+		m = new double[cNumBalls];
+		moi = new double[cNumBalls];
+	}
+
+	// Deallocate heap memory.
+	void freeMemory()
+	{
+		delete[] distances;
+		delete[] pos;
+		delete[] vel;
+		delete[] velh;
+		delete[] acc;
+		delete[] w;
+		delete[] R;
+		delete[] m;
+		delete[] moi;
+	}
+
+	void generateRandomCluster(const size_t nBalls, const double ballR, double range)
+	{
+		// Create new random number set.
+		int seedSave = time(NULL);
+		srand(seedSave);
+
+		// Make numBalls of 3 sizes in CGS with ratios such that the mass is distributed evenly among the 3 sizes (less large numBalls than small numBalls).
+		int smalls = std::round((double)nBalls * 27 / 31.375); // Just here for reference. Whatever numBalls are left will be smalls.
+		int mediums = std::round((double)nBalls * 27 / (8 * 31.375));
+		int larges = std::round((double)nBalls * 1 / 31.375);
+
+		for (int Ball = 0; Ball < larges; Ball++)
+		{
+			R[Ball] = 1. * ballR;
+			m[Ball] = density * 4. / 3. * M_PI * pow(R[Ball], 3);
+			moi[Ball] = .4 * m[Ball] * R[Ball] * R[Ball];
+			w[Ball] = make_double3(0, 0, 0);
+			pos[Ball] = make_double3(randDouble(range), randDouble(range), randDouble(range));
+		}
+
+		for (int Ball = larges; Ball < (larges + mediums); Ball++)
+		{
+			R[Ball] = 2. * ballR;
+			m[Ball] = density * 4. / 3. * M_PI * pow(R[Ball], 3);
+			moi[Ball] = .4 * m[Ball] * R[Ball] * R[Ball];
+			w[Ball] = make_double3(0, 0, 0);
+			pos[Ball] = make_double3(randDouble(range), randDouble(range), randDouble(range));
+		}
+		for (int Ball = (larges + mediums); Ball < nBalls; Ball++)
+		{
+			R[Ball] = 3. * ballR;
+			m[Ball] = density * 4. / 3. * M_PI * pow(R[Ball], 3);
+			moi[Ball] = .4 * m[Ball] *R[Ball] * R[Ball];
+			w[Ball] = make_double3(0, 0, 0);
+			pos[Ball] = make_double3(randDouble(range), randDouble(range), randDouble(range));
+		}
+
+		std::cout << "Smalls: " << smalls << " Mediums: " << mediums << " Larges: " << larges << std::endl;
+
+		// Generate non-overlapping spherical particle field:
+		int collisionDetected = 0;
+		int oldCollisions = nBalls;
+
+		for (int failed = 0; failed < attempts; failed++)
+		{
+			for (int A = 0; A < nBalls; A++)
+			{
+				for (int B = A + 1; B < nBalls; B++)
+				{
+					// Check for Ball overlap.
+					double dist = mag(pos[A] - pos[B]);
+					double sumRaRb = R[A] + R[B];
+					double overlap = dist - sumRaRb;
+					if (overlap < 0)
+					{
+						collisionDetected += 1;
+						// Move B:
+						pos[B] = randVec(range, range, range);
+					}
+				}
+			}
+			if (collisionDetected < oldCollisions)
+			{
+				oldCollisions = collisionDetected;
+				std::cout << "Collisions: " << collisionDetected << "                        \r";
+			}
+			if (collisionDetected == 0)
+			{
+				std::cout << "\nSuccess!\n";
+				break;
+			}
+			if (failed == attempts - 1 || collisionDetected > int(1.5 * (double)nBalls)) // Added the second part to speed up spatial constraint increase when there are clearly too many collisions for the space to be feasable.
+			{
+				std::cout << "Failed " << range << ". Increasing range " << ballR * 3 << "cm^3.\n";
+				range += ballR * 3;
+				failed = 0;
+				for (int Ball = 0; Ball < nBalls; Ball++)
+				{
+					pos[Ball] = randVec(range, range, range); // Each time we fail and increase range, redistribute all balls randomly so we don't end up with big balls near mid and small balls outside.
+				}
+			}
+			collisionDetected = 0;
+		}
+
+		std::cout << "Final range: " << range << std::endl;
+
+		// Center of mass:
+		double3 comNumerator;
+		for (int Ball = 0; Ball < nBalls; Ball++)
+		{
+			mTotal += m[Ball];
+			comNumerator += m[Ball] * pos[Ball];
+		}
+		com = comNumerator / mTotal;
+
+		// Center the cluster
+
+		// Cluster Radius (uncollapsed)
+		for (int Ball = 0; Ball < nBalls; Ball++)
+		{
+			double dist = mag(pos[Ball] - com);
+			if (dist > radius)
+			{
+				radius = dist;
+			}
+		}
+
+		std::cout << "Initial Radius: " << radius << std::endl;
+		std::cout << "Mass: " << mTotal << std::endl;
+
+	}
+
+	
+
+	double3 calcCom()
+	{
+		// Calc cluster mass if it hasn't been done yet.
+
+		if (mTotal == 0)
+		{
+			for (int Ball = 0; Ball < cNumBalls; Ball++)
+			{
+				mTotal += m[Ball];
+			}
+		}
+
 		if (mTotal > 0)
 		{
 			double3 comNumerator = { 0, 0, 0 };
@@ -36,11 +198,21 @@ struct cluster
 			{
 				comNumerator += m[Ball] * pos[Ball];
 			}
-			com = comNumerator / mTotal;
+			return comNumerator / mTotal;
 		}
 		else
 		{
 			std::cout << "Mass of cluster is zero...\n";
+		}
+	}
+
+	void clusToOrigin()
+	{
+		calcCom();
+
+		for (int Ball = 0; Ball < numBalls; Ball++)
+		{
+			pos[Ball] -= com;
 		}
 	}
 
@@ -76,34 +248,11 @@ struct cluster
 		}
 	}
 
-	// Deallocate heap memory.
-	void freeMemory()
-	{
-		delete[] distances;
-		delete[] pos;
-		delete[] vel;
-		delete[] velh;
-		delete[] acc;
-		delete[] w;
-		delete[] R;
-		delete[] m;
-		delete[] moi;
-	}
+
 
 	// Initialzie accelerations and energy calculations:
 	void initConditions(int cNumBalls)
 	{
-		distances = new double[(cNumBalls * cNumBalls / 2) - (cNumBalls / 2)];
-
-		pos = new double3[cNumBalls];
-		vel = new double3[cNumBalls];
-		velh = new double3[cNumBalls];
-		acc = new double3[cNumBalls];
-		w = new double3[cNumBalls];
-		R = new double[cNumBalls];
-		m = new double[cNumBalls];
-		moi = new double[cNumBalls];
-
 		mTotal = 0;
 		KE = 0;
 		PE = 0;

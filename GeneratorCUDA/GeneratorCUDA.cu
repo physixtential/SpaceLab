@@ -41,22 +41,20 @@ ballBuffer,
 energyBuffer;
 
 // Prototypes
-cluster* generateRandomCluster(const size_t nBalls, const double ballR, double range);
 cudaError_t intAddWithCuda(int* c, const int* a, const int* b, unsigned int size);
 
 
 int main(int argc, char const* argv[])
 {
-	cluster clus = *generateRandomCluster(numBalls, scaleBalls, spaceRange);
-
+	// Create random cluster:
+	cluster clus;
+	clus.generateRandomCluster(numBalls, scaleBalls, spaceRange);
+	
+	// Initialize physics interactions between all balls.
 	clus.initConditions(numBalls);
 
 	// Re-center cluster mass to origin:
-	for (int Ball = 0; Ball < numBalls; Ball++)
-	{
-		clus.balls[Ball].pos -= clus.com;
-	}
-	clus.com = { 0, 0, 0 };
+
 
 	outputPrefix =
 		std::to_string(numBalls) +
@@ -431,135 +429,6 @@ int main(int argc, char const* argv[])
 
 	return 0;
 }
-
-cluster* generateRandomCluster(const size_t nBalls, const double ballR, double range)
-{
-	cluster clus;
-
-	distances = new double[(cNumBalls * cNumBalls / 2) - (cNumBalls / 2)];
-
-	pos = new double3[cNumBalls];
-	vel = new double3[cNumBalls];
-	velh = new double3[cNumBalls];
-	acc = new double3[cNumBalls];
-	w = new double3[cNumBalls];
-	R = new double[cNumBalls];
-	m = new double[cNumBalls];
-	moi = new double[cNumBalls];
-
-	// Create new random number set.
-	int seedSave = time(NULL);
-	srand(seedSave);
-
-	// Make numBalls of 3 sizes in CGS with ratios such that the mass is distributed evenly among the 3 sizes (less large numBalls than small numBalls).
-	int smalls = std::round((double)nBalls * 27 / 31.375); // Just here for reference. Whatever numBalls are left will be smalls.
-	int mediums = std::round((double)nBalls * 27 / (8 * 31.375));
-	int larges = std::round((double)nBalls * 1 / 31.375);
-
-	for (int Ball = 0; Ball < larges; Ball++)
-	{
-		clus.R[Ball] = 1. * ballR;
-		clus.m[Ball] = density * 4. / 3. * M_PI * pow(clus.R[Ball], 3);
-		clus.moi[Ball] = .4 * clus.m[Ball] * clus.R[Ball] * clus.R[Ball];
-		clus.w[Ball] = make_double3(0, 0, 0);
-		clus.pos[Ball] = make_double3(randDouble(range), randDouble(range), randDouble(range));
-	}
-
-	for (int Ball = larges; Ball < (larges + mediums); Ball++)
-	{
-		clus.R[Ball] = 2. * ballR;
-		clus.m[Ball] = density * 4. / 3. * M_PI * pow(clus.R[Ball], 3);
-		clus.moi[Ball] = .4 * clus.m[Ball] * clus.R[Ball] * clus.R[Ball];
-		clus.w[Ball] = make_double3(0, 0, 0);
-		clus.pos[Ball] = make_double3(randDouble(range), randDouble(range), randDouble(range));
-	}
-	for (int Ball = (larges + mediums); Ball < nBalls; Ball++)
-	{
-		clus.R[Ball] = 3. * ballR;
-		clus.m[Ball] = density * 4. / 3. * M_PI * pow(clus.R[Ball], 3);
-		clus.moi[Ball] = .4 * clus.m[Ball] * clus.R[Ball] * clus.R[Ball];
-		clus.w[Ball] = make_double3(0, 0, 0);
-		clus.pos[Ball] = make_double3(randDouble(range), randDouble(range), randDouble(range));
-	}
-
-	std::cout << "Smalls: " << smalls << " Mediums: " << mediums << " Larges: " << larges << std::endl;
-
-	// Generate non-overlapping spherical particle field:
-	int collisionDetected = 0;
-	int oldCollisions = nBalls;
-
-	for (int failed = 0; failed < attempts; failed++)
-	{
-		for (int A = 0; A < nBalls; A++)
-		{
-			for (int B = A + 1; B < nBalls; B++)
-			{
-				// Check for Ball overlap.
-				double dist = mag(clus.pos[A] - clus.pos[B]);
-				double sumRaRb = clus.R[A] + clus.R[B];
-				double overlap = dist - sumRaRb;
-				if (overlap < 0)
-				{
-					collisionDetected += 1;
-					// Move B:
-					clus.pos[B] = randVec(range, range, range);
-				}
-			}
-		}
-		if (collisionDetected < oldCollisions)
-		{
-			oldCollisions = collisionDetected;
-			std::cout << "Collisions: " << collisionDetected << "                        \r";
-		}
-		if (collisionDetected == 0)
-		{
-			std::cout << "\nSuccess!\n";
-			break;
-		}
-		if (failed == attempts - 1 || collisionDetected > int(1.5 * (double)nBalls)) // Added the second part to speed up spatial constraint increase when there are clearly too many collisions for the space to be feasable.
-		{
-			std::cout << "Failed " << range << ". Increasing range " << ballR*3 << "cm^3.\n";
-			range += ballR*3;
-			failed = 0;
-			for (int Ball = 0; Ball < nBalls; Ball++)
-			{
-				clus.pos[Ball] = randVec(range, range, range); // Each time we fail and increase range, redistribute all balls randomly so we don't end up with big balls near mid and small balls outside.
-			}
-		}
-		collisionDetected = 0;
-	}
-	
-	std::cout << "Final range: " << range << std::endl;
-
-	// Center of mass:
-	double3 comNumerator;
-	for (int Ball = 0; Ball < nBalls; Ball++)
-	{
-		clus.mTotal += clus.m[Ball];
-		comNumerator += clus.m[Ball] * clus.pos[Ball];
-	}
-	clus.com = comNumerator / clus.mTotal;
-
-	// Cluster Radius (uncollapsed)
-	for (int Ball = 0; Ball < nBalls; Ball++)
-	{
-		double dist = mag(clus.pos[Ball] - clus.com);
-		if (dist > clus.radius)
-		{
-			clus.radius = dist;
-		}
-	}
-
-	std::cout << "Initial Radius: " << clus.radius << std::endl;
-	std::cout << "Mass: " << clus.m << std::endl;
-
-	return &clus;
-}
-
-
-
-
-
 
 //int main()
 //{
