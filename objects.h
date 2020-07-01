@@ -9,11 +9,7 @@
 #include <vector>
 #include "misc.h"
 
-
 #pragma once
-
-// Distance between all balls
-//size_t dist[(NumBalls * NumBalls / 2) - (NumBalls / 2)]; // This is the number ball comparisons actually done.
 
 struct cluster
 {
@@ -65,16 +61,23 @@ struct cluster
 		delete[] moi;
 	}
 
-	void generateRandomCluster(const size_t nBalls, const double ballR, double range)
+	void generateRandomCluster(const double ballR, double range)
 	{
+		// Is the cluster populated?
+		if (cNumBalls < 1)
+		{
+			fprintf(stderr, "\nNo balls in cluster. Cannot generate random cluster.\n");
+			exit(-1);
+		}
+
 		// Create new random number set.
 		int seedSave = time(NULL);
 		srand(seedSave);
 
 		// Make numBalls of 3 sizes in CGS with ratios such that the mass is distributed evenly among the 3 sizes (less large numBalls than small numBalls).
-		int smalls = std::round((double)nBalls * 27 / 31.375); // Just here for reference. Whatever numBalls are left will be smalls.
-		int mediums = std::round((double)nBalls * 27 / (8 * 31.375));
-		int larges = std::round((double)nBalls * 1 / 31.375);
+		int smalls = std::round((double)cNumBalls * 27 / 31.375); // Just here for reference. Whatever numBalls are left will be smalls.
+		int mediums = std::round((double)cNumBalls * 27 / (8 * 31.375));
+		int larges = std::round((double)cNumBalls * 1 / 31.375);
 
 		for (int Ball = 0; Ball < larges; Ball++)
 		{
@@ -93,11 +96,11 @@ struct cluster
 			w[Ball] = make_double3(0, 0, 0);
 			pos[Ball] = make_double3(randDouble(range), randDouble(range), randDouble(range));
 		}
-		for (int Ball = (larges + mediums); Ball < nBalls; Ball++)
+		for (int Ball = (larges + mediums); Ball < cNumBalls; Ball++)
 		{
 			R[Ball] = 3. * ballR;
 			m[Ball] = density * 4. / 3. * M_PI * pow(R[Ball], 3);
-			moi[Ball] = .4 * m[Ball] *R[Ball] * R[Ball];
+			moi[Ball] = .4 * m[Ball] * R[Ball] * R[Ball];
 			w[Ball] = make_double3(0, 0, 0);
 			pos[Ball] = make_double3(randDouble(range), randDouble(range), randDouble(range));
 		}
@@ -106,13 +109,13 @@ struct cluster
 
 		// Generate non-overlapping spherical particle field:
 		int collisionDetected = 0;
-		int oldCollisions = nBalls;
+		int oldCollisions = cNumBalls;
 
 		for (int failed = 0; failed < attempts; failed++)
 		{
-			for (int A = 0; A < nBalls; A++)
+			for (int A = 0; A < cNumBalls; A++)
 			{
-				for (int B = A + 1; B < nBalls; B++)
+				for (int B = A + 1; B < cNumBalls; B++)
 				{
 					// Check for Ball overlap.
 					double dist = mag(pos[A] - pos[B]);
@@ -136,12 +139,12 @@ struct cluster
 				std::cout << "\nSuccess!\n";
 				break;
 			}
-			if (failed == attempts - 1 || collisionDetected > int(1.5 * (double)nBalls)) // Added the second part to speed up spatial constraint increase when there are clearly too many collisions for the space to be feasable.
+			if (failed == attempts - 1 || collisionDetected > int(1.5 * (double)cNumBalls)) // Added the second part to speed up spatial constraint increase when there are clearly too many collisions for the space to be feasable.
 			{
 				std::cout << "Failed " << range << ". Increasing range " << ballR * 3 << "cm^3.\n";
 				range += ballR * 3;
 				failed = 0;
-				for (int Ball = 0; Ball < nBalls; Ball++)
+				for (int Ball = 0; Ball < cNumBalls; Ball++)
 				{
 					pos[Ball] = randVec(range, range, range); // Each time we fail and increase range, redistribute all balls randomly so we don't end up with big balls near mid and small balls outside.
 				}
@@ -153,7 +156,7 @@ struct cluster
 
 		// Center of mass:
 		double3 comNumerator;
-		for (int Ball = 0; Ball < nBalls; Ball++)
+		for (int Ball = 0; Ball < cNumBalls; Ball++)
 		{
 			mTotal += m[Ball];
 			comNumerator += m[Ball] * pos[Ball];
@@ -161,9 +164,19 @@ struct cluster
 		com = comNumerator / mTotal;
 
 		// Center the cluster
+		clusToOrigin();
 
 		// Cluster Radius (uncollapsed)
-		for (int Ball = 0; Ball < nBalls; Ball++)
+		updateRadius();
+
+		std::cout << "Initial Radius: " << radius << std::endl;
+		std::cout << "Mass: " << mTotal << std::endl;
+
+	}
+
+	double updateRadius()
+	{
+		for (int Ball = 0; Ball < cNumBalls; Ball++)
 		{
 			double dist = mag(pos[Ball] - com);
 			if (dist > radius)
@@ -171,15 +184,9 @@ struct cluster
 				radius = dist;
 			}
 		}
-
-		std::cout << "Initial Radius: " << radius << std::endl;
-		std::cout << "Mass: " << mTotal << std::endl;
-
 	}
 
-	
-
-	double3 calcCom()
+	double3 updateCom()
 	{
 		// Calc cluster mass if it hasn't been done yet.
 
@@ -208,7 +215,7 @@ struct cluster
 
 	void clusToOrigin()
 	{
-		calcCom();
+		updateCom();
 
 		for (int Ball = 0; Ball < numBalls; Ball++)
 		{
@@ -235,7 +242,7 @@ struct cluster
 			pos[Ball].x += (rad1 + rad2) * cos(impactParam);
 			pos[Ball].y += (rad1 + rad2) * sin(impactParam);
 		}
-		calcCom(); // Update com.
+		updateCom(); // Update com.
 	}
 
 	void rotAll(char axis, double angle)

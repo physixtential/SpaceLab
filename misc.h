@@ -2,7 +2,7 @@
 #include <cmath>
 #include <iomanip>
 #include <algorithm>
-
+#include <sstream>
 
 
 // Generate a random double from -.5lim to .5lim so that numbers are distributed evenly around 0:

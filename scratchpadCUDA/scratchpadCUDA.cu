@@ -3,6 +3,9 @@
 #include <stdio.h>
 #include "../cuVectorMath.h"
 #include <iostream>
+#include <omp.h>
+#include "../misc.h"
+
 
 cudaError_t double3Math(double3* pos, const double3* vel, const double3* acc, unsigned int size);
 
@@ -12,59 +15,142 @@ __global__ void addKernel(double3* pos, const double3* vel, const double3* acc)
 	pos[i] = vel[i] * acc[i];
 }
 
-struct MyStruct
-{
-	int numBalls = 0;
-	int doThing()
-	{
-		numBalls = 12;
-		return 13;
-	}
-};
+
 
 int main()
 {
-	MyStruct test;
-	int val = test.doThing();
+	// Data size
+	int const fullSet = 1 << 15;
+	int pairs = fullSet * (fullSet - 1) / 2;
+	int2* pair = new int2[pairs];
+	int count = 0;
 
-	printf("MyStruct numBalls = %d val = %d", test.numBalls, val);
-
-	const int arraySize = 5;
-	double3* pos = new double3[arraySize];
-	double3* vel = new double3[arraySize];
-	double3* acc = new double3[arraySize];
-
-	for (size_t i = 0; i < arraySize; i++)
+	// Create random ball positions.
+	double3* pos = new double3[fullSet];
+	for (size_t i = 0; i < fullSet; i++)
 	{
-		vel[i] = { (double)i, (double)i, (double)i };
-		acc[i] = { (double)i,(double)i, (double)i };
+		pos[i] = make_double3(randDouble(1000), randDouble(1000), randDouble(1000));
+	}
+	double* dist = new double[pairs];
+
+	// Create unique pairs.
+	for (size_t i = 0; i < fullSet; i++)
+	{
+		for (size_t j = i + 1; j < fullSet; j++)
+		{
+			pair[count] = make_int2(i, j);
+			count++;
+		}
 	}
 
-	// Add vectors in parallel.
-	cudaError_t cudaStatus = double3Math(pos, vel, acc, arraySize);
-	if (cudaStatus != cudaSuccess)
-	{
-		fprintf(stderr, "addWithCuda failed!");
-		return 1;
-	}
-
-	for (size_t i = 0; i < arraySize; i++)
-	{
-		printf("\nHost data:\n", vel[i].x, vel[i].y, vel[i].z);
-		printf("Velocity:\t%lf\t%lf\t%lf\n", vel[i].x, vel[i].y, vel[i].z);
-		printf("Accel:   \t%lf\t%lf\t%lf\n", acc[i].x, acc[i].y, acc[i].z);
-		printf("Position:\t%lf\t%lf\t%lf\n", pos[i].x, pos[i].y, pos[i].z);
-	}
+	printf("Combinations = %d\n", pairs);
 
 
-	// cudaDeviceReset must be called before exiting in order for profiling and
-	// tracing tools such as Nsight and Visual Profiler to show complete traces.
-	cudaStatus = cudaDeviceReset();
-	if (cudaStatus != cudaSuccess)
+	double time0 = 0;
+	double time1 = 0;
+
+	/////////////////////////////////////////
+	// Run pair strategy
+	time0 = omp_get_wtime();
+	for (size_t i = 0; i < pairs; i++)
 	{
-		fprintf(stderr, "cudaDeviceReset failed!");
-		return 1;
+		dist[i] = mag(pos[pair[i].x] - pos[pair[i].y]);
+		//printf("%d\t%d\n", pair[i].x, pair[i].y);
 	}
+	time1 = omp_get_wtime();
+	printf("Time = %lf\n", time1 - time0);
+
+	//// Print for optimization
+	double sum = 0;
+	for (size_t i = 0; i < fullSet; i++)
+	{
+		sum += dist[i];
+	}
+
+	printf("sum = %lf\n", sum);
+
+	/////////////////////////////////////////
+	// Run double loop with counter to minimize dist array size.
+	count = 0;
+	time0 = omp_get_wtime();
+	for (size_t i = 0; i < fullSet; i++)
+	{
+		for (size_t j = i + 1; j < fullSet; j++)
+		{
+			dist[count] = mag(pos[i] - pos[j]);
+			count++;
+		}
+	}
+	time1 = omp_get_wtime();
+	printf("Time = %lf\n", time1 - time0);
+
+	//// Print for optimization
+	sum = 0;
+	for (size_t i = 0; i < fullSet; i++)
+	{
+		sum += dist[i];
+	}
+
+	printf("sum = %lf\n", sum);
+
+	/////////////////////////////////////////
+	// Without counter
+	time0 = omp_get_wtime();
+	for (size_t i = 0; i < fullSet; i++)
+	{
+		for (size_t j = i + 1; j < fullSet; j++)
+		{
+			dist[i] = mag(pos[i] - pos[j]);
+		}
+	}
+	time1 = omp_get_wtime();
+	printf("Time = %lf\n", time1 - time0);
+
+	//// Print for optimization
+	sum = 0;
+	for (size_t i = 0; i < fullSet; i++)
+	{
+		sum += dist[i];
+	}
+	printf("sum = %lf\n", sum);
+
+
+	//const int arraySize = 5;
+	//double3* pos = new double3[arraySize];
+	//double3* vel = new double3[arraySize];
+	//double3* acc = new double3[arraySize];
+
+	//for (size_t i = 0; i < arraySize; i++)
+	//{
+	//	vel[i] = { (double)i, (double)i, (double)i };
+	//	acc[i] = { (double)i,(double)i, (double)i };
+	//}
+
+	//// Add vectors in parallel.
+	//cudaError_t cudaStatus = double3Math(pos, vel, acc, arraySize);
+	//if (cudaStatus != cudaSuccess)
+	//{
+	//	fprintf(stderr, "addWithCuda failed!");
+	//	return 1;
+	//}
+
+	//for (size_t i = 0; i < arraySize; i++)
+	//{
+	//	printf("\nHost data:\n", vel[i].x, vel[i].y, vel[i].z);
+	//	printf("Velocity:\t%lf\t%lf\t%lf\n", vel[i].x, vel[i].y, vel[i].z);
+	//	printf("Accel:   \t%lf\t%lf\t%lf\n", acc[i].x, acc[i].y, acc[i].z);
+	//	printf("Position:\t%lf\t%lf\t%lf\n", pos[i].x, pos[i].y, pos[i].z);
+	//}
+
+
+	//// cudaDeviceReset must be called before exiting in order for profiling and
+	//// tracing tools such as Nsight and Visual Profiler to show complete traces.
+	//cudaStatus = cudaDeviceReset();
+	//if (cudaStatus != cudaSuccess)
+	//{
+	//	fprintf(stderr, "cudaDeviceReset failed!");
+	//	return 1;
+	//}
 
 	return 0;
 }

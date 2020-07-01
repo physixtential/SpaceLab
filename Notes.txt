@@ -1,1 +1,1 @@
-testing
+Maximum particles per simulation is 65,535 do to n(n-1)/2 distances and 2,147,483,647 int limit.

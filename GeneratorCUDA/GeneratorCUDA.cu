@@ -48,12 +48,10 @@ int main(int argc, char const* argv[])
 {
 	// Create random cluster:
 	cluster clus;
-	clus.generateRandomCluster(numBalls, scaleBalls, spaceRange);
-	
-	// Initialize physics interactions between all balls.
+	clus.populate(numBalls);
+	clus.generateRandomCluster(scaleBalls, spaceRange);
 	clus.initConditions(numBalls);
 
-	// Re-center cluster mass to origin:
 
 
 	outputPrefix =
