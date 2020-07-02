@@ -28,8 +28,6 @@
 #ifndef HELPER_MATH_H
 #define HELPER_MATH_H
 
-#include "cuda_runtime.h"
-
 typedef unsigned int uint;
 typedef unsigned short ushort;
 
@@ -38,7 +36,6 @@ typedef unsigned short ushort;
 #endif
 
 #ifndef __CUDACC__
-#include <math.h>
 
 ////////////////////////////////////////////////////////////////////////////////
 // host implementations of CUDA functions

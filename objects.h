@@ -4,11 +4,6 @@
 // 3- initConditions() to set correct first step physics
 // 4- freeMemory() to clear the arrays from memory when done.
 
-#include "cuVectorMath.h"
-#include "misc.h"
-
-#pragma once
-
 struct cluster
 {
 	int cNumBalls = 0;

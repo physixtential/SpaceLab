@@ -1,10 +1,20 @@
+#define _USE_MATH_DEFINES
+#include <iostream>
+#include <fstream>
+#include <time.h>
+#include <sstream>
+#include <stdio.h>
+#include "math.h"
+
+#include <omp.h>
+
 #include "cuda_runtime.h"
 #include "device_launch_parameters.h"
-#include <stdio.h>
+
 #include "../cuVectorMath.h"
-#include <iostream>
-#include <omp.h>
+#include "../initializations.h"
 #include "../misc.h"
+#include "../objects.h"
 
 
 cudaError_t double3Math(double3* pos, const double3* vel, const double3* acc, unsigned int size);
