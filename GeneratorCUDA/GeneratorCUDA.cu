@@ -425,6 +425,7 @@ int main(int argc, char const* argv[])
 	//
 	// Implement calculation of total momentum vector and make it 0 mag
 
+	clus.freeMemory();
 	return 0;
 }
 

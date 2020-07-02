@@ -5,9 +5,8 @@
 // 4- freeMemory() to clear the arrays from memory when done.
 
 #include "cuVectorMath.h"
-#include "initializations.h"
-#include <vector>
 #include "misc.h"
+
 
 #pragma once
 
