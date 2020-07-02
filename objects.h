@@ -7,7 +7,6 @@
 #include "cuVectorMath.h"
 #include "misc.h"
 
-
 #pragma once
 
 struct cluster

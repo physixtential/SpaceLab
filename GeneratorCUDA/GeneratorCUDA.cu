@@ -53,7 +53,6 @@ int main(int argc, char const* argv[])
 	clus.initConditions(numBalls);
 
 
-
 	outputPrefix =
 		std::to_string(numBalls) +
 		"-R" + scientific(clus.radius) +
