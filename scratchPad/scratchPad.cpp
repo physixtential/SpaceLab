@@ -8,7 +8,7 @@
 #include <algorithm>
 #include <omp.h>
 #include "../vector3d.h"
-#include "../cuVectorMath.h"
+
 
 //#include "../initializations.h"
 //#include "../objects.h"
@@ -17,19 +17,22 @@ double m = 0;
 
 int main()
 {
-	double* arr;
-	arr = new double[5];
+	double* dist = new double[10];
 
-	arr[0] = 1.0;
-	arr[1] = 1.1;
-	arr[2] = 1.2;
-	arr[3] = 1.3;
-	arr[4] = 1.4;
+	for (size_t i = 1; i < 5; i++)
+	{
+		for (size_t j = 0; j < i; j++)
+		{
+			int e = i * (i - 1) * .5+j;
+			dist[e] = 1.34;
+			printf("%d\t%d\t%d\t%lf\n", i, j, e, dist[e]);
+		}
+	}
 
-	double* a = &arr[2];
+	for (size_t i = 0; i < 10; i++)
+	{
+		printf("%lf\n", dist[i]);
+	}
 
-	m = *(a + 2);
-	m = arr[2 + 2];
-
-	std::cout << m;
+	return 0;
 }
