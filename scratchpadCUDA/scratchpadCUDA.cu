@@ -29,6 +29,7 @@ __global__ void addKernel(double3* pos, const double3* vel, const double3* acc)
 
 int main()
 {
+	printf("Size = %d\n", sizeof(double)*10000*10000);
 	// Data size
 	int const fullSet = 1 << 15;
 	int pairs = fullSet * (fullSet - 1) / 2;

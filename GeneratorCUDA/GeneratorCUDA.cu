@@ -12,7 +12,7 @@
 #include "../cuVectorMath.h"
 #include "../initializations.h"
 #include "../misc.h"
-#include "../objects.h"
+//#include "../objects.h"
 
 // Create handy shorthand for error checking each step of CUDA without a bulky conditional every time:
 #define CHECK (cudaStatus != cudaSuccess) ? fprintf(stderr, "Error at line %i\n", __LINE__ - 1) : NULL;
