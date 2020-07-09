@@ -41,12 +41,12 @@ typedef unsigned short ushort;
 // host implementations of CUDA functions
 ////////////////////////////////////////////////////////////////////////////////
 
-inline double fminf(double a, double b)
+inline double fmin(double a, double b)
 {
     return a < b ? a : b;
 }
 
-inline double fmaxf(double a, double b)
+inline double fmax(double a, double b)
 {
     return a > b ? a : b;
 }
@@ -1044,17 +1044,17 @@ inline __host__ __device__ double4 operator/(double b, double4 a)
 // min
 ////////////////////////////////////////////////////////////////////////////////
 
-inline  __host__ __device__ double2 fminf(double2 a, double2 b)
+inline  __host__ __device__ double2 fmin(double2 a, double2 b)
 {
-    return make_double2(fminf(a.x,b.x), fminf(a.y,b.y));
+    return make_double2(fmin(a.x,b.x), fmin(a.y,b.y));
 }
-inline __host__ __device__ double3 fminf(double3 a, double3 b)
+inline __host__ __device__ double3 fmin(double3 a, double3 b)
 {
-    return make_double3(fminf(a.x,b.x), fminf(a.y,b.y), fminf(a.z,b.z));
+    return make_double3(fmin(a.x,b.x), fmin(a.y,b.y), fmin(a.z,b.z));
 }
-inline  __host__ __device__ double4 fminf(double4 a, double4 b)
+inline  __host__ __device__ double4 fmin(double4 a, double4 b)
 {
-    return make_double4(fminf(a.x,b.x), fminf(a.y,b.y), fminf(a.z,b.z), fminf(a.w,b.w));
+    return make_double4(fmin(a.x,b.x), fmin(a.y,b.y), fmin(a.z,b.z), fmin(a.w,b.w));
 }
 
 inline __host__ __device__ int2 min(int2 a, int2 b)
@@ -1087,17 +1087,17 @@ inline __host__ __device__ uint4 min(uint4 a, uint4 b)
 // max
 ////////////////////////////////////////////////////////////////////////////////
 
-inline __host__ __device__ double2 fmaxf(double2 a, double2 b)
+inline __host__ __device__ double2 fmax(double2 a, double2 b)
 {
-    return make_double2(fmaxf(a.x,b.x), fmaxf(a.y,b.y));
+    return make_double2(fmax(a.x,b.x), fmax(a.y,b.y));
 }
-inline __host__ __device__ double3 fmaxf(double3 a, double3 b)
+inline __host__ __device__ double3 fmax(double3 a, double3 b)
 {
-    return make_double3(fmaxf(a.x,b.x), fmaxf(a.y,b.y), fmaxf(a.z,b.z));
+    return make_double3(fmax(a.x,b.x), fmax(a.y,b.y), fmax(a.z,b.z));
 }
-inline __host__ __device__ double4 fmaxf(double4 a, double4 b)
+inline __host__ __device__ double4 fmax(double4 a, double4 b)
 {
-    return make_double4(fmaxf(a.x,b.x), fmaxf(a.y,b.y), fmaxf(a.z,b.z), fmaxf(a.w,b.w));
+    return make_double4(fmax(a.x,b.x), fmax(a.y,b.y), fmax(a.z,b.z), fmax(a.w,b.w));
 }
 
 inline __host__ __device__ int2 max(int2 a, int2 b)
@@ -1155,7 +1155,7 @@ inline __device__ __host__ double4 lerp(double4 a, double4 b, double t)
 
 inline __device__ __host__ double clamp(double f, double a, double b)
 {
-    return fmaxf(a, fminf(f, b));
+    return fmax(a, fmin(f, b));
 }
 inline __device__ __host__ int clamp(int f, int a, int b)
 {
@@ -1324,17 +1324,17 @@ inline __host__ __device__ double4 normalize(double4 v)
 // floor
 ////////////////////////////////////////////////////////////////////////////////
 
-inline __host__ __device__ double2 floorf(double2 v)
+inline __host__ __device__ double2 floor(double2 v)
 {
-    return make_double2(floorf(v.x), floorf(v.y));
+    return make_double2(floor(v.x), floor(v.y));
 }
-inline __host__ __device__ double3 floorf(double3 v)
+inline __host__ __device__ double3 floor(double3 v)
 {
-    return make_double3(floorf(v.x), floorf(v.y), floorf(v.z));
+    return make_double3(floor(v.x), floor(v.y), floor(v.z));
 }
-inline __host__ __device__ double4 floorf(double4 v)
+inline __host__ __device__ double4 floor(double4 v)
 {
-    return make_double4(floorf(v.x), floorf(v.y), floorf(v.z), floorf(v.w));
+    return make_double4(floor(v.x), floor(v.y), floor(v.z), floor(v.w));
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -1343,7 +1343,7 @@ inline __host__ __device__ double4 floorf(double4 v)
 
 inline __host__ __device__ double fracf(double v)
 {
-    return v - floorf(v);
+    return v - floor(v);
 }
 inline __host__ __device__ double2 fracf(double2 v)
 {
@@ -1362,17 +1362,17 @@ inline __host__ __device__ double4 fracf(double4 v)
 // fmod
 ////////////////////////////////////////////////////////////////////////////////
 
-inline __host__ __device__ double2 fmodf(double2 a, double2 b)
+inline __host__ __device__ double2 fmod(double2 a, double2 b)
 {
-    return make_double2(fmodf(a.x, b.x), fmodf(a.y, b.y));
+    return make_double2(fmod(a.x, b.x), fmod(a.y, b.y));
 }
-inline __host__ __device__ double3 fmodf(double3 a, double3 b)
+inline __host__ __device__ double3 fmod(double3 a, double3 b)
 {
-    return make_double3(fmodf(a.x, b.x), fmodf(a.y, b.y), fmodf(a.z, b.z));
+    return make_double3(fmod(a.x, b.x), fmod(a.y, b.y), fmod(a.z, b.z));
 }
-inline __host__ __device__ double4 fmodf(double4 a, double4 b)
+inline __host__ __device__ double4 fmod(double4 a, double4 b)
 {
-    return make_double4(fmodf(a.x, b.x), fmodf(a.y, b.y), fmodf(a.z, b.z), fmodf(a.w, b.w));
+    return make_double4(fmod(a.x, b.x), fmod(a.y, b.y), fmod(a.z, b.z), fmod(a.w, b.w));
 }
 
 ////////////////////////////////////////////////////////////////////////////////

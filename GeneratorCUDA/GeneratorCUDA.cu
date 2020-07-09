@@ -207,10 +207,10 @@ int main(int argc, char const* argv[])
 			writeStep = true;
 
 			// Progress reporting:
-			float eta = ((time(NULL) - startProgress) / skip * (steps - Step)) / 3600.; // In seconds.
+			double eta = ((time(NULL) - startProgress) / skip * (steps - Step)) / 3600.; // In seconds.
 			sizeof(int);
-			float elapsed = (time(NULL) - start) / 3600.;
-			float progress = ((float)Step / (float)steps * 100.f);
+			double elapsed = (time(NULL) - start) / 3600.;
+			double progress = ((float)Step / (float)steps * 100.f);
 			printf("Step: %i\tProgress: %2.0f%%\tETA: %5.2lf\tElapsed: %5.2f\r", Step, progress, eta, elapsed);
 			startProgress = time(NULL);
 		}
@@ -365,14 +365,14 @@ int main(int argc, char const* argv[])
 
 				clus.KE += .5 * clus.m[Ball] * dot(clus.vel[Ball], clus.vel[Ball]) + .5 * clus.moi[Ball] * dot(clus.w[Ball], clus.w[Ball]); // Now includes rotational kinetic energy.
 				clus.mom += clus.m[Ball] * clus.vel[Ball];
-				clus.angMom += clus.m[Ball] * a.pos.cross(a.clus.vel) + clus.moi[Ball] * clus.w[Ball];
+				clus.angMom += clus.m[Ball] * cross(clus.pos[Ball], clus.vel[Ball]) + clus.moi[Ball] * clus.w[Ball];
 			}
 		}
 		if (writeStep)
 		{
 			// Write energy to stream:
 			energyBuffer << std::endl
-				<< dt * Step << ',' << clus.PE << ',' << clus.KE << ',' << clus.PE + clus.KE << ',' << clus.mom.norm() << ',' << clus.angMom.norm() << ',' << 0 << ',' << 0 << ',' << clus.m; // the two zeros are bound and unbound mass
+				<< dt * Step << ',' << clus.PE << ',' << clus.KE << ',' << clus.PE + clus.KE << ',' << length(clus.mom) << ',' << length(clus.angMom) << ',' << 0 << ',' << 0 << ',' << clus.mTotal; // the two zeros are bound and unbound mass
 
    // Reinitialize energies for next step:
 			clus.KE = 0;
@@ -443,33 +443,46 @@ int main(int argc, char const* argv[])
 //}
 
 // Helper function for using CUDA to add vectors in parallel.
-cudaError_t intAddWithCuda(int* c, const int* a, const int* b, unsigned int size)
+cudaError_t double3worker(double3* velh, double3* pos, double3* vel, double3* acc, unsigned int size)
 {
-	int* dev_a = 0;
-	int* dev_b = 0;
-	int* dev_c = 0;
+	double3* dev_velh = 0;
+	double3* dev_pos = 0;
+	double3* dev_vel = 0;
+	double3* dev_acc = 0;
 	cudaError_t cudaStatus;
 
 	// Choose which GPU to run on, change this on a multi-GPU system.
 	cudaStatus = cudaSetDevice(0);
 	CHECK;
 
-	// Allocate GPU buffers for three vectors (two input, one output)    .
-	cudaStatus = cudaMalloc((void**)&dev_c, size * sizeof(int));
+	// Allocate GPU buffers for 4 vectors.
+	cudaStatus = cudaMalloc((void**)&dev_velh, size * sizeof(double3));
 	CHECK;
-	cudaStatus = cudaMalloc((void**)&dev_a, size * sizeof(int));
+	cudaStatus = cudaMalloc((void**)&dev_pos, size * sizeof(double3));
 	CHECK;
-	cudaStatus = cudaMalloc((void**)&dev_b, size * sizeof(int));
+	cudaStatus = cudaMalloc((void**)&dev_vel, size * sizeof(double3));
+	CHECK;
+	cudaStatus = cudaMalloc((void**)&dev_acc, size * sizeof(double3));
 	CHECK;
 
 	// Copy input vectors from host memory to GPU buffers.
-	cudaStatus = cudaMemcpy(dev_a, a, size * sizeof(int), cudaMemcpyHostToDevice);
+	cudaStatus = cudaMemcpy(dev_velh, velh, size * sizeof(int), cudaMemcpyHostToDevice);
 	CHECK;
-	cudaStatus = cudaMemcpy(dev_b, b, size * sizeof(int), cudaMemcpyHostToDevice);
+	cudaStatus = cudaMemcpy(dev_pos, pos, size * sizeof(int), cudaMemcpyHostToDevice);
+	CHECK;
+	cudaStatus = cudaMemcpy(dev_vel, vel, size * sizeof(int), cudaMemcpyHostToDevice);
+	CHECK;
+	cudaStatus = cudaMemcpy(dev_acc, acc, size * sizeof(int), cudaMemcpyHostToDevice);
 	CHECK;
 
+	// Need to copy all ball data to GPU so we can just iterate all physics loops and stay on gpu
+	// The kernel launch loop is per time step not per loop. All 3 loops will happen per thread (ball or ball pair)
+
 	// Launch a kernel on the GPU with one thread for each element.
-	updatePosition << <numBlocks, blockSize >> > (dev_c, dev_a, dev_b);
+	for (size_t step = 0; step < steps; step++) // actually need to stop 500 or 1000 and copy back then launch again.
+	{
+		updatePosition << <numBlocks, blockSize >> > (dev_velh, dev_pos, dev_vel, dev_acc, dt);
+	}
 
 	// Check for any errors launching the kernel
 	cudaStatus = cudaGetLastError();
@@ -481,15 +494,24 @@ cudaError_t intAddWithCuda(int* c, const int* a, const int* b, unsigned int size
 	CHECK;
 
 	// Copy output vector from GPU buffer to host memory.
-	cudaStatus = cudaMemcpy(c, dev_c, size * sizeof(int), cudaMemcpyDeviceToHost);
+	cudaStatus = cudaMemcpy(velh, dev_velh, size * sizeof(double3), cudaMemcpyDeviceToHost);
 	CHECK;
+	cudaStatus = cudaMemcpy(pos, dev_pos, size * sizeof(double3), cudaMemcpyDeviceToHost);
+	CHECK;
+	cudaStatus = cudaMemcpy(vel, dev_vel, size * sizeof(double3), cudaMemcpyDeviceToHost);
+	CHECK;
+	cudaStatus = cudaMemcpy(velh, dev_acc, size * sizeof(double3), cudaMemcpyDeviceToHost);
+	CHECK;
+
+
 
 	cudaStatus = cudaDeviceSynchronize();
 	CHECK;
 
-	cudaFree(dev_c);
-	cudaFree(dev_a);
-	cudaFree(dev_b);
+	cudaFree(dev_velh);
+	cudaFree(dev_pos);
+	cudaFree(dev_vel);
+	cudaFree(dev_acc);
 
 	return cudaStatus;
 }

@@ -9,7 +9,7 @@ inline double3 randVec(double lim1, double lim2, double lim3)
 {
     double3 vec = make_double3(randDouble(lim1), randDouble(lim2), randDouble(lim3));
     double halfLim = lim1 * .5;
-    while (mag(vec) > halfLim)
+    while (length(vec) > halfLim)
     {
         vec = make_double3(randDouble(lim1), randDouble(lim2), randDouble(lim3));
     }

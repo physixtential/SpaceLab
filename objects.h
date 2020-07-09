@@ -169,6 +169,7 @@ struct cluster
 
 	double updateRadius()
 	{
+		radius = 0;
 		for (int Ball = 0; Ball < cNumBalls; Ball++)
 		{
 			double dist = length(pos[Ball] - com);
@@ -177,6 +178,7 @@ struct cluster
 				radius = dist;
 			}
 		}
+		return radius;
 	}
 
 	double3 updateCom()
