@@ -111,7 +111,7 @@ struct cluster
 				for (int B = A + 1; B < cNumBalls; B++)
 				{
 					// Check for Ball overlap.
-					double dist = mag(pos[A] - pos[B]);
+					double dist = length(pos[A] - pos[B]);
 					double sumRaRb = R[A] + R[B];
 					double overlap = dist - sumRaRb;
 					if (overlap < 0)
@@ -171,7 +171,7 @@ struct cluster
 	{
 		for (int Ball = 0; Ball < cNumBalls; Ball++)
 		{
-			double dist = mag(pos[Ball] - com);
+			double dist = length(pos[Ball] - com);
 			if (dist > radius)
 			{
 				radius = dist;
@@ -270,9 +270,9 @@ struct cluster
 				for (int B = 0; B < A; B++)
 				{
 					double sumRaRb = R[A] + R[B];
-					double dist = mag(pos[A] - pos[B]);
+					double dist = length(pos[A] - pos[B]);
 					double3 rVecab = pos[B] - pos[A];
-					double3 rVecba = pos[A] - pos[B];
+					double3 rVecba = -1 * rVecab;
 
 					// Check for collision between Ball and otherBall:
 					double overlap = sumRaRb - dist;
@@ -288,9 +288,9 @@ struct cluster
 						double3 relativeVelOfA = dVel - dot(dVel, rVecab) * (rVecab / (dist * dist)) - cross(w[A], R[A] / sumRaRb * rVecab) - cross(w[B], R[B] / sumRaRb * rVecab);
 						double3 elasticForceOnA = -kin * overlap * .5 * (rVecab / dist);
 						double3 frictionForceOnA = { 0,0,0 };
-						if (mag(relativeVelOfA) > 1e-12) // When relative velocity is very low, dividing its vector components by its magnitude below is unstable.
+						if (length(relativeVelOfA) > 1e-12) // When relative velocity is very low, dividing its vector components by its magnitude below is unstable.
 						{
-							frictionForceOnA = mu * mag(elasticForceOnA) * (relativeVelOfA / mag(relativeVelOfA));
+							frictionForceOnA = mu * length(elasticForceOnA) * (relativeVelOfA / length(relativeVelOfA));
 						}
 						aTorque = (R[A] / sumRaRb) * cross(rVecab, frictionForceOnA);
 
@@ -299,9 +299,9 @@ struct cluster
 						double3 relativeVelOfB = dVel - dot(dVel, rVecba) * (rVecba / (dist * dist)) - cross(w[B], R[B] / sumRaRb * rVecba) - cross(w[A], R[A] / sumRaRb * rVecba);
 						double3 elasticForceOnB = -kin * overlap * .5 * (rVecba / dist);
 						double3 frictionForceOnB = { 0,0,0 };
-						if (mag(relativeVelOfB) > 1e-12)
+						if (length(relativeVelOfB) > 1e-12)
 						{
-							frictionForceOnB = mu * mag(elasticForceOnB) * (relativeVelOfB / mag(relativeVelOfB));
+							frictionForceOnB = mu * length(elasticForceOnB) * (relativeVelOfB / length(relativeVelOfB));
 						}
 						bTorque = (R[B] / sumRaRb) * cross(rVecba, frictionForceOnB);
 
