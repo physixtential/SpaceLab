@@ -262,12 +262,12 @@ struct cluster
 		{
 			double3 comNumerator = { 0, 0, 0 };
 
-			for (int A = 0; A < cNumBalls; A++)
+			for (int A = 1; A < cNumBalls; A++)
 			{
 				mTotal += m[A];
 				comNumerator += m[A] * pos[A];
 
-				for (int B = A + 1; B < cNumBalls; B++)
+				for (int B = 0; B < A; B++)
 				{
 					double sumRaRb = R[A] + R[B];
 					double dist = mag(pos[A] - pos[B]);
@@ -321,7 +321,8 @@ struct cluster
 					// Newton's equal and opposite forces applied to acceleration of each ball:
 					acc[A] += totalForce / m[A];
 					acc[B] -= totalForce / m[B];
-					a.distances[B] = b.distances[A] = dist;
+					int e = (A * (A - 1) * .5) + B;
+					distances[e] = dist;
 				}
 				KE += .5 * m[A] * dot(vel[A], vel[A]) + .5 * moi[A] * dot(w[A], w[A]);
 				mom += m[A] * vel[A];
