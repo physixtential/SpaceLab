@@ -9,6 +9,7 @@
 #include <vector>
 #include <omp.h>
 #include "../vector3d.h"
+#include "../objects.h"
 
 void makeVec(vector3d* vec, int len)
 {
@@ -44,8 +45,8 @@ int main()
 		{
 			for (size_t j = 0; j < i; j++)
 			{
-				int e = A * (A - 1) * .5; // Get to the right first ball region in array
-				dist[A + B] = (pos[i] - pos[j]).norm(); // add j to get to the other ball in the pair.
+				int e = i * (i - 1) * .5; // Get to the right first ball region in array
+				dist[i + j] = (pos[i] - pos[j]).norm(); // add j to get to the other ball in the pair.
 				//printf("%d\t%d\t%d\t%lf\n", i, j, e, dist[e]);
 			}
 		}

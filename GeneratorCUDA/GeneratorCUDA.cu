@@ -66,8 +66,8 @@ int main(int argc, char const* argv[])
 	std::cout << "New file tag: " << outputPrefix;
 	// Save file names:
 	std::string simDataName = outputPrefix + "simData.csv",
-		constantsName = outputPrefix + "Constants.csv",
-		energyName = outputPrefix + "Energy.csv";
+		constantsName = outputPrefix + "constants.csv",
+		energyName = outputPrefix + "energy.csv";
 
 	std::ofstream::openmode myOpenMode = std::ofstream::app;
 
@@ -93,7 +93,7 @@ int main(int argc, char const* argv[])
 
 	// Make column headers:
 	energyWrite << "Time,PE,KE,E,p,L,Bound,Unbound,m";
-	ballWrite << "x0,y0,z0,w_x0,w_y0,w_z0,w_mag0,v_x0,v_y0,v_z0,comp0";
+	ballWrite << "x0,y0,z0,wx0,wy0,wz0,wmag0,vx0,vy0,vz0,comp0";
 	for (int Ball = 1; Ball < numBalls; Ball++) // Start at 2nd ball because first one was just written^.
 	{
 		std::string thisBall = std::to_string(Ball);
@@ -163,7 +163,7 @@ int main(int argc, char const* argv[])
 	for (int Ball = 1; Ball < numBalls; Ball++)
 	{
 		ballBuffer
-			<< clus.pos[Ball].x << ','
+			<< ',' << clus.pos[Ball].x << ','
 			<< clus.pos[Ball].y << ','
 			<< clus.pos[Ball].z << ','
 			<< clus.w[Ball].x << ','
@@ -242,7 +242,7 @@ int main(int argc, char const* argv[])
 			{
 				double sumRaRb = clus.R[A] + clus.R[B];
 				double dist = length(clus.pos[A] - clus.pos[B]);
-				double3 rVecab = clus.pos[B] - clus.pos[B];
+				double3 rVecab = clus.pos[B] - clus.pos[A];
 				double3 rVecba = -1 * rVecab;
 
 				// Check for collision between Ball and otherBall:
@@ -356,11 +356,33 @@ int main(int argc, char const* argv[])
 				// Send positions and rotations to buffer:
 				if (Ball == 0)
 				{
-					ballBuffer << clus.pos[0].x << ',' << clus.pos[0].y << ',' << clus.pos[0].z << ',' << clus.w[0].x << ',' << clus.w[0].y << ',' << clus.w[0].z << ',' << length(clus.w[0]) << ',' << clus.vel[0].x << ',' << clus.vel[0].y << ',' << clus.vel[0].z << ',' << 0;
+					ballBuffer
+						<< clus.pos[0].x << ','
+						<< clus.pos[0].y << ','
+						<< clus.pos[0].z << ','
+						<< clus.w[0].x << ','
+						<< clus.w[0].y << ','
+						<< clus.w[0].z << ','
+						<< length(clus.w[0]) << ','
+						<< clus.vel[0].x << ','
+						<< clus.vel[0].y << ','
+						<< clus.vel[0].z << ','
+						<< 0;
 				}
 				else
 				{
-					ballBuffer << clus.pos[Ball].x << ',' << clus.pos[Ball].y << ',' << clus.pos[Ball].z << ',' << clus.w[Ball].x << ',' << clus.w[Ball].y << ',' << clus.w[Ball].z << ',' << length(clus.w[Ball]) << ',' << clus.vel[Ball].x << ',' << clus.vel[Ball].y << ',' << clus.vel[Ball].z << ',' << 0;
+					ballBuffer
+						<< ',' << clus.pos[Ball].x << ','
+						<< clus.pos[Ball].y << ','
+						<< clus.pos[Ball].z << ','
+						<< clus.w[Ball].x << ','
+						<< clus.w[Ball].y << ','
+						<< clus.w[Ball].z << ','
+						<< length(clus.w[Ball]) << ','
+						<< clus.vel[Ball].x << ','
+						<< clus.vel[Ball].y << ','
+						<< clus.vel[Ball].z << ','
+						<< 0;
 				}
 
 				clus.KE += .5 * clus.m[Ball] * dot(clus.vel[Ball], clus.vel[Ball]) + .5 * clus.moi[Ball] * dot(clus.w[Ball], clus.w[Ball]); // Now includes rotational kinetic energy.

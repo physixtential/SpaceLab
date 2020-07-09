@@ -338,3 +338,5 @@ ASALocalRun/
 
 # BeatPulse healthcheck temp database
 healthchecksdb
+/GeneratorCUDA/32-R6.4043e+06-k1e+18-cor0.64-mu0.3-rho2.70-dt0.04_simData.csv
+*.csv

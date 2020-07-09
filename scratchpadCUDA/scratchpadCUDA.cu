@@ -65,7 +65,7 @@ int main()
 	time0 = omp_get_wtime();
 	for (size_t i = 0; i < pairs; i++)
 	{
-		dist[i] = mag(pos[pair[i].x] - pos[pair[i].y]);
+		dist[i] = length(pos[pair[i].x] - pos[pair[i].y]);
 		//printf("%d\t%d\n", pair[i].x, pair[i].y);
 	}
 	time1 = omp_get_wtime();
@@ -88,7 +88,7 @@ int main()
 	{
 		for (size_t j = i + 1; j < fullSet; j++)
 		{
-			dist[count] = mag(pos[i] - pos[j]);
+			dist[count] = length(pos[i] - pos[j]);
 			count++;
 		}
 	}
@@ -111,7 +111,7 @@ int main()
 	{
 		for (size_t j = i + 1; j < fullSet; j++)
 		{
-			dist[i] = mag(pos[i] - pos[j]);
+			dist[i] = length(pos[i] - pos[j]);
 		}
 	}
 	time1 = omp_get_wtime();

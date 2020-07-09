@@ -74,10 +74,11 @@ struct cluster
 
 		for (int Ball = 0; Ball < larges; Ball++)
 		{
-			R[Ball] = 1. * ballR;
+			R[Ball] = 3. * ballR;
 			m[Ball] = density * 4. / 3. * M_PI * pow(R[Ball], 3);
 			moi[Ball] = .4 * m[Ball] * R[Ball] * R[Ball];
 			w[Ball] = make_double3(0, 0, 0);
+			vel[Ball] = make_double3(0, 0, 0);
 			pos[Ball] = make_double3(randDouble(range), randDouble(range), randDouble(range));
 		}
 
@@ -87,14 +88,16 @@ struct cluster
 			m[Ball] = density * 4. / 3. * M_PI * pow(R[Ball], 3);
 			moi[Ball] = .4 * m[Ball] * R[Ball] * R[Ball];
 			w[Ball] = make_double3(0, 0, 0);
+			vel[Ball] = make_double3(0, 0, 0);
 			pos[Ball] = make_double3(randDouble(range), randDouble(range), randDouble(range));
 		}
 		for (int Ball = (larges + mediums); Ball < cNumBalls; Ball++)
 		{
-			R[Ball] = 3. * ballR;
+			R[Ball] = 1. * ballR;
 			m[Ball] = density * 4. / 3. * M_PI * pow(R[Ball], 3);
 			moi[Ball] = .4 * m[Ball] * R[Ball] * R[Ball];
 			w[Ball] = make_double3(0, 0, 0);
+			vel[Ball] = make_double3(0, 0, 0);
 			pos[Ball] = make_double3(randDouble(range), randDouble(range), randDouble(range));
 		}
 
