@@ -42,7 +42,7 @@ ballBuffer,
 energyBuffer;
 
 // Prototypes
-cudaError_t intAddWithCuda(int* c, const int* a, const int* b, unsigned int size);
+cudaError_t double3worker(double3* velh, double3* pos, double3* vel, double3* acc, unsigned int size);
 
 
 int main(int argc, char const* argv[])

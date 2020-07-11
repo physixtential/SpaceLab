@@ -8,7 +8,10 @@ struct cluster
 {
 	int cNumBalls = 0;
 
-	double3 com, mom, angMom; // Can be double3 because they only matter for writing out to file. Can process on host.
+	double3
+		com = make_double3(0, 0, 0),
+		mom = make_double3(0, 0, 0),
+		angMom = make_double3(0, 0, 0); // Can be double3 because they only matter for writing out to file. Can process on host.
 	double mTotal = 0, radius = 0;
 	double PE = 0, KE = 0;
 
@@ -79,7 +82,7 @@ struct cluster
 			moi[Ball] = .4 * m[Ball] * R[Ball] * R[Ball];
 			w[Ball] = make_double3(0, 0, 0);
 			vel[Ball] = make_double3(0, 0, 0);
-			pos[Ball] = make_double3(randDouble(range), randDouble(range), randDouble(range));
+			pos[Ball] = randVec(range, range, range);
 		}
 
 		for (int Ball = larges; Ball < (larges + mediums); Ball++)
@@ -89,7 +92,7 @@ struct cluster
 			moi[Ball] = .4 * m[Ball] * R[Ball] * R[Ball];
 			w[Ball] = make_double3(0, 0, 0);
 			vel[Ball] = make_double3(0, 0, 0);
-			pos[Ball] = make_double3(randDouble(range), randDouble(range), randDouble(range));
+			pos[Ball] = randVec(range, range, range);
 		}
 		for (int Ball = (larges + mediums); Ball < cNumBalls; Ball++)
 		{
@@ -98,7 +101,7 @@ struct cluster
 			moi[Ball] = .4 * m[Ball] * R[Ball] * R[Ball];
 			w[Ball] = make_double3(0, 0, 0);
 			vel[Ball] = make_double3(0, 0, 0);
-			pos[Ball] = make_double3(randDouble(range), randDouble(range), randDouble(range));
+			pos[Ball] = randVec(range, range, range);
 		}
 
 		std::cout << "Smalls: " << smalls << " Mediums: " << mediums << " Larges: " << larges << std::endl;
@@ -109,9 +112,9 @@ struct cluster
 
 		for (int failed = 0; failed < attempts; failed++)
 		{
-			for (int A = 0; A < cNumBalls; A++)
+			for (int A = 1; A < cNumBalls; A++)
 			{
-				for (int B = A + 1; B < cNumBalls; B++)
+				for (int B = 0; B < A; B++)
 				{
 					// Check for Ball overlap.
 					double dist = length(pos[A] - pos[B]);
@@ -150,15 +153,6 @@ struct cluster
 
 		std::cout << "Final range: " << range << std::endl;
 
-		// Center of mass:
-		double3 comNumerator;
-		for (int Ball = 0; Ball < cNumBalls; Ball++)
-		{
-			mTotal += m[Ball];
-			comNumerator += m[Ball] * pos[Ball];
-		}
-		com = comNumerator / mTotal;
-
 		// Center the cluster
 		clusToOrigin();
 
@@ -186,9 +180,7 @@ struct cluster
 
 	double3 updateCom()
 	{
-		// Calc cluster mass if it hasn't been done yet.
-
-		if (mTotal == 0)
+		mTotal = 0;
 		{
 			for (int Ball = 0; Ball < cNumBalls; Ball++)
 			{
@@ -203,7 +195,8 @@ struct cluster
 			{
 				comNumerator += m[Ball] * pos[Ball];
 			}
-			return comNumerator / mTotal;
+			com = comNumerator / mTotal;
+			return com;
 		}
 		else
 		{
@@ -219,6 +212,7 @@ struct cluster
 		{
 			pos[Ball] -= com;
 		}
+		updateCom();
 	}
 
 	// Set velocity of all balls such that the cluster spins:
