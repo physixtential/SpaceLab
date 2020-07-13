@@ -230,7 +230,7 @@ int main(int argc, char const* argv[])
 			clus.pos[Ball] += clus.velh[Ball] * dt;
 
 			// Reinitialize acceleration to be recalculated:
-			clus.acc[Ball] = { 0, 0, 0 }; // Don't really need to do this because setting = now not +=, but safer in case of += usage.
+			clus.acc[Ball] = { 0, 0, 0 }; // Must reset because += acc from all other balls, not just =.
 		}
 
 
@@ -262,23 +262,23 @@ int main(int argc, char const* argv[])
 					if (dist >= oldDist)
 					{
 						k = kout;
-						if (springTest)
-						{
-							if (oldDist < 0.9 * clus.R[A] || oldDist < 0.9 * clus.R[B])
-							{
-								if (clus.R[A] >= clus.R[B])
+						//if (springTest)
+						//{
+						//	if (oldDist < 0.9 * clus.R[A] || oldDist < 0.9 * clus.R[B])
+						//	{
+						//		if (clus.R[A] >= clus.R[B])
 
-								{
-									std::cout << "Warning: Ball compression is " << .5 * (sumRaRb - oldDist) / clus.R[B] << "of radius = " << clus.R[B] << std::endl;
-								}
-								else
-								{
-									std::cout << "Warning: Ball compression is " << .5 * (sumRaRb - oldDist) / clus.R[A] << "of radius = " << clus.R[A] << std::endl;
-								}
-								int garbo;
-								std::cin >> garbo;
-							}
-						}
+						//		{
+						//			std::cout << "Warning: Ball compression is " << .5 * (sumRaRb - oldDist) / clus.R[B] << "of radius = " << clus.R[B] << std::endl;
+						//		}
+						//		else
+						//		{
+						//			std::cout << "Warning: Ball compression is " << .5 * (sumRaRb - oldDist) / clus.R[A] << "of radius = " << clus.R[A] << std::endl;
+						//		}
+						//		int garbo;
+						//		std::cin >> garbo;
+						//	}
+						//}
 					}
 					else
 					{
@@ -331,8 +331,8 @@ int main(int argc, char const* argv[])
 					}
 				}
 				// Newton's equal and opposite forces applied to acceleration of each ball:
-				clus.acc[A] = totalForce / clus.m[A];
-				clus.acc[B] = -totalForce / clus.m[B];
+				clus.acc[A] += totalForce / clus.m[A];
+				clus.acc[B] += -totalForce / clus.m[B];
 
 				// So last distance can be known for cor:
 				clus.distances[e] = dist;
