@@ -286,6 +286,8 @@ int main(int argc, char const* argv[])
 	std::cout << "Beginning simulation at...\n";
 
 	omp_set_num_threads(numThreads);
+	omp_lock_t myLock;
+	omp_init_lock(&myLock);
 	for (int Step = 1; Step < steps; Step++) // Steps start at 1 because the 0 step is initial conditions.
 	{
 		// Check if this is a write step:
@@ -306,7 +308,7 @@ int main(int argc, char const* argv[])
 		}
 
 		// FIRST PASS - Position, send to buffer, velocity half step:
-#pragma omp parallel for default(none) shared(all,ballTotal,dt)
+#pragma omp parallel for default(none) shared(all,ballTotal,dt,myLock)
 		for (int Ball = 0; Ball < ballTotal; Ball++)
 		{
 			// Update velocity half step:
@@ -399,8 +401,10 @@ int main(int argc, char const* argv[])
 
 					vector3d gravForceOnA = (G * a.m * b.m / pow(dist, 2)) * (rVecab / dist);
 					totalForce = gravForceOnA + elasticForceOnA + frictionForceOnA;
+					omp_set_lock(&myLock);
 					a.w += aTorque / a.moi * dt;
 					b.w += bTorque / b.moi * dt;
+					omp_unset_lock(&myLock);
 
 					if (recordStep)
 					{
@@ -421,8 +425,10 @@ int main(int argc, char const* argv[])
 					}
 				}
 				// Newton's equal and opposite forces applied to acceleration of each ball:
+				omp_set_lock(&myLock);
 				a.acc += totalForce / a.m;
 				b.acc -= totalForce / b.m;
+				omp_unset_lock(&myLock);
 
 				// So last distance can be known for cor:
 				a.distances[B] = b.distances[A] = dist;
