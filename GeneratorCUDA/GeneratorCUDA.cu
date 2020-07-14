@@ -21,9 +21,14 @@
 __global__ void updatePosition(double3* velh, double3* pos, const double3* vel, double3* acc, const double dt)
 {
 	unsigned int gid = blockIdx.x * blockDim.x + threadIdx.x;
-	velh[gid] = .5 * dt * acc[gid] + vel[gid];
-	pos[gid] = velh[gid] * dt + pos[gid];
-	acc[gid] = make_double3(0, 0, 0);
+	// Update velocity half step:
+	velh[gid] = vel[gid] + .5 * acc[gid] * dt;
+
+	// Update position:
+	pos[gid] += velh[gid] * dt;
+
+	// Reinitialize acceleration to be recalculated:
+	acc[gid] = { 0, 0, 0 }; // Must reset because += acc from all other balls, not just =.
 }
 
 size_t blockSize = 64;
@@ -42,8 +47,7 @@ ballBuffer,
 energyBuffer;
 
 // Prototypes
-cudaError_t double3worker(double3* velh, double3* pos, double3* vel, double3* acc, unsigned int size);
-
+cudaError_t loopOneCUDA(double3* velh, double3* pos, double3* vel, double3* acc, const double dt, const unsigned int size, const unsigned int numSteps);
 
 int main(int argc, char const* argv[])
 {
@@ -221,17 +225,18 @@ int main(int argc, char const* argv[])
 
 
 		// FIRST PASS - Position, send to buffer, velocity half step:
-		for (int Ball = 0; Ball < numBalls; Ball++)
-		{
-			// Update velocity half step:
-			clus.velh[Ball] = clus.vel[Ball] + .5 * clus.acc[Ball] * dt;
+		//for (int Ball = 0; Ball < numBalls; Ball++)
+		//{
+		//	// Update velocity half step:
+		//	clus.velh[Ball] = clus.vel[Ball] + .5 * clus.acc[Ball] * dt;
 
-			// Update position:
-			clus.pos[Ball] += clus.velh[Ball] * dt;
+		//	// Update position:
+		//	clus.pos[Ball] += clus.velh[Ball] * dt;
 
-			// Reinitialize acceleration to be recalculated:
-			clus.acc[Ball] = { 0, 0, 0 }; // Must reset because += acc from all other balls, not just =.
-		}
+		//	// Reinitialize acceleration to be recalculated:
+		//	clus.acc[Ball] = { 0, 0, 0 }; // Must reset because += acc from all other balls, not just =.
+		//}
+		loopOneCUDA(clus.velh, clus.pos, clus.vel, clus.acc, dt, numBalls, steps);
 
 
 		// SECOND PASS - Check for collisions, apply forces and torques:
@@ -465,7 +470,7 @@ int main(int argc, char const* argv[])
 //}
 
 // Helper function for using CUDA to add vectors in parallel.
-cudaError_t double3worker(double3* velh, double3* pos, double3* vel, double3* acc, unsigned int size)
+cudaError_t loopOneCUDA(double3* velh, double3* pos, double3* vel, double3* acc, const double dt, const unsigned int size, const unsigned int numSteps)
 {
 	double3* dev_velh = 0;
 	double3* dev_pos = 0;
@@ -488,23 +493,23 @@ cudaError_t double3worker(double3* velh, double3* pos, double3* vel, double3* ac
 	CHECK;
 
 	// Copy input vectors from host memory to GPU buffers.
-	cudaStatus = cudaMemcpy(dev_velh, velh, size * sizeof(int), cudaMemcpyHostToDevice);
+	cudaStatus = cudaMemcpy(dev_velh, velh, size * sizeof(double3), cudaMemcpyHostToDevice);
 	CHECK;
-	cudaStatus = cudaMemcpy(dev_pos, pos, size * sizeof(int), cudaMemcpyHostToDevice);
+	cudaStatus = cudaMemcpy(dev_pos, pos, size * sizeof(double3), cudaMemcpyHostToDevice);
 	CHECK;
-	cudaStatus = cudaMemcpy(dev_vel, vel, size * sizeof(int), cudaMemcpyHostToDevice);
+	cudaStatus = cudaMemcpy(dev_vel, vel, size * sizeof(double3), cudaMemcpyHostToDevice);
 	CHECK;
-	cudaStatus = cudaMemcpy(dev_acc, acc, size * sizeof(int), cudaMemcpyHostToDevice);
+	cudaStatus = cudaMemcpy(dev_acc, acc, size * sizeof(double3), cudaMemcpyHostToDevice);
 	CHECK;
 
 	// Need to copy all ball data to GPU so we can just iterate all physics loops and stay on gpu
 	// The kernel launch loop is per time step not per loop. All 3 loops will happen per thread (ball or ball pair)
 
 	// Launch a kernel on the GPU with one thread for each element.
-	for (size_t step = 0; step < steps; step++) // actually need to stop 500 or 1000 and copy back then launch again.
-	{
-		updatePosition << <numBlocks, blockSize >> > (dev_velh, dev_pos, dev_vel, dev_acc, dt);
-	}
+	//for (size_t step = 0; step < numSteps; step++) // actually need to stop 500 or 1000 and copy back then launch again.
+	//{
+	updatePosition << <numBlocks, blockSize >> > (dev_velh, dev_pos, dev_vel, dev_acc, dt);
+	//}
 
 	// Check for any errors launching the kernel
 	cudaStatus = cudaGetLastError();
