@@ -469,13 +469,11 @@ int main(int argc, char const* argv[])
 //	return 0;
 //}
 
-// Helper function for using CUDA to add vectors in parallel.
+// Helper function for using CUDA.
 cudaError_t loopOneCUDA(double3* velh, double3* pos, double3* vel, double3* acc, const double dt, const unsigned int size, const unsigned int numSteps)
 {
 	double3* dev_velh = 0;
-	double3* dev_pos = 0;
-	double3* dev_vel = 0;
-	double3* dev_acc = 0;
+
 	cudaError_t cudaStatus;
 
 	// Choose which GPU to run on, change this on a multi-GPU system.
@@ -485,22 +483,12 @@ cudaError_t loopOneCUDA(double3* velh, double3* pos, double3* vel, double3* acc,
 	// Allocate GPU buffers for 4 vectors.
 	cudaStatus = cudaMalloc((void**)&dev_velh, size * sizeof(double3));
 	CHECK;
-	cudaStatus = cudaMalloc((void**)&dev_pos, size * sizeof(double3));
-	CHECK;
-	cudaStatus = cudaMalloc((void**)&dev_vel, size * sizeof(double3));
-	CHECK;
-	cudaStatus = cudaMalloc((void**)&dev_acc, size * sizeof(double3));
-	CHECK;
+
 
 	// Copy input vectors from host memory to GPU buffers.
 	cudaStatus = cudaMemcpy(dev_velh, velh, size * sizeof(double3), cudaMemcpyHostToDevice);
 	CHECK;
-	cudaStatus = cudaMemcpy(dev_pos, pos, size * sizeof(double3), cudaMemcpyHostToDevice);
-	CHECK;
-	cudaStatus = cudaMemcpy(dev_vel, vel, size * sizeof(double3), cudaMemcpyHostToDevice);
-	CHECK;
-	cudaStatus = cudaMemcpy(dev_acc, acc, size * sizeof(double3), cudaMemcpyHostToDevice);
-	CHECK;
+
 
 	// Need to copy all ball data to GPU so we can just iterate all physics loops and stay on gpu
 	// The kernel launch loop is per time step not per loop. All 3 loops will happen per thread (ball or ball pair)
@@ -523,22 +511,11 @@ cudaError_t loopOneCUDA(double3* velh, double3* pos, double3* vel, double3* acc,
 	// Copy output vector from GPU buffer to host memory.
 	cudaStatus = cudaMemcpy(velh, dev_velh, size * sizeof(double3), cudaMemcpyDeviceToHost);
 	CHECK;
-	cudaStatus = cudaMemcpy(pos, dev_pos, size * sizeof(double3), cudaMemcpyDeviceToHost);
-	CHECK;
-	cudaStatus = cudaMemcpy(vel, dev_vel, size * sizeof(double3), cudaMemcpyDeviceToHost);
-	CHECK;
-	cudaStatus = cudaMemcpy(velh, dev_acc, size * sizeof(double3), cudaMemcpyDeviceToHost);
-	CHECK;
-
-
 
 	cudaStatus = cudaDeviceSynchronize();
 	CHECK;
 
 	cudaFree(dev_velh);
-	cudaFree(dev_pos);
-	cudaFree(dev_vel);
-	cudaFree(dev_acc);
 
 	return cudaStatus;
 }
