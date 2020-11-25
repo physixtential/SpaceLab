@@ -1,36 +1,29 @@
-#define _USE_MATH_DEFINES
 #include <iostream>
+#include <cmath>
 #include <fstream>
 #include <time.h>
 #include <sstream>
-#include <stdio.h>
-#include "math.h"
+#include <iomanip>
+#include <algorithm>
+#include "../vector3d.h"
+#include "../initializations.h"
+#include "../objects.h"
 
 #include "cuda_runtime.h"
 #include "device_launch_parameters.h"
 
-#include "../cuVectorMath.h"
-#include "../initializations.h"
-#include "../misc.h"
-#include "../objects.h"
-
 // Create handy shorthand for error checking each step of CUDA without a bulky conditional every time:
 #define CHECK (cudaStatus != cudaSuccess) ? fprintf(stderr, "Error at line %i\n", __LINE__ - 1) : NULL;
 
+cudaError_t intAddWithCuda(int* c, const int* a, const int* b, unsigned int size);
 
-__global__ void updatePosition(double3* velh, double3* pos, const double3* vel, double3* acc, const double dt)
+__global__ void addKernel(int* c, const int* a, const int* b)
 {
 	unsigned int gid = blockIdx.x * blockDim.x + threadIdx.x;
-	// Update velocity half step:
-	velh[gid] = vel[gid] + .5 * acc[gid] * dt;
-
-	// Update position:
-	pos[gid] += velh[gid] * dt;
-
-	// Reinitialize acceleration to be recalculated:
-	acc[gid] = { 0, 0, 0 }; // Must reset because += acc from all other balls, not just =.
+	c[gid] = a[gid] + b[gid];
 }
 
+size_t numBalls = genBalls;
 size_t blockSize = 64;
 size_t numBlocks = numBalls / blockSize;
 
@@ -46,20 +39,140 @@ std::stringstream
 ballBuffer,
 energyBuffer;
 
-// Prototypes
-cudaError_t loopOneCUDA(double3* velh, double3* pos, double3* vel, double3* acc, const double dt, const unsigned int size, const unsigned int numSteps);
+cluster generateBallField()
+{
+	cluster clus;
+	clus.balls.resize(genBalls);
+	// Create new random number set.
+	int seedSave = time(NULL);
+	srand(seedSave);
+
+	// Make genBalls of 3 sizes in CGS with ratios such that the mass is distributed evenly among the 3 sizes (less large genBalls than small genBalls).
+	int smalls = std::round((double)genBalls * 27 / 31.375); // Just here for reference. Whatever genBalls are left will be smalls.
+	int mediums = std::round((double)genBalls * 27 / (8 * 31.375));
+	int larges = std::round((double)genBalls * 1 / 31.375);
+
+
+	for (int Ball = 0; Ball < larges; Ball++)
+	{
+		ball& a = clus.balls[Ball];
+		a.R = 3. * scaleBalls;//pow(1. / (double)genBalls, 1. / 3.) * 3. * scaleBalls;
+		a.m = density * 4. / 3. * 3.14159 * pow(a.R, 3);
+		a.moi = .4 * a.m * a.R * a.R;
+		a.w = { 0, 0, 0 };
+		a.pos = randVec(spaceRange, spaceRange, spaceRange);
+	}
+
+	for (int Ball = larges; Ball < (larges + mediums); Ball++)
+	{
+		ball& a = clus.balls[Ball];
+		a.R = 2. * scaleBalls;//pow(1. / (double)genBalls, 1. / 3.) * 2. * scaleBalls;
+		a.m = density * 4. / 3. * 3.14159 * pow(a.R, 3);
+		a.moi = .4 * a.m * a.R * a.R;
+		a.w = { 0, 0, 0 };
+		a.pos = randVec(spaceRange, spaceRange, spaceRange);
+	}
+	for (int Ball = (larges + mediums); Ball < genBalls; Ball++)
+	{
+		ball& a = clus.balls[Ball];
+		a.R = 1. * scaleBalls;//pow(1. / (double)genBalls, 1. / 3.) * 1. * scaleBalls;
+		a.m = density * 4. / 3. * 3.14159 * pow(a.R, 3);
+		a.moi = .4 * a.m * a.R * a.R;
+		a.w = { 0, 0, 0 };
+		a.pos = randVec(spaceRange, spaceRange, spaceRange);
+	}
+
+	std::cout << "Smalls: " << smalls << " Mediums: " << mediums << " Larges: " << larges << std::endl;
+
+	// Generate non-overlapping spherical particle field:
+	int collisionDetected = 0;
+	int oldCollisions = genBalls;
+
+	for (int failed = 0; failed < attempts; failed++)
+	{
+		for (int A = 0; A < genBalls; A++)
+		{
+			ball& a = clus.balls[A];
+			for (int B = A + 1; B < genBalls; B++)
+			{
+				ball& b = clus.balls[B];
+				// Check for Ball overlap.
+				double dist = (a.pos - b.pos).norm();
+				double sumRaRb = a.R + b.R;
+				double overlap = dist - sumRaRb;
+				if (overlap < 0)
+				{
+					collisionDetected += 1;
+					// Move the other ball:
+					b.pos = randVec(spaceRange, spaceRange, spaceRange);
+				}
+			}
+		}
+		if (collisionDetected < oldCollisions)
+		{
+			oldCollisions = collisionDetected;
+			std::cout << "Collisions: " << collisionDetected << "                        \r";
+		}
+		if (collisionDetected == 0)
+		{
+			std::cout << "\nSuccess!\n";
+			break;
+		}
+		if (failed == attempts - 1 || collisionDetected > int(1.5 * (double)genBalls)) // Added the second part to speed up spatial constraint increase when there are clearly too many collisions for the space to be feasable.
+		{
+			std::cout << "Failed " << spaceRange << ". Increasing range " << spaceRangeIncrement << "cm^3.\n";
+			spaceRange += spaceRangeIncrement;
+			failed = 0;
+			for (int Ball = 0; Ball < genBalls; Ball++)
+			{
+				clus.balls[Ball].pos = randVec(spaceRange, spaceRange, spaceRange); // Each time we fail and increase range, redistribute all balls randomly so we don't end up with big balls near mid and small balls outside.
+			}
+		}
+		collisionDetected = 0;
+	}
+	std::cout << "Final spacerange: " << spaceRange << std::endl;
+	// Calculate approximate radius of imported cluster and center mass at origin:
+	vector3d comNumerator;
+	for (int Ball = 0; Ball < clus.balls.size(); Ball++)
+	{
+		ball& a = clus.balls[Ball];
+		clus.m += a.m;
+		comNumerator += a.m * a.pos;
+	}
+	clus.com = comNumerator / clus.m;
+
+	for (int Ball = 0; Ball < clus.balls.size(); Ball++)
+	{
+		double dist = (clus.balls[Ball].pos - clus.com).norm();
+		if (dist > clus.radius)
+		{
+			clus.radius = dist;
+		}
+	}
+	std::cout << "Initial Radius: " << clus.radius << std::endl;
+	std::cout << "Mass: " << clus.m << std::endl;
+
+	return clus;
+}
 
 int main(int argc, char const* argv[])
 {
-	// Create cluster:
-	cluster clus;
-	clus.allocateClusterMem(numBalls);
-	clus.fillCluster(scaleBalls, spaceRange);
-	clus.initPhysics(numBalls);
+	cluster clus = generateBallField();
 
+	// Cosmos has been filled with balls. Size is known:
+	int ballTotal = clus.balls.size();
+	std::vector<ball>& all = clus.balls;
+
+	clus.initConditions();
+	// Re-center universe mass to origin:
+	for (int Ball = 0; Ball < ballTotal; Ball++)
+	{
+		clus.balls[Ball].pos -= clus.com;
+	}
+	clus.com = { 0, 0, 0 };
 
 	outputPrefix =
-		std::to_string(numBalls) +
+		std::to_string(ballTotal) +
 		"-R" + scientific(clus.radius) +
 		"-k" + scientific(kin) +
 		"-cor" + rounder(pow(cor, 2), 4) +
@@ -70,8 +183,8 @@ int main(int argc, char const* argv[])
 	std::cout << "New file tag: " << outputPrefix;
 	// Save file names:
 	std::string simDataName = outputPrefix + "simData.csv",
-		constantsName = outputPrefix + "constants.csv",
-		energyName = outputPrefix + "energy.csv";
+		constantsName = outputPrefix + "Constants.csv",
+		energyName = outputPrefix + "Energy.csv";
 
 	std::ofstream::openmode myOpenMode = std::ofstream::app;
 
@@ -97,8 +210,8 @@ int main(int argc, char const* argv[])
 
 	// Make column headers:
 	energyWrite << "Time,PE,KE,E,p,L,Bound,Unbound,m";
-	ballWrite << "x0,y0,z0,wx0,wy0,wz0,wmag0,vx0,vy0,vz0,comp0";
-	for (int Ball = 1; Ball < numBalls; Ball++) // Start at 2nd ball because first one was just written^.
+	ballWrite << "x0,y0,z0,w_x0,w_y0,w_z0,w_mag0,v_x0,v_y0,v_z0,comp0";
+	for (int Ball = 1; Ball < ballTotal; Ball++) // Start at 2nd ball because first one was just written^.
 	{
 		std::string thisBall = std::to_string(Ball);
 		ballWrite
@@ -118,14 +231,15 @@ int main(int argc, char const* argv[])
 	std::cout << "\nSim data, energy, and constants file streams and headers created.";
 
 	// Write constant data:
-	for (int Ball = 0; Ball < numBalls; Ball++)
+	for (int Ball = 0; Ball < ballTotal; Ball++)
 	{
+
 		constWrite
-			<< clus.R[Ball]
+			<< all[Ball].R
 			<< ','
-			<< clus.m[Ball]
+			<< all[Ball].m
 			<< ','
-			<< clus.moi[Ball]
+			<< all[Ball].moi
 			<< std::endl;
 	}
 
@@ -136,8 +250,8 @@ int main(int argc, char const* argv[])
 		<< clus.PE << ','
 		<< clus.KE << ','
 		<< clus.PE + clus.KE << ','
-		<< length(clus.mom) << ','
-		<< length(clus.angMom) << ','
+		<< clus.momentum.norm() << ','
+		<< clus.angularMomentum.norm() << ','
 		<< 0 << ',' //boundMass
 		<< 0 << ',' //unboundMass
 		<< clus.m;
@@ -147,37 +261,37 @@ int main(int argc, char const* argv[])
 	// Reinitialize energies for next step:
 	clus.KE = 0;
 	clus.PE = 0;
-	clus.mom = { 0, 0, 0 };
-	clus.angMom = { 0, 0, 0 };
+	clus.momentum = { 0, 0, 0 };
+	clus.angularMomentum = { 0, 0, 0 };
 
 	// ball buffer:
 	ballBuffer << std::endl; // Necessary new line after header.
 	ballBuffer
-		<< clus.pos[0].x << ','
-		<< clus.pos[0].y << ','
-		<< clus.pos[0].z << ','
-		<< clus.w[0].x << ','
-		<< clus.w[0].y << ','
-		<< clus.w[0].z << ','
-		<< length(clus.w[0]) << ','
-		<< clus.vel[0].x << ','
-		<< clus.vel[0].y << ','
-		<< clus.vel[0].z << ','
+		<< all[0].pos.x << ','
+		<< all[0].pos.y << ','
+		<< all[0].pos.z << ','
+		<< all[0].w.x << ','
+		<< all[0].w.y << ','
+		<< all[0].w.z << ','
+		<< all[0].w.norm() << ','
+		<< all[0].vel.x << ','
+		<< all[0].vel.y << ','
+		<< all[0].vel.z << ','
 		<< 0; //bound[0];
-	for (int Ball = 1; Ball < numBalls; Ball++)
+	for (int Ball = 1; Ball < ballTotal; Ball++)
 	{
 		ballBuffer
-			<< ',' << clus.pos[Ball].x << ','
-			<< clus.pos[Ball].y << ','
-			<< clus.pos[Ball].z << ','
-			<< clus.w[Ball].x << ','
-			<< clus.w[Ball].y << ','
-			<< clus.w[Ball].z << ','
-			<< length(clus.w[Ball]) << ','
-			<< clus.vel[Ball].x << ','
-			<< clus.vel[Ball].y << ','
-			<< clus.vel[Ball].z << ','
-			<< 0; //bound[0];
+			<< ',' << all[Ball].pos.x << ','
+			<< all[Ball].pos.y << ','
+			<< all[Ball].pos.z << ','
+			<< all[Ball].w.x << ','
+			<< all[Ball].w.y << ','
+			<< all[Ball].w.z << ','
+			<< all[Ball].w.norm() << ','
+			<< all[Ball].vel.x << ','
+			<< all[Ball].vel.y << ','
+			<< all[Ball].vel.z << ','
+			<< 0; //bound[Ball];
 	}
 	// Write position and rotation data to file:
 	ballWrite << ballBuffer.rdbuf();
@@ -211,10 +325,10 @@ int main(int argc, char const* argv[])
 			writeStep = true;
 
 			// Progress reporting:
-			double eta = ((time(NULL) - startProgress) / skip * (steps - Step)) / 3600.; // In seconds.
+			float eta = ((time(NULL) - startProgress) / skip * (steps - Step)) / 3600.; // In seconds.
 			sizeof(int);
-			double elapsed = (time(NULL) - start) / 3600.;
-			double progress = ((float)Step / (float)steps * 100.f);
+			float elapsed = (time(NULL) - start) / 3600.;
+			float progress = ((float)Step / (float)steps * 100.f);
 			printf("Step: %i\tProgress: %2.0f%%\tETA: %5.2lf\tElapsed: %5.2f\r", Step, progress, eta, elapsed);
 			startProgress = time(NULL);
 		}
@@ -225,65 +339,66 @@ int main(int argc, char const* argv[])
 
 
 		// FIRST PASS - Position, send to buffer, velocity half step:
-		//for (int Ball = 0; Ball < numBalls; Ball++)
-		//{
-		//	// Update velocity half step:
-		//	clus.velh[Ball] = clus.vel[Ball] + .5 * clus.acc[Ball] * dt;
+		//begin = std::chrono::high_resolution_clock::now();
+		for (int Ball = 0; Ball < ballTotal; Ball++)
+		{
+			// Update velocity half step:
+			all[Ball].velh = all[Ball].vel + .5 * all[Ball].acc * dt;
 
-		//	// Update position:
-		//	clus.pos[Ball] += clus.velh[Ball] * dt;
+			// Update position:
+			all[Ball].pos += all[Ball].velh * dt;
 
-		//	// Reinitialize acceleration to be recalculated:
-		//	clus.acc[Ball] = { 0, 0, 0 }; // Must reset because += acc from all other balls, not just =.
-		//}
-		loopOneCUDA(clus.velh, clus.pos, clus.vel, clus.acc, dt, numBalls, steps);
-
+			// Reinitialize acceleration to be recalculated:
+			all[Ball].acc = { 0, 0, 0 };
+		}
+		/*endch = std::chrono::high_resolution_clock::now();
+		std::cout << "First pass: " << std::chrono::duration_cast<std::chrono::nanoseconds>(endch - begin).count() / 1000000 << " milliseconds\n";*/
 
 		// SECOND PASS - Check for collisions, apply forces and torques:
+		//begin = std::chrono::high_resolution_clock::now();
 		double k;
-		for (int A = 1; A < numBalls; A++) //cuda
+		for (int A = 0; A < ballTotal; A++) //cuda
 		{
-			for (int B = 0; B < A; B++)
+			ball& a = all[A];
+
+			for (int B = A + 1; B < ballTotal; B++)
 			{
-				double sumRaRb = clus.R[A] + clus.R[B];
-				double dist = length(clus.pos[A] - clus.pos[B]);
-				double3 rVecab = clus.pos[B] - clus.pos[A];
-				double3 rVecba = -1 * rVecab;
+
+				ball& b = all[B];
+				double sumRaRb = a.R + b.R;
+				double dist = (a.pos - b.pos).norm();
+				vector3d rVecab = b.pos - a.pos;
+				vector3d rVecba = a.pos - b.pos;
 
 				// Check for collision between Ball and otherBall:
 				double overlap = sumRaRb - dist;
-				double3 totalForce = { 0, 0, 0 };
-				double3 aTorque = { 0, 0, 0 };
-				double3 bTorque = { 0, 0, 0 };
-
-				// Distance array element: 1,0    2,0    2,1    3,0    3,1    3,2 ...
-				int e = (A * (A - 1) * .5) + B;
-				double oldDist = clus.distances[e];
+				vector3d totalForce = { 0, 0, 0 };
+				vector3d aTorque = { 0, 0, 0 };
+				vector3d bTorque = { 0, 0, 0 };
 
 				// Check for collision between Ball and otherBall.
 				if (overlap > 0)
 				{
 					// Apply coefficient of restitution to balls leaving collision.
-					if (dist >= oldDist)
+					if (dist >= a.distances[B])
 					{
 						k = kout;
-						//if (springTest)
-						//{
-						//	if (oldDist < 0.9 * clus.R[A] || oldDist < 0.9 * clus.R[B])
-						//	{
-						//		if (clus.R[A] >= clus.R[B])
-
-						//		{
-						//			std::cout << "Warning: Ball compression is " << .5 * (sumRaRb - oldDist) / clus.R[B] << "of radius = " << clus.R[B] << std::endl;
-						//		}
-						//		else
-						//		{
-						//			std::cout << "Warning: Ball compression is " << .5 * (sumRaRb - oldDist) / clus.R[A] << "of radius = " << clus.R[A] << std::endl;
-						//		}
-						//		int garbo;
-						//		std::cin >> garbo;
-						//	}
-						//}
+						if (springTest)
+						{
+							if (a.distances[B] < 0.9 * a.R || a.distances[B] < 0.9 * b.R)
+							{
+								if (a.R >= b.R)
+								{
+									std::cout << "Warning: Ball compression is " << .5 * (sumRaRb - a.distances[B]) / b.R << "of radius = " << b.R << std::endl;
+								}
+								else
+								{
+									std::cout << "Warning: Ball compression is " << .5 * (sumRaRb - a.distances[B]) / a.R << "of radius = " << a.R << std::endl;
+								}
+								int garbo;
+								std::cin >> garbo;
+							}
+						}
 					}
 					else
 					{
@@ -291,68 +406,74 @@ int main(int argc, char const* argv[])
 					}
 
 					// Calculate force and torque for a:
-					double3 dVel = clus.vel[B] - clus.vel[A];
-					double3 relativeVelOfA = dVel - dot(dVel, rVecab) * (rVecab / (dist * dist)) - cross(clus.w[A], clus.R[A] / sumRaRb * rVecab) - cross(clus.w[B], clus.R[B] / sumRaRb * rVecab);
-					double3 elasticForceOnA = -kin * overlap * .5 * (rVecab / dist);
-					double3 frictionForceOnA = { 0,0,0 };
-					if (length(relativeVelOfA) > 1e-12) // When relative velocity is very low, dividing its vector components by its magnitude below is unstable.
+					vector3d dVel = b.vel - a.vel;
+					vector3d relativeVelOfA = (dVel)-((dVel).dot(rVecab)) * (rVecab / (dist * dist)) - a.w.cross(a.R / sumRaRb * rVecab) - b.w.cross(b.R / sumRaRb * rVecab);
+					vector3d elasticForceOnA = -k * overlap * .5 * (rVecab / dist);
+					vector3d frictionForceOnA = { 0,0,0 };
+					if (relativeVelOfA.norm() > 1e-14) // When relative velocity is very low, dividing its vector components by its magnitude below is unstable.
 					{
-						frictionForceOnA = mu * length(elasticForceOnA) * (relativeVelOfA / length(relativeVelOfA));
+						frictionForceOnA = mu * elasticForceOnA.norm() * (relativeVelOfA / relativeVelOfA.norm());
 					}
-					aTorque = (clus.R[A] / sumRaRb) * cross(rVecab, frictionForceOnA);
+					aTorque = (a.R / sumRaRb) * rVecab.cross(frictionForceOnA);
 
 					// Calculate force and torque for b:
-					dVel = clus.vel[A] - clus.vel[B];
-					double3 relativeVelOfB = dVel - dot(dVel, rVecba) * (rVecba / (dist * dist)) - cross(clus.w[B], clus.R[B] / sumRaRb * rVecba) - cross(clus.w[A], clus.R[A] / sumRaRb * rVecba);
-					double3 elasticForceOnB = -kin * overlap * .5 * (rVecba / dist);
-					double3 frictionForceOnB = { 0,0,0 };
-					if (length(relativeVelOfB) > 1e-12)
+					dVel = a.vel - b.vel;
+					vector3d relativeVelOfB = (dVel)-((dVel).dot(rVecba)) * (rVecba / (dist * dist)) - b.w.cross(b.R / sumRaRb * rVecba) - a.w.cross(a.R / sumRaRb * rVecba);
+					vector3d elasticForceOnB = -k * overlap * .5 * (rVecba / dist);
+					vector3d frictionForceOnB = { 0,0,0 };
+					if (relativeVelOfB.norm() > 1e-14)
 					{
-						frictionForceOnB = mu * length(elasticForceOnB) * (relativeVelOfB / length(relativeVelOfB));
+						frictionForceOnB = mu * elasticForceOnB.norm() * (relativeVelOfB / relativeVelOfB.norm());
 					}
-					bTorque = (clus.R[B] / sumRaRb) * cross(rVecba, frictionForceOnB);
+					bTorque = (b.R / sumRaRb) * rVecba.cross(frictionForceOnB);
 
-					double3 gravForceOnA = (G * clus.m[A] * clus.m[B] / pow(dist, 2)) * (rVecab / dist);
+					vector3d gravForceOnA = (G * a.m * b.m / pow(dist, 2)) * (rVecab / dist);
 					totalForce = gravForceOnA + elasticForceOnA + frictionForceOnA;
-					clus.w[A] += aTorque / clus.moi[A] * dt;
-					clus.w[B] += bTorque / clus.moi[B] * dt;
-					clus.PE += -G * clus.m[A] * clus.m[B] / dist + kin * pow((sumRaRb - dist) * .5, 2);
+					a.w += aTorque / a.moi * dt;
+					b.w += bTorque / b.moi * dt;
 
 
 					if (writeStep)
 					{
 						// Calculate potential energy. Important to recognize that the factor of 1/2 is not in front of K because this is for the spring potential in each ball and they are the same potential.
-						clus.PE += -G * clus.m[A] * clus.m[B] / dist + k * pow((clus.R[A] + clus.R[B] - dist) * .5, 2);
+						clus.PE += -G * all[A].m * all[B].m / dist + k * pow((all[A].R + all[B].R - dist) * .5, 2);
+						a.compression += elasticForceOnA.norm();
+						b.compression += elasticForceOnB.norm();
 					}
 				}
 				else
 				{
 					// No collision: Include gravity only:
-					double3 gravForceOnA = (G * clus.m[A] * clus.m[B] / pow(dist, 2)) * (rVecab / dist);
+					vector3d gravForceOnA = (G * a.m * b.m / pow(dist, 2)) * (rVecab / dist);
 					totalForce = gravForceOnA;
 					if (writeStep)
 					{
-						clus.PE += -G * clus.m[A] * clus.m[B] / dist;
+						clus.PE += -G * all[A].m * all[B].m / dist;
 					}
 				}
 				// Newton's equal and opposite forces applied to acceleration of each ball:
-				clus.acc[A] += totalForce / clus.m[A];
-				clus.acc[B] += -totalForce / clus.m[B];
+				a.acc += totalForce / a.m;
+				b.acc -= totalForce / b.m;
 
 				// So last distance can be known for cor:
-				clus.distances[e] = dist;
+				a.distances[B] = b.distances[A] = dist;
 			}
 		}
+		//endch = std::chrono::high_resolution_clock::now();
+		//std::cout << "Second pass: " << std::chrono::duration_cast<std::chrono::nanoseconds>(endch - begin).count() / 1000000 << " milliseconds\n";
 
 		// THIRD PASS - Calculate velocity for next step:
+		//begin = std::chrono::high_resolution_clock::now();
 		if (writeStep)
 		{
 			ballBuffer << std::endl; // Prepares a new line for incoming data.
 		}
-		for (int Ball = 0; Ball < numBalls; Ball++)
+		for (int Ball = 0; Ball < ballTotal; Ball++)
 		{
+			ball& a = all[Ball];
+
 			// Velocity for next step:
-			clus.vel[Ball] = clus.velh[Ball] + .5 * clus.acc[Ball] * dt;
+			a.vel = a.velh + .5 * a.acc * dt;
 			if (writeStep)
 			{
 				// Adds the mass of the each ball to unboundMass if it meats these conditions:
@@ -361,51 +482,30 @@ int main(int argc, char const* argv[])
 				// Send positions and rotations to buffer:
 				if (Ball == 0)
 				{
-					ballBuffer
-						<< clus.pos[0].x << ','
-						<< clus.pos[0].y << ','
-						<< clus.pos[0].z << ','
-						<< clus.w[0].x << ','
-						<< clus.w[0].y << ','
-						<< clus.w[0].z << ','
-						<< length(clus.w[0]) << ','
-						<< clus.vel[0].x << ','
-						<< clus.vel[0].y << ','
-						<< clus.vel[0].z << ','
-						<< 0;
+					ballBuffer << a.pos[0] << ',' << a.pos[1] << ',' << a.pos[2] << ',' << a.w[0] << ',' << a.w[1] << ',' << a.w[2] << ',' << a.w.norm() << ',' << a.vel[0] << ',' << a.vel[1] << ',' << a.vel[2] << ',' << a.compression;
 				}
 				else
 				{
-					ballBuffer
-						<< ',' << clus.pos[Ball].x << ','
-						<< clus.pos[Ball].y << ','
-						<< clus.pos[Ball].z << ','
-						<< clus.w[Ball].x << ','
-						<< clus.w[Ball].y << ','
-						<< clus.w[Ball].z << ','
-						<< length(clus.w[Ball]) << ','
-						<< clus.vel[Ball].x << ','
-						<< clus.vel[Ball].y << ','
-						<< clus.vel[Ball].z << ','
-						<< 0;
+					ballBuffer << ',' << a.pos[0] << ',' << a.pos[1] << ',' << a.pos[2] << ',' << a.w[0] << ',' << a.w[1] << ',' << a.w[2] << ',' << a.w.norm() << ',' << a.vel[0] << ',' << a.vel[1] << ',' << a.vel[2] << ',' << a.compression;
 				}
+				a.compression = 0; // for next write step compression.
 
-				clus.KE += .5 * clus.m[Ball] * dot(clus.vel[Ball], clus.vel[Ball]) + .5 * clus.moi[Ball] * dot(clus.w[Ball], clus.w[Ball]); // Now includes rotational kinetic energy.
-				clus.mom += clus.m[Ball] * clus.vel[Ball];
-				clus.angMom += clus.m[Ball] * cross(clus.pos[Ball], clus.vel[Ball]) + clus.moi[Ball] * clus.w[Ball];
+				clus.KE += .5 * a.m * a.vel.normsquared() + .5 * a.moi * a.w.normsquared(); // Now includes rotational kinetic energy.
+				clus.momentum += a.m * a.vel;
+				clus.angularMomentum += a.m * a.pos.cross(a.vel) + a.moi * a.w;
 			}
 		}
 		if (writeStep)
 		{
 			// Write energy to stream:
 			energyBuffer << std::endl
-				<< dt * Step << ',' << clus.PE << ',' << clus.KE << ',' << clus.PE + clus.KE << ',' << length(clus.mom) << ',' << length(clus.angMom) << ',' << 0 << ',' << 0 << ',' << clus.mTotal; // the two zeros are bound and unbound mass
+				<< dt * Step << ',' << clus.PE << ',' << clus.KE << ',' << clus.PE + clus.KE << ',' << clus.momentum.norm() << ',' << clus.angularMomentum.norm() << ',' << 0 << ',' << 0 << ',' << clus.m; // the two zeros are bound and unbound mass
 
    // Reinitialize energies for next step:
 			clus.KE = 0;
 			clus.PE = 0;
-			clus.mom = { 0, 0, 0 };
-			clus.angMom = { 0, 0, 0 };
+			clus.momentum = { 0, 0, 0 };
+			clus.angularMomentum = { 0, 0, 0 };
 			// unboundMass = 0;
 			// boundMass = clus.m;
 
@@ -433,6 +533,8 @@ int main(int argc, char const* argv[])
 				lastWrite = time(NULL);
 			} // Data export end
 		}     // THIRD PASS END
+			  //endch = std::chrono::high_resolution_clock::now();
+			  //std::cout << "Third pass: " << std::chrono::duration_cast<std::chrono::nanoseconds>(endch - begin).count() / 1000000 << " milliseconds\n";
 	}         // Steps end
 	double end = time(NULL);
 	//////////////////////////////////////////////////////////
@@ -440,17 +542,19 @@ int main(int argc, char const* argv[])
 	////////////////////////////////////////////////////////
 
 	std::cout << "Simulation complete!\n"
-		<< numBalls << " Particles and " << steps << " Steps.\n"
+		<< ballTotal << " Particles and " << steps << " Steps.\n"
 		<< "Simulated time: " << steps * dt << " seconds\n"
 		<< "Computation time: " << end - start << " seconds\n";
 	std::cout << "\n===============================================================\n";
 	// I know the number of balls in each file and the order they were brought in, so I can effect individual clusters.
 	//
-	// Implement calculation of total mom vector and make it 0 length
+	// Implement calculation of total momentum vector and make it 0 mag
 
-	clus.freeMemory();
 	return 0;
 }
+
+
+
 
 //int main()
 //{
@@ -470,46 +574,33 @@ int main(int argc, char const* argv[])
 //}
 
 // Helper function for using CUDA to add vectors in parallel.
-cudaError_t loopOneCUDA(double3* velh, double3* pos, double3* vel, double3* acc, const double dt, const unsigned int size, const unsigned int numSteps)
+cudaError_t intAddWithCuda(int* c, const int* a, const int* b, unsigned int size)
 {
-	double3* dev_velh = 0;
-	double3* dev_pos = 0;
-	double3* dev_vel = 0;
-	double3* dev_acc = 0;
+	int* dev_a = 0;
+	int* dev_b = 0;
+	int* dev_c = 0;
 	cudaError_t cudaStatus;
 
 	// Choose which GPU to run on, change this on a multi-GPU system.
 	cudaStatus = cudaSetDevice(0);
 	CHECK;
 
-	// Allocate GPU buffers for 4 vectors.
-	cudaStatus = cudaMalloc((void**)&dev_velh, size * sizeof(double3));
+	// Allocate GPU buffers for three vectors (two input, one output)    .
+	cudaStatus = cudaMalloc((void**)&dev_c, size * sizeof(int));
 	CHECK;
-	cudaStatus = cudaMalloc((void**)&dev_pos, size * sizeof(double3));
+	cudaStatus = cudaMalloc((void**)&dev_a, size * sizeof(int));
 	CHECK;
-	cudaStatus = cudaMalloc((void**)&dev_vel, size * sizeof(double3));
-	CHECK;
-	cudaStatus = cudaMalloc((void**)&dev_acc, size * sizeof(double3));
+	cudaStatus = cudaMalloc((void**)&dev_b, size * sizeof(int));
 	CHECK;
 
 	// Copy input vectors from host memory to GPU buffers.
-	cudaStatus = cudaMemcpy(dev_velh, velh, size * sizeof(double3), cudaMemcpyHostToDevice);
+	cudaStatus = cudaMemcpy(dev_a, a, size * sizeof(int), cudaMemcpyHostToDevice);
 	CHECK;
-	cudaStatus = cudaMemcpy(dev_pos, pos, size * sizeof(double3), cudaMemcpyHostToDevice);
+	cudaStatus = cudaMemcpy(dev_b, b, size * sizeof(int), cudaMemcpyHostToDevice);
 	CHECK;
-	cudaStatus = cudaMemcpy(dev_vel, vel, size * sizeof(double3), cudaMemcpyHostToDevice);
-	CHECK;
-	cudaStatus = cudaMemcpy(dev_acc, acc, size * sizeof(double3), cudaMemcpyHostToDevice);
-	CHECK;
-
-	// Need to copy all ball data to GPU so we can just iterate all physics loops and stay on gpu
-	// The kernel launch loop is per time step not per loop. All 3 loops will happen per thread (ball or ball pair)
 
 	// Launch a kernel on the GPU with one thread for each element.
-	//for (size_t step = 0; step < numSteps; step++) // actually need to stop 500 or 1000 and copy back then launch again.
-	//{
-	updatePosition << <numBlocks, blockSize >> > (dev_velh, dev_pos, dev_vel, dev_acc, dt);
-	//}
+	addKernel <<<numBlocks, blockSize >>> (dev_c, dev_a, dev_b);
 
 	// Check for any errors launching the kernel
 	cudaStatus = cudaGetLastError();
@@ -521,26 +612,15 @@ cudaError_t loopOneCUDA(double3* velh, double3* pos, double3* vel, double3* acc,
 	CHECK;
 
 	// Copy output vector from GPU buffer to host memory.
-	cudaStatus = cudaMemcpy(velh, dev_velh, size * sizeof(double3), cudaMemcpyDeviceToHost);
+	cudaStatus = cudaMemcpy(c, dev_c, size * sizeof(int), cudaMemcpyDeviceToHost);
 	CHECK;
-	cudaStatus = cudaMemcpy(pos, dev_pos, size * sizeof(double3), cudaMemcpyDeviceToHost);
-	CHECK;
-	cudaStatus = cudaMemcpy(vel, dev_vel, size * sizeof(double3), cudaMemcpyDeviceToHost);
-	CHECK;
-	cudaStatus = cudaMemcpy(velh, dev_acc, size * sizeof(double3), cudaMemcpyDeviceToHost);
-	CHECK;
-
-
 
 	cudaStatus = cudaDeviceSynchronize();
 	CHECK;
 
-	cudaFree(dev_velh);
-	cudaFree(dev_pos);
-	cudaFree(dev_vel);
-	cudaFree(dev_acc);
+	cudaFree(dev_c);
+	cudaFree(dev_a);
+	cudaFree(dev_b);
 
 	return cudaStatus;
 }
-
-
