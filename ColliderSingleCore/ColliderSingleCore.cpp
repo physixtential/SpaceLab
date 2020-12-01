@@ -6,9 +6,9 @@
 #include <sstream>
 #include <iomanip>
 #include <algorithm>
-#include "../vector3d.h"
-#include "../initializations.h"
-#include "../objects.h"
+#include "vector3d.h"
+#include "initializations.h"
+#include "objects.h"
 
 // File streams
 std::ofstream
@@ -45,7 +45,7 @@ int main(int argc, char const* argv[])
 		//y1Rot = atof(argv[8]);
 		clusterAName = argv[2];
 		clusterBName = argv[3];
-		KEfactor = atoi(argv[4]);
+		KEfactor = atof(argv[4]);
 	}
 
 	universe cosmos;
@@ -84,9 +84,12 @@ int main(int argc, char const* argv[])
 	}
 
 	// Future multicluster sim:
-	for (std::string i : { "file1", "file2", "file3..." })
+	if (false)
 	{
-		;// std::cout << i;
+		for (std::string i : { "file1", "file2", "file3..." })
+		{
+			;// std::cout << i;
+		}
 	}
 
 	// One cluster sim:
@@ -130,9 +133,8 @@ int main(int argc, char const* argv[])
 	}
 
 	outputPrefix =
-		std::to_string(ballTotal) +
 		clusterAName + clusterBName +
-		"-T" + rounder(KEfactor, 3) +
+		"-T" + rounder(KEfactor, 4) +
 		"-IP" + rounder(impactParameter * 180 / 3.14159, 2) +
 		"spin" + spinCombo +
 		"-k" + scientific(kin) +

@@ -164,13 +164,11 @@ struct cluster
 	}
 
 	// Kick projectile at target
-	void kick(double vx, double vy, double vz)
+	void kick(double vx)
 	{
 		for (int Ball = 0; Ball < balls.size(); Ball++)
 		{
 			balls[Ball].vel.x += vx;
-			balls[Ball].vel.y += vy;
-			balls[Ball].vel.z += vz;
 		}
 	}
 
