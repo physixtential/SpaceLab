@@ -40,7 +40,7 @@ springTest = false; // If true, spring compression is checked against ball radiu
 
 // File from which to proceed with further simulations
 std::string
-path = "",//"C:/Users/milin/Desktop/GoogleDrive/GradResearch/Development/spins/clusters/",
-clusterAName = "",
-clusterBName = "",
+path = "C:/Users/milin/Desktop/GoogleDrive/GradResearch/spins/clusters/",
+clusterAName = "py_",
+clusterBName = "nz_",
 outputPrefix = "Unnamed";
