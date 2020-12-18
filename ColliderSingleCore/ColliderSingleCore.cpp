@@ -134,13 +134,12 @@ int main(int argc, char const* argv[])
 
 	outputPrefix =
 		clusterAName + clusterBName +
-		"-T" + rounder(KEfactor, 4) +
-		"-IP" + rounder(impactParameter * 180 / 3.14159, 2) +
-		"spin" + spinCombo +
-		"-k" + scientific(kin) +
-		"-cor" + rounder(pow(cor, 2), 4) +
-		"-rho" + rounder(density, 4) +
-		"-dt" + rounder(dt, 4) +
+		"T" + rounder(KEfactor, 4) +
+		"_IP" + rounder(impactParameter * 180 / 3.14159, 2) +
+		"_k" + scientific(kin) +
+		"_cor" + rounder(pow(cor, 2), 4) +
+		"_rho" + rounder(density, 4) +
+		"_dt" + rounder(dt, 4) +
 		"_";
 
 	// Save file names:
