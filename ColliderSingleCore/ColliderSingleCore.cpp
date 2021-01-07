@@ -32,17 +32,8 @@ int main(int argc, char const* argv[])
 	double spins[3] = { 0 };
 	if (argc > 1)
 	{
-		//spins[0] = atof(argv[1]);
-		//spins[1] = atof(argv[2]);
-		//spins[2] = atof(argv[3]);
-		//printf("Spin: %.2e %.2e %.2e\n", spins[0], spins[1], spins[2]);
 		numThreads = atoi(argv[1]);
 		printf("\nThread count set to %i.\n", numThreads);
-		//y0Rot = atof(argv[5]);
-		//z0Rot = atof(argv[6]);
-		//printf("Rotate y and z: %1.3f\t%1.3f\n", y0Rot, z0Rot);
-		//z1Rot = atof(argv[7]);
-		//y1Rot = atof(argv[8]);
 		clusterAName = argv[2];
 		clusterBName = argv[3];
 		KEfactor = atof(argv[4]);
