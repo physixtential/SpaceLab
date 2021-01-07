@@ -188,7 +188,7 @@ struct cluster
 struct universe
 {
 	vector3d com, momentum, angularMomentum;
-	double mTotal = 0, KE = 0, PE = 0, spaceRange = 0;
+	double mTotal = 0, KE = 0, PE = 0, spaceRange = 0, radius = 0;
 	std::vector<ball> balls;
 	std::vector<cluster> clusters;
 

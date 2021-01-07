@@ -36,7 +36,7 @@ void simOneStep(int Step);
 void simLooper();
 int countBalls(std::string initDataFileName);
 cluster initFromFile(std::string initDataFileName, std::string initConstFileName, bool zeroMotion);
-cluster generateBallField();
+universe generateBallField();
 
 // Main function
 int main(int argc, char const* argv[])
@@ -52,7 +52,8 @@ int main(int argc, char const* argv[])
 		KEfactor = atof(argv[4]);
 	}
 
-	simInitTwoCluster();
+	//simInitTwoCluster();
+	cosmos = generateBallField();
 	simAnalyzeAndCenter();
 	simInitWrite();
 	simLooper();
@@ -88,6 +89,16 @@ void simInitTwoCluster()
 	clusB.checkMomentum();
 	cosmos.balls.insert(cosmos.balls.end(), clusA.balls.begin(), clusA.balls.end());
 	cosmos.balls.insert(cosmos.balls.end(), clusB.balls.begin(), clusB.balls.end());
+
+	outputPrefix =
+		clusterAName + clusterBName +
+		"-T" + rounder(KEfactor, 4) +
+		"-IP" + rounder(impactParameter * 180 / 3.14159, 2) +
+		"-k" + scientific(kin) +
+		"-cor" + rounder(pow(cor, 2), 4) +
+		"-rho" + rounder(density, 4) +
+		"-dt" + rounder(dt, 4) +
+		"_";
 }
 
 
@@ -106,6 +117,15 @@ void simInitOneCluster(double* spins)
 	// Check and add to universe
 	clusA.checkMomentum();
 	cosmos.balls.insert(cosmos.balls.end(), clusA.balls.begin(), clusA.balls.end());
+
+	outputPrefix =
+		clusterAName + 
+		"-T" + rounder(KEfactor, 4) +
+		"-k" + scientific(kin) +
+		"-cor" + rounder(pow(cor, 2), 4) +
+		"-rho" + rounder(density, 4) +
+		"-dt" + rounder(dt, 4) +
+		"_";
 }
 
 
@@ -142,17 +162,6 @@ void simInitWrite()
 	//	else if (spins[i] > 0) { spinCombo += "1"; }
 	//	else { spinCombo += "0"; }
 	//}
-
-	outputPrefix =
-		clusterAName + clusterBName +
-		"-T" + rounder(KEfactor, 4) +
-		"-IP" + rounder(impactParameter * 180 / 3.14159, 2) +
-		//"spin" + spinCombo +
-		"-k" + scientific(kin) +
-		"-cor" + rounder(pow(cor, 2), 4) +
-		"-rho" + rounder(density, 4) +
-		"-dt" + rounder(dt, 4) +
-		"_";
 
 	// Save file names:
 	simDataName = outputPrefix + "simData.csv";
@@ -728,9 +737,9 @@ cluster initFromFile(std::string initDataFileName, std::string initConstFileName
 	return tclus;
 }
 
-cluster generateBallField()
+universe generateBallField()
 {
-	cluster clus;
+	universe clus;
 	clus.balls.resize(genBalls);
 	// Create new random number set.
 	int seedSave = time(NULL);
@@ -825,10 +834,10 @@ cluster generateBallField()
 	for (int Ball = 0; Ball < clus.balls.size(); Ball++)
 	{
 		ball& a = clus.balls[Ball];
-		clus.m += a.m;
+		clus.mTotal += a.m;
 		comNumerator += a.m * a.pos;
 	}
-	clus.com = comNumerator / clus.m;
+	clus.com = comNumerator / clus.mTotal;
 
 	for (int Ball = 0; Ball < clus.balls.size(); Ball++)
 	{
@@ -839,7 +848,17 @@ cluster generateBallField()
 		}
 	}
 	std::cout << "Initial Radius: " << clus.radius << std::endl;
-	std::cout << "Mass: " << clus.m << std::endl;
+	std::cout << "Mass: " << clus.mTotal << std::endl;
+
+	outputPrefix =
+		std::to_string(genBalls) +
+		"-R" + scientific(clus.radius) +
+		"-k" + scientific(kin) +
+		"-cor" + rounder(pow(cor, 2), 4) +
+		"-mu" + rounder(mu, 3) +
+		"-rho" + rounder(density, 4) +
+		"-dt" + rounder(dt, 4) +
+		"_";
 
 	return clus;
 }
