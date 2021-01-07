@@ -6,9 +6,9 @@
 #include <sstream>
 #include <iomanip>
 #include <algorithm>
-#include "vector3d.h"
-#include "initializations.h"
-#include "objects.h"
+#include "../vector3d.h"
+#include "../initializations.h"
+#include "../objects.h"
 
 // File streams
 std::ofstream
@@ -26,6 +26,47 @@ int countBalls(std::string initDataFileName);
 cluster initFromFile(std::string initDataFileName, std::string initConstFileName, bool zeroMotion);
 
 universe cosmos;
+
+// Prototypes
+void simInitTwoCluster();
+void simInitOneCluster(double* spins);
+void simAnalyzeAndCenter();
+void simInitWrite();
+void simOneStep(int Step);
+void simLooper();
+int countBalls(std::string initDataFileName);
+cluster initFromFile(std::string initDataFileName, std::string initConstFileName, bool zeroMotion);
+
+// Main function
+int main(int argc, char const* argv[])
+{
+	// Runtime arguments:
+	double spins[3] = { 0 };
+	if (argc > 1)
+	{
+		//spins[0] = atof(argv[1]);
+		//spins[1] = atof(argv[2]);
+		//spins[2] = atof(argv[3]);
+		//printf("Spin: %.2e %.2e %.2e\n", spins[0], spins[1], spins[2]);
+		numThreads = atoi(argv[1]);
+		printf("\nThread count set to %i.\n", numThreads);
+		//y0Rot = atof(argv[5]);
+		//z0Rot = atof(argv[6]);
+		//printf("Rotate y and z: %1.3f\t%1.3f\n", y0Rot, z0Rot);
+		//z1Rot = atof(argv[7]);
+		//y1Rot = atof(argv[8]);
+		clusterAName = argv[2];
+		clusterBName = argv[3];
+		KEfactor = atof(argv[4]);
+	}
+
+	simInitTwoCluster();
+	simAnalyzeAndCenter();
+	simInitWrite();
+	simLooper();
+
+	return 0;
+} // end main
 
 void simInitTwoCluster()
 {
@@ -75,6 +116,7 @@ void simInitOneCluster(double* spins)
 	cosmos.balls.insert(cosmos.balls.end(), clusA.balls.begin(), clusA.balls.end());
 }
 
+
 void simAnalyzeAndCenter()
 {
 	// Cosmos has been filled with balls. Size is known:
@@ -97,6 +139,7 @@ std::string simDataName;
 std::string constantsName;
 std::string energyName;
 std::ofstream::openmode myOpenMode = std::ofstream::app;
+
 void simInitWrite()
 {
 	// Create string for file name identifying spin combination negative is 2, positive is 1 on each axis.
@@ -261,6 +304,7 @@ time_t start = time(NULL);        // For end of program analysis
 time_t startProgress; // For progress reporting (gets reset)
 time_t lastWrite;     // For write control (gets reset)
 bool writeStep;       // This prevents writing to file every step (which is slow).
+
 void simOneStep(int Step)
 {
 	std::vector<ball>& all = cosmos.balls;
@@ -512,6 +556,7 @@ void simLooper()
 /////////////////////////////////////////////////////////////////////////////////////
 // Sets ICs from file:
 /////////////////////////////////////////////////////////////////////////////////////
+
 int countBalls(std::string initDataFileName)
 {
 	// Get position and angular velocity data:
