@@ -6,9 +6,9 @@
 #include <sstream>
 #include <iomanip>
 #include <algorithm>
-#include "../vector3d.h"
-#include "../initializations.h"
-#include "../objects.h"
+#include "vector3d.h"
+#include "initializations.h"
+#include "objects.h"
 
 // File streams
 std::ofstream
@@ -257,14 +257,14 @@ void simInitWrite()
 	std::cout << "\n===============================================================\n";
 }
 
-
 time_t start = time(NULL);        // For end of program analysis
 time_t startProgress; // For progress reporting (gets reset)
 time_t lastWrite;     // For write control (gets reset)
 bool writeStep;       // This prevents writing to file every step (which is slow).
-void simOneStep(int Step, int ballTotal)
+void simOneStep(int Step)
 {
 	std::vector<ball>& all = cosmos.balls;
+	int ballTotal = all.size();
 	// Check if this is a write step:
 	if (Step % skip == 0)
 	{
@@ -481,9 +481,7 @@ void simLooper()
 	///////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////
 	/////////////////////////////////////////////////////
-	startProgress = time(NULL); // For progress reporting (gets reset)
-	lastWrite = time(NULL);     // For write control (gets reset)
-	writeStep = false;          // This prevents writing to file every step (which is slow).
+
 	std::cout << "Beginning simulation at...\n";
 
 	std::vector<ball>& all = cosmos.balls;
@@ -491,8 +489,7 @@ void simLooper()
 
 	for (int Step = 1; Step < steps; Step++) // Steps start at 1 because the 0 step is initial conditions.
 	{
-		simOneStep(Step, ballTotal);
-
+		simOneStep(Step);
 	}
 	double end = time(NULL);
 	//////////////////////////////////////////////////////////
@@ -509,39 +506,7 @@ void simLooper()
 	// Implement calculation of total momentum vector and make it 0 mag
 
 	exit(EXIT_SUCCESS);
-}
-
-// Main function
-int main(int argc, char const* argv[])
-{
-	// Runtime arguments:
-	double spins[3] = { 0 };
-	if (argc > 1)
-	{
-		//spins[0] = atof(argv[1]);
-		//spins[1] = atof(argv[2]);
-		//spins[2] = atof(argv[3]);
-		//printf("Spin: %.2e %.2e %.2e\n", spins[0], spins[1], spins[2]);
-		numThreads = atoi(argv[1]);
-		printf("\nThread count set to %i.\n", numThreads);
-		//y0Rot = atof(argv[5]);
-		//z0Rot = atof(argv[6]);
-		//printf("Rotate y and z: %1.3f\t%1.3f\n", y0Rot, z0Rot);
-		//z1Rot = atof(argv[7]);
-		//y1Rot = atof(argv[8]);
-		clusterAName = argv[2];
-		clusterBName = argv[3];
-		KEfactor = atof(argv[4]);
-	}
-
-	simInitTwoCluster();
-	simAnalyzeAndCenter();
-	simInitWrite();
-	simLooper();
-
-	return 0;
 } // end main
-
 
 
 /////////////////////////////////////////////////////////////////////////////////////
@@ -639,7 +604,7 @@ cluster initFromFile(std::string initDataFileName, std::string initConstFileName
 			{
 				std::getline(chosenLine, lineElement, ',');
 				a.pos[i] = std::stod(lineElement);
-				//std::cout << a->pos[i]<<',';
+				//std::cout << a.pos[i]<<',';
 			}
 			for (int i = 0; i < 3; i++) // Angular Velocity
 			{
