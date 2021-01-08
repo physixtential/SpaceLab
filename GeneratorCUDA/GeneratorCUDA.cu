@@ -508,7 +508,7 @@ cudaError_t loopOneCUDA(double3* velh, double3* pos, double3* vel, double3* acc,
 	// Launch a kernel on the GPU with one thread for each element.
 	//for (size_t step = 0; step < numSteps; step++) // actually need to stop 500 or 1000 and copy back then launch again.
 	//{
-	updatePosition << <numBlocks, blockSize >> > (dev_velh, dev_pos, dev_vel, dev_acc, dt);
+	updatePosition <<<numBlocks, blockSize >>> (dev_velh, dev_pos, dev_vel, dev_acc, dt);
 	//}
 
 	// Check for any errors launching the kernel

@@ -208,7 +208,7 @@ struct cluster
 	{
 		updateCom();
 
-		for (int Ball = 0; Ball < numBalls; Ball++)
+		for (int Ball = 0; Ball < cNumBalls; Ball++)
 		{
 			pos[Ball] -= com;
 		}
@@ -231,7 +231,7 @@ struct cluster
 	{
 		for (int Ball = 0; Ball < cNumBalls; Ball++)
 		{
-			balls[Ball].vel.x += vx;
+			vel[Ball].x += vx;
 		}
 		updateCom(); // Update com.
 	}

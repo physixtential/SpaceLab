@@ -10,6 +10,7 @@ clusterBName = "",
 outputPrefix = "Unnamed";
 
 const double
+dt = 0.04,
 G = 6.67e-8,   // Gravitational constant
 density = 2.7, //2.7, // Typically based on some rock density
 mu = 0.3,      // Coeff of friction
