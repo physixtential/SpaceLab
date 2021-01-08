@@ -25,6 +25,19 @@ energyBuffer;
 int countBalls(std::string initDataFileName);
 cluster initFromFile(std::string initDataFileName, std::string initConstFileName, bool zeroMotion);
 
+universe cosmos;
+
+// Prototypes
+void simInitTwoCluster();
+void simInitOneCluster(double* spins);
+void simAnalyzeAndCenter();
+void simInitWrite();
+void simOneStep(int Step);
+void simLooper();
+int countBalls(std::string initDataFileName);
+cluster initFromFile(std::string initDataFileName, std::string initConstFileName, bool zeroMotion);
+universe generateBallField();
+
 // Main function
 int main(int argc, char const* argv[])
 {
@@ -32,121 +45,130 @@ int main(int argc, char const* argv[])
 	double spins[3] = { 0 };
 	if (argc > 1)
 	{
-		//spins[0] = atof(argv[1]);
-		//spins[1] = atof(argv[2]);
-		//spins[2] = atof(argv[3]);
-		//printf("Spin: %.2e %.2e %.2e\n", spins[0], spins[1], spins[2]);
 		numThreads = atoi(argv[1]);
 		printf("\nThread count set to %i.\n", numThreads);
-		//y0Rot = atof(argv[5]);
-		//z0Rot = atof(argv[6]);
-		//printf("Rotate y and z: %1.3f\t%1.3f\n", y0Rot, z0Rot);
-		//z1Rot = atof(argv[7]);
-		//y1Rot = atof(argv[8]);
 		clusterAName = argv[2];
 		clusterBName = argv[3];
-		KEfactor = atoi(argv[4]);
+		KEfactor = atof(argv[4]);
 	}
 
-	universe cosmos;
+	//simInitTwoCluster();
+	cosmos = generateBallField();
+	simAnalyzeAndCenter();
+	simInitWrite();
+	simLooper();
 
-	// Two cluster sim:
-	if (true)
+	return 0;
+} // end main
+
+void simInitTwoCluster()
+{
+	// Load file data:
+	std::cerr << "File 1: " << clusterAName << '\t' << "File 2: " << clusterBName << std::endl;
+	cluster clusA = initFromFile(path + clusterAName + "simData.csv", path + clusterAName + "constants.csv", 0);
+	cluster clusB = initFromFile(path + clusterBName + "simData.csv", path + clusterBName + "constants.csv", 0);
+
+	clusA.offset(clusA.radius, clusB.radius + (clusA.balls[0].R * 1.), impactParameter); // Adding 3 times the radius of one ball gaurantees total separation between clusters.
+	double PEsys = clusA.PE + clusB.PE + (-G * clusA.m * clusB.m / (clusA.com - clusB.com).norm());
+
+	// Collision velocity calculation:
+	double mSmall = clusA.m;
+	double mBig = clusB.m;
+	double mTot = mBig + mSmall;
+	double vSmall = -sqrt(2 * KEfactor * fabs(PEsys) * (mBig / (mSmall * mTot))); // Negative because small offsets right.
+	double vBig = -(mSmall / mBig) * vSmall; // Negative to be opposing projectile.
+	fprintf(stdout, "Target Velocity: %.2e\nProjectile Velocity: %.2e\n", vBig, vSmall);
+	if (isnan(vSmall) || isnan(vBig))
 	{
-		// Count balls in files, reserve space, then load file data:
-		int count = 0;
-		std::cerr << "File 1: " << clusterAName << '\t' << "File 2: " << clusterBName << std::endl;
-		count += countBalls(path + clusterAName + "simData.csv");
-		count += countBalls(path + clusterBName + "simData.csv");
-		cluster clusA = initFromFile(path + clusterAName + "simData.csv", path + clusterAName + "constants.csv", 0);
-		cluster clusB = initFromFile(path + clusterBName + "simData.csv", path + clusterBName + "constants.csv", 0);
-
-		clusA.offset(clusA.radius, clusB.radius + (clusA.balls[0].R * 1.), impactParameter); // Adding 3 times the radius of one ball gaurantees total separation between clusters.
-		double PEsys = clusA.PE + clusB.PE + (-G * clusA.m * clusB.m / (clusA.com - clusB.com).norm());
-		// Collision velocity calculation:
-		double mSmall = clusA.m;
-		double mBig = clusB.m;
-		double mTot = mBig + mSmall;
-		double vSmall = -sqrt(2 * KEfactor * fabs(PEsys) * (mBig / (mSmall * mTot))); // Negative because small offsets right.
-		double vBig = -(mSmall / mBig) * vSmall; // Negative to be opposing projectile.
-		fprintf(stdout, "Target Velocity: %.2e\nProjectile Velocity: %.2e\n", vBig, vSmall);
-		if (isnan(vSmall) || isnan(vBig))
-		{
-			fprintf(stderr, "A VELOCITY WAS NAN!!!!!!!!!!!!!!!!!!!!!!\n\n");
-			exit(EXIT_FAILURE);
-		}
-		clusA.kick(vSmall);
-		clusB.kick(vBig);
-		clusA.checkMomentum();
-		clusB.checkMomentum();
-		cosmos.balls.insert(cosmos.balls.end(), clusA.balls.begin(), clusA.balls.end());
-		cosmos.balls.insert(cosmos.balls.end(), clusB.balls.begin(), clusB.balls.end());
+		fprintf(stderr, "A VELOCITY WAS NAN!!!!!!!!!!!!!!!!!!!!!!\n\n");
+		exit(EXIT_FAILURE);
 	}
-
-	// Future multicluster sim:
-	for (std::string i : { "file1", "file2", "file3..." })
-	{
-		;// std::cout << i;
-	}
-
-	// One cluster sim:
-	if (false)
-	{
-		// Count balls in files, reserve space, then load file data:
-		int count = 0;
-		count += countBalls(clusterAName + "simData.csv");
-		cluster clusA = initFromFile(clusterAName + "simData.csv", clusterAName + "constants.csv", 0);
-		// Rotate
-		clusA.rotAll('z', z0Rot);
-		clusA.rotAll('y', y0Rot);
-		// Spin
-		clusA.comSpinner(spins[0], spins[1], spins[2]);
-		// Check and add to universe
-		clusA.checkMomentum();
-		cosmos.balls.insert(cosmos.balls.end(), clusA.balls.begin(), clusA.balls.end());
-	}
-
-	// Cosmos has been filled with balls. Size is known:
-	int ballTotal = (int)cosmos.numBalls;
-	std::vector<ball>& all = cosmos.balls;
-	cosmos.checkMomentum(); // Is total momentum zero like it should be?
-
-	cosmos.calcComAndMass();
-	// Re-center universe mass to origin:
-	for (int Ball = 0; Ball < ballTotal; Ball++)
-	{
-		cosmos.balls[Ball].pos -= cosmos.com;
-	}
-	// Compute physics between all balls. Distances, collision forces, energy totals, total mass:
-	cosmos.initConditions();
-
-	// Create string for file name identifying spin combination negative is 2, positive is 1 on each axis.
-	std::string spinCombo = "";
-	for (int i = 0; i < 3; i++)
-	{
-		if (spins[i] < 0) { spinCombo += "2"; }
-		else if (spins[i] > 0) { spinCombo += "1"; }
-		else { spinCombo += "0"; }
-	}
+	clusA.kick(vSmall);
+	clusB.kick(vBig);
+	clusA.checkMomentum();
+	clusB.checkMomentum();
+	cosmos.balls.insert(cosmos.balls.end(), clusA.balls.begin(), clusA.balls.end());
+	cosmos.balls.insert(cosmos.balls.end(), clusB.balls.begin(), clusB.balls.end());
 
 	outputPrefix =
-		std::to_string(ballTotal) +
 		clusterAName + clusterBName +
-		"-T" + rounder(KEfactor, 3) +
+		"-T" + rounder(KEfactor, 4) +
 		"-IP" + rounder(impactParameter * 180 / 3.14159, 2) +
-		"spin" + spinCombo +
 		"-k" + scientific(kin) +
 		"-cor" + rounder(pow(cor, 2), 4) +
 		"-rho" + rounder(density, 4) +
 		"-dt" + rounder(dt, 4) +
 		"_";
+}
+
+
+void simInitOneCluster(double* spins)
+{
+	// Load file data:
+	cluster clusA = initFromFile(clusterAName + "simData.csv", clusterAName + "constants.csv", 0);
+
+	// Rotate
+	clusA.rotAll('z', z0Rot);
+	clusA.rotAll('y', y0Rot);
+
+	// Spin
+	clusA.comSpinner(spins[0], spins[1], spins[2]);
+
+	// Check and add to universe
+	clusA.checkMomentum();
+	cosmos.balls.insert(cosmos.balls.end(), clusA.balls.begin(), clusA.balls.end());
+
+	outputPrefix =
+		clusterAName + 
+		"-T" + rounder(KEfactor, 4) +
+		"-k" + scientific(kin) +
+		"-cor" + rounder(pow(cor, 2), 4) +
+		"-rho" + rounder(density, 4) +
+		"-dt" + rounder(dt, 4) +
+		"_";
+}
+
+
+void simAnalyzeAndCenter()
+{
+	// Cosmos has been filled with balls. Size is known:
+	int ballTotal = cosmos.balls.size();
+	cosmos.checkMomentum(); // Is total momentum zero like it should be?
+
+	cosmos.calcComAndMass();
+
+	// Re-center universe mass to origin:
+	for (int Ball = 0; Ball < ballTotal; Ball++)
+	{
+		cosmos.balls[Ball].pos -= cosmos.com;
+	}
+
+	// Compute physics between all balls. Distances, collision forces, energy totals, total mass:
+	cosmos.initConditions();
+}
+
+std::string simDataName;
+std::string constantsName;
+std::string energyName;
+std::ofstream::openmode myOpenMode = std::ofstream::app;
+
+void simInitWrite()
+{
+	// Create string for file name identifying spin combination negative is 2, positive is 1 on each axis.
+	//std::string spinCombo = "";
+	//for (int i = 0; i < 3; i++)
+	//{
+	//	if (spins[i] < 0) { spinCombo += "2"; }
+	//	else if (spins[i] > 0) { spinCombo += "1"; }
+	//	else { spinCombo += "0"; }
+	//}
 
 	// Save file names:
-	std::string simDataName = outputPrefix + "simData.csv",
-		constantsName = outputPrefix + "constants.csv",
-		energyName = outputPrefix + "energy.csv";
+	simDataName = outputPrefix + "simData.csv";
+	constantsName = outputPrefix + "constants.csv";
+	energyName = outputPrefix + "energy.csv";
 
-	std::ofstream::openmode myOpenMode = std::ofstream::app;
+
 
 	// Check if file name already exists.
 	std::ifstream checkForFile;
@@ -182,6 +204,9 @@ int main(int argc, char const* argv[])
 	// Make column headers:
 	energyWrite << "Time,PE,KE,E,p,L,Bound,Unbound,mTotal";
 	ballWrite << "x0,y0,z0,wx0,wy0,wz0,wmag0,vx0,vy0,vz0,bound0";
+
+	std::vector<ball>& all = cosmos.balls;
+	int ballTotal = all.size();
 	for (int Ball = 1; Ball < ballTotal; Ball++) // Start at 2nd ball because first one was just written^.
 	{
 		std::string thisBall = std::to_string(Ball);
@@ -274,227 +299,243 @@ int main(int argc, char const* argv[])
 	std::cout << "\nInitial conditions exported and file streams closed.\nSimulating " << steps * dt / 60 / 60 << " hours.\n";
 	std::cout << "Total mass: " << cosmos.mTotal << std::endl;
 	std::cout << "\n===============================================================\n";
+}
 
+time_t start = time(NULL);        // For end of program analysis
+time_t startProgress; // For progress reporting (gets reset)
+time_t lastWrite;     // For write control (gets reset)
+bool writeStep;       // This prevents writing to file every step (which is slow).
+
+void simOneStep(int Step)
+{
+	std::vector<ball>& all = cosmos.balls;
+	int ballTotal = all.size();
+	// Check if this is a write step:
+	if (Step % skip == 0)
+	{
+		writeStep = true;
+
+		// Progress reporting:
+		float eta = ((time(NULL) - startProgress) / 500.0 * (steps - Step)) / 3600.; // In seconds.
+		sizeof(int);
+		float elapsed = (time(NULL) - start) / 3600.;
+		float progress = ((float)Step / (float)steps * 100.f);
+		printf("Step: %i\tProgress: %2.0f%%\tETA: %5.2lf\tElapsed: %5.2f\n", Step, progress, eta, elapsed);
+		startProgress = time(NULL);
+	}
+	else
+	{
+		writeStep = false;
+	}
+
+	// FIRST PASS - Position, send to buffer, velocity half step:
+	for (int Ball = 0; Ball < ballTotal; Ball++)
+	{
+		// Update velocity half step:
+		all[Ball].velh = all[Ball].vel + .5 * all[Ball].acc * dt;
+
+		// Update position:
+		all[Ball].pos += all[Ball].velh * dt;
+
+		// Reinitialize acceleration to be recalculated:
+		all[Ball].acc = { 0, 0, 0 };
+	}
+
+	// SECOND PASS - Check for collisions, apply forces and torques:
+	for (int A = 0; A < ballTotal; A++)
+	{
+		//#pragma omp parallel for shared(all,writeStep,A,ballTotal,dt,a) reduction(+:PEchange)
+		for (int B = 0; B < ballTotal; B++)
+		{
+			if (B < A + 1)
+			{
+				continue;
+			}
+			double k;
+
+			ball& a = all[A]; // THIS IS BAD. But necessary because collapse doesn't like
+			ball& b = all[B];
+			double sumRaRb = a.R + b.R;
+			double dist = (a.pos - b.pos).norm();
+			vector3d rVecab = b.pos - a.pos;
+			vector3d rVecba = a.pos - b.pos;
+
+			// Check for collision between Ball and otherBall:
+			double overlap = sumRaRb - dist;
+			vector3d totalForce = { 0, 0, 0 };
+			vector3d aTorque = { 0, 0, 0 };
+			vector3d bTorque = { 0, 0, 0 };
+
+			// Check for collision between Ball and otherBall.
+			if (overlap > 0)
+			{
+				// Apply coefficient of restitution to balls leaving collision.
+				if (dist >= a.distances[B]) // <<< huge balls x balls array
+				{
+					k = kout;
+					if (springTest)
+					{
+						if (a.distances[B] < 0.9 * a.R || a.distances[B] < 0.9 * b.R)
+						{
+							if (a.R >= b.R)
+							{
+								std::cout << "Warning: Ball compression is " << .5 * (sumRaRb - a.distances[B]) / b.R << " of radius = " << b.R << std::endl;
+							}
+							else
+							{
+								std::cout << "Warning: Ball compression is " << .5 * (sumRaRb - a.distances[B]) / a.R << " of radius = " << a.R << std::endl;
+							}
+							//int garbo;
+							//std::cin >> garbo;
+						}
+					}
+				}
+				else
+				{
+					k = kin;
+				}
+
+				// Calculate force and torque for a:
+				vector3d dVel = b.vel - a.vel;
+				vector3d relativeVelOfA = (dVel)-((dVel).dot(rVecab)) * (rVecab / (dist * dist)) - a.w.cross(a.R / sumRaRb * rVecab) - b.w.cross(b.R / sumRaRb * rVecab);
+				vector3d elasticForceOnA = -k * overlap * .5 * (rVecab / dist);
+				vector3d frictionForceOnA = { 0,0,0 };
+				if (relativeVelOfA.norm() > 1e-14) // When relative velocity is very low, dividing its vector components by its magnitude below is unstable.
+				{
+					frictionForceOnA = mu * elasticForceOnA.norm() * (relativeVelOfA / relativeVelOfA.norm());
+				}
+				aTorque = (a.R / sumRaRb) * rVecab.cross(frictionForceOnA);
+
+				// Calculate force and torque for b:
+				dVel = a.vel - b.vel;
+				vector3d relativeVelOfB = (dVel)-((dVel).dot(rVecba)) * (rVecba / (dist * dist)) - b.w.cross(b.R / sumRaRb * rVecba) - a.w.cross(a.R / sumRaRb * rVecba);
+				vector3d elasticForceOnB = -k * overlap * .5 * (rVecba / dist);
+				vector3d frictionForceOnB = { 0,0,0 };
+				if (relativeVelOfB.norm() > 1e-14)
+				{
+					frictionForceOnB = mu * elasticForceOnB.norm() * (relativeVelOfB / relativeVelOfB.norm());
+				}
+				bTorque = (b.R / sumRaRb) * rVecba.cross(frictionForceOnB);
+
+				vector3d gravForceOnA = (G * a.m * b.m / pow(dist, 2)) * (rVecab / dist);
+				totalForce = gravForceOnA + elasticForceOnA + frictionForceOnA;
+				a.w += aTorque / a.moi * dt;
+				b.w += bTorque / b.moi * dt;
+
+				if (writeStep)
+				{
+					// Calculate potential energy. Important to recognize that the factor of 1/2 is not in front of K because this is for the spring potential in each ball and they are the same potential.
+					cosmos.PE += -G * all[A].m * all[B].m / dist + k * pow((all[A].R + all[B].R - dist) * .5, 2);
+				}
+			}
+			else
+			{
+				// No collision: Include gravity only:
+				vector3d gravForceOnA = (G * a.m * b.m / pow(dist, 2)) * (rVecab / dist);
+				totalForce = gravForceOnA;
+				if (writeStep)
+				{
+					cosmos.PE += -G * all[A].m * all[B].m / dist;
+				}
+			}
+			// Newton's equal and opposite forces applied to acceleration of each ball:
+			a.acc += totalForce / a.m;
+			b.acc -= totalForce / b.m;
+
+			// So last distance can be known for cor:
+			a.distances[B] = b.distances[A] = dist;
+		}
+	}
+
+	// THIRD PASS - Calculate velocity for next step:
+	if (writeStep)
+	{
+		ballBuffer << std::endl; // Prepares a new line for incoming data.
+	}
+	for (int Ball = 0; Ball < ballTotal; Ball++)
+	{
+		ball& a = all[Ball];
+
+		// Velocity for next step:
+		a.vel = a.velh + .5 * a.acc * dt;
+
+		if (writeStep)
+		{
+			// Adds the mass of the each ball to unboundMass if it meats these conditions:
+			//bound[Ball] = false;
+
+			// Send positions and rotations to buffer:
+			if (Ball == 0)
+			{
+				ballBuffer << a.pos[0] << ',' << a.pos[1] << ',' << a.pos[2] << ',' << a.w[0] << ',' << a.w[1] << ',' << a.w[2] << ',' << a.w.norm() << ',' << a.vel[0] << ',' << a.vel[1] << ',' << a.vel[2] << ',' << 0; //bound[0];
+			}
+			else
+			{
+				ballBuffer << ',' << a.pos[0] << ',' << a.pos[1] << ',' << a.pos[2] << ',' << a.w[0] << ',' << a.w[1] << ',' << a.w[2] << ',' << a.w.norm() << ',' << a.vel[0] << ',' << a.vel[1] << ',' << a.vel[2] << ',' << 0; //bound[Ball];
+			}
+
+			cosmos.KE += .5 * a.m * a.vel.normsquared() + .5 * a.moi * a.w.normsquared(); // Now includes rotational kinetic energy.
+			cosmos.momentum += a.m * a.vel;
+			cosmos.angularMomentum += a.m * a.pos.cross(a.vel) + a.moi * a.w;
+		}
+	}
+	if (writeStep)
+	{
+		// Write energy to stream:
+		energyBuffer << std::endl
+			<< dt * Step << ',' << cosmos.PE << ',' << cosmos.KE << ',' << cosmos.PE + cosmos.KE << ',' << cosmos.momentum.norm() << ',' << cosmos.angularMomentum.norm() << ',' << 0 << ',' << 0 << ',' << cosmos.mTotal; // the two zeros are bound and unbound mass
+
+		// Reinitialize energies for next step:
+		cosmos.KE = 0;
+		cosmos.PE = 0;
+		cosmos.momentum = { 0, 0, 0 };
+		cosmos.angularMomentum = { 0, 0, 0 };
+		// unboundMass = 0;
+		// boundMass = cosmos.mTotal;
+
+		////////////////////////////////////////////////////////////////////
+		// Data Export /////////////////////////////////////////////////////
+		////////////////////////////////////////////////////////////////////
+		if (time(NULL) - lastWrite > 1800 || Step / skip % 20 == 0 || Step == steps - 1)
+		{
+			std::cout << "\nData Write" << std::endl;
+
+			// Write simData to file and clear buffer.
+			ballWrite.open(simDataName, myOpenMode);
+			ballWrite << ballBuffer.rdbuf(); // Barf buffer to file.
+			ballBuffer.str("");              // Resets the stream for that balls to blank.
+			ballWrite.close();
+
+			// Write Energy data to file and clear buffer.
+			energyWrite.open(energyName, myOpenMode);
+			energyWrite << energyBuffer.rdbuf();
+			energyBuffer.str(""); // Wipe energy buffer after write.
+			energyWrite.close();
+
+			lastWrite = time(NULL);
+		} // Data export end
+	}     // THIRD PASS END
+}         // Steps end
+
+
+void simLooper()
+{
 	//////////////////////////////////////////////////////////
 	// Loop Start ///////////////////////////////////////////
 	////////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////
 	/////////////////////////////////////////////////////
-	time_t start = time(NULL);         // For end of program analysis
-	time_t startProgress = time(NULL); // For progress reporting (gets reset)
-	time_t lastWrite = time(NULL);     // For write control (gets reset)
-	bool writeStep = false;            // This prevents writing to file every step (which is slow).
+
 	std::cout << "Beginning simulation at...\n";
+
+	std::vector<ball>& all = cosmos.balls;
+	int ballTotal = all.size();
 
 	for (int Step = 1; Step < steps; Step++) // Steps start at 1 because the 0 step is initial conditions.
 	{
-		// Check if this is a write step:
-		if (Step % skip == 0)
-		{
-			writeStep = true;
-
-			// Progress reporting:
-			float eta = ((time(NULL) - startProgress) / 500.0 * (steps - Step)) / 3600.; // In seconds.
-			sizeof(int);
-			float elapsed = (time(NULL) - start) / 3600.;
-			float progress = ((float)Step / (float)steps * 100.f);
-			printf("Step: %i\tProgress: %2.0f%%\tETA: %5.2lf\tElapsed: %5.2f\n", Step, progress, eta, elapsed);
-			startProgress = time(NULL);
-		}
-		else
-		{
-			writeStep = false;
-		}
-
-		// FIRST PASS - Position, send to buffer, velocity half step:
-		for (int Ball = 0; Ball < ballTotal; Ball++)
-		{
-			// Update velocity half step:
-			all[Ball].velh = all[Ball].vel + .5 * all[Ball].acc * dt;
-
-			// Update position:
-			all[Ball].pos += all[Ball].velh * dt;
-
-			// Reinitialize acceleration to be recalculated:
-			all[Ball].acc = { 0, 0, 0 };
-		}
-
-		// SECOND PASS - Check for collisions, apply forces and torques:
-		for (int A = 0; A < ballTotal; A++)
-		{
-			//#pragma omp parallel for shared(all,writeStep,A,ballTotal,dt,a) reduction(+:PEchange)
-			for (int B = 0; B < ballTotal; B++)
-			{
-				if (B < A + 1)
-				{
-					continue;
-				}
-				double k;
-
-				ball& a = all[A]; // THIS IS BAD. But necessary because collapse doesn't like
-				ball& b = all[B];
-				double sumRaRb = a.R + b.R;
-				double dist = (a.pos - b.pos).norm();
-				vector3d rVecab = b.pos - a.pos;
-				vector3d rVecba = a.pos - b.pos;
-
-				// Check for collision between Ball and otherBall:
-				double overlap = sumRaRb - dist;
-				vector3d totalForce = { 0, 0, 0 };
-				vector3d aTorque = { 0, 0, 0 };
-				vector3d bTorque = { 0, 0, 0 };
-
-				// Check for collision between Ball and otherBall.
-				if (overlap > 0)
-				{
-					// Apply coefficient of restitution to balls leaving collision.
-					if (dist >= a.distances[B]) // <<< huge balls x balls array
-					{
-						k = kout;
-						if (springTest)
-						{
-							if (a.distances[B] < 0.9 * a.R || a.distances[B] < 0.9 * b.R)
-							{
-								if (a.R >= b.R)
-								{
-									std::cout << "Warning: Ball compression is " << .5 * (sumRaRb - a.distances[B]) / b.R << " of radius = " << b.R << std::endl;
-								}
-								else
-								{
-									std::cout << "Warning: Ball compression is " << .5 * (sumRaRb - a.distances[B]) / a.R << " of radius = " << a.R << std::endl;
-								}
-								//int garbo;
-								//std::cin >> garbo;
-							}
-						}
-					}
-					else
-					{
-						k = kin;
-					}
-
-					// Calculate force and torque for a:
-					vector3d dVel = b.vel - a.vel;
-					vector3d relativeVelOfA = (dVel)-((dVel).dot(rVecab)) * (rVecab / (dist * dist)) - a.w.cross(a.R / sumRaRb * rVecab) - b.w.cross(b.R / sumRaRb * rVecab);
-					vector3d elasticForceOnA = -k * overlap * .5 * (rVecab / dist);
-					vector3d frictionForceOnA = { 0,0,0 };
-					if (relativeVelOfA.norm() > 1e-14) // When relative velocity is very low, dividing its vector components by its magnitude below is unstable.
-					{
-						frictionForceOnA = mu * elasticForceOnA.norm() * (relativeVelOfA / relativeVelOfA.norm());
-					}
-					aTorque = (a.R / sumRaRb) * rVecab.cross(frictionForceOnA);
-
-					// Calculate force and torque for b:
-					dVel = a.vel - b.vel;
-					vector3d relativeVelOfB = (dVel)-((dVel).dot(rVecba)) * (rVecba / (dist * dist)) - b.w.cross(b.R / sumRaRb * rVecba) - a.w.cross(a.R / sumRaRb * rVecba);
-					vector3d elasticForceOnB = -k * overlap * .5 * (rVecba / dist);
-					vector3d frictionForceOnB = { 0,0,0 };
-					if (relativeVelOfB.norm() > 1e-14)
-					{
-						frictionForceOnB = mu * elasticForceOnB.norm() * (relativeVelOfB / relativeVelOfB.norm());
-					}
-					bTorque = (b.R / sumRaRb) * rVecba.cross(frictionForceOnB);
-
-					vector3d gravForceOnA = (G * a.m * b.m / pow(dist, 2)) * (rVecab / dist);
-					totalForce = gravForceOnA + elasticForceOnA + frictionForceOnA;
-					a.w += aTorque / a.moi * dt;
-					b.w += bTorque / b.moi * dt;
-
-					if (writeStep)
-					{
-						// Calculate potential energy. Important to recognize that the factor of 1/2 is not in front of K because this is for the spring potential in each ball and they are the same potential.
-						cosmos.PE += -G * all[A].m * all[B].m / dist + k * pow((all[A].R + all[B].R - dist) * .5, 2);
-					}
-				}
-				else
-				{
-					// No collision: Include gravity only:
-					vector3d gravForceOnA = (G * a.m * b.m / pow(dist, 2)) * (rVecab / dist);
-					totalForce = gravForceOnA;
-					if (writeStep)
-					{
-						cosmos.PE += -G * all[A].m * all[B].m / dist;
-					}
-				}
-				// Newton's equal and opposite forces applied to acceleration of each ball:
-				a.acc += totalForce / a.m;
-				b.acc -= totalForce / b.m;
-
-				// So last distance can be known for cor:
-				a.distances[B] = b.distances[A] = dist;
-			}
-		}
-
-		// THIRD PASS - Calculate velocity for next step:
-		if (writeStep)
-		{
-			ballBuffer << std::endl; // Prepares a new line for incoming data.
-		}
-		for (int Ball = 0; Ball < ballTotal; Ball++)
-		{
-			ball& a = all[Ball];
-
-			// Velocity for next step:
-			a.vel = a.velh + .5 * a.acc * dt;
-
-			if (writeStep)
-			{
-				// Adds the mass of the each ball to unboundMass if it meats these conditions:
-				//bound[Ball] = false;
-
-				// Send positions and rotations to buffer:
-				if (Ball == 0)
-				{
-					ballBuffer << a.pos[0] << ',' << a.pos[1] << ',' << a.pos[2] << ',' << a.w[0] << ',' << a.w[1] << ',' << a.w[2] << ',' << a.w.norm() << ',' << a.vel[0] << ',' << a.vel[1] << ',' << a.vel[2] << ',' << 0; //bound[0];
-				}
-				else
-				{
-					ballBuffer << ',' << a.pos[0] << ',' << a.pos[1] << ',' << a.pos[2] << ',' << a.w[0] << ',' << a.w[1] << ',' << a.w[2] << ',' << a.w.norm() << ',' << a.vel[0] << ',' << a.vel[1] << ',' << a.vel[2] << ',' << 0; //bound[Ball];
-				}
-
-				cosmos.KE += .5 * a.m * a.vel.normsquared() + .5 * a.moi * a.w.normsquared(); // Now includes rotational kinetic energy.
-				cosmos.momentum += a.m * a.vel;
-				cosmos.angularMomentum += a.m * a.pos.cross(a.vel) + a.moi * a.w;
-			}
-		}
-		if (writeStep)
-		{
-			// Write energy to stream:
-			energyBuffer << std::endl
-				<< dt * Step << ',' << cosmos.PE << ',' << cosmos.KE << ',' << cosmos.PE + cosmos.KE << ',' << cosmos.momentum.norm() << ',' << cosmos.angularMomentum.norm() << ',' << 0 << ',' << 0 << ',' << cosmos.mTotal; // the two zeros are bound and unbound mass
-
-			// Reinitialize energies for next step:
-			cosmos.KE = 0;
-			cosmos.PE = 0;
-			cosmos.momentum = { 0, 0, 0 };
-			cosmos.angularMomentum = { 0, 0, 0 };
-			// unboundMass = 0;
-			// boundMass = cosmos.mTotal;
-
-			////////////////////////////////////////////////////////////////////
-			// Data Export /////////////////////////////////////////////////////
-			////////////////////////////////////////////////////////////////////
-			if (time(NULL) - lastWrite > 1800 || Step / skip % 20 == 0 || Step == steps - 1)
-			{
-				std::cout << "\nData Write" << std::endl;
-
-				// Write simData to file and clear buffer.
-				ballWrite.open(simDataName, myOpenMode);
-				ballWrite << ballBuffer.rdbuf(); // Barf buffer to file.
-				ballBuffer.str("");              // Resets the stream for that balls to blank.
-				ballWrite.close();
-
-				// Write Energy data to file and clear buffer.
-				energyWrite.open(energyName, myOpenMode);
-				energyWrite << energyBuffer.rdbuf();
-				energyBuffer.str(""); // Wipe energy buffer after write.
-				energyWrite.close();
-
-				lastWrite = time(NULL);
-			} // Data export end
-		}     // THIRD PASS END
-	}         // Steps end
+		simOneStep(Step);
+	}
 	double end = time(NULL);
 	//////////////////////////////////////////////////////////
 	// Loop End /////////////////////////////////////////////
@@ -509,15 +550,14 @@ int main(int argc, char const* argv[])
 	//
 	// Implement calculation of total momentum vector and make it 0 mag
 
-	return 0;
 	exit(EXIT_SUCCESS);
 } // end main
-
 
 
 /////////////////////////////////////////////////////////////////////////////////////
 // Sets ICs from file:
 /////////////////////////////////////////////////////////////////////////////////////
+
 int countBalls(std::string initDataFileName)
 {
 	// Get position and angular velocity data:
@@ -610,7 +650,7 @@ cluster initFromFile(std::string initDataFileName, std::string initConstFileName
 			{
 				std::getline(chosenLine, lineElement, ',');
 				a.pos[i] = std::stod(lineElement);
-				//std::cout << a->pos[i]<<',';
+				//std::cout << a.pos[i]<<',';
 			}
 			for (int i = 0; i < 3; i++) // Angular Velocity
 			{
@@ -697,3 +737,128 @@ cluster initFromFile(std::string initDataFileName, std::string initConstFileName
 	return tclus;
 }
 
+universe generateBallField()
+{
+	universe clus;
+	clus.balls.resize(genBalls);
+	// Create new random number set.
+	int seedSave = time(NULL);
+	srand(seedSave);
+
+	// Make genBalls of 3 sizes in CGS with ratios such that the mass is distributed evenly among the 3 sizes (less large genBalls than small genBalls).
+	int smalls = std::round((double)genBalls * 27 / 31.375); // Just here for reference. Whatever genBalls are left will be smalls.
+	int mediums = std::round((double)genBalls * 27 / (8 * 31.375));
+	int larges = std::round((double)genBalls * 1 / 31.375);
+
+
+	for (int Ball = 0; Ball < larges; Ball++)
+	{
+		ball& a = clus.balls[Ball];
+		a.R = 3. * scaleBalls;//pow(1. / (double)genBalls, 1. / 3.) * 3. * scaleBalls;
+		a.m = density * 4. / 3. * 3.14159 * pow(a.R, 3);
+		a.moi = .4 * a.m * a.R * a.R;
+		a.w = { 0, 0, 0 };
+		a.pos = randVec(spaceRange, spaceRange, spaceRange);
+	}
+
+	for (int Ball = larges; Ball < (larges + mediums); Ball++)
+	{
+		ball& a = clus.balls[Ball];
+		a.R = 2. * scaleBalls;//pow(1. / (double)genBalls, 1. / 3.) * 2. * scaleBalls;
+		a.m = density * 4. / 3. * 3.14159 * pow(a.R, 3);
+		a.moi = .4 * a.m * a.R * a.R;
+		a.w = { 0, 0, 0 };
+		a.pos = randVec(spaceRange, spaceRange, spaceRange);
+	}
+	for (int Ball = (larges + mediums); Ball < genBalls; Ball++)
+	{
+		ball& a = clus.balls[Ball];
+		a.R = 1. * scaleBalls;//pow(1. / (double)genBalls, 1. / 3.) * 1. * scaleBalls;
+		a.m = density * 4. / 3. * 3.14159 * pow(a.R, 3);
+		a.moi = .4 * a.m * a.R * a.R;
+		a.w = { 0, 0, 0 };
+		a.pos = randVec(spaceRange, spaceRange, spaceRange);
+	}
+
+	std::cout << "Smalls: " << smalls << " Mediums: " << mediums << " Larges: " << larges << std::endl;
+
+	// Generate non-overlapping spherical particle field:
+	int collisionDetected = 0;
+	int oldCollisions = genBalls;
+
+	for (int failed = 0; failed < attempts; failed++)
+	{
+		for (int A = 0; A < genBalls; A++)
+		{
+			ball& a = clus.balls[A];
+			for (int B = A + 1; B < genBalls; B++)
+			{
+				ball& b = clus.balls[B];
+				// Check for Ball overlap.
+				double dist = (a.pos - b.pos).norm();
+				double sumRaRb = a.R + b.R;
+				double overlap = dist - sumRaRb;
+				if (overlap < 0)
+				{
+					collisionDetected += 1;
+					// Move the other ball:
+					b.pos = randVec(spaceRange, spaceRange, spaceRange);
+				}
+			}
+		}
+		if (collisionDetected < oldCollisions)
+		{
+			oldCollisions = collisionDetected;
+			std::cout << "Collisions: " << collisionDetected << "                        \r";
+		}
+		if (collisionDetected == 0)
+		{
+			std::cout << "\nSuccess!\n";
+			break;
+		}
+		if (failed == attempts - 1 || collisionDetected > int(1.5 * (double)genBalls)) // Added the second part to speed up spatial constraint increase when there are clearly too many collisions for the space to be feasable.
+		{
+			std::cout << "Failed " << spaceRange << ". Increasing range " << spaceRangeIncrement << "cm^3.\n";
+			spaceRange += spaceRangeIncrement;
+			failed = 0;
+			for (int Ball = 0; Ball < genBalls; Ball++)
+			{
+				clus.balls[Ball].pos = randVec(spaceRange, spaceRange, spaceRange); // Each time we fail and increase range, redistribute all balls randomly so we don't end up with big balls near mid and small balls outside.
+			}
+		}
+		collisionDetected = 0;
+	}
+	std::cout << "Final spacerange: " << spaceRange << std::endl;
+	// Calculate approximate radius of imported cluster and center mass at origin:
+	vector3d comNumerator;
+	for (int Ball = 0; Ball < clus.balls.size(); Ball++)
+	{
+		ball& a = clus.balls[Ball];
+		clus.mTotal += a.m;
+		comNumerator += a.m * a.pos;
+	}
+	clus.com = comNumerator / clus.mTotal;
+
+	for (int Ball = 0; Ball < clus.balls.size(); Ball++)
+	{
+		double dist = (clus.balls[Ball].pos - clus.com).norm();
+		if (dist > clus.radius)
+		{
+			clus.radius = dist;
+		}
+	}
+	std::cout << "Initial Radius: " << clus.radius << std::endl;
+	std::cout << "Mass: " << clus.mTotal << std::endl;
+
+	outputPrefix =
+		std::to_string(genBalls) +
+		"-R" + scientific(clus.radius) +
+		"-k" + scientific(kin) +
+		"-cor" + rounder(pow(cor, 2), 4) +
+		"-mu" + rounder(mu, 3) +
+		"-rho" + rounder(density, 4) +
+		"-dt" + rounder(dt, 4) +
+		"_";
+
+	return clus;
+}

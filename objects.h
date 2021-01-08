@@ -226,13 +226,12 @@ struct cluster
 		}
 	}
 
-	// offset cluster
-	void offset(double rad1, double rad2, double impactParam)
+	// Kick projectile at target
+	void kick(double vx)
 	{
 		for (int Ball = 0; Ball < cNumBalls; Ball++)
 		{
-			pos[Ball].x += (rad1 + rad2) * cos(impactParam);
-			pos[Ball].y += (rad1 + rad2) * sin(impactParam);
+			balls[Ball].vel.x += vx;
 		}
 		updateCom(); // Update com.
 	}

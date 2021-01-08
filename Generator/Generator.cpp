@@ -1,3 +1,4 @@
+#define _USE_MATH_DEFINES
 #include <iostream>
 #include <cmath>
 #include <fstream>
@@ -5,6 +6,7 @@
 #include <sstream>
 #include <iomanip>
 #include <algorithm>
+#include <omp.h>
 #include "../vector3d.h"
 #include "../initializations.h"
 #include "../objects.h"
@@ -13,7 +15,7 @@
 std::ofstream
 ballWrite,   // All ball data, pos, vel, rotation, boundness, etc
 energyWrite, // Total energy of system, PE, KE, etc
-constWrite;  // Ball radius, m`ass, and moi
+constWrite;  // Ball radius, mass, and moi
 
 // String buffer to hold data in memory until worth writing to file
 std::stringstream
@@ -295,7 +297,7 @@ int main(int argc, char const* argv[])
 	time_t start = time(NULL);         // For end of program anlysis
 	time_t startProgress = time(NULL); // For progress reporting (gets reset)
 	time_t lastWrite = time(NULL);     // For write control (gets reset)
-	bool writeStep = false;            // This prevents writing to file every step (which is slow).
+	bool recordStep = false;            // This prevents writing to file every step (which is slow).
 	std::cout << "Beginning simulation at...\n";
 
 	for (int Step = 1; Step < steps; Step++) // Steps start at 1 because the 0 step is initial conditions.
@@ -303,7 +305,7 @@ int main(int argc, char const* argv[])
 		// Check if this is a write step:
 		if (Step % skip == 0)
 		{
-			writeStep = true;
+			recordStep = true;
 
 			// Progress reporting:
 			float eta = ((time(NULL) - startProgress) / 500.0 * (steps - Step)) / 3600.; // In seconds.
@@ -315,11 +317,11 @@ int main(int argc, char const* argv[])
 		}
 		else
 		{
-			writeStep = false;
+			recordStep = false;
 		}
 
 		// FIRST PASS - Position, send to buffer, velocity half step:
-		//begin = std::chrono::high_resolution_clock::now();
+#pragma omp parallel for default(none) shared(all,ballTotal,dt)
 		for (int Ball = 0; Ball < ballTotal; Ball++)
 		{
 			// Update velocity half step:
@@ -331,54 +333,57 @@ int main(int argc, char const* argv[])
 			// Reinitialize acceleration to be recalculated:
 			all[Ball].acc = { 0, 0, 0 };
 		}
-		/*endch = std::chrono::high_resolution_clock::now();
-		std::cout << "First pass: " << std::chrono::duration_cast<std::chrono::nanoseconds>(endch - begin).count() / 1000000 << " milliseconds\n";*/
 
 		// SECOND PASS - Check for collisions, apply forces and torques:
-		//begin = std::chrono::high_resolution_clock::now();
-		double k;
+		double PEchange = 0;
+#pragma omp parallel for default(none) collapse(2) shared(all,recordStep,ballTotal,dt) reduction(+:PEchange)
 		for (int A = 0; A < ballTotal; A++) //cuda
 		{
-			ball& a = all[A];
-
-			for (int B = A + 1; B < ballTotal; B++)
+			//#pragma omp parallel for shared(all,recordStep,A,ballTotal,dt,a) reduction(+:PEchange)
+			for (int B = 0; B < ballTotal; B++)
 			{
+				if (B < A + 1)
+				{
+					continue; // I have to do this because OMP won't let me use the first iterator as a variable to the second.
+				}
+				double k;
 
+				ball& a = all[A]; // THIS IS BAD. But necessary because collapse doesn't like stuff between the two loops.
 				ball& b = all[B];
 				double sumRaRb = a.R + b.R;
 				double dist = (a.pos - b.pos).norm();
 				vector3d rVecab = b.pos - a.pos;
 				vector3d rVecba = a.pos - b.pos;
 
-				// Check for collision between Ball and otherBall:
+				// Check for collision between A and B:
 				double overlap = sumRaRb - dist;
 				vector3d totalForce = { 0, 0, 0 };
 				vector3d aTorque = { 0, 0, 0 };
 				vector3d bTorque = { 0, 0, 0 };
 
-				// Check for collision between Ball and otherBall.
+				// Check for collision between A and B.
 				if (overlap > 0)
 				{
 					// Apply coefficient of restitution to balls leaving collision.
-					if (dist >= a.distances[B])
+					if (dist >= a.distances[B]) // <<< huge balls x balls array
 					{
 						k = kout;
-						if (springTest)
-						{
-							if (a.distances[B] < 0.9 * a.R || a.distances[B] < 0.9 * b.R)
-							{
-								if (a.R >= b.R)
-								{
-									std::cout << "Warning: Ball compression is " << .5 * (sumRaRb - a.distances[B]) / b.R << "of radius = " << b.R << std::endl;
-								}
-								else
-								{
-									std::cout << "Warning: Ball compression is " << .5 * (sumRaRb - a.distances[B]) / a.R << "of radius = " << a.R << std::endl;
-								}
-								int garbo;
-								std::cin >> garbo;
-							}
-						}
+						//if (springTest)
+						//{
+						//	if (a.distances[B] < 0.9 * a.R || a.distances[B] < 0.9 * b.R)
+						//	{
+						//		if (a.R >= b.R)
+						//		{
+						//			std::cout << "Warning: Ball compression is " << .5 * (sumRaRb - a.distances[B]) / b.R << " of radius = " << b.R << std::endl;
+						//		}
+						//		else
+						//		{
+						//			std::cout << "Warning: Ball compression is " << .5 * (sumRaRb - a.distances[B]) / a.R << " of radius = " << a.R << std::endl;
+						//		}
+						//		//int garbo;
+						//		//std::cin >> garbo;
+						//	}
+						//}
 					}
 					else
 					{
@@ -412,13 +417,11 @@ int main(int argc, char const* argv[])
 					a.w += aTorque / a.moi * dt;
 					b.w += bTorque / b.moi * dt;
 
-
-					if (writeStep)
+					if (recordStep)
 					{
 						// Calculate potential energy. Important to recognize that the factor of 1/2 is not in front of K because this is for the spring potential in each ball and they are the same potential.
-						clus.PE += -G * all[A].m * all[B].m / dist + k * pow((all[A].R + all[B].R - dist) * .5, 2);
-						a.compression += elasticForceOnA.norm();
-						b.compression += elasticForceOnB.norm();
+						PEchange += -G * all[A].m * all[B].m / dist + k * pow((all[A].R + all[B].R - dist) * .5, 2);
+						//clus.PE += -G * all[A].m * all[B].m / dist + k * pow((all[A].R + all[B].R - dist) * .5, 2);
 					}
 				}
 				else
@@ -426,9 +429,10 @@ int main(int argc, char const* argv[])
 					// No collision: Include gravity only:
 					vector3d gravForceOnA = (G * a.m * b.m / pow(dist, 2)) * (rVecab / dist);
 					totalForce = gravForceOnA;
-					if (writeStep)
+					if (recordStep)
 					{
-						clus.PE += -G * all[A].m * all[B].m / dist;
+						PEchange += -G * all[A].m * all[B].m / dist;
+						//clus.PE += -G * all[A].m * all[B].m / dist;
 					}
 				}
 				// Newton's equal and opposite forces applied to acceleration of each ball:
@@ -439,12 +443,9 @@ int main(int argc, char const* argv[])
 				a.distances[B] = b.distances[A] = dist;
 			}
 		}
-		//endch = std::chrono::high_resolution_clock::now();
-		//std::cout << "Second pass: " << std::chrono::duration_cast<std::chrono::nanoseconds>(endch - begin).count() / 1000000 << " milliseconds\n";
 
 		// THIRD PASS - Calculate velocity for next step:
-		//begin = std::chrono::high_resolution_clock::now();
-		if (writeStep)
+		if (recordStep)
 		{
 			ballBuffer << std::endl; // Prepares a new line for incoming data.
 		}
@@ -454,7 +455,8 @@ int main(int argc, char const* argv[])
 
 			// Velocity for next step:
 			a.vel = a.velh + .5 * a.acc * dt;
-			if (writeStep)
+
+			if (recordStep)
 			{
 				// Adds the mass of the each ball to unboundMass if it meats these conditions:
 				//bound[Ball] = false;
@@ -462,28 +464,62 @@ int main(int argc, char const* argv[])
 				// Send positions and rotations to buffer:
 				if (Ball == 0)
 				{
-					ballBuffer << a.pos[0] << ',' << a.pos[1] << ',' << a.pos[2] << ',' << a.w[0] << ',' << a.w[1] << ',' << a.w[2] << ',' << a.w.norm() << ',' << a.vel[0] << ',' << a.vel[1] << ',' << a.vel[2] << ',' << a.compression;
+					ballBuffer
+						<< a.pos[0] << ','
+						<< a.pos[1] << ','
+						<< a.pos[2] << ','
+						<< a.w[0] << ','
+						<< a.w[1] << ','
+						<< a.w[2] << ','
+						<< a.w.norm() << ','
+						<< a.vel[0] << ','
+						<< a.vel[1] << ','
+						<< a.vel[2] << ','
+						<< 0; //bound[0];
 				}
 				else
 				{
-					ballBuffer << ',' << a.pos[0] << ',' << a.pos[1] << ',' << a.pos[2] << ',' << a.w[0] << ',' << a.w[1] << ',' << a.w[2] << ',' << a.w.norm() << ',' << a.vel[0] << ',' << a.vel[1] << ',' << a.vel[2] << ',' << a.compression;
+					ballBuffer
+						<< ','
+						<< a.pos[0] << ','
+						<< a.pos[1] << ','
+						<< a.pos[2] << ','
+						<< a.w[0] << ','
+						<< a.w[1] << ','
+						<< a.w[2] << ','
+						<< a.w.norm() << ','
+						<< a.vel[0] << ','
+						<< a.vel[1] << ','
+						<< a.vel[2] << ','
+						<< 0; //bound[Ball];
 				}
-				a.compression = 0; // for next write step compression.
 
 				clus.KE += .5 * a.m * a.vel.normsquared() + .5 * a.moi * a.w.normsquared(); // Now includes rotational kinetic energy.
 				clus.momentum += a.m * a.vel;
 				clus.angularMomentum += a.m * a.pos.cross(a.vel) + a.moi * a.w;
 			}
 		}
-		if (writeStep)
+		if (recordStep)
 		{
+			clus.PE += PEchange; // Necessary for OMP reduction.
+
 			// Write energy to stream:
-			energyBuffer << std::endl
-				<< dt * Step << ',' << clus.PE << ',' << clus.KE << ',' << clus.PE + clus.KE << ',' << clus.momentum.norm() << ',' << clus.angularMomentum.norm() << ',' << 0 << ',' << 0 << ',' << clus.m; // the two zeros are bound and unbound mass
+			energyBuffer
+				<< std::endl
+				<< dt * Step << ','
+				<< clus.PE << ','
+				<< clus.KE << ','
+				<< clus.PE + clus.KE << ','
+				<< clus.momentum.norm() << ','
+				<< clus.angularMomentum.norm() << ','
+				<< 0 << ','
+				<< 0 << ','
+				<< clus.m; // the two zeros are bound and unbound mass
 
    // Reinitialize energies for next step:
 			clus.KE = 0;
 			clus.PE = 0;
+			PEchange = 0;
 			clus.momentum = { 0, 0, 0 };
 			clus.angularMomentum = { 0, 0, 0 };
 			// unboundMass = 0;
@@ -492,11 +528,10 @@ int main(int argc, char const* argv[])
 			////////////////////////////////////////////////////////////////////
 			// Data Export /////////////////////////////////////////////////////
 			////////////////////////////////////////////////////////////////////
-			if (writeStep)//time(NULL) - lastWrite > 1800 || Step == steps - 1)
-			{ // ballBuffer.tellp() >= 100000000
-				std::cout << "\nData Write" << std::endl;
-				//std::cout << "\nWriting: " << ballBuffer.tellp() << " Bytes. Dumped to file.\n";
-				//auto begin = std::chrono::high_resolution_clock::now();
+			if (recordStep)//time(NULL) - lastWrite > 1800 || Step == steps - 1)
+			{
+				std::cout << "\nWriting to file.\n" << std::endl;
+				// Write simData to file and clear buffer.
 				ballWrite.open(simDataName, myOpenMode);
 				ballWrite << ballBuffer.rdbuf(); // Barf buffer to file.
 				ballBuffer.str("");              // Resets the stream for that ball to blank.
@@ -508,13 +543,9 @@ int main(int argc, char const* argv[])
 				energyBuffer.str(""); // Wipe energy buffer after write.
 				energyWrite.close();
 
-				//auto end = std::chrono::high_resolution_clock::now();
-				//std::cout << "Write time: " << std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count() / 1000000 << " milliseconds\n";
 				lastWrite = time(NULL);
 			} // Data export end
 		}     // THIRD PASS END
-			  //endch = std::chrono::high_resolution_clock::now();
-			  //std::cout << "Third pass: " << std::chrono::duration_cast<std::chrono::nanoseconds>(endch - begin).count() / 1000000 << " milliseconds\n";
 	}         // Steps end
 	double end = time(NULL);
 	//////////////////////////////////////////////////////////

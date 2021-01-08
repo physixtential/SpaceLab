@@ -281,16 +281,18 @@ int main(int argc, char const* argv[])
 	time_t start = time(NULL);         // For end of program analysis
 	time_t startProgress = time(NULL); // For progress reporting (gets reset)
 	time_t lastWrite = time(NULL);     // For write control (gets reset)
-	bool writeStep = false;            // This prevents writing to file every step (which is slow).
+	bool recordStep = false;           // Record this step data if true.
 	std::cout << "Beginning simulation at...\n";
 
 	omp_set_num_threads(numThreads);
+	omp_lock_t myLock;
+	omp_init_lock(&myLock);
 	for (int Step = 1; Step < steps; Step++) // Steps start at 1 because the 0 step is initial conditions.
 	{
 		// Check if this is a write step:
 		if (Step % skip == 0)
 		{
-			writeStep = true;
+			recordStep = true;
 
 			// Progress reporting:
 			float eta = ((time(NULL) - startProgress) / skip * (steps - Step)) / 3600.; // In hours.
@@ -301,11 +303,11 @@ int main(int argc, char const* argv[])
 		}
 		else
 		{
-			writeStep = false;
+			recordStep = false;
 		}
 
 		// FIRST PASS - Position, send to buffer, velocity half step:
-#pragma omp parallel for default(none) shared(all,ballTotal,dt)
+#pragma omp parallel for default(none) shared(all,ballTotal,dt,myLock)
 		for (int Ball = 0; Ball < ballTotal; Ball++)
 		{
 			// Update velocity half step:
@@ -320,32 +322,32 @@ int main(int argc, char const* argv[])
 
 		// SECOND PASS - Check for collisions, apply forces and torques:
 		double PEchange = 0;
-#pragma omp parallel for default(none) collapse(2) shared(all,writeStep,ballTotal,dt) reduction(+:PEchange)
+#pragma omp parallel for default(none) collapse(2) shared(all,recordStep,ballTotal,dt) reduction(+:PEchange)
 		for (int A = 0; A < ballTotal; A++)
 		{
-			//#pragma omp parallel for shared(all,writeStep,A,ballTotal,dt,a) reduction(+:PEchange)
+			//#pragma omp parallel for shared(all,recordStep,A,ballTotal,dt,a) reduction(+:PEchange)
 			for (int B = 0; B < ballTotal; B++)
 			{
 				if (B < A + 1)
 				{
-					continue;
+					continue; // I have to do this because OMP won't let me use the first iterator as a variable to the second.
 				}
 				double k;
 
-				ball& a = all[A]; // THIS IS BAD. But necessary because collapse doesn't like
+				ball& a = all[A]; // THIS IS BAD. But necessary because collapse doesn't like stuff between the two loops.
 				ball& b = all[B];
 				double sumRaRb = a.R + b.R;
 				double dist = (a.pos - b.pos).norm();
 				vector3d rVecab = b.pos - a.pos;
 				vector3d rVecba = a.pos - b.pos;
 
-				// Check for collision between Ball and otherBall:
+				// Check for collision between A and B:
 				double overlap = sumRaRb - dist;
 				vector3d totalForce = { 0, 0, 0 };
 				vector3d aTorque = { 0, 0, 0 };
 				vector3d bTorque = { 0, 0, 0 };
 
-				// Check for collision between Ball and otherBall.
+				// Check for collision between A and B.
 				if (overlap > 0)
 				{
 					// Apply coefficient of restitution to balls leaving collision.
@@ -398,10 +400,12 @@ int main(int argc, char const* argv[])
 
 					vector3d gravForceOnA = (G * a.m * b.m / pow(dist, 2)) * (rVecab / dist);
 					totalForce = gravForceOnA + elasticForceOnA + frictionForceOnA;
+					omp_set_lock(&myLock);
 					a.w += aTorque / a.moi * dt;
 					b.w += bTorque / b.moi * dt;
+					omp_unset_lock(&myLock);
 
-					if (writeStep)
+					if (recordStep)
 					{
 						// Calculate potential energy. Important to recognize that the factor of 1/2 is not in front of K because this is for the spring potential in each ball and they are the same potential.
 						PEchange += -G * all[A].m * all[B].m / dist + k * pow((all[A].R + all[B].R - dist) * .5, 2);
@@ -413,15 +417,17 @@ int main(int argc, char const* argv[])
 					// No collision: Include gravity only:
 					vector3d gravForceOnA = (G * a.m * b.m / pow(dist, 2)) * (rVecab / dist);
 					totalForce = gravForceOnA;
-					if (writeStep)
+					if (recordStep)
 					{
 						PEchange += -G * all[A].m * all[B].m / dist;
 						//cosmos.PE += -G * all[A].m * all[B].m / dist;
 					}
 				}
 				// Newton's equal and opposite forces applied to acceleration of each ball:
+				omp_set_lock(&myLock);
 				a.acc += totalForce / a.m;
 				b.acc -= totalForce / b.m;
+				omp_unset_lock(&myLock);
 
 				// So last distance can be known for cor:
 				a.distances[B] = b.distances[A] = dist;
@@ -429,7 +435,7 @@ int main(int argc, char const* argv[])
 		}
 
 		// THIRD PASS - Calculate velocity for next step:
-		if (writeStep)
+		if (recordStep)
 		{
 			ballBuffer << std::endl; // Prepares a new line for incoming data.
 		}
@@ -440,7 +446,7 @@ int main(int argc, char const* argv[])
 			// Velocity for next step:
 			a.vel = a.velh + .5 * a.acc * dt;
 
-			if (writeStep)
+			if (recordStep)
 			{
 				// Adds the mass of the each ball to unboundMass if it meats these conditions:
 				//bound[Ball] = false;
@@ -448,11 +454,34 @@ int main(int argc, char const* argv[])
 				// Send positions and rotations to buffer:
 				if (Ball == 0)
 				{
-					ballBuffer << a.pos[0] << ',' << a.pos[1] << ',' << a.pos[2] << ',' << a.w[0] << ',' << a.w[1] << ',' << a.w[2] << ',' << a.w.norm() << ',' << a.vel[0] << ',' << a.vel[1] << ',' << a.vel[2] << ',' << 0; //bound[0];
+					ballBuffer
+						<< a.pos[0] << ','
+						<< a.pos[1] << ','
+						<< a.pos[2] << ','
+						<< a.w[0] << ','
+						<< a.w[1] << ','
+						<< a.w[2] << ','
+						<< a.w.norm() << ','
+						<< a.vel[0] << ','
+						<< a.vel[1] << ','
+						<< a.vel[2] << ','
+						<< 0; //bound[0];
 				}
 				else
 				{
-					ballBuffer << ',' << a.pos[0] << ',' << a.pos[1] << ',' << a.pos[2] << ',' << a.w[0] << ',' << a.w[1] << ',' << a.w[2] << ',' << a.w.norm() << ',' << a.vel[0] << ',' << a.vel[1] << ',' << a.vel[2] << ',' << 0; //bound[Ball];
+					ballBuffer
+						<< ','
+						<< a.pos[0] << ','
+						<< a.pos[1] << ','
+						<< a.pos[2] << ','
+						<< a.w[0] << ','
+						<< a.w[1] << ','
+						<< a.w[2] << ','
+						<< a.w.norm() << ','
+						<< a.vel[0] << ','
+						<< a.vel[1] << ','
+						<< a.vel[2] << ','
+						<< 0; //bound[Ball];
 				}
 
 				cosmos.KE += .5 * a.m * a.vel.normsquared() + .5 * a.moi * a.w.normsquared(); // Now includes rotational kinetic energy.
@@ -460,12 +489,22 @@ int main(int argc, char const* argv[])
 				cosmos.angularMomentum += a.m * a.pos.cross(a.vel) + a.moi * a.w;
 			}
 		}
-		if (writeStep)
+		if (recordStep)
 		{
-			cosmos.PE += PEchange;
+			cosmos.PE += PEchange; // Necessary for OMP reduction.
+
 			// Write energy to stream:
-			energyBuffer << std::endl
-				<< dt * Step << ',' << cosmos.PE << ',' << cosmos.KE << ',' << cosmos.PE + cosmos.KE << ',' << cosmos.momentum.norm() << ',' << cosmos.angularMomentum.norm() << ',' << 0 << ',' << 0 << ',' << cosmos.mTotal; // the two zeros are bound and unbound mass
+			energyBuffer
+				<< std::endl
+				<< dt * Step << ','
+				<< cosmos.PE << ','
+				<< cosmos.KE << ','
+				<< cosmos.PE + cosmos.KE << ','
+				<< cosmos.momentum.norm() << ','
+				<< cosmos.angularMomentum.norm() << ','
+				<< 0 << ','
+				<< 0 << ','
+				<< cosmos.mTotal; // the two zeros are bound and unbound mass
 
 			// Reinitialize energies for next step:
 			cosmos.KE = 0;
@@ -481,7 +520,7 @@ int main(int argc, char const* argv[])
 			////////////////////////////////////////////////////////////////////
 			if (time(NULL) - lastWrite > 1800 || Step / skip % 20 == 0 || Step == steps - 1)
 			{
-				std::cout << "\nData Write" << std::endl;
+				std::cout << "\nWriting to file.\n" << std::endl;
 
 				// Write simData to file and clear buffer.
 				ballWrite.open(simDataName, myOpenMode);
