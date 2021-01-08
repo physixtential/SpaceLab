@@ -1,5 +1,5 @@
 // There are 4 important steps to creating a new random cluster:
-// 1- populateGroup(size) the cluster
+// 1- allocateGroup(size) the cluster
 // 3- initConditions() to set correct first step physics
 // 4- freeMemory() to clear the arrays from memory when done.
 
@@ -26,7 +26,7 @@ struct ballGroup
 	double* moi = 0;
 
 	// Allocate ball property arrays.
-	void populateGroup(int nBalls)
+	void allocateGroup(int nBalls)
 	{
 		cNumBalls = nBalls;
 

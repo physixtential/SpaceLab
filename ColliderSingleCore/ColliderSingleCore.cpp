@@ -89,7 +89,12 @@ void simInitTwoCluster()
 	clusA.checkMomentum();
 	clusB.checkMomentum();
 
-	cosmos.populateGroup(clusA.cNumBalls + clusB.cNumBalls);
+	cosmos.allocateGroup(clusA.cNumBalls + clusB.cNumBalls);
+	/// <summary>
+	/// need to copy memory into cosmos (actual values, not just allocation above).
+	/// </summary>
+	clusA.freeMemory();
+	clusB.freeMemory();
 
 	// Name the file based on info above:
 	outputPrefix =
@@ -118,7 +123,7 @@ void simInitOneCluster(double* spins)
 
 	// Check and add to ballGroup
 	clusA.checkMomentum();
-	cosmos.balls.insert(cosmos.balls.end(), clusA.balls.begin(), clusA.balls.end());
+	cosmos.populateGroup(clusA.cNumBalls);
 
 	outputPrefix =
 		clusterAName + 
@@ -640,7 +645,7 @@ ballGroup initFromFile(std::string initDataFileName, std::string initConstFileNa
 
 
 		std::getline(simDataStream, line);                                              // Read the current line
-		tclus.populateGroup(std::count(line.begin(), line.end(), ',') / properties + 1); // Get number of balls in file
+		tclus.allocateGroup(std::count(line.begin(), line.end(), ',') / properties + 1); // Get number of balls in file
 		tclus.cNumBalls = sizeof(tclus.pos) / tclus.pos[0];
 
 		std::stringstream chosenLine(line); // This is the last line of the read file, containing all data for all balls at last time step
