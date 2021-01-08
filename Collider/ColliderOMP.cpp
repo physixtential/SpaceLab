@@ -23,7 +23,7 @@ energyBuffer;
 
 // Function Prototypes
 int countBalls(std::string initDataFileName);
-cluster initFromFile(std::string initDataFileName, std::string initConstFileName, bool zeroMotion);
+ballGroup initFromFile(std::string initDataFileName, std::string initConstFileName, bool zeroMotion);
 
 // Main function
 int main(int argc, char const* argv[])
@@ -50,15 +50,15 @@ int main(int argc, char const* argv[])
 		printf("\nKE=%.1f\tIP=%.1f\n", KEfactor, impactParameter);
 	}
 
-	universe cosmos;
+	ballGroup cosmos;
 
 	// Two cluster sim:
 	if (true)
 	{
 		// Count balls in files, reserve space, then load file data:
 		std::cerr << "File 1: " << clusterAName << '\t' << "File 2: " << clusterBName << std::endl;
-		cluster clusA = initFromFile(path + clusterAName + "simData.csv", path + clusterAName + "constants.csv", 1);
-		cluster clusB = initFromFile(path + clusterBName + "simData.csv", path + clusterBName + "constants.csv", 1);
+		ballGroup clusA = initFromFile(path + clusterAName + "simData.csv", path + clusterAName + "constants.csv", 1);
+		ballGroup clusB = initFromFile(path + clusterBName + "simData.csv", path + clusterBName + "constants.csv", 1);
 
 		clusA.offset(clusA.radius, clusB.radius + (clusA.balls[0].R * 1.), impactParameter); // Adding 3 times the radius of one ball gaurantees total separation between clusters.
 		double PEsys = clusA.PE + clusB.PE + (-G * clusA.m * clusB.m / (clusA.com - clusB.com).norm());
@@ -92,13 +92,13 @@ int main(int argc, char const* argv[])
 	if (false)
 	{
 		// Count balls in files, reserve space, then load file data:
-		cluster clusA = initFromFile(clusterAName + "simData.csv", clusterAName + "constants.csv", 0);
+		ballGroup clusA = initFromFile(clusterAName + "simData.csv", clusterAName + "constants.csv", 0);
 		// Rotate
 		clusA.rotAll('z', z0Rot);
 		clusA.rotAll('y', y0Rot);
 		// Spin
 		clusA.comSpinner(spins[0], spins[1], spins[2]);
-		// Check and add to universe
+		// Check and add to ballGroup
 		clusA.checkMomentum();
 		cosmos.balls.insert(cosmos.balls.end(), clusA.balls.begin(), clusA.balls.end());
 	}
@@ -109,7 +109,7 @@ int main(int argc, char const* argv[])
 	cosmos.checkMomentum(); // Is total momentum zero like it should be?
 
 	cosmos.calcComAndMass();
-	// Re-center universe mass to origin:
+	// Re-center ballGroup mass to origin:
 	for (int Ball = 0; Ball < ballTotal; Ball++)
 	{
 		cosmos.balls[Ball].pos -= cosmos.com;
@@ -557,9 +557,9 @@ int main(int argc, char const* argv[])
 } // end main
 
 
-cluster initFromFile(std::string initDataFileName, std::string initConstFileName, bool zeroMotion)
+ballGroup initFromFile(std::string initDataFileName, std::string initConstFileName, bool zeroMotion)
 {
-	cluster tclus;
+	ballGroup tclus;
 	// Get position and angular velocity data:
 	if (auto simDataStream = std::ifstream(initDataFileName, std::ifstream::in))
 	{

@@ -52,7 +52,7 @@ cudaError_t loopOneCUDA(double3* velh, double3* pos, double3* vel, double3* acc,
 int main(int argc, char const* argv[])
 {
 	// Create random cluster:
-	cluster clus;
+	ballGroup clus;
 	clus.populate(numBalls);
 	clus.generateRandomCluster(scaleBalls, spaceRange);
 	clus.initConditions(numBalls);

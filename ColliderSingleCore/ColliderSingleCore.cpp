@@ -6,6 +6,7 @@
 #include <sstream>
 #include <iomanip>
 #include <algorithm>
+#include "../cuVectorMath.h"
 #include "../vector3d.h"
 #include "../initializations.h"
 #include "../objects.h"
@@ -23,9 +24,9 @@ energyBuffer;
 
 // Function Prototypes
 int countBalls(std::string initDataFileName);
-cluster initFromFile(std::string initDataFileName, std::string initConstFileName, bool zeroMotion);
+ballGroup initFromFile(std::string initDataFileName, std::string initConstFileName, bool zeroMotion);
 
-universe cosmos;
+ballGroup cosmos;
 
 // Prototypes
 void simInitTwoCluster();
@@ -35,8 +36,8 @@ void simInitWrite();
 void simOneStep(int Step);
 void simLooper();
 int countBalls(std::string initDataFileName);
-cluster initFromFile(std::string initDataFileName, std::string initConstFileName, bool zeroMotion);
-universe generateBallField();
+ballGroup initFromFile(std::string initDataFileName, std::string initConstFileName, bool zeroMotion);
+ballGroup generateBallField();
 
 // Main function
 int main(int argc, char const* argv[])
@@ -52,8 +53,8 @@ int main(int argc, char const* argv[])
 		KEfactor = atof(argv[4]);
 	}
 
-	//simInitTwoCluster();
-	cosmos = generateBallField();
+	simInitTwoCluster();
+	//cosmos = generateBallField();
 	simAnalyzeAndCenter();
 	simInitWrite();
 	simLooper();
@@ -65,15 +66,15 @@ void simInitTwoCluster()
 {
 	// Load file data:
 	std::cerr << "File 1: " << clusterAName << '\t' << "File 2: " << clusterBName << std::endl;
-	cluster clusA = initFromFile(path + clusterAName + "simData.csv", path + clusterAName + "constants.csv", 0);
-	cluster clusB = initFromFile(path + clusterBName + "simData.csv", path + clusterBName + "constants.csv", 0);
+	ballGroup clusA = initFromFile(path + clusterAName + "simData.csv", path + clusterAName + "constants.csv", 0);
+	ballGroup clusB = initFromFile(path + clusterBName + "simData.csv", path + clusterBName + "constants.csv", 0);
 
-	clusA.offset(clusA.radius, clusB.radius + (clusA.balls[0].R * 1.), impactParameter); // Adding 3 times the radius of one ball gaurantees total separation between clusters.
-	double PEsys = clusA.PE + clusB.PE + (-G * clusA.m * clusB.m / (clusA.com - clusB.com).norm());
+	clusA.offset(clusA.radius, clusB.radius + (clusA.R[0] * 1.), impactParameter); // Adding 3 times the radius of one ball gaurantees total separation between clusters.
+	double PEsys = clusA.PE + clusB.PE + (-G * clusA.mTotal * clusB.mTotal / (clusA.com - clusB.com).norm());
 
 	// Collision velocity calculation:
-	double mSmall = clusA.m;
-	double mBig = clusB.m;
+	double mSmall = clusA.mTotal;
+	double mBig = clusB.mTotal;
 	double mTot = mBig + mSmall;
 	double vSmall = -sqrt(2 * KEfactor * fabs(PEsys) * (mBig / (mSmall * mTot))); // Negative because small offsets right.
 	double vBig = -(mSmall / mBig) * vSmall; // Negative to be opposing projectile.
@@ -87,9 +88,10 @@ void simInitTwoCluster()
 	clusB.kick(vBig);
 	clusA.checkMomentum();
 	clusB.checkMomentum();
-	cosmos.balls.insert(cosmos.balls.end(), clusA.balls.begin(), clusA.balls.end());
-	cosmos.balls.insert(cosmos.balls.end(), clusB.balls.begin(), clusB.balls.end());
 
+	cosmos.populateGroup(clusA.cNumBalls + clusB.cNumBalls);
+
+	// Name the file based on info above:
 	outputPrefix =
 		clusterAName + clusterBName +
 		"-T" + rounder(KEfactor, 4) +
@@ -105,7 +107,7 @@ void simInitTwoCluster()
 void simInitOneCluster(double* spins)
 {
 	// Load file data:
-	cluster clusA = initFromFile(clusterAName + "simData.csv", clusterAName + "constants.csv", 0);
+	ballGroup clusA = initFromFile(clusterAName + "simData.csv", clusterAName + "constants.csv", 0);
 
 	// Rotate
 	clusA.rotAll('z', z0Rot);
@@ -114,7 +116,7 @@ void simInitOneCluster(double* spins)
 	// Spin
 	clusA.comSpinner(spins[0], spins[1], spins[2]);
 
-	// Check and add to universe
+	// Check and add to ballGroup
 	clusA.checkMomentum();
 	cosmos.balls.insert(cosmos.balls.end(), clusA.balls.begin(), clusA.balls.end());
 
@@ -137,7 +139,7 @@ void simAnalyzeAndCenter()
 
 	cosmos.calcComAndMass();
 
-	// Re-center universe mass to origin:
+	// Re-center ballGroup mass to origin:
 	for (int Ball = 0; Ball < ballTotal; Ball++)
 	{
 		cosmos.balls[Ball].pos -= cosmos.com;
@@ -604,9 +606,9 @@ int countBalls(std::string initDataFileName)
 	return ballsInFile;
 }
 
-cluster initFromFile(std::string initDataFileName, std::string initConstFileName, bool zeroMotion)
+ballGroup initFromFile(std::string initDataFileName, std::string initConstFileName, bool zeroMotion)
 {
-	cluster tclus;
+	ballGroup tclus;
 	// Get position and angular velocity data:
 	if (auto simDataStream = std::ifstream(initDataFileName, std::ifstream::in))
 	{
@@ -638,7 +640,8 @@ cluster initFromFile(std::string initDataFileName, std::string initConstFileName
 
 
 		std::getline(simDataStream, line);                                              // Read the current line
-		tclus.balls.resize(std::count(line.begin(), line.end(), ',') / properties + 1); // Get number of balls in file
+		tclus.populateGroup(std::count(line.begin(), line.end(), ',') / properties + 1); // Get number of balls in file
+		tclus.cNumBalls = sizeof(tclus.pos) / tclus.pos[0];
 
 		std::stringstream chosenLine(line); // This is the last line of the read file, containing all data for all balls at last time step
 
@@ -737,9 +740,9 @@ cluster initFromFile(std::string initDataFileName, std::string initConstFileName
 	return tclus;
 }
 
-universe generateBallField()
+ballGroup generateBallField()
 {
-	universe clus;
+	ballGroup clus;
 	clus.balls.resize(genBalls);
 	// Create new random number set.
 	int seedSave = time(NULL);
