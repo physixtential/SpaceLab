@@ -27,7 +27,7 @@ struct cluster
 	double* moi = 0;
 
 	// Allocate ball property arrays.
-	void populate(int nBalls)
+	void populateCluster(int nBalls)
 	{
 		cNumBalls = nBalls;
 
