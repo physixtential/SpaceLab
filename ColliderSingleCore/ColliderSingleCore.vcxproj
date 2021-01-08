@@ -21,6 +21,9 @@
   <ItemGroup>
     <ClInclude Include="..\objects.h" />
   </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="ColliderSingleCore.cpp" />
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
