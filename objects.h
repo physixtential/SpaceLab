@@ -9,21 +9,21 @@ struct ballGroup
 	int cNumBalls = 0;
 	int cNumBallsAdded = 0;
 
-	double3
-		com = make_double3(0, 0, 0),
-		mom = make_double3(0, 0, 0),
-		angMom = make_double3(0, 0, 0); // Can be double3 because they only matter for writing out to file. Can process on host.
+	vector3d
+		com = { 0, 0, 0 },
+		mom = { 0, 0, 0 },
+		angMom = { 0, 0, 0 }; // Can be vector3d because they only matter for writing out to file. Can process on host.
 
 	double mTotal = 0, radius = 0;
 	double PE = 0, KE = 0;
 
 	double* distances = 0;
 
-	double3* pos = 0;
-	double3* vel = 0;
-	double3* velh = 0;
-	double3* acc = 0;
-	double3* w = 0;
+	vector3d* pos = 0;
+	vector3d* vel = 0;
+	vector3d* velh = 0;
+	vector3d* acc = 0;
+	vector3d* w = 0;
 	double* R = 0;
 	double* m = 0;
 	double* moi = 0;
@@ -35,11 +35,11 @@ struct ballGroup
 
 		distances = new double[(cNumBalls * cNumBalls / 2) - (cNumBalls / 2)];
 
-		pos = new double3[cNumBalls];
-		vel = new double3[cNumBalls];
-		velh = new double3[cNumBalls];
-		acc = new double3[cNumBalls];
-		w = new double3[cNumBalls];
+		pos = new vector3d[cNumBalls];
+		vel = new vector3d[cNumBalls];
+		velh = new vector3d[cNumBalls];
+		acc = new vector3d[cNumBalls];
+		w = new vector3d[cNumBalls];
 		R = new double[cNumBalls];
 		m = new double[cNumBalls];
 		moi = new double[cNumBalls];
@@ -98,7 +98,7 @@ struct ballGroup
 		return radius;
 	}
 
-	double3 updateCom()
+	vector3d updateCom()
 	{
 		mTotal = 0;
 		{
@@ -110,7 +110,7 @@ struct ballGroup
 
 		if (mTotal > 0)
 		{
-			double3 comNumerator = { 0, 0, 0 };
+			vector3d comNumerator = { 0, 0, 0 };
 			for (int Ball = 0; Ball < cNumBalls; Ball++)
 			{
 				comNumerator += m[Ball] * pos[Ball];
@@ -138,7 +138,7 @@ struct ballGroup
 	// Set velocity of all balls such that the cluster spins:
 	void comSpinner(double spinX, double spinY, double spinZ)
 	{
-		double3 comRot = make_double3(spinX, spinY, spinZ); // Rotation axis and magnitude
+		vector3d comRot = make_vector3d(spinX, spinY, spinZ); // Rotation axis and magnitude
 		for (int Ball = 0; Ball < cNumBalls; Ball++)
 		{
 			vel[Ball] += cross(comRot, (pos[Ball] - com));
@@ -174,11 +174,11 @@ struct ballGroup
 		mTotal = 0;
 		KE = 0;
 		PE = 0;
-		mom = make_double3(0, 0, 0);
-		angMom = make_double3(0, 0, 0);
+		mom = make_vector3d(0, 0, 0);
+		angMom = make_vector3d(0, 0, 0);
 		if (cNumBalls > 1) // Code below only necessary for effects between balls.
 		{
-			double3 comNumerator = { 0, 0, 0 };
+			vector3d comNumerator = { 0, 0, 0 };
 
 			for (int A = 1; A < cNumBalls; A++)
 			{
@@ -189,23 +189,23 @@ struct ballGroup
 				{
 					double sumRaRb = R[A] + R[B];
 					double dist = length(pos[A] - pos[B]);
-					double3 rVecab = pos[B] - pos[A];
-					double3 rVecba = -1 * rVecab;
+					vector3d rVecab = pos[B] - pos[A];
+					vector3d rVecba = -1 * rVecab;
 
 					// Check for collision between Ball and otherBall:
 					double overlap = sumRaRb - dist;
-					double3 totalForce = { 0, 0, 0 };
-					double3 aTorque = { 0, 0, 0 };
-					double3 bTorque = { 0, 0, 0 };
+					vector3d totalForce = { 0, 0, 0 };
+					vector3d aTorque = { 0, 0, 0 };
+					vector3d bTorque = { 0, 0, 0 };
 
 					// Check for collision between Ball and otherBall.
 					if (overlap > 0)
 					{
 						// Calculate force and torque for a:
-						double3 dVel = vel[B] - vel[A];
-						double3 relativeVelOfA = dVel - dot(dVel, rVecab) * (rVecab / (dist * dist)) - cross(w[A], R[A] / sumRaRb * rVecab) - cross(w[B], R[B] / sumRaRb * rVecab);
-						double3 elasticForceOnA = -kin * overlap * .5 * (rVecab / dist);
-						double3 frictionForceOnA = { 0,0,0 };
+						vector3d dVel = vel[B] - vel[A];
+						vector3d relativeVelOfA = dVel - dot(dVel, rVecab) * (rVecab / (dist * dist)) - cross(w[A], R[A] / sumRaRb * rVecab) - cross(w[B], R[B] / sumRaRb * rVecab);
+						vector3d elasticForceOnA = -kin * overlap * .5 * (rVecab / dist);
+						vector3d frictionForceOnA = { 0,0,0 };
 						if (length(relativeVelOfA) > 1e-12) // When relative velocity is very low, dividing its vector components by its magnitude below is unstable.
 						{
 							frictionForceOnA = mu * length(elasticForceOnA) * (relativeVelOfA / length(relativeVelOfA));
@@ -214,16 +214,16 @@ struct ballGroup
 
 						// Calculate force and torque for b:
 						dVel = vel[A] - vel[B];
-						double3 relativeVelOfB = dVel - dot(dVel, rVecba) * (rVecba / (dist * dist)) - cross(w[B], R[B] / sumRaRb * rVecba) - cross(w[A], R[A] / sumRaRb * rVecba);
-						double3 elasticForceOnB = -kin * overlap * .5 * (rVecba / dist);
-						double3 frictionForceOnB = { 0,0,0 };
+						vector3d relativeVelOfB = dVel - dot(dVel, rVecba) * (rVecba / (dist * dist)) - cross(w[B], R[B] / sumRaRb * rVecba) - cross(w[A], R[A] / sumRaRb * rVecba);
+						vector3d elasticForceOnB = -kin * overlap * .5 * (rVecba / dist);
+						vector3d frictionForceOnB = { 0,0,0 };
 						if (length(relativeVelOfB) > 1e-12)
 						{
 							frictionForceOnB = mu * length(elasticForceOnB) * (relativeVelOfB / length(relativeVelOfB));
 						}
 						bTorque = (R[B] / sumRaRb) * cross(rVecba, frictionForceOnB);
 
-						double3 gravForceOnA = (G * m[A] * m[B] / pow(dist, 2)) * (rVecab / dist);
+						vector3d gravForceOnA = (G * m[A] * m[B] / pow(dist, 2)) * (rVecab / dist);
 						totalForce = gravForceOnA + elasticForceOnA + frictionForceOnA;
 						w[A] += aTorque / moi[A] * dt;
 						w[B] += bTorque / moi[B] * dt;
@@ -232,7 +232,7 @@ struct ballGroup
 					else
 					{
 						// No collision: Include gravity only:
-						double3 gravForceOnA = (G * m[A] * m[B] / pow(dist, 2)) * (rVecab / dist);
+						vector3d gravForceOnA = (G * m[A] * m[B] / pow(dist, 2)) * (rVecab / dist);
 						totalForce = gravForceOnA;
 						PE += -G * m[A] * m[B] / dist;
 					}
@@ -264,13 +264,13 @@ struct ballGroup
 	{
 		for (int Ball = 0; Ball < cNumBalls; Ball++)
 		{
-			vel[Ball] += make_double3(vx, vy, vz);
+			vel[Ball] += make_vector3d(vx, vy, vz);
 		}
 	}
 
 	void checkMomentum()
 	{
-		double3 pTotal = { 0,0,0 };
+		vector3d pTotal = { 0,0,0 };
 		for (int Ball = 0; Ball < cNumBalls; Ball++)
 		{
 			pTotal += m[Ball] * vel[Ball];

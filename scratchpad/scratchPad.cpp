@@ -8,96 +8,41 @@
 #include <algorithm>
 #include <vector>
 #include <omp.h>
-#include "../vector3d.h"
-#include "../objects.h"
-
-void makeVec(vector3d* vec, int len)
-{
-	// Init pos
-	for (size_t i = 0; i < len; i++)
-	{
-		vec[i] = { (double)i,(double)i,(double)i };
-	}
-}
-//#include "../initializations.h"
+//#include "../vector3d.h"
 //#include "../objects.h"
 
-const int balls = 5000;
-int pairs = balls * (balls - 1) / 2;
 
-double distBig[balls][balls];
+struct test
+{
+	double* x;
+};
+
+void copyGroup(test* dst, test* src)
+{
+	memcpy(dst->x, src->x, sizeof(src->x[0]) * 3);
+}
 
 int main()
 {
-	for (size_t i = 0; i < 10; i++)
-	{
-		double* dist = new double[pairs]();
-		vector3d* pos = new vector3d[balls]();
-		double sum = 0;
+	test thing;
+	thing.x = new double[3];
+	thing.x[0] = 100;
+	thing.x[1] = 200;
+	thing.x[2] = 300;
 
-		makeVec(pos, balls);
+	test otherThing;
+	otherThing.x = new double[3];
 
-		double time0 = 0, time1 = 0;
+	copyGroup(&otherThing, &thing);
 
-		//////////////////////////////////////////////
-		time0 = omp_get_wtime();
-		for (size_t i = 1; i < balls; i++)
-		{
-			for (size_t j = 0; j < i; j++)
-			{
-				int e = i * (i - 1) * .5; // Get to the right first ball region in array
-				dist[e + j] = (pos[i] - pos[j]).norm(); // add j to get to the other ball in the pair.
-				//printf("%d\t%d\t%d\t%lf\n", i, j, e, dist[e]);
-			}
-		}
-		time1 = omp_get_wtime();
+	test combined;
+	combined.x = new double[6];
 
-		printf("Time:\t\t%lf\n", time1 - time0);
+	memcpy(&combined.x[0], thing.x, sizeof(thing.x[0]) * 3);
+	memcpy(&combined.x[3], otherThing.x, sizeof(otherThing.x[0]) * 3);
 
-		//for (size_t i = 0; i < pairs; i++)
-		//{
-		//	printf("%.3e\n", dist[i]);
-		//}
 
-		for (size_t i = 0; i < pairs; i++)
-		{
-			sum += dist[i];
-		}
-
-		printf("First total: %lf\n", sum);
-
-		delete[] dist;
-
-		////////////////////////////////////////////////
-		time0 = omp_get_wtime();
-		for (size_t i = 0; i < balls; i++)
-		{
-			for (size_t j = i + 1; j < balls; j++)
-			{
-				//int e = i * (i - 1) * .5; // Get to the right first ball region in array
-				distBig[i][j] = (pos[i] - pos[j]).norm(); // add j to get to the other ball in the pair.
-				//printf("%d\t%d\t%d\t%lf\n", i, j, e, dist[e]);
-			}
-		}
-		time1 = omp_get_wtime();
-
-		printf("Time:\t\t%lf\n", time1 - time0);
-		//for (size_t i = 0; i < balls; i++)
-		//{
-		//	printf("%.3e\t%.3e\t%.3e\t%.3e\t%.3e\n", distBig[i][0], distBig[i][1], distBig[i][2], distBig[i][3], distBig[i][4]);
-		//}
-		sum = 0;
-		for (size_t i = 0; i < balls; i++)
-		{
-			for (size_t j = 0; j < balls; j++)
-			{
-				sum += distBig[i][j];
-			}
-		}
-
-		printf("Second Total: %lf\n", sum);
-
-		delete[] pos;
-	}
-	return 0;
+	std::cout << thing.x[0] << ' ' << thing.x[1] << ' ' << thing.x[2] << std::endl;
+	std::cout << otherThing.x[0] << ' ' << otherThing.x[1] << ' ' << otherThing.x[2] << std::endl;
+	std::cout << combined.x[0] << ' ' << combined.x[1] << ' ' << combined.x[2] << ' ' << combined.x[3] << ' ' << combined.x[4] << ' ' << combined.x[5] << std::endl;
 }

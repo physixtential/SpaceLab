@@ -6,7 +6,6 @@
 #include <sstream>
 #include <iomanip>
 #include <algorithm>
-#include "../cuVectorMath.h"
 #include "../vector3d.h"
 #include "../initializations.h"
 #include "../objects.h"
@@ -314,8 +313,6 @@ bool writeStep;       // This prevents writing to file every step (which is slow
 
 void simOneStep(int Step)
 {
-	std::vector<ball>& all = cosmos.balls;
-	int ballTotal = all.size();
 	// Check if this is a write step:
 	if (Step % skip == 0)
 	{
@@ -350,18 +347,11 @@ void simOneStep(int Step)
 	// SECOND PASS - Check for collisions, apply forces and torques:
 	for (int A = 0; A < ballTotal; A++)
 	{
-		//#pragma omp parallel for shared(all,writeStep,A,ballTotal,dt,a) reduction(+:PEchange)
-		for (int B = 0; B < ballTotal; B++)
+		for (int B = A+1; B < ballTotal; B++)
 		{
-			if (B < A + 1)
-			{
-				continue;
-			}
 			double k;
 
-			ball& a = all[A]; // THIS IS BAD. But necessary because collapse doesn't like
-			ball& b = all[B];
-			double sumRaRb = a.R + b.R;
+			double sumRaRb = R + b.R;
 			double dist = (a.pos - b.pos).norm();
 			vector3d rVecab = b.pos - a.pos;
 			vector3d rVecba = a.pos - b.pos;
