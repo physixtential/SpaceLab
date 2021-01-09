@@ -357,7 +357,7 @@ int main(int argc, char const* argv[])
 		// SECOND PASS - Check for collisions, apply forces and torques:
 		//begin = std::chrono::high_resolution_clock::now();
 		double k;
-		for (int A = 0; A < ballTotal; A++) //cuda
+		for (int A = 0; A < ballTotal-1; A++) //cuda
 		{
 			ball& a = all[A];
 
