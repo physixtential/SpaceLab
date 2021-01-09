@@ -90,11 +90,10 @@ void simInitTwoCluster()
 	clusB.checkMomentum();
 
 	cosmos.allocateGroup(clusA.cNumBalls + clusB.cNumBalls);
-	/// <summary>
-	/// need to copy memory into cosmos (actual values, not just allocation above).
-	/// </summary>
-	clusA.freeMemory();
-	clusB.freeMemory();
+	
+	cosmos.addBallGroup(&clusA);
+	cosmos.addBallGroup(&clusB);
+
 
 	// Name the file based on info above:
 	outputPrefix =
@@ -123,7 +122,7 @@ void simInitOneCluster(double* spins)
 
 	// Check and add to ballGroup
 	clusA.checkMomentum();
-	cosmos.populateGroup(clusA.cNumBalls);
+	cosmos.allocateGroup(clusA.cNumBalls);
 
 	outputPrefix =
 		clusterAName + 
@@ -139,15 +138,15 @@ void simInitOneCluster(double* spins)
 void simAnalyzeAndCenter()
 {
 	// Cosmos has been filled with balls. Size is known:
-	int ballTotal = cosmos.balls.size();
+	int ballTotal = cosmos.cNumBalls;
 	cosmos.checkMomentum(); // Is total momentum zero like it should be?
 
-	cosmos.calcComAndMass();
+	cosmos.clusToOrigin();
 
 	// Re-center ballGroup mass to origin:
 	for (int Ball = 0; Ball < ballTotal; Ball++)
 	{
-		cosmos.balls[Ball].pos -= cosmos.com;
+		cosmos.pos[Ball] -= cosmos.com;
 	}
 
 	// Compute physics between all balls. Distances, collision forces, energy totals, total mass:

@@ -3,14 +3,17 @@
 // 3- initConditions() to set correct first step physics
 // 4- freeMemory() to clear the arrays from memory when done.
 
+
 struct ballGroup
 {
 	int cNumBalls = 0;
+	int cNumBallsAdded = 0;
 
 	double3
 		com = make_double3(0, 0, 0),
 		mom = make_double3(0, 0, 0),
 		angMom = make_double3(0, 0, 0); // Can be double3 because they only matter for writing out to file. Can process on host.
+
 	double mTotal = 0, radius = 0;
 	double PE = 0, KE = 0;
 
@@ -40,6 +43,31 @@ struct ballGroup
 		R = new double[cNumBalls];
 		m = new double[cNumBalls];
 		moi = new double[cNumBalls];
+	}
+
+	void addBallGroup(ballGroup* src)
+	{
+		// Copy incoming data to the end of the currently loaded data.
+		memcpy(&distances[cNumBallsAdded], src->distances, sizeof(src->distances[0]) * src->cNumBalls);
+		memcpy(&pos[cNumBallsAdded], src->pos, sizeof(src->pos[0]) * src->cNumBalls);
+		memcpy(&vel[cNumBallsAdded], src->vel, sizeof(src->vel[0]) * src->cNumBalls);
+		memcpy(&velh[cNumBallsAdded], src->velh, sizeof(src->velh[0]) * src->cNumBalls);
+		memcpy(&acc[cNumBallsAdded], src->acc, sizeof(src->acc[0]) * src->cNumBalls);
+		memcpy(&w[cNumBallsAdded], src->w, sizeof(src->w[0]) * src->cNumBalls);
+		memcpy(&R[cNumBallsAdded], src->R, sizeof(src->R[0]) * src->cNumBalls);
+		memcpy(&m[cNumBallsAdded], src->m, sizeof(src->m[0]) * src->cNumBalls);
+		memcpy(&moi[cNumBallsAdded], src->moi, sizeof(src->moi[0]) * src->cNumBalls);
+
+		if (cNumBallsAdded > 0)
+		{
+			radius = -1; // radius is meaningless if there is more than one cluster:
+		}
+
+		// Keep track of now loaded ball set to start next set after it:
+		cNumBallsAdded += src->cNumBalls;
+
+		// Ensures we remember to clear the copied memory:
+		src->freeMemory();
 	}
 
 	// Deallocate heap memory.
@@ -141,7 +169,7 @@ struct ballGroup
 
 
 	// Initialzie accelerations and energy calculations:
-	void initConditions(int cNumBalls)
+	void initConditions()
 	{
 		mTotal = 0;
 		KE = 0;
