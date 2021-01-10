@@ -25,7 +25,8 @@ energyBuffer;
 int countBalls(std::string initDataFileName);
 ballGroup initFromFile(std::string initDataFileName, std::string initConstFileName, bool zeroMotion);
 
-ballGroup cosmos;
+ballGroup O;
+int ballTotal = 0;
 
 // Prototypes
 void simInitTwoCluster();
@@ -53,7 +54,8 @@ int main(int argc, char const* argv[])
 	}
 
 	simInitTwoCluster();
-	//cosmos = generateBallField();
+	//O = generateBallField();
+	ballTotal = O.cNumBalls;
 	simAnalyzeAndCenter();
 	simInitWrite();
 	simLooper();
@@ -88,10 +90,10 @@ void simInitTwoCluster()
 	clusA.checkMomentum();
 	clusB.checkMomentum();
 
-	cosmos.allocateGroup(clusA.cNumBalls + clusB.cNumBalls);
-	
-	cosmos.addBallGroup(&clusA);
-	cosmos.addBallGroup(&clusB);
+	O.allocateGroup(clusA.cNumBalls + clusB.cNumBalls);
+
+	O.addBallGroup(&clusA);
+	O.addBallGroup(&clusB);
 
 
 	// Name the file based on info above:
@@ -121,10 +123,10 @@ void simInitOneCluster(double* spins)
 
 	// Check and add to ballGroup
 	clusA.checkMomentum();
-	cosmos.allocateGroup(clusA.cNumBalls);
+	O.allocateGroup(clusA.cNumBalls);
 
 	outputPrefix =
-		clusterAName + 
+		clusterAName +
 		"-T" + rounder(KEfactor, 4) +
 		"-k" + scientific(kin) +
 		"-cor" + rounder(pow(cor, 2), 4) +
@@ -136,20 +138,12 @@ void simInitOneCluster(double* spins)
 
 void simAnalyzeAndCenter()
 {
-	// Cosmos has been filled with balls. Size is known:
-	int ballTotal = cosmos.cNumBalls;
-	cosmos.checkMomentum(); // Is total momentum zero like it should be?
+	O.checkMomentum(); // Is total mom zero like it should be?
 
-	cosmos.clusToOrigin();
-
-	// Re-center ballGroup mass to origin:
-	for (int Ball = 0; Ball < ballTotal; Ball++)
-	{
-		cosmos.pos[Ball] -= cosmos.com;
-	}
+	O.clusToOrigin();
 
 	// Compute physics between all balls. Distances, collision forces, energy totals, total mass:
-	cosmos.initConditions();
+	O.initConditions();
 }
 
 std::string simDataName;
@@ -210,8 +204,6 @@ void simInitWrite()
 	energyWrite << "Time,PE,KE,E,p,L,Bound,Unbound,mTotal";
 	ballWrite << "x0,y0,z0,wx0,wy0,wz0,wmag0,vx0,vy0,vz0,bound0";
 
-	std::vector<ball>& all = cosmos.balls;
-	int ballTotal = all.size();
 	for (int Ball = 1; Ball < ballTotal; Ball++) // Start at 2nd ball because first one was just written^.
 	{
 		std::string thisBall = std::to_string(Ball);
@@ -236,9 +228,9 @@ void simInitWrite()
 	{
 
 		constWrite
-			<< all[Ball].R << ','
-			<< all[Ball].m << ','
-			<< all[Ball].moi
+			<< O.R[Ball] << ','
+			<< O.m[Ball] << ','
+			<< O.moi[Ball] << ','
 			<< std::endl;
 	}
 
@@ -246,50 +238,50 @@ void simInitWrite()
 	energyBuffer
 		<< std::endl
 		<< dt << ','
-		<< cosmos.PE << ','
-		<< cosmos.KE << ','
-		<< cosmos.PE + cosmos.KE << ','
-		<< cosmos.momentum.norm() << ','
-		<< cosmos.angularMomentum.norm() << ','
+		<< O.PE << ','
+		<< O.KE << ','
+		<< O.PE + O.KE << ','
+		<< O.mom.norm() << ','
+		<< O.angMom.norm() << ','
 		<< 0 << ',' //boundMass
 		<< 0 << ',' //unboundMass
-		<< cosmos.mTotal;
+		<< O.mTotal;
 	energyWrite << energyBuffer.rdbuf();
 	energyBuffer.str("");
 
 	// Reinitialize energies for next step:
-	cosmos.KE = 0;
-	cosmos.PE = 0;
-	cosmos.momentum = { 0, 0, 0 };
-	cosmos.angularMomentum = { 0, 0, 0 };
+	O.KE = 0;
+	O.PE = 0;
+	O.mom = { 0, 0, 0 };
+	O.angMom = { 0, 0, 0 };
 
 	// Send position and rotation to buffer:
 	ballBuffer << std::endl; // Necessary new line after header.
 	ballBuffer
-		<< all[0].pos.x << ','
-		<< all[0].pos.y << ','
-		<< all[0].pos.z << ','
-		<< all[0].w.x << ','
-		<< all[0].w.y << ','
-		<< all[0].w.z << ','
-		<< all[0].w.norm() << ','
-		<< all[0].vel.x << ','
-		<< all[0].vel.y << ','
-		<< all[0].vel.z << ','
+		<< O.pos[0].x << ','
+		<< O.pos[0].y << ','
+		<< O.pos[0].z << ','
+		<< O.w[0].x << ','
+		<< O.w[0].y << ','
+		<< O.w[0].z << ','
+		<< O.w[0].norm() << ','
+		<< O.vel[0].x << ','
+		<< O.vel[0].y << ','
+		<< O.vel[0].z << ','
 		<< 0; //bound[0];
 	for (int Ball = 1; Ball < ballTotal; Ball++)
 	{
 		ballBuffer
-			<< ',' << all[Ball].pos.x << ',' // Needs comma start so the last bound doesn't have a dangling comma.
-			<< all[Ball].pos.y << ','
-			<< all[Ball].pos.z << ','
-			<< all[Ball].w.x << ','
-			<< all[Ball].w.y << ','
-			<< all[Ball].w.z << ','
-			<< all[Ball].w.norm() << ','
-			<< all[Ball].vel.x << ','
-			<< all[Ball].vel.y << ','
-			<< all[Ball].vel.z << ','
+			<< ',' << O.pos[Ball].x << ',' // Needs comma start so the last bound doesn't have a dangling comma.
+			<< O.pos[Ball].y << ','
+			<< O.pos[Ball].z << ','
+			<< O.w[Ball].x << ','
+			<< O.w[Ball].y << ','
+			<< O.w[Ball].z << ','
+			<< O.w[Ball].norm() << ','
+			<< O.vel[Ball].x << ','
+			<< O.vel[Ball].y << ','
+			<< O.vel[Ball].z << ','
 			<< 0; //bound[Ball];
 	}
 	// Write position and rotation data to file:
@@ -302,7 +294,7 @@ void simInitWrite()
 	constWrite.close();
 
 	std::cout << "\nInitial conditions exported and file streams closed.\nSimulating " << steps * dt / 60 / 60 << " hours.\n";
-	std::cout << "Total mass: " << cosmos.mTotal << std::endl;
+	std::cout << "Total mass: " << O.mTotal << std::endl;
 	std::cout << "\n===============================================================\n";
 }
 
@@ -335,26 +327,26 @@ void simOneStep(int Step)
 	for (int Ball = 0; Ball < ballTotal; Ball++)
 	{
 		// Update velocity half step:
-		all[Ball].velh = all[Ball].vel + .5 * all[Ball].acc * dt;
+		O.velh[Ball] = O.vel[Ball] + .5 * O.acc[Ball] * dt;
 
 		// Update position:
-		all[Ball].pos += all[Ball].velh * dt;
+		O.pos[Ball] += O.velh[Ball] * dt;
 
 		// Reinitialize acceleration to be recalculated:
-		all[Ball].acc = { 0, 0, 0 };
+		O.acc[Ball] = { 0, 0, 0 };
 	}
 
 	// SECOND PASS - Check for collisions, apply forces and torques:
-	for (int A = 0; A < ballTotal; A++)
+	double k;
+	for (int A = 1; A < ballTotal; A++) //cuda
 	{
-		for (int B = A+1; B < ballTotal; B++)
+		for (int B = 0; B < A; B++)
 		{
 			double k;
-
-			double sumRaRb = R + b.R;
-			double dist = (a.pos - b.pos).norm();
-			vector3d rVecab = b.pos - a.pos;
-			vector3d rVecba = a.pos - b.pos;
+			double sumRaRb = O.R[A] + O.R[B];
+			double dist = (O.pos[A] - O.pos[B]).norm();
+			vector3d rVecab = O.pos[B] - O.pos[A];
+			vector3d rVecba = -1 * rVecab;
 
 			// Check for collision between Ball and otherBall:
 			double overlap = sumRaRb - dist;
@@ -362,29 +354,34 @@ void simOneStep(int Step)
 			vector3d aTorque = { 0, 0, 0 };
 			vector3d bTorque = { 0, 0, 0 };
 
+			// Distance array element: 1,0    2,0    2,1    3,0    3,1    3,2 ...
+			int e = (A * (A - 1) * .5) + B;
+			double oldDist = O.distances[e];
+
 			// Check for collision between Ball and otherBall.
 			if (overlap > 0)
 			{
 				// Apply coefficient of restitution to balls leaving collision.
-				if (dist >= a.distances[B]) // <<< huge balls x balls array
+				if (dist >= oldDist)
 				{
 					k = kout;
-					if (springTest)
-					{
-						if (a.distances[B] < 0.9 * a.R || a.distances[B] < 0.9 * b.R)
-						{
-							if (a.R >= b.R)
-							{
-								std::cout << "Warning: Ball compression is " << .5 * (sumRaRb - a.distances[B]) / b.R << " of radius = " << b.R << std::endl;
-							}
-							else
-							{
-								std::cout << "Warning: Ball compression is " << .5 * (sumRaRb - a.distances[B]) / a.R << " of radius = " << a.R << std::endl;
-							}
-							//int garbo;
-							//std::cin >> garbo;
-						}
-					}
+					//if (springTest)
+					//{
+					//	if (oldDist < 0.9 * clus.R[A] || oldDist < 0.9 * clus.R[B])
+					//	{
+					//		if (clus.R[A] >= clus.R[B])
+
+					//		{
+					//			std::cout << "Warning: Ball compression is " << .5 * (sumRaRb - oldDist) / clus.R[B] << "of radius = " << clus.R[B] << std::endl;
+					//		}
+					//		else
+					//		{
+					//			std::cout << "Warning: Ball compression is " << .5 * (sumRaRb - oldDist) / clus.R[A] << "of radius = " << clus.R[A] << std::endl;
+					//		}
+					//		int garbo;
+					//		std::cin >> garbo;
+					//	}
+					//}
 				}
 				else
 				{
@@ -392,54 +389,54 @@ void simOneStep(int Step)
 				}
 
 				// Calculate force and torque for a:
-				vector3d dVel = b.vel - a.vel;
-				vector3d relativeVelOfA = (dVel)-((dVel).dot(rVecab)) * (rVecab / (dist * dist)) - a.w.cross(a.R / sumRaRb * rVecab) - b.w.cross(b.R / sumRaRb * rVecab);
+				vector3d dVel = O.vel[B] - O.vel[A];
+				vector3d relativeVelOfA = (dVel)-((dVel).dot(rVecab)) * (rVecab / (dist * dist)) - O.w[A].cross(O.R[A] / sumRaRb * rVecab) - O.w[B].cross(O.R[B] / sumRaRb * rVecab);
 				vector3d elasticForceOnA = -k * overlap * .5 * (rVecab / dist);
 				vector3d frictionForceOnA = { 0,0,0 };
-				if (relativeVelOfA.norm() > 1e-14) // When relative velocity is very low, dividing its vector components by its magnitude below is unstable.
+				if (relativeVelOfA.norm() > 1e-12) // When relative velocity is very low, dividing its vector components by its magnitude below is unstable.
 				{
 					frictionForceOnA = mu * elasticForceOnA.norm() * (relativeVelOfA / relativeVelOfA.norm());
 				}
-				aTorque = (a.R / sumRaRb) * rVecab.cross(frictionForceOnA);
+				aTorque = (O.R[A] / sumRaRb) * rVecab.cross(frictionForceOnA);
 
 				// Calculate force and torque for b:
-				dVel = a.vel - b.vel;
-				vector3d relativeVelOfB = (dVel)-((dVel).dot(rVecba)) * (rVecba / (dist * dist)) - b.w.cross(b.R / sumRaRb * rVecba) - a.w.cross(a.R / sumRaRb * rVecba);
+				dVel = O.vel[A] - O.vel[B];
+				vector3d relativeVelOfB = (dVel)-((dVel).dot(rVecba)) * (rVecba / (dist * dist)) - O.w[B].cross(O.R[B] / sumRaRb * rVecba) - O.w[A].cross(O.R[A] / sumRaRb * rVecba);
 				vector3d elasticForceOnB = -k * overlap * .5 * (rVecba / dist);
 				vector3d frictionForceOnB = { 0,0,0 };
-				if (relativeVelOfB.norm() > 1e-14)
+				if (relativeVelOfB.norm() > 1e-12)
 				{
 					frictionForceOnB = mu * elasticForceOnB.norm() * (relativeVelOfB / relativeVelOfB.norm());
 				}
-				bTorque = (b.R / sumRaRb) * rVecba.cross(frictionForceOnB);
+				bTorque = (O.R[B] / sumRaRb) * rVecba.cross(frictionForceOnB);
 
-				vector3d gravForceOnA = (G * a.m * b.m / pow(dist, 2)) * (rVecab / dist);
+				vector3d gravForceOnA = (G * O.m[A] * O.m[B] / pow(dist, 2)) * (rVecab / dist);
 				totalForce = gravForceOnA + elasticForceOnA + frictionForceOnA;
-				a.w += aTorque / a.moi * dt;
-				b.w += bTorque / b.moi * dt;
+				O.w[A] += aTorque / O.moi[A] * dt;
+				O.w[B] += bTorque / O.moi[B] * dt;
 
 				if (writeStep)
 				{
 					// Calculate potential energy. Important to recognize that the factor of 1/2 is not in front of K because this is for the spring potential in each ball and they are the same potential.
-					cosmos.PE += -G * all[A].m * all[B].m / dist + k * pow((all[A].R + all[B].R - dist) * .5, 2);
+					O.PE += -G * O.m[A] * O.m[B] / dist + k * pow((O.R[A] + O.R[B] - dist) * .5, 2);
 				}
 			}
 			else
 			{
 				// No collision: Include gravity only:
-				vector3d gravForceOnA = (G * a.m * b.m / pow(dist, 2)) * (rVecab / dist);
+				vector3d gravForceOnA = (G * O.m[A] * O.m[B] / pow(dist, 2)) * (rVecab / dist);
 				totalForce = gravForceOnA;
 				if (writeStep)
 				{
-					cosmos.PE += -G * all[A].m * all[B].m / dist;
+					O.PE += -G * O.m[A] * O.m[B] / dist;
 				}
 			}
 			// Newton's equal and opposite forces applied to acceleration of each ball:
-			a.acc += totalForce / a.m;
-			b.acc -= totalForce / b.m;
+			O.acc[A] += totalForce / O.m[A];
+			O.acc[B] -= totalForce / O.m[B];
 
 			// So last distance can be known for cor:
-			a.distances[B] = b.distances[A] = dist;
+			O.distances[e] = dist;
 		}
 	}
 
@@ -450,10 +447,9 @@ void simOneStep(int Step)
 	}
 	for (int Ball = 0; Ball < ballTotal; Ball++)
 	{
-		ball& a = all[Ball];
 
 		// Velocity for next step:
-		a.vel = a.velh + .5 * a.acc * dt;
+		O.vel[Ball] = O.velh[Ball] + .5 * O.acc[Ball] * dt;
 
 		if (writeStep)
 		{
@@ -463,31 +459,31 @@ void simOneStep(int Step)
 			// Send positions and rotations to buffer:
 			if (Ball == 0)
 			{
-				ballBuffer << a.pos[0] << ',' << a.pos[1] << ',' << a.pos[2] << ',' << a.w[0] << ',' << a.w[1] << ',' << a.w[2] << ',' << a.w.norm() << ',' << a.vel[0] << ',' << a.vel[1] << ',' << a.vel[2] << ',' << 0; //bound[0];
+				ballBuffer << O.pos[Ball][0] << ',' << O.pos[Ball][1] << ',' << O.pos[Ball][2] << ',' << O.w[Ball][0] << ',' << O.w[Ball][1] << ',' << O.w[Ball][2] << ',' << O.w[Ball].norm() << ',' << O.vel[Ball].x << ',' << O.vel[Ball].y << ',' << O.vel[Ball].z << ',' << 0;
 			}
 			else
 			{
-				ballBuffer << ',' << a.pos[0] << ',' << a.pos[1] << ',' << a.pos[2] << ',' << a.w[0] << ',' << a.w[1] << ',' << a.w[2] << ',' << a.w.norm() << ',' << a.vel[0] << ',' << a.vel[1] << ',' << a.vel[2] << ',' << 0; //bound[Ball];
+				ballBuffer << ',' << O.pos[Ball][0] << ',' << O.pos[Ball][1] << ',' << O.pos[Ball][2] << ',' << O.w[Ball][0] << ',' << O.w[Ball][1] << ',' << O.w[Ball][2] << ',' << O.w[Ball].norm() << ',' << O.vel[Ball].x << ',' << O.vel[Ball].y << ',' << O.vel[Ball].z << ',' << 0;
 			}
 
-			cosmos.KE += .5 * a.m * a.vel.normsquared() + .5 * a.moi * a.w.normsquared(); // Now includes rotational kinetic energy.
-			cosmos.momentum += a.m * a.vel;
-			cosmos.angularMomentum += a.m * a.pos.cross(a.vel) + a.moi * a.w;
+			O.KE += .5 * O.m[Ball] * O.vel[Ball].normsquared() + .5 * O.moi[Ball] * O.w[Ball].normsquared(); // Now includes rotational kinetic energy.
+			O.mom += O.m[Ball] * O.vel[Ball];
+			O.angMom += O.m[Ball] * O.pos[Ball].cross(O.vel[Ball]) + O.moi[Ball] * O.w[Ball];
 		}
 	}
 	if (writeStep)
 	{
 		// Write energy to stream:
 		energyBuffer << std::endl
-			<< dt * Step << ',' << cosmos.PE << ',' << cosmos.KE << ',' << cosmos.PE + cosmos.KE << ',' << cosmos.momentum.norm() << ',' << cosmos.angularMomentum.norm() << ',' << 0 << ',' << 0 << ',' << cosmos.mTotal; // the two zeros are bound and unbound mass
+			<< dt * Step << ',' << O.PE << ',' << O.KE << ',' << O.PE + O.KE << ',' << O.mom.norm() << ',' << O.angMom.norm() << ',' << 0 << ',' << 0 << ',' << O.mTotal; // the two zeros are bound and unbound mass
 
 		// Reinitialize energies for next step:
-		cosmos.KE = 0;
-		cosmos.PE = 0;
-		cosmos.momentum = { 0, 0, 0 };
-		cosmos.angularMomentum = { 0, 0, 0 };
+		O.KE = 0;
+		O.PE = 0;
+		O.mom = { 0, 0, 0 };
+		O.angMom = { 0, 0, 0 };
 		// unboundMass = 0;
-		// boundMass = cosmos.mTotal;
+		// boundMass = O.mTotal;
 
 		////////////////////////////////////////////////////////////////////
 		// Data Export /////////////////////////////////////////////////////
@@ -525,9 +521,6 @@ void simLooper()
 
 	std::cout << "Beginning simulation at...\n";
 
-	std::vector<ball>& all = cosmos.balls;
-	int ballTotal = all.size();
-
 	for (int Step = 1; Step < steps; Step++) // Steps start at 1 because the 0 step is initial conditions.
 	{
 		simOneStep(Step);
@@ -544,7 +537,7 @@ void simLooper()
 	std::cout << "\n===============================================================\n";
 	// I know the number of balls in each file and the order they were brought in, so I can effect individual clusters.
 	//
-	// Implement calculation of total momentum vector and make it 0 mag
+	// Implement calculation of total mom vector and make it 0 mag
 
 	exit(EXIT_SUCCESS);
 } // end main
@@ -635,30 +628,29 @@ ballGroup initFromFile(std::string initDataFileName, std::string initConstFileNa
 
 		std::getline(simDataStream, line);                                              // Read the current line
 		tclus.allocateGroup(std::count(line.begin(), line.end(), ',') / properties + 1); // Get number of balls in file
-		tclus.cNumBalls = sizeof(tclus.pos) / tclus.pos[0];
+		tclus.cNumBalls = sizeof(tclus.pos) / sizeof(tclus.pos[0]);
 
 		std::stringstream chosenLine(line); // This is the last line of the read file, containing all data for all balls at last time step
 
-		for (int A = 0; A < tclus.numBalls; A++)
+		for (int A = 0; A < tclus.cNumBalls; A++)
 		{
-			ball& a = tclus.balls[A];
 
 			for (int i = 0; i < 3; i++) // Position
 			{
 				std::getline(chosenLine, lineElement, ',');
-				a.pos[i] = std::stod(lineElement);
-				//std::cout << a.pos[i]<<',';
+				tclus.pos[A][i] = std::stod(lineElement);
+				//std::cout << tclus.pos[A][i]<<',';
 			}
 			for (int i = 0; i < 3; i++) // Angular Velocity
 			{
 				std::getline(chosenLine, lineElement, ',');
-				a.w[i] = std::stod(lineElement);
+				tclus.w[A][i] = std::stod(lineElement);
 			}
 			std::getline(chosenLine, lineElement, ','); // Angular velocity magnitude skipped
 			for (int i = 0; i < 3; i++)                 // velocity
 			{
 				std::getline(chosenLine, lineElement, ',');
-				a.vel[i] = std::stod(lineElement);
+				tclus.vel[A][i] = std::stod(lineElement);
 			}
 			for (int i = 0; i < properties - 10; i++) // We used 10 elements. This skips the rest.
 			{
@@ -676,17 +668,16 @@ ballGroup initFromFile(std::string initDataFileName, std::string initConstFileNa
 	if (auto ConstStream = std::ifstream(initConstFileName, std::ifstream::in))
 	{
 		std::string line, lineElement;
-		for (int A = 0; A < tclus.numBalls; A++)
+		for (int A = 0; A < tclus.cNumBalls; A++)
 		{
-			ball& a = tclus.balls[A];
 			std::getline(ConstStream, line); // Ball line.
 			std::stringstream chosenLine(line);
 			std::getline(chosenLine, lineElement, ','); // Radius.
-			a.R = std::stod(lineElement);
+			tclus.R[A] = std::stod(lineElement);
 			std::getline(chosenLine, lineElement, ','); // Mass.
-			a.m = std::stod(lineElement);
+			tclus.m[A] = std::stod(lineElement);
 			std::getline(chosenLine, lineElement, ','); // Moment of inertia.
-			a.moi = std::stod(lineElement);
+			tclus.moi[A] = std::stod(lineElement);
 		}
 	}
 	else
@@ -697,39 +688,38 @@ ballGroup initFromFile(std::string initDataFileName, std::string initConstFileNa
 	// Zero all angular momenta and velocity:
 	if (zeroMotion)
 	{
-		for (int Ball = 0; Ball < tclus.numBalls; Ball++)
+		for (int Ball = 0; Ball < tclus.cNumBalls; Ball++)
 		{
-			tclus.balls[Ball].w = { 0, 0, 0 };
-			tclus.balls[Ball].vel = { 0, 0, 0 };
+			tclus.w[Ball] = { 0, 0, 0 };
+			tclus.vel[Ball] = { 0, 0, 0 };
 		}
 	}
 
 	// Calculate approximate radius of imported cluster and center mass at origin:
 	vector3d comNumerator;
-	for (int Ball = 0; Ball < tclus.numBalls; Ball++)
+	for (int Ball = 0; Ball < tclus.cNumBalls; Ball++)
 	{
-		ball& a = tclus.balls[Ball];
-		tclus.m += a.m;
-		comNumerator += a.m * a.pos;
+		tclus.mTotal += tclus.m[Ball];
+		comNumerator += tclus.m[Ball] * tclus.pos[Ball];
 	}
-	tclus.com = comNumerator / tclus.m;
+	tclus.com = comNumerator / tclus.mTotal;
 
-	for (int Ball = 0; Ball < tclus.numBalls; Ball++)
+	for (int Ball = 0; Ball < tclus.cNumBalls; Ball++)
 	{
-		double dist = (tclus.balls[Ball].pos - tclus.com).norm();
+		double dist = (tclus.pos[Ball] - tclus.com).norm();
 		if (dist > tclus.radius)
 		{
 			tclus.radius = dist;
 		}
 		// Center cluster mass at origin:
-		tclus.balls[Ball].pos -= tclus.com;
+		tclus.pos[Ball] -= tclus.com;
 	}
 
 	tclus.com = { 0, 0, 0 }; // We just moved all balls to center the com.
 	tclus.initConditions();
 
-	std::cout << "Balls in current file: " << tclus.numBalls << std::endl;
-	std::cout << "Mass in current file: " << tclus.m << std::endl;
+	std::cout << "Balls in current file: " << tclus.cNumBalls << std::endl;
+	std::cout << "Mass in current file: " << tclus.mTotal << std::endl;
 	std::cout << "Approximate radius of current file: " << tclus.radius << " centimeters.\n";
 	return tclus;
 }
@@ -737,7 +727,6 @@ ballGroup initFromFile(std::string initDataFileName, std::string initConstFileNa
 ballGroup generateBallField()
 {
 	ballGroup clus;
-	clus.balls.resize(genBalls);
 	// Create new random number set.
 	int seedSave = time(NULL);
 	srand(seedSave);
@@ -750,31 +739,28 @@ ballGroup generateBallField()
 
 	for (int Ball = 0; Ball < larges; Ball++)
 	{
-		ball& a = clus.balls[Ball];
-		a.R = 3. * scaleBalls;//pow(1. / (double)genBalls, 1. / 3.) * 3. * scaleBalls;
-		a.m = density * 4. / 3. * 3.14159 * pow(a.R, 3);
-		a.moi = .4 * a.m * a.R * a.R;
-		a.w = { 0, 0, 0 };
-		a.pos = randVec(spaceRange, spaceRange, spaceRange);
+		O.R[Ball] = 3. * scaleBalls;//pow(1. / (double)genBalls, 1. / 3.) * 3. * scaleBalls;
+		O.m[Ball] = density * 4. / 3. * 3.14159 * pow(O.R[Ball], 3);
+		O.moi[Ball] = .4 * O.m[Ball] * O.R[Ball] * O.R[Ball];
+		O.w[Ball] = { 0, 0, 0 };
+		O.pos[Ball] = randVec(spaceRange, spaceRange, spaceRange);
 	}
 
 	for (int Ball = larges; Ball < (larges + mediums); Ball++)
 	{
-		ball& a = clus.balls[Ball];
-		a.R = 2. * scaleBalls;//pow(1. / (double)genBalls, 1. / 3.) * 2. * scaleBalls;
-		a.m = density * 4. / 3. * 3.14159 * pow(a.R, 3);
-		a.moi = .4 * a.m * a.R * a.R;
-		a.w = { 0, 0, 0 };
-		a.pos = randVec(spaceRange, spaceRange, spaceRange);
+		O.R[Ball] = 2. * scaleBalls;//pow(1. / (double)genBalls, 1. / 3.) * 2. * scaleBalls;
+		O.m[Ball] = density * 4. / 3. * 3.14159 * pow(O.R[Ball], 3);
+		O.moi[Ball] = .4 * O.m[Ball] * O.R[Ball] * O.R[Ball];
+		O.w[Ball] = { 0, 0, 0 };
+		O.pos[Ball] = randVec(spaceRange, spaceRange, spaceRange);
 	}
 	for (int Ball = (larges + mediums); Ball < genBalls; Ball++)
 	{
-		ball& a = clus.balls[Ball];
-		a.R = 1. * scaleBalls;//pow(1. / (double)genBalls, 1. / 3.) * 1. * scaleBalls;
-		a.m = density * 4. / 3. * 3.14159 * pow(a.R, 3);
-		a.moi = .4 * a.m * a.R * a.R;
-		a.w = { 0, 0, 0 };
-		a.pos = randVec(spaceRange, spaceRange, spaceRange);
+		O.R[Ball] = 1. * scaleBalls;//pow(1. / (double)genBalls, 1. / 3.) * 1. * scaleBalls;
+		O.m[Ball] = density * 4. / 3. * 3.14159 * pow(O.R[Ball], 3);
+		O.moi[Ball] = .4 * O.m[Ball] * O.R[Ball] * O.R[Ball];
+		O.w[Ball] = { 0, 0, 0 };
+		O.pos[Ball] = randVec(spaceRange, spaceRange, spaceRange);
 	}
 
 	std::cout << "Smalls: " << smalls << " Mediums: " << mediums << " Larges: " << larges << std::endl;
@@ -787,19 +773,17 @@ ballGroup generateBallField()
 	{
 		for (int A = 0; A < genBalls; A++)
 		{
-			ball& a = clus.balls[A];
 			for (int B = A + 1; B < genBalls; B++)
 			{
-				ball& b = clus.balls[B];
 				// Check for Ball overlap.
-				double dist = (a.pos - b.pos).norm();
-				double sumRaRb = a.R + b.R;
+				double dist = (O.pos[A] - O.pos[B]).norm();
+				double sumRaRb = O.R[A] + O.R[B];
 				double overlap = dist - sumRaRb;
 				if (overlap < 0)
 				{
 					collisionDetected += 1;
 					// Move the other ball:
-					b.pos = randVec(spaceRange, spaceRange, spaceRange);
+					O.pos[B] = randVec(spaceRange, spaceRange, spaceRange);
 				}
 			}
 		}
@@ -820,7 +804,7 @@ ballGroup generateBallField()
 			failed = 0;
 			for (int Ball = 0; Ball < genBalls; Ball++)
 			{
-				clus.balls[Ball].pos = randVec(spaceRange, spaceRange, spaceRange); // Each time we fail and increase range, redistribute all balls randomly so we don't end up with big balls near mid and small balls outside.
+				clus.pos[Ball] = randVec(spaceRange, spaceRange, spaceRange); // Each time we fail and increase range, redistribute all balls randomly so we don't end up with big balls near mid and small balls outside.
 			}
 		}
 		collisionDetected = 0;
@@ -828,17 +812,16 @@ ballGroup generateBallField()
 	std::cout << "Final spacerange: " << spaceRange << std::endl;
 	// Calculate approximate radius of imported cluster and center mass at origin:
 	vector3d comNumerator;
-	for (int Ball = 0; Ball < clus.balls.size(); Ball++)
+	for (int Ball = 0; Ball < clus.cNumBalls; Ball++)
 	{
-		ball& a = clus.balls[Ball];
-		clus.mTotal += a.m;
-		comNumerator += a.m * a.pos;
+		clus.mTotal += O.m[Ball];
+		comNumerator += O.m[Ball] * O.pos[Ball];
 	}
 	clus.com = comNumerator / clus.mTotal;
 
-	for (int Ball = 0; Ball < clus.balls.size(); Ball++)
+	for (int Ball = 0; Ball < clus.cNumBalls; Ball++)
 	{
-		double dist = (clus.balls[Ball].pos - clus.com).norm();
+		double dist = (clus.pos[Ball] - clus.com).norm();
 		if (dist > clus.radius)
 		{
 			clus.radius = dist;
