@@ -33,7 +33,7 @@ struct ballGroup
 	{
 		cNumBalls = nBalls;
 
-		distances = new double[(cNumBalls * cNumBalls / 2) - (cNumBalls / 2)];
+		distances = new double[(cNumBalls * cNumBalls / 2.) - (cNumBalls / 2.)];
 
 		pos = new vector3d[cNumBalls];
 		vel = new vector3d[cNumBalls];
@@ -89,7 +89,7 @@ struct ballGroup
 		radius = 0;
 		for (int Ball = 0; Ball < cNumBalls; Ball++)
 		{
-			double dist = length(pos[Ball] - com);
+			double dist = (pos[Ball] - com).norm();
 			if (dist > radius)
 			{
 				radius = dist;
@@ -138,10 +138,10 @@ struct ballGroup
 	// Set velocity of all balls such that the cluster spins:
 	void comSpinner(double spinX, double spinY, double spinZ)
 	{
-		vector3d comRot = make_vector3d(spinX, spinY, spinZ); // Rotation axis and magnitude
+		vector3d comRot = { spinX, spinY, spinZ }; // Rotation axis and magnitude
 		for (int Ball = 0; Ball < cNumBalls; Ball++)
 		{
-			vel[Ball] += cross(comRot, (pos[Ball] - com));
+			vel[Ball] += comRot.cross(pos[Ball] - com);
 			w[Ball] += comRot;
 		}
 	}
@@ -160,9 +160,9 @@ struct ballGroup
 	{
 		for (int Ball = 0; Ball < cNumBalls; Ball++)
 		{
-			pos[Ball] = rot(axis, angle, pos[Ball]);
-			vel[Ball] = rot(axis, angle, vel[Ball]);
-			w[Ball] = rot(axis, angle, w[Ball]);
+			pos[Ball] = pos[Ball].rot(axis, angle);
+			vel[Ball] = vel[Ball].rot(axis, angle);
+			w[Ball] = w[Ball].rot(axis, angle);
 		}
 	}
 
@@ -174,8 +174,8 @@ struct ballGroup
 		mTotal = 0;
 		KE = 0;
 		PE = 0;
-		mom = make_vector3d(0, 0, 0);
-		angMom = make_vector3d(0, 0, 0);
+		mom = {0, 0, 0};
+		angMom = { 0, 0, 0 };
 		if (cNumBalls > 1) // Code below only necessary for effects between balls.
 		{
 			vector3d comNumerator = { 0, 0, 0 };
@@ -188,7 +188,7 @@ struct ballGroup
 				for (int B = 0; B < A; B++)
 				{
 					double sumRaRb = R[A] + R[B];
-					double dist = length(pos[A] - pos[B]);
+					double dist = (pos[A] - pos[B]).norm();
 					vector3d rVecab = pos[B] - pos[A];
 					vector3d rVecba = -1 * rVecab;
 
@@ -203,25 +203,25 @@ struct ballGroup
 					{
 						// Calculate force and torque for a:
 						vector3d dVel = vel[B] - vel[A];
-						vector3d relativeVelOfA = dVel - dot(dVel, rVecab) * (rVecab / (dist * dist)) - cross(w[A], R[A] / sumRaRb * rVecab) - cross(w[B], R[B] / sumRaRb * rVecab);
+						vector3d relativeVelOfA = dVel - dVel.dot(rVecab) * (rVecab / (dist * dist)) - w[A].cross(R[A] / sumRaRb * rVecab) - w[B].cross( R[B] / sumRaRb * rVecab);
 						vector3d elasticForceOnA = -kin * overlap * .5 * (rVecab / dist);
 						vector3d frictionForceOnA = { 0,0,0 };
-						if (length(relativeVelOfA) > 1e-12) // When relative velocity is very low, dividing its vector components by its magnitude below is unstable.
+						if (relativeVelOfA.norm() > 1e-12) // When relative velocity is very low, dividing its vector components by its magnitude below is unstable.
 						{
-							frictionForceOnA = mu * length(elasticForceOnA) * (relativeVelOfA / length(relativeVelOfA));
+							frictionForceOnA = mu * elasticForceOnA.norm() * (relativeVelOfA / relativeVelOfA.norm());
 						}
-						aTorque = (R[A] / sumRaRb) * cross(rVecab, frictionForceOnA);
+						aTorque = (R[A] / sumRaRb) * rVecab.cross(frictionForceOnA);
 
 						// Calculate force and torque for b:
 						dVel = vel[A] - vel[B];
-						vector3d relativeVelOfB = dVel - dot(dVel, rVecba) * (rVecba / (dist * dist)) - cross(w[B], R[B] / sumRaRb * rVecba) - cross(w[A], R[A] / sumRaRb * rVecba);
+						vector3d relativeVelOfB = dVel - dVel.dot(rVecba) * (rVecba / (dist * dist)) - w[B].cross(R[B] / sumRaRb * rVecba) - w[A].cross(R[A] / sumRaRb * rVecba);
 						vector3d elasticForceOnB = -kin * overlap * .5 * (rVecba / dist);
 						vector3d frictionForceOnB = { 0,0,0 };
-						if (length(relativeVelOfB) > 1e-12)
+						if (relativeVelOfB.norm() > 1e-12)
 						{
-							frictionForceOnB = mu * length(elasticForceOnB) * (relativeVelOfB / length(relativeVelOfB));
+							frictionForceOnB = mu * elasticForceOnB.norm() * (relativeVelOfB / relativeVelOfB.norm());
 						}
-						bTorque = (R[B] / sumRaRb) * cross(rVecba, frictionForceOnB);
+						bTorque = (R[B] / sumRaRb) * rVecba.cross(frictionForceOnB);
 
 						vector3d gravForceOnA = (G * m[A] * m[B] / pow(dist, 2)) * (rVecab / dist);
 						totalForce = gravForceOnA + elasticForceOnA + frictionForceOnA;
@@ -242,9 +242,9 @@ struct ballGroup
 					int e = (A * (A - 1) * .5) + B;
 					distances[e] = dist;
 				}
-				KE += .5 * m[A] * dot(vel[A], vel[A]) + .5 * moi[A] * dot(w[A], w[A]);
+				KE += .5 * m[A] * vel[A].dot(vel[A]) + .5 * moi[A] * w[A].dot(w[A]);
 				mom += m[A] * vel[A];
-				angMom += m[A] * cross(pos[A], vel[A]) + moi[A] * w[A];
+				angMom += m[A] * pos[A].cross(vel[A]) + moi[A] * w[A];
 			}
 			com = comNumerator / mTotal;
 		}
@@ -252,9 +252,9 @@ struct ballGroup
 		{
 			mTotal = m[0];
 			PE = 0;
-			KE = .5 * m[0] * dot(vel[0], vel[0]) + .5 * moi[0] * dot(w[0], w[0]);
+			KE = .5 * m[0] * vel[0].dot(vel[0]) + .5 * moi[0] * w[0].dot(w[0]);
 			mom = m[0] * vel[0];
-			angMom = m[0] * cross(pos[0], vel[0]) + moi[0] * w[0];
+			angMom = m[0] * pos[0].cross(vel[0]) + moi[0] * w[0];
 			radius = R[0];
 		}
 	}
@@ -264,7 +264,7 @@ struct ballGroup
 	{
 		for (int Ball = 0; Ball < cNumBalls; Ball++)
 		{
-			vel[Ball] += make_vector3d(vx, vy, vz);
+			vel[Ball] += {vx, vy, vz};
 		}
 	}
 

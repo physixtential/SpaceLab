@@ -37,7 +37,7 @@ void simOneStep(int Step);
 void simLooper();
 int countBalls(std::string initDataFileName);
 ballGroup initFromFile(std::string initDataFileName, std::string initConstFileName, bool zeroMotion);
-ballGroup generateBallField();
+void generateBallField();
 
 // Main function
 int main(int argc, char const* argv[])
@@ -53,8 +53,8 @@ int main(int argc, char const* argv[])
 		KEfactor = atof(argv[4]);
 	}
 
-	simInitTwoCluster();
-	//O = generateBallField();
+	//simInitTwoCluster();
+	generateBallField();
 	ballTotal = O.cNumBalls;
 	simAnalyzeAndCenter();
 	simInitWrite();
@@ -724,9 +724,10 @@ ballGroup initFromFile(std::string initDataFileName, std::string initConstFileNa
 	return tclus;
 }
 
-ballGroup generateBallField()
+void generateBallField()
 {
-	ballGroup clus;
+	O.allocateGroup(genBalls);
+
 	// Create new random number set.
 	int seedSave = time(NULL);
 	srand(seedSave);
@@ -804,7 +805,7 @@ ballGroup generateBallField()
 			failed = 0;
 			for (int Ball = 0; Ball < genBalls; Ball++)
 			{
-				clus.pos[Ball] = randVec(spaceRange, spaceRange, spaceRange); // Each time we fail and increase range, redistribute all balls randomly so we don't end up with big balls near mid and small balls outside.
+				O.pos[Ball] = randVec(spaceRange, spaceRange, spaceRange); // Each time we fail and increase range, redistribute all balls randomly so we don't end up with big balls near mid and small balls outside.
 			}
 		}
 		collisionDetected = 0;
@@ -812,27 +813,27 @@ ballGroup generateBallField()
 	std::cout << "Final spacerange: " << spaceRange << std::endl;
 	// Calculate approximate radius of imported cluster and center mass at origin:
 	vector3d comNumerator;
-	for (int Ball = 0; Ball < clus.cNumBalls; Ball++)
+	for (int Ball = 0; Ball < O.cNumBalls; Ball++)
 	{
-		clus.mTotal += O.m[Ball];
+		O.mTotal += O.m[Ball];
 		comNumerator += O.m[Ball] * O.pos[Ball];
 	}
-	clus.com = comNumerator / clus.mTotal;
+	O.com = comNumerator / O.mTotal;
 
-	for (int Ball = 0; Ball < clus.cNumBalls; Ball++)
+	for (int Ball = 0; Ball < O.cNumBalls; Ball++)
 	{
-		double dist = (clus.pos[Ball] - clus.com).norm();
-		if (dist > clus.radius)
+		double dist = (O.pos[Ball] - O.com).norm();
+		if (dist > O.radius)
 		{
-			clus.radius = dist;
+			O.radius = dist;
 		}
 	}
-	std::cout << "Initial Radius: " << clus.radius << std::endl;
-	std::cout << "Mass: " << clus.mTotal << std::endl;
+	std::cout << "Initial Radius: " << O.radius << std::endl;
+	std::cout << "Mass: " << O.mTotal << std::endl;
 
 	outputPrefix =
 		std::to_string(genBalls) +
-		"-R" + scientific(clus.radius) +
+		"-R" + scientific(O.radius) +
 		"-k" + scientific(kin) +
 		"-cor" + rounder(pow(cor, 2), 4) +
 		"-mu" + rounder(mu, 3) +
@@ -840,5 +841,4 @@ ballGroup generateBallField()
 		"-dt" + rounder(dt, 4) +
 		"_";
 
-	return clus;
 }
