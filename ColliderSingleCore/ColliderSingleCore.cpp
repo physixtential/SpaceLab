@@ -558,7 +558,7 @@ int countBalls(std::string initDataFileName)
 
 cluster initFromFile(std::string initDataFileName, std::string initConstFileName, bool zeroMotion)
 {
-	//cluster tclus;
+	cluster tclus;
 	// Get position and angular velocity data:
 	if (auto simDataStream = std::ifstream(initDataFileName, std::ifstream::in))
 	{
