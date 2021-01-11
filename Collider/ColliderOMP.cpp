@@ -75,8 +75,8 @@ int main(int argc, char const* argv[])
 			fprintf(stderr, "A VELOCITY WAS NAN!!!!!!!!!!!!!!!!!!!!!!\n\n");
 			exit(EXIT_FAILURE);
 		}
-		clusA.kick(vSmall, .0, .0);
-		clusB.kick(vBig, .0, .0);
+		clusA.kick(vSmall);
+		clusB.kick(vBig);
 		clusA.checkMomentum();
 		clusB.checkMomentum();
 		cosmos.balls.insert(cosmos.balls.end(), clusA.balls.begin(), clusA.balls.end());
