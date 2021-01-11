@@ -101,6 +101,7 @@ void simInitTwoCluster()
 		"-IP" + rounder(impactParameter * 180 / 3.14159, 2) +
 		"-k" + scientific(kin) +
 		"-cor" + rounder(pow(cor, 2), 4) +
+		"-mu" + rounder(mu, 3) +
 		"-rho" + rounder(density, 4) +
 		"-dt" + rounder(dt, 4) +
 		"_";
@@ -128,6 +129,7 @@ void simInitOneCluster(double* spins)
 		"-T" + rounder(KEfactor, 4) +
 		"-k" + scientific(kin) +
 		"-cor" + rounder(pow(cor, 2), 4) +
+		"-mu" + rounder(mu, 3) +
 		"-rho" + rounder(density, 4) +
 		"-dt" + rounder(dt, 4) +
 		"_";
