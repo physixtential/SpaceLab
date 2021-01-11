@@ -6,7 +6,7 @@ const double
 dt = 0.04,
 G = 6.67e-8,   // Gravitational constant
 density = 2.7, //2.7, // Typically based on some rock density
-mu = 0.3,      // Coeff of friction
+mu = 0.9,      // Coeff of friction
 cor = 0.8,     // Coeff of restitution
 kin = 1e8,      // Spring constant
 kout = cor * kin;
