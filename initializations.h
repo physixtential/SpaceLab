@@ -6,7 +6,7 @@ const double
 dt = 0.04,
 G = 6.67e-8,   // Gravitational constant
 density = 2.7, //2.7, // Typically based on some rock density
-mu = 0.3,      // Coeff of friction
+mu = 0.9,      // Coeff of friction
 cor = 0.8,     // Coeff of restitution
 kin = 1e8,      // Spring constant
 kout = cor * kin;
@@ -38,7 +38,7 @@ springTest = false; // If true, spring compression is checked against ball radiu
 
 // File from which to proceed with further simulations
 std::string
-path = "C:/Users/milin/Desktop/GoogleDrive/GradResearch/spins/clusters/",
-clusterAName = "py_",
-clusterBName = "nz_",
+path = "C:/Users/milin/Desktop/GoogleDrive/GradResearch/Development/SpaceLab/x64/Release/",
+clusterAName = "100-R2884.38-k1e+08-cor0.64-mu0.3-rho2.70-dt0.04_",
+clusterBName = "100-R2884.38-k1e+08-cor0.64-mu0.3-rho2.70-dt0.04_",
 outputPrefix = "Unnamed";

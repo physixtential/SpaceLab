@@ -66,8 +66,7 @@ struct ballGroup
 		// Keep track of now loaded ball set to start next set after it:
 		cNumBallsAdded += src->cNumBalls;
 
-		// Ensures we remember to clear the copied memory:
-		src->freeMemory();
+		// DON'T FORGET TO FREEMEMORY
 	}
 
 	// Deallocate heap memory.

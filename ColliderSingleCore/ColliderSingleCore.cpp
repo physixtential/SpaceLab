@@ -35,7 +35,6 @@ void simAnalyzeAndCenter();
 void simInitWrite();
 void simOneStep(int Step);
 void simLooper();
-int countBalls(std::string initDataFileName);
 ballGroup initFromFile(std::string initDataFileName, std::string initConstFileName, bool zeroMotion);
 void generateBallField();
 
@@ -53,8 +52,8 @@ int main(int argc, char const* argv[])
 		KEfactor = atof(argv[4]);
 	}
 
-	//simInitTwoCluster();
-	generateBallField();
+	simInitTwoCluster();
+	//generateBallField();
 	ballTotal = O.cNumBalls;
 	simAnalyzeAndCenter();
 	simInitWrite();
@@ -94,7 +93,6 @@ void simInitTwoCluster()
 
 	O.addBallGroup(&clusA);
 	O.addBallGroup(&clusB);
-
 
 	// Name the file based on info above:
 	outputPrefix =
@@ -547,55 +545,10 @@ void simLooper()
 // Sets ICs from file:
 /////////////////////////////////////////////////////////////////////////////////////
 
-int countBalls(std::string initDataFileName)
-{
-	// Get position and angular velocity data:
-	std::ifstream initDataStream;
-	std::string line, lineElement;
-	initDataStream.open(initDataFileName, std::ifstream::in);
-	if (initDataStream.is_open())
-	{
-		initDataStream.seekg(-1, std::ios_base::end); // go to one spot before the EOF
-
-		bool keepLooping = true;
-		while (keepLooping)
-		{
-			char ch;
-			initDataStream.get(ch); // Get current byte's data
-
-			if ((int)initDataStream.tellg() <= 1)
-			{                            // If the data was at or before the 0th byte
-				initDataStream.seekg(0); // The first line is the last line
-				keepLooping = false;     // So stop there
-			}
-			else if (ch == '\n')
-			{                        // If the data was a newline
-				keepLooping = false; // Stop at the current position.
-			}
-			else
-			{                                                 // If the data was neither a newline nor at the 0 byte
-				initDataStream.seekg(-2, std::ios_base::cur); // Move to the front of that data, then to the front of the data before it
-			}
-		}
-
-		std::getline(initDataStream, line); // Read the current line
-	}
-	else
-	{
-		std::cout << "File not found.\n";
-		std::string garbo;
-		std::cin >> garbo;
-	}
-	////////////////////////////////////////////////////
-	//////////// check if we can use this line to count them cleaner. maybe has to do with error in mass and radius calc in first cluster
-	//////////////////////////////////////
-	int ballsInFile = std::count(line.begin(), line.end(), ',') / properties + 1; // Get number of balls in file
-	return ballsInFile;
-}
-
 ballGroup initFromFile(std::string initDataFileName, std::string initConstFileName, bool zeroMotion)
 {
 	ballGroup tclus;
+
 	// Get position and angular velocity data:
 	if (auto simDataStream = std::ifstream(initDataFileName, std::ifstream::in))
 	{
@@ -627,8 +580,8 @@ ballGroup initFromFile(std::string initDataFileName, std::string initConstFileNa
 
 
 		std::getline(simDataStream, line);                                              // Read the current line
-		tclus.allocateGroup(std::count(line.begin(), line.end(), ',') / properties + 1); // Get number of balls in file
-		tclus.cNumBalls = sizeof(tclus.pos) / sizeof(tclus.pos[0]);
+		int count = std::count(line.begin(), line.end(), ',') / properties + 1;
+		tclus.allocateGroup(count); // Get number of balls in file
 
 		std::stringstream chosenLine(line); // This is the last line of the read file, containing all data for all balls at last time step
 
