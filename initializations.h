@@ -16,7 +16,7 @@ const int
 steps = (int)(12000. / dt),
 skip = 500,     // Steps thrown away before recording a step to the buffer. 500*.04 is every 20 seconds in sim.
 properties = 11, // Number of columns in simData file per ball
-genBalls = 100,
+genBalls = 50,
 attempts = 200; // How many times to try moving every ball touching another in generator.
 
 // Parallelism
