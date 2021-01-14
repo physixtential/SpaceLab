@@ -230,7 +230,7 @@ void simInitWrite()
 		constWrite
 			<< O.R[Ball] << ','
 			<< O.m[Ball] << ','
-			<< O.moi[Ball] << ','
+			<< O.moi[Ball]
 			<< std::endl;
 	}
 
