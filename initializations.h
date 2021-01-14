@@ -39,6 +39,6 @@ springTest = false; // If true, spring compression is checked against ball radiu
 // File from which to proceed with further simulations
 std::string
 path = "C:/Users/milin/Desktop/GoogleDrive/GradResearch/Development/SpaceLab/x64/Release/",
-clusterAName = "100-R2884.38-k1e+08-cor0.64-mu0.3-rho2.70-dt0.04_",
-clusterBName = "100-R2884.38-k1e+08-cor0.64-mu0.3-rho2.70-dt0.04_",
+clusterAName = "test_",
+clusterBName = "test_",
 outputPrefix = "Unnamed";
