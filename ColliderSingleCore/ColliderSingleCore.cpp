@@ -22,7 +22,6 @@ ballBuffer,
 energyBuffer;
 
 // Function Prototypes
-int countBalls(std::string initDataFileName);
 ballGroup initFromFile(std::string initDataFileName, std::string initConstFileName, bool zeroMotion);
 
 ballGroup O;
