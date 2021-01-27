@@ -205,7 +205,7 @@ struct ballGroup
 						vector3d relativeVelOfA = dVel - dVel.dot(rVecab) * (rVecab / (dist * dist)) - w[A].cross(R[A] / sumRaRb * rVecab) - w[B].cross( R[B] / sumRaRb * rVecab);
 						vector3d elasticForceOnA = -kin * overlap * .5 * (rVecab / dist);
 						vector3d frictionForceOnA = { 0,0,0 };
-						if (relativeVelOfA.norm() > 1e-12) // When relative velocity is very low, dividing its vector components by its magnitude below is unstable.
+						if (relativeVelOfA.norm() > 1e-14) // When relative velocity is very low, dividing its vector components by its magnitude below is unstable.
 						{
 							frictionForceOnA = mu * elasticForceOnA.norm() * (relativeVelOfA / relativeVelOfA.norm());
 						}
@@ -216,7 +216,7 @@ struct ballGroup
 						vector3d relativeVelOfB = dVel - dVel.dot(rVecba) * (rVecba / (dist * dist)) - w[B].cross(R[B] / sumRaRb * rVecba) - w[A].cross(R[A] / sumRaRb * rVecba);
 						vector3d elasticForceOnB = -kin * overlap * .5 * (rVecba / dist);
 						vector3d frictionForceOnB = { 0,0,0 };
-						if (relativeVelOfB.norm() > 1e-12)
+						if (relativeVelOfB.norm() > 1e-14)
 						{
 							frictionForceOnB = mu * elasticForceOnB.norm() * (relativeVelOfB / relativeVelOfB.norm());
 						}
