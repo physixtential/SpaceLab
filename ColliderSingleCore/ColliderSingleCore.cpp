@@ -64,6 +64,8 @@ void simInitTwoCluster()
 	std::cerr << "File 1: " << clusterAName << '\t' << "File 2: " << clusterBName << std::endl;
 	ballGroup clusA = importDataFromFile(path + clusterAName + "simData.csv", path + clusterAName + "constants.csv");
 	ballGroup clusB = importDataFromFile(path + clusterBName + "simData.csv", path + clusterBName + "constants.csv");
+
+	// DO YOU WANT TO STOP EVERYTHING?
 	clusA.zeroMotion();
 	clusB.zeroMotion();
 
@@ -109,7 +111,10 @@ void simInitTwoCluster()
 void simInitOneCluster(double* spins)
 {
 	// Load file data:
-	ballGroup clusA = initFromFile(clusterAName + "simData.csv", clusterAName + "constants.csv", 0);
+	ballGroup clusA = importDataFromFile(clusterAName + "simData.csv", clusterAName + "constants.csv");
+
+	// DO YOU WANT TO STOP EVERYTHING?
+	clusA.zeroMotion();
 
 	// Rotate
 	clusA.rotAll('z', z0Rot);
