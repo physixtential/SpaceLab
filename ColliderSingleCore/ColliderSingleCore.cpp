@@ -49,8 +49,8 @@ int main(int argc, char const* argv[])
 		std::cerr << "File 1: " << clusterAName << '\t' << "File 2: " << clusterBName << std::endl;
 		count += countBalls(path + clusterAName + "simData.csv");
 		count += countBalls(path + clusterBName + "simData.csv");
-		cluster clusA = initFromFile(path + clusterAName + "simData.csv", path + clusterAName + "constants.csv", 0);
-		cluster clusB = initFromFile(path + clusterBName + "simData.csv", path + clusterBName + "constants.csv", 0);
+		cluster clusA = initFromFile(path + clusterAName + "simData.csv", path + clusterAName + "constants.csv", 1);
+		cluster clusB = initFromFile(path + clusterBName + "simData.csv", path + clusterBName + "constants.csv", 1);
 
 		clusA.offset(clusA.radius, clusB.radius + (clusA.balls[0].R * 1.), impactParameter); // Adding 3 times the radius of one ball gaurantees total separation between clusters.
 		double PEsys = clusA.PE + clusB.PE + (-G * clusA.m * clusB.m / (clusA.com - clusB.com).norm());
