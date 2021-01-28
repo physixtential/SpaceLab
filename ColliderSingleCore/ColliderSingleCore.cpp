@@ -103,7 +103,10 @@ int main(int argc, char const* argv[])
 	// Cosmos has been filled with balls. Size is known:
 	int ballTotal = (int)cosmos.balls.size();
 	std::vector<ball>& all = cosmos.balls;
-	cosmos.checkMomentum(); // Is total momentum zero like it should be?
+
+	// Is total momentum zero like it should be?
+	cosmos.checkMomentum();
+
 
 	cosmos.calcComAndMass();
 	// Re-center universe mass to origin:
