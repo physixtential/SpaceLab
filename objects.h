@@ -123,6 +123,15 @@ struct ballGroup
 		}
 	}
 
+	void zeroMotion()
+	{
+		for (int Ball = 0; Ball < cNumBalls; Ball++)
+		{
+			w[Ball] = { 0, 0, 0 };
+			vel[Ball] = { 0, 0, 0 };
+		}
+	}
+
 	void clusToOrigin()
 	{
 		updateCom();
@@ -173,7 +182,7 @@ struct ballGroup
 		mTotal = 0;
 		KE = 0;
 		PE = 0;
-		mom = {0, 0, 0};
+		mom = { 0, 0, 0 };
 		angMom = { 0, 0, 0 };
 		if (cNumBalls > 1) // Code below only necessary for effects between balls.
 		{
@@ -203,7 +212,7 @@ struct ballGroup
 					{
 						// Calculate force and torque for a:
 						vector3d dVel = vel[B] - vel[A];
-						vector3d relativeVelOfA = dVel - dVel.dot(rVecab) * (rVecab / (dist * dist)) - w[A].cross(R[A] / sumRaRb * rVecab) - w[B].cross( R[B] / sumRaRb * rVecab);
+						vector3d relativeVelOfA = dVel - dVel.dot(rVecab) * (rVecab / (dist * dist)) - w[A].cross(R[A] / sumRaRb * rVecab) - w[B].cross(R[B] / sumRaRb * rVecab);
 						vector3d elasticForceOnA = -kin * overlap * .5 * (rVecab / dist);
 						vector3d frictionForceOnA = { 0,0,0 };
 						if (relativeVelOfA.norm() > 1e-14) // When relative velocity is very low, dividing its vector components by its magnitude below is unstable.

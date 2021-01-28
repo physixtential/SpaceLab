@@ -21,9 +21,6 @@ std::stringstream
 ballBuffer,
 energyBuffer;
 
-// Function Prototypes
-ballGroup initFromFile(std::string initDataFileName, std::string initConstFileName, bool zeroMotion);
-
 ballGroup O;
 int ballTotal = 0;
 
@@ -34,7 +31,7 @@ void simAnalyzeAndCenter();
 void simInitWrite();
 void simOneStep(int Step);
 void simLooper();
-ballGroup initFromFile(std::string initDataFileName, std::string initConstFileName, bool zeroMotion);
+ballGroup importDataFromFile(std::string initDataFileName, std::string initConstFileName);
 void generateBallField();
 
 // Main function
@@ -65,8 +62,10 @@ void simInitTwoCluster()
 {
 	// Load file data:
 	std::cerr << "File 1: " << clusterAName << '\t' << "File 2: " << clusterBName << std::endl;
-	ballGroup clusA = initFromFile(path + clusterAName + "simData.csv", path + clusterAName + "constants.csv", 0);
-	ballGroup clusB = initFromFile(path + clusterBName + "simData.csv", path + clusterBName + "constants.csv", 0);
+	ballGroup clusA = importDataFromFile(path + clusterAName + "simData.csv", path + clusterAName + "constants.csv");
+	ballGroup clusB = importDataFromFile(path + clusterBName + "simData.csv", path + clusterBName + "constants.csv");
+	clusA.zeroMotion();
+	clusB.zeroMotion();
 
 	clusA.offset(clusA.radius, clusB.radius + (clusA.R[0] * 1.), impactParameter); // Adding 3 times the radius of one ball gaurantees total separation between clusters.
 	double PEsys = clusA.PE + clusB.PE + (-G * clusA.mTotal * clusB.mTotal / (clusA.com - clusB.com).norm());
@@ -546,7 +545,7 @@ void simLooper()
 // Sets ICs from file:
 /////////////////////////////////////////////////////////////////////////////////////
 
-ballGroup initFromFile(std::string initDataFileName, std::string initConstFileName, bool zeroMotion)
+ballGroup importDataFromFile(std::string initDataFileName, std::string initConstFileName)
 {
 	ballGroup tclus;
 
@@ -639,17 +638,8 @@ ballGroup initFromFile(std::string initDataFileName, std::string initConstFileNa
 		std::cerr << "Could not open constants file: " << initConstFileName << "... Existing program." << std::endl;
 		exit(EXIT_FAILURE);
 	}
-	// Zero all angular momenta and velocity:
-	if (zeroMotion)
-	{
-		for (int Ball = 0; Ball < tclus.cNumBalls; Ball++)
-		{
-			tclus.w[Ball] = { 0, 0, 0 };
-			tclus.vel[Ball] = { 0, 0, 0 };
-		}
-	}
 
-	// Calculate approximate radius of imported cluster and center mass at origin:
+	// Bring cluster to origin then calc its radius:
 	vector3d comNumerator;
 	for (int Ball = 0; Ball < tclus.cNumBalls; Ball++)
 	{
@@ -669,7 +659,7 @@ ballGroup initFromFile(std::string initDataFileName, std::string initConstFileNa
 		tclus.pos[Ball] -= tclus.com;
 	}
 
-	tclus.com = { 0, 0, 0 }; // We just moved all balls to center the com.
+	tclus.updateCom();
 	tclus.initConditions();
 
 	std::cout << "Balls in current file: " << tclus.cNumBalls << std::endl;
