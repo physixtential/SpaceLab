@@ -68,6 +68,9 @@ void simInitTwoCluster()
 	// DO YOU WANT TO STOP EVERYTHING?
 	clusA.zeroMotion();
 	clusB.zeroMotion();
+	
+	clusA.initConditions();
+	clusB.initConditions();
 
 	clusA.offset(clusA.radius, clusB.radius + (clusA.R[0] * 1.), impactParameter); // Adding 3 times the radius of one ball gaurantees total separation between clusters.
 	double PEsys = clusA.PE + clusB.PE + (-G * clusA.mTotal * clusB.mTotal / (clusA.com - clusB.com).norm());
@@ -98,10 +101,10 @@ void simInitTwoCluster()
 	outputPrefix =
 		clusterAName + clusterBName +
 		"-T" + rounder(KEfactor, 4) +
+		"-vBig" + scientific(vBig) +
+		"-vSmall" + scientific(vSmall) +
 		"-IP" + rounder(impactParameter * 180 / 3.14159, 2) +
 		"-k" + scientific(kin) +
-		"-cor" + rounder(pow(cor, 2), 4) +
-		"-mu" + rounder(mu, 3) +
 		"-rho" + rounder(density, 4) +
 		"-dt" + rounder(dt, 4) +
 		"_";
@@ -115,6 +118,7 @@ void simInitOneCluster(double* spins)
 
 	// DO YOU WANT TO STOP EVERYTHING?
 	clusA.zeroMotion();
+	clusA.initConditions();
 
 	// Rotate
 	clusA.rotAll('z', z0Rot);
@@ -665,11 +669,10 @@ ballGroup importDataFromFile(std::string initDataFileName, std::string initConst
 	}
 
 	tclus.updateCom();
-	tclus.initConditions();
 
-	std::cout << "Balls in current file: " << tclus.cNumBalls << std::endl;
-	std::cout << "Mass in current file: " << tclus.mTotal << std::endl;
-	std::cout << "Approximate radius of current file: " << tclus.radius << " centimeters.\n";
+	std::cout << "Balls: " << tclus.cNumBalls << std::endl;
+	std::cout << "Mass: " << tclus.mTotal << std::endl;
+	std::cout << "Approximate radius: " << tclus.radius << " cm.\n";
 	return tclus;
 }
 
