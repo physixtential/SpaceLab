@@ -187,7 +187,12 @@ struct ballGroup
 		if (cNumBalls > 1) // Code below only necessary for effects between balls.
 		{
 			vector3d comNumerator = { 0, 0, 0 };
-			mTotal += m[0]; // Because A starts a 1 below.
+
+			// Because A starts at 1 below:
+			mTotal += m[0];
+			KE += .5 * m[0] * vel[0].dot(vel[0]) + .5 * moi[0] * w[0].dot(w[0]);
+			mom += m[0] * vel[0];
+			angMom += m[0] * pos[0].cross(vel[0]) + moi[0] * w[0];
 			for (int A = 1; A < cNumBalls; A++)
 			{
 				// Warning: "A" Starts at 1 not 0.

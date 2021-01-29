@@ -347,6 +347,7 @@ void simOneStep(int Step)
 	double k;
 	for (int A = 1; A < ballTotal; A++) //cuda
 	{
+		// DONT DO ANYTHING HERE. A STARTS AT 1.
 		for (int B = 0; B < A; B++)
 		{
 			double k;
@@ -445,6 +446,7 @@ void simOneStep(int Step)
 			// So last distance can be known for cor:
 			O.distances[e] = dist;
 		}
+		// DONT DO ANYTHING HERE. A STARTS AT 1.
 	}
 
 	// THIRD PASS - Calculate velocity for next step:
