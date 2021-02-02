@@ -16,14 +16,14 @@ const int
 steps = (int)(12000. / dt),
 skip = 500,     // Steps thrown away before recording a step to the buffer. 500*.04 is every 20 seconds in sim.
 properties = 11, // Number of columns in simData file per ball
-genBalls = 50,
+genBalls = 5000,
 attempts = 200; // How many times to try moving every ball touching another in generator.
 
 // Parallelism
 int numThreads = 1; // omp parallel thread count.
 
 double
-scaleBalls = 300, // scales ball radius
+scaleBalls = 280, // scales ball radius
 spaceRange = pow(scaleBalls * genBalls, 1. / 3.), // Rough minimum space required
 spaceRangeIncrement = scaleBalls * 3,
 KEfactor = 3.,       // Determines collision velocity based on KE/PE

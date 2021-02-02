@@ -48,8 +48,8 @@ int main(int argc, char const* argv[])
 		KEfactor = atof(argv[4]);
 	}
 
-	simInitTwoCluster();
-	//generateBallField();
+	//simInitTwoCluster();
+	generateBallField();
 	ballTotal = O.cNumBalls;
 	simAnalyzeAndCenter();
 	simInitWrite();
