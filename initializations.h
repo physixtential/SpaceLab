@@ -3,12 +3,12 @@
 ////////////////////////////////////
 
 const double
-dt = 0.04,
+dt = 0.004,
 G = 6.67e-8,   // Gravitational constant
 density = 2.7, //2.7, // Typically based on some rock density
 mu = 0.9,      // Coeff of friction
 cor = 0.8,     // Coeff of restitution
-kin = 1e8,      // Spring constant
+kin = 1e14,      // Spring constant
 kout = cor * kin;
 
 // Simulation Structure
@@ -23,10 +23,10 @@ attempts = 200; // How many times to try moving every ball touching another in g
 int numThreads = 1; // omp parallel thread count.
 
 double
-scaleBalls = 280, // scales ball radius
+scaleBalls = 10, // scales ball radius
 spaceRange = pow(scaleBalls * genBalls, 1. / 3.), // Rough minimum space required
 spaceRangeIncrement = scaleBalls * 3,
-KEfactor = 3.,       // Determines collision velocity based on KE/PE
+KEfactor = 0.01,       // Determines collision velocity based on KE/PE
 impactParameter = 0, // Impact angle radians
 z0Rot = 0,           // Cluster one z axis rotation
 y0Rot = 0,           // Cluster one y axis rotation
@@ -39,6 +39,6 @@ springTest = false; // If true, spring compression is checked against ball radiu
 // File from which to proceed with further simulations
 std::string
 path = "C:/Users/milin/Desktop/GoogleDrive/GradResearch/Development/SpaceLab/x64/Release/",
-clusterAName = "test_",
-clusterBName = "test_",
+clusterAName = "5000-R335.034-k1e+08-cor0.64-mu0.9-rho2.70-dt0.04_",
+clusterBName = "5000-R9409.12-k1e+08-cor0.64-mu0.9-rho2.70-dt0.04_",
 outputPrefix = "Unnamed";

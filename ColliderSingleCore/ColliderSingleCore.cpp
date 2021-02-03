@@ -322,7 +322,7 @@ void simOneStep(int Step)
 		sizeof(int);
 		float elapsed = (time(NULL) - start) / 3600.;
 		float progress = ((float)Step / (float)steps * 100.f);
-		printf("Step: %i\tProgress: %2.0f%%\tETA: %5.2lf\tElapsed: %5.2f\n", Step, progress, eta, elapsed);
+		printf("Step: %i\tProgress: %2.0f%%\tETA: %5.2lf hr\tElapsed: %5.2f hr\n", Step, progress, eta, elapsed);
 		startProgress = time(NULL);
 	}
 	else
@@ -401,7 +401,7 @@ void simOneStep(int Step)
 				vector3d relativeVelOfA = (dVel)-((dVel).dot(rVecab)) * (rVecab / (dist * dist)) - O.w[A].cross(O.R[A] / sumRaRb * rVecab) - O.w[B].cross(O.R[B] / sumRaRb * rVecab);
 				vector3d elasticForceOnA = -k * overlap * .5 * (rVecab / dist);
 				vector3d frictionForceOnA = { 0,0,0 };
-				if (relativeVelOfA.norm() > 1e-14) // When relative velocity is very low, dividing its vector components by its magnitude below is unstable.
+				if (relativeVelOfA.norm() > 1e-12) // When relative velocity is very low, dividing its vector components by its magnitude below is unstable.
 				{
 					frictionForceOnA = mu * elasticForceOnA.norm() * (relativeVelOfA / relativeVelOfA.norm());
 				}
@@ -412,7 +412,7 @@ void simOneStep(int Step)
 				vector3d relativeVelOfB = (dVel)-((dVel).dot(rVecba)) * (rVecba / (dist * dist)) - O.w[B].cross(O.R[B] / sumRaRb * rVecba) - O.w[A].cross(O.R[A] / sumRaRb * rVecba);
 				vector3d elasticForceOnB = -k * overlap * .5 * (rVecba / dist);
 				vector3d frictionForceOnB = { 0,0,0 };
-				if (relativeVelOfB.norm() > 1e-14)
+				if (relativeVelOfB.norm() > 1e-12)
 				{
 					frictionForceOnB = mu * elasticForceOnB.norm() * (relativeVelOfB / relativeVelOfB.norm());
 				}
