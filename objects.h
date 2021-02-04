@@ -282,14 +282,14 @@ struct ballGroup
 		}
 	}
 
-	void checkMomentum()
+	void checkMomentum(std::string of)
 	{
 		vector3d pTotal = { 0,0,0 };
 		for (int Ball = 0; Ball < cNumBalls; Ball++)
 		{
 			pTotal += m[Ball] * vel[Ball];
 		}
-		printf("Cluster Momentum Check: %.2e, %.2e, %.2e\n", pTotal.x, pTotal.y, pTotal.z);
+		printf("%s Momentum Check: %.2e, %.2e, %.2e\n", of, pTotal.x, pTotal.y, pTotal.z);
 	}
 
 	// offset cluster

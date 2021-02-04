@@ -3,12 +3,12 @@
 ////////////////////////////////////
 
 const double
-dt = 0.004,
+dt = 0.04,
 G = 6.67e-8,   // Gravitational constant
 density = 2.7, //2.7, // Typically based on some rock density
 mu = 0.9,      // Coeff of friction
 cor = 0.8,     // Coeff of restitution
-kin = 1e14,      // Spring constant
+kin = 1e6,      // Spring constant
 kout = cor * kin;
 
 // Simulation Structure
@@ -39,6 +39,6 @@ springTest = false; // If true, spring compression is checked against ball radiu
 // File from which to proceed with further simulations
 std::string
 path = "C:/Users/milin/Desktop/GoogleDrive/GradResearch/Development/SpaceLab/x64/Release/",
-clusterAName = "5000-R335.034-k1e+08-cor0.64-mu0.9-rho2.70-dt0.04_",
+clusterAName = "5000-R336.177-k1e+06-cor0.64-mu0.9-rho2.70-dt0.04_",
 clusterBName = "5000-R9409.12-k1e+08-cor0.64-mu0.9-rho2.70-dt0.04_",
 outputPrefix = "Unnamed";

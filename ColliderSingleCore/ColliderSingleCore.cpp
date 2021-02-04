@@ -48,8 +48,8 @@ int main(int argc, char const* argv[])
 		KEfactor = atof(argv[4]);
 	}
 
-	//simInitTwoCluster();
-	generateBallField();
+	simInitTwoCluster();
+	//generateBallField();
 	ballTotal = O.cNumBalls;
 	simAnalyzeAndCenter();
 	simInitWrite();
@@ -61,7 +61,7 @@ int main(int argc, char const* argv[])
 void simInitTwoCluster()
 {
 	// Load file data:
-	std::cerr << "File 1: " << clusterAName << '\t' << "File 2: " << clusterBName << std::endl;
+	std::cerr << "TWO CLUSTER SIM\n File 1: " << clusterAName << '\t' << "File 2: " << clusterBName << std::endl;
 	ballGroup clusA = importDataFromFile(path + clusterAName + "simData.csv", path + clusterAName + "constants.csv");
 	ballGroup clusB = importDataFromFile(path + clusterBName + "simData.csv", path + clusterBName + "constants.csv");
 
@@ -89,8 +89,8 @@ void simInitTwoCluster()
 	}
 	clusA.kick(vSmall);
 	clusB.kick(vBig);
-	clusA.checkMomentum();
-	clusB.checkMomentum();
+	clusA.checkMomentum("Cluster A");
+	clusB.checkMomentum("Cluster B");
 
 	O.allocateGroup(clusA.cNumBalls + clusB.cNumBalls);
 
@@ -128,7 +128,7 @@ void simInitOneCluster(double* spins)
 	clusA.comSpinner(spins[0], spins[1], spins[2]);
 
 	// Check and add to ballGroup
-	clusA.checkMomentum();
+	clusA.checkMomentum("After Zeroing");
 	O.allocateGroup(clusA.cNumBalls);
 
 	outputPrefix =
@@ -145,7 +145,7 @@ void simInitOneCluster(double* spins)
 
 void simAnalyzeAndCenter()
 {
-	O.checkMomentum(); // Is total mom zero like it should be?
+	O.checkMomentum("After Zeroing"); // Is total mom zero like it should be?
 
 	O.clusToOrigin();
 
@@ -680,6 +680,7 @@ ballGroup importDataFromFile(std::string initDataFileName, std::string initConst
 
 void generateBallField()
 {
+	std::cout << "CLUSTER FORMATION\n";
 	O.allocateGroup(genBalls);
 
 	// Create new random number set.
