@@ -68,7 +68,7 @@ void simInitTwoCluster()
 	// DO YOU WANT TO STOP EVERYTHING?
 	clusA.zeroMotion();
 	clusB.zeroMotion();
-	
+
 	clusA.initConditions();
 	clusB.initConditions();
 
@@ -81,6 +81,7 @@ void simInitTwoCluster()
 	double mTot = mBig + mSmall;
 	double vSmall = -sqrt(2 * KEfactor * fabs(PEsys) * (mBig / (mSmall * mTot))); // Negative because small offsets right.
 	double vBig = -(mSmall / mBig) * vSmall; // Negative to be opposing projectile.
+
 	fprintf(stdout, "Target Velocity: %.2e\nProjectile Velocity: %.2e\n", vBig, vSmall);
 	if (isnan(vSmall) || isnan(vBig))
 	{
@@ -96,6 +97,9 @@ void simInitTwoCluster()
 
 	O.addBallGroup(&clusA);
 	O.addBallGroup(&clusB);
+
+	// Set dt aaccording to worst case, smallest ball highest velocity (last boss).
+	dt = .1 * O.R[O.cNumBalls - 1] / vSmall;
 
 	// Name the file based on info above:
 	outputPrefix =
@@ -783,6 +787,10 @@ void generateBallField()
 			O.radius = dist;
 		}
 	}
+
+	//// Set dt aaccording to worst case, smallest ball highest velocity (last boss).
+	//dt = sqrt(2 * G * O.m[O.cNumBalls - 1] / 4 * O.R[O.cNumBalls - 1]);
+
 	std::cout << "Initial Radius: " << O.radius << std::endl;
 	std::cout << "Mass: " << O.mTotal << std::endl;
 
