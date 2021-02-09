@@ -27,7 +27,6 @@ struct ballGroup
 	double* R = 0;
 	double* m = 0;
 	double* moi = 0;
-	double* kin = 0;
 
 	// Allocate ball property arrays.
 	void allocateGroup(int nBalls)
@@ -44,7 +43,6 @@ struct ballGroup
 		R = new double[cNumBalls];
 		m = new double[cNumBalls];
 		moi = new double[cNumBalls];
-		kin = new double[cNumBalls];
 	}
 
 	void addBallGroup(ballGroup* src)
@@ -59,7 +57,6 @@ struct ballGroup
 		memcpy(&R[cNumBallsAdded], src->R, sizeof(src->R[0]) * src->cNumBalls);
 		memcpy(&m[cNumBallsAdded], src->m, sizeof(src->m[0]) * src->cNumBalls);
 		memcpy(&moi[cNumBallsAdded], src->moi, sizeof(src->moi[0]) * src->cNumBalls);
-		memcpy(&kin[cNumBallsAdded], src->kin, sizeof(src->kin[0]) * src->cNumBalls);
 
 		if (cNumBallsAdded > 0)
 		{
@@ -84,7 +81,6 @@ struct ballGroup
 		delete[] R;
 		delete[] m;
 		delete[] moi;
-		delete[] kin;
 	}
 
 	double updateRadius()

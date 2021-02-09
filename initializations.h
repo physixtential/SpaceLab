@@ -3,10 +3,13 @@
 ////////////////////////////////////
 
 const double
-G = 6.6743e-8,   // Gravitational constant
-density = 3, //2.7, // Typically based on some rock density
+dt = 0.04,
+G = 6.67e-8,   // Gravitational constant
+density = 2.7, //2.7, // Typically based on some rock density
 mu = 0.9,      // Coeff of friction
-cor = 0.8;     // Coeff of restitution
+cor = 0.8,     // Coeff of restitution
+kin = 1e6,      // Spring constant
+kout = cor * kin;
 
 // Simulation Structure
 const int
@@ -23,7 +26,7 @@ double
 scaleBalls = 10, // scales ball radius
 spaceRange = pow(scaleBalls * genBalls, 1. / 3.), // Rough minimum space required
 spaceRangeIncrement = scaleBalls * 3,
-KEfactor = 0.0,       // Determines collision velocity based on KE/PE
+KEfactor = 0.01,       // Determines collision velocity based on KE/PE
 impactParameter = 0, // Impact angle radians
 z0Rot = 0,           // Cluster one z axis rotation
 y0Rot = 0,           // Cluster one y axis rotation
