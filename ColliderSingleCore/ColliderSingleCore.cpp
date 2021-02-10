@@ -33,6 +33,7 @@ void simOneStep(int Step);
 void simLooper();
 ballGroup importDataFromFile(std::string initDataFileName, std::string initConstFileName);
 void generateBallField();
+void safetyChecks();
 
 // Main function
 int main(int argc, char const* argv[])
@@ -50,6 +51,7 @@ int main(int argc, char const* argv[])
 
 	simInitTwoCluster();
 	//generateBallField();
+	safetyChecks();
 	ballTotal = O.cNumBalls;
 	simAnalyzeAndCenter();
 	simInitWrite();
@@ -69,8 +71,15 @@ void simInitTwoCluster()
 	clusA.zeroMotion();
 	clusB.zeroMotion();
 
-	clusA.initConditions();
-	clusB.initConditions();
+	// Calc info to determined cluster positioning and collisions velocity:
+	clusA.updateCom();
+	clusB.updateCom();
+
+	clusA.updateRadius();
+	clusB.updateRadius();
+
+	clusA.updatePE();
+	clusB.updatePE();
 
 	clusA.offset(clusA.radius, clusB.radius + (clusA.R[0] * 1.), impactParameter); // Adding 3 times the radius of one ball gaurantees total separation between clusters.
 	double PEsys = clusA.PE + clusB.PE + (-G * clusA.mTotal * clusB.mTotal / (clusA.com - clusB.com).norm());
@@ -99,6 +108,13 @@ void simInitTwoCluster()
 
 	dt = .01 * O.R[O.cNumBalls - 1] / vSmall;
 	std::cout << "Collision dt: " << dt << std::endl;
+
+	// calc kin here
+	kin = O.m[0] * vSmall * vSmall / (.1 * O.R[0] * .1 * O.R[0]);
+	std::cout << "Collision k: " << kin << std::endl;
+	kout = cor * kin;
+
+	O.initConditions();
 
 	// Name the file based on info above:
 	outputPrefix =
@@ -801,6 +817,11 @@ void generateBallField()
 	dt = .01 * O.R[O.cNumBalls - 1] / vMax;
 	std::cout << "Calculated dt: " << dt << std::endl;
 
+	// calc kin here
+	kin = O.m[0] * vMax * vMax / (.1 * O.R[0] * .1 * O.R[0]);
+	std::cout << "Collision k: " << kin << std::endl;
+	kout = cor * kin;
+
 	outputPrefix =
 		std::to_string(genBalls) +
 		"-R" + scientific(O.radius) +
@@ -811,4 +832,19 @@ void generateBallField()
 		"-dt" + rounder(dt, 4) +
 		"_";
 
+}
+
+void safetyChecks()
+{
+	if (kin < 0)
+	{
+		printf("\nSPRING CONSTANT NOT SET\n");
+		exit(EXIT_FAILURE);
+	}
+
+	if (dt <= 0)
+	{
+		printf("\nDT NOT SET\n");
+		exit(EXIT_FAILURE);
+	}
 }

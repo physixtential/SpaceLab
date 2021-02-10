@@ -91,18 +91,25 @@ struct ballGroup
 		delete[] moi;
 	}
 
-	double updateRadius()
+	void updateRadius()
 	{
+		updateCom();
 		radius = 0;
-		for (int Ball = 0; Ball < cNumBalls; Ball++)
+		if (cNumBalls > 1)
 		{
-			double dist = (pos[Ball] - com).norm();
-			if (dist > radius)
+			for (int Ball = 0; Ball < cNumBalls; Ball++)
 			{
-				radius = dist;
+				double dist = (pos[Ball] - com).norm();
+				if (dist > radius)
+				{
+					radius = dist;
+				}
 			}
 		}
-		return radius;
+		else
+		{
+			radius = R[0];
+		}
 	}
 
 	vector3d updateCom()
@@ -277,6 +284,40 @@ struct ballGroup
 			KE = .5 * m[0] * vel[0].dot(vel[0]) + .5 * moi[0] * w[0].dot(w[0]);
 			mom = m[0] * vel[0];
 			angMom = m[0] * pos[0].cross(vel[0]) + moi[0] * w[0];
+			radius = R[0];
+		}
+	}
+
+	// Initialzie accelerations and energy calculations:
+	void updatePE()
+	{
+		PE = 0;
+
+		if (cNumBalls > 1) // Code below only necessary for effects between balls.
+		{
+			for (int A = 1; A < cNumBalls; A++)
+			{
+				for (int B = 0; B < A; B++)
+				{
+					double sumRaRb = R[A] + R[B];
+					double dist = (pos[A] - pos[B]).norm();
+					double overlap = sumRaRb - dist;
+
+					// Check for collision between Ball and otherBall.
+					if (overlap > 0)
+					{
+						PE += -G * m[A] * m[B] / dist + kin * pow((sumRaRb - dist) * .5, 2);
+					}
+					else
+					{
+						PE += -G * m[A] * m[B] / dist;
+					}
+				}
+			}
+		}
+		else // For the case of just one ball:
+		{
+			PE = 0;
 			radius = R[0];
 		}
 	}

@@ -6,9 +6,7 @@ const double
 G = 6.67e-8,   // Gravitational constant
 density = 2.7, //2.7, // Typically based on some rock density
 mu = 0.9,      // Coeff of friction
-cor = 0.8,     // Coeff of restitution
-kin = 1e6,      // Spring constant
-kout = cor * kin;
+cor = 0.8;     // Coeff of restitution
 
 // Simulation Structure
 const int
@@ -23,6 +21,8 @@ int numThreads = 1; // omp parallel thread count.
 
 double
 dt = -1,
+kin = -1,      // Spring constant
+kout = cor * kin,
 scaleBalls = 10, // scales ball radius
 spaceRange = pow(scaleBalls * genBalls, 1. / 3.), // Rough minimum space required
 spaceRangeIncrement = scaleBalls * 3,
