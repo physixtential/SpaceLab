@@ -336,11 +336,17 @@ void simOneStep(int Step)
 		// Update velocity half step:
 		O.velh[Ball] = O.vel[Ball] + .5 * O.acc[Ball] * dt;
 
+		// Update angular velocity half step:
+		O.wh[Ball] = O.w[Ball] + .5 * O.aacc[Ball] * dt;
+
 		// Update position:
 		O.pos[Ball] += O.velh[Ball] * dt;
 
 		// Reinitialize acceleration to be recalculated:
 		O.acc[Ball] = { 0, 0, 0 };
+
+		// Reinitialize angular acceleration to be recalculated:
+		O.aacc[Ball] = { 0, 0, 0 };
 	}
 
 	// SECOND PASS - Check for collisions, apply forces and torques:
@@ -420,8 +426,8 @@ void simOneStep(int Step)
 
 				vector3d gravForceOnA = (G * O.m[A] * O.m[B] / pow(dist, 2)) * (rVecab / dist);
 				totalForce = gravForceOnA + elasticForceOnA + frictionForceOnA;
-				O.w[A] += aTorque / O.moi[A] * dt;
-				O.w[B] += bTorque / O.moi[B] * dt;
+				O.aacc[A] += aTorque / O.moi[A];
+				O.aacc[B] += bTorque / O.moi[B];
 
 				if (writeStep)
 				{
@@ -459,6 +465,7 @@ void simOneStep(int Step)
 
 		// Velocity for next step:
 		O.vel[Ball] = O.velh[Ball] + .5 * O.acc[Ball] * dt;
+		O.w[Ball] = O.wh[Ball] + .5 * O.aacc[Ball] * dt;
 
 		if (writeStep)
 		{

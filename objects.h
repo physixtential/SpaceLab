@@ -24,6 +24,8 @@ struct ballGroup
 	vector3d* velh = 0;
 	vector3d* acc = 0;
 	vector3d* w = 0;
+	vector3d* wh = 0;
+	vector3d* aacc = 0;
 	double* R = 0;
 	double* m = 0;
 	double* moi = 0;
@@ -40,6 +42,8 @@ struct ballGroup
 		velh = new vector3d[cNumBalls];
 		acc = new vector3d[cNumBalls];
 		w = new vector3d[cNumBalls];
+		wh = new vector3d[cNumBalls];
+		aacc = new vector3d[cNumBalls];
 		R = new double[cNumBalls];
 		m = new double[cNumBalls];
 		moi = new double[cNumBalls];
@@ -54,6 +58,8 @@ struct ballGroup
 		memcpy(&velh[cNumBallsAdded], src->velh, sizeof(src->velh[0]) * src->cNumBalls);
 		memcpy(&acc[cNumBallsAdded], src->acc, sizeof(src->acc[0]) * src->cNumBalls);
 		memcpy(&w[cNumBallsAdded], src->w, sizeof(src->w[0]) * src->cNumBalls);
+		memcpy(&wh[cNumBallsAdded], src->wh, sizeof(src->wh[0]) * src->cNumBalls);
+		memcpy(&aacc[cNumBallsAdded], src->aacc, sizeof(src->aacc[0]) * src->cNumBalls);
 		memcpy(&R[cNumBallsAdded], src->R, sizeof(src->R[0]) * src->cNumBalls);
 		memcpy(&m[cNumBallsAdded], src->m, sizeof(src->m[0]) * src->cNumBalls);
 		memcpy(&moi[cNumBallsAdded], src->moi, sizeof(src->moi[0]) * src->cNumBalls);
@@ -78,6 +84,8 @@ struct ballGroup
 		delete[] velh;
 		delete[] acc;
 		delete[] w;
+		delete[] wh;
+		delete[] aacc;
 		delete[] R;
 		delete[] m;
 		delete[] moi;
@@ -239,8 +247,8 @@ struct ballGroup
 
 						vector3d gravForceOnA = (G * m[A] * m[B] / pow(dist, 2)) * (rVecab / dist);
 						totalForce = gravForceOnA + elasticForceOnA + frictionForceOnA;
-						w[A] += aTorque / moi[A] * dt;
-						w[B] += bTorque / moi[B] * dt;
+						aacc[A] += aTorque / moi[A];
+						aacc[B] += bTorque / moi[B];
 						PE += -G * m[A] * m[B] / dist + kin * pow((sumRaRb - dist) * .5, 2);
 					}
 					else

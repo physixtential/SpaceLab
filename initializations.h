@@ -3,7 +3,6 @@
 ////////////////////////////////////
 
 const double
-dt = 0.04,
 G = 6.67e-8,   // Gravitational constant
 density = 2.7, //2.7, // Typically based on some rock density
 mu = 0.9,      // Coeff of friction
@@ -23,6 +22,7 @@ attempts = 200; // How many times to try moving every ball touching another in g
 int numThreads = 1; // omp parallel thread count.
 
 double
+dt = -1,
 scaleBalls = 10, // scales ball radius
 spaceRange = pow(scaleBalls * genBalls, 1. / 3.), // Rough minimum space required
 spaceRangeIncrement = scaleBalls * 3,
