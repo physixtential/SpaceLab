@@ -68,7 +68,7 @@ void simInitTwoCluster()
 	// DO YOU WANT TO STOP EVERYTHING?
 	clusA.zeroMotion();
 	clusB.zeroMotion();
-	
+
 	clusA.initConditions();
 	clusB.initConditions();
 
@@ -96,6 +96,9 @@ void simInitTwoCluster()
 
 	O.addBallGroup(&clusA);
 	O.addBallGroup(&clusB);
+
+	dt = .01 * O.R[O.cNumBalls - 1] / vSmall;
+	std::cout << "Collision dt: " << dt << std::endl;
 
 	// Name the file based on info above:
 	outputPrefix =
@@ -792,6 +795,11 @@ void generateBallField()
 	}
 	std::cout << "Initial Radius: " << O.radius << std::endl;
 	std::cout << "Mass: " << O.mTotal << std::endl;
+
+	// dt based on the kinetic energy equal to the total binding energy of the cluster.
+	double vMax = sqrt(2 * G * O.mTotal / O.radius);
+	dt = .01 * O.R[O.cNumBalls - 1] / vMax;
+	std::cout << "Calculated dt: " << dt << std::endl;
 
 	outputPrefix =
 		std::to_string(genBalls) +
