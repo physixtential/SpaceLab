@@ -367,13 +367,25 @@ double randDouble(double lim)
 }
 
 // Returns a vector within the desired radius, resulting in spherical random distribution
-vector3d randVec(double lim1, double lim2, double lim3)
+vector3d randSphericalVec(double lim1, double lim2, double lim3)
 {
 	vector3d vec = {randDouble(lim1), randDouble(lim2), randDouble(lim3)};
 	double halfLim = lim1 * .5;
 	while (vec.norm() > halfLim)
 	{
 		vec = {randDouble(lim1), randDouble(lim2), randDouble(lim3)};
+	}
+	return vec;
+}
+
+// Returns a vector within the desired radius, resulting in spherical random distribution
+vector3d randShellVec(double lim1, double lim2, double lim3, double innerRadius)
+{
+	vector3d vec = { randDouble(lim1), randDouble(lim2), randDouble(lim3) };
+	double halfLim = lim1 * .5;
+	while (vec.norm() > halfLim || vec.norm() < innerRadius)
+	{
+		vec = { randDouble(lim1), randDouble(lim2), randDouble(lim3) };
 	}
 	return vec;
 }

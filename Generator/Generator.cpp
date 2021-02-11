@@ -43,7 +43,7 @@ cluster generateBallField()
 		a.m = density * 4. / 3. * 3.14159 * pow(a.R, 3);
 		a.moi = .4 * a.m * a.R * a.R;
 		a.w = { 0, 0, 0 };
-		a.pos = randVec(spaceRange, spaceRange, spaceRange);
+		a.pos = randSphericalVec(spaceRange, spaceRange, spaceRange);
 	}
 
 	for (int Ball = larges; Ball < (larges + mediums); Ball++)
@@ -53,7 +53,7 @@ cluster generateBallField()
 		a.m = density * 4. / 3. * 3.14159 * pow(a.R, 3);
 		a.moi = .4 * a.m * a.R * a.R;
 		a.w = { 0, 0, 0 };
-		a.pos = randVec(spaceRange, spaceRange, spaceRange);
+		a.pos = randSphericalVec(spaceRange, spaceRange, spaceRange);
 	}
 	for (int Ball = (larges + mediums); Ball < genBalls; Ball++)
 	{
@@ -62,7 +62,7 @@ cluster generateBallField()
 		a.m = density * 4. / 3. * 3.14159 * pow(a.R, 3);
 		a.moi = .4 * a.m * a.R * a.R;
 		a.w = { 0, 0, 0 };
-		a.pos = randVec(spaceRange, spaceRange, spaceRange);
+		a.pos = randSphericalVec(spaceRange, spaceRange, spaceRange);
 	}
 
 	std::cout << "Smalls: " << smalls << " Mediums: " << mediums << " Larges: " << larges << std::endl;
@@ -87,7 +87,7 @@ cluster generateBallField()
 				{
 					collisionDetected += 1;
 					// Move the other ball:
-					b.pos = randVec(spaceRange, spaceRange, spaceRange);
+					b.pos = randSphericalVec(spaceRange, spaceRange, spaceRange);
 				}
 			}
 		}
@@ -108,7 +108,7 @@ cluster generateBallField()
 			failed = 0;
 			for (int Ball = 0; Ball < genBalls; Ball++)
 			{
-				clus.balls[Ball].pos = randVec(spaceRange, spaceRange, spaceRange); // Each time we fail and increase range, redistribute all balls randomly so we don't end up with big balls near mid and small balls outside.
+				clus.balls[Ball].pos = randSphericalVec(spaceRange, spaceRange, spaceRange); // Each time we fail and increase range, redistribute all balls randomly so we don't end up with big balls near mid and small balls outside.
 			}
 		}
 		collisionDetected = 0;

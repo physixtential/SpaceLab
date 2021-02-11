@@ -705,37 +705,41 @@ ballGroup importDataFromFile(std::string initDataFileName, std::string initConst
 	return tclus;
 }
 
-void shellerShellington()
+void twoSizeSphereShell3000()
 {
-	for (size_t i = 0; i < 3; i++)
+	for (int factor = 0; factor < 3; factor++)
 	{
-		for (int Ball = 0; Ball < 500; Ball++)
+		std::cout << "Hello?\n";
+		for (int Ball = 1000 * factor; Ball < 1000 * factor + 500; Ball++)
 		{
-			O.R[Ball] = 1. * scaleBalls;//pow(1. / (double)genBalls, 1. / 3.) * 3. * scaleBalls;
+			O.R[Ball] = 1. / pow(2., factor) * scaleBalls;
 			O.m[Ball] = density * 4. / 3. * 3.14159 * pow(O.R[Ball], 3);
 			O.moi[Ball] = .4 * O.m[Ball] * O.R[Ball] * O.R[Ball];
 			O.w[Ball] = { 0, 0, 0 };
-			O.pos[Ball] = randVec(spaceRange, spaceRange, spaceRange);
+			O.pos[Ball] = randShellVec(spaceRange, spaceRange, spaceRange, O.radius);
 		}
 
-		for (int Ball = 500; Ball < 1000; Ball++)
+		for (int Ball = 1000 * factor + 500; Ball < 1000 * factor + 1000; Ball++)
 		{
-			O.R[Ball] = 2. * scaleBalls;//pow(1. / (double)genBalls, 1. / 3.) * 2. * scaleBalls;
+			O.R[Ball] = 2. / pow(2., factor) * scaleBalls;
 			O.m[Ball] = density * 4. / 3. * 3.14159 * pow(O.R[Ball], 3);
 			O.moi[Ball] = .4 * O.m[Ball] * O.R[Ball] * O.R[Ball];
 			O.w[Ball] = { 0, 0, 0 };
-			O.pos[Ball] = randVec(spaceRange, spaceRange, spaceRange);
+			O.pos[Ball] = randShellVec(spaceRange, spaceRange, spaceRange, O.radius);
 		}
+
+		int ballsInPhase = 1000 * factor + 1000;
+		std::cout << "Balls in phase: " << ballsInPhase << "\n";
 
 		// Generate non-overlapping spherical particle field:
 		int collisionDetected = 0;
-		int oldCollisions = genBalls;
+		int oldCollisions = 1e10;
 
 		for (int failed = 0; failed < attempts; failed++)
 		{
-			for (int A = 0; A < genBalls; A++)
+			for (int A = 0; A < ballsInPhase; A++)
 			{
-				for (int B = A + 1; B < genBalls; B++)
+				for (int B = A + 1; B < ballsInPhase; B++)
 				{
 					// Check for Ball overlap.
 					double dist = (O.pos[A] - O.pos[B]).norm();
@@ -745,7 +749,7 @@ void shellerShellington()
 					{
 						collisionDetected += 1;
 						// Move the other ball:
-						O.pos[B] = randVec(spaceRange, spaceRange, spaceRange);
+						O.pos[B] = randShellVec(spaceRange, spaceRange, spaceRange, O.radius);
 					}
 				}
 			}
@@ -759,22 +763,44 @@ void shellerShellington()
 				std::cout << "\nSuccess!\n";
 				break;
 			}
-			if (failed == attempts - 1 || collisionDetected > int(1.5 * (double)genBalls)) // Added the second part to speed up spatial constraint increase when there are clearly too many collisions for the space to be feasable.
+			if (failed == attempts - 1 || collisionDetected > int(1.5 * (double)ballsInPhase)) // Added the second part to speed up spatial constraint increase when there are clearly too many collisions for the space to be feasable.
 			{
 				std::cout << "Failed " << spaceRange << ". Increasing range " << spaceRangeIncrement << "cm^3.\n";
 				spaceRange += spaceRangeIncrement;
 				failed = 0;
-				for (int Ball = 0; Ball < genBalls; Ball++)
+				for (int Ball = 0; Ball < ballsInPhase; Ball++)
 				{
-					O.pos[Ball] = randVec(spaceRange, spaceRange, spaceRange); // Each time we fail and increase range, redistribute all balls randomly so we don't end up with big balls near mid and small balls outside.
+					O.pos[Ball] = randShellVec(spaceRange, spaceRange, spaceRange, O.radius); // Each time we fail and increase range, redistribute all balls randomly so we don't end up with big balls near mid and small balls outside.
 				}
 			}
 			collisionDetected = 0;
 		}
+
+		std::cout << "Final spacerange: " << spaceRange << std::endl;
+		// Calculate approximate radius of imported cluster and center mass at origin:
+		vector3d comNumerator;
+		for (int Ball = 0; Ball < O.cNumBalls; Ball++)
+		{
+			O.mTotal += O.m[Ball];
+			comNumerator += O.m[Ball] * O.pos[Ball];
+		}
+		O.com = comNumerator / O.mTotal;
+
+		for (int Ball = 0; Ball < O.cNumBalls; Ball++)
+		{
+			double dist = (O.pos[Ball] - O.com).norm();
+			if (dist > O.radius)
+			{
+				O.radius = dist;
+			}
+		}
+		spaceRange += O.radius;
+		std::cout << "Initial Radius: " << O.radius << std::endl;
+		std::cout << "Mass: " << O.mTotal << std::endl;
 	}
 }
 
-void threeSize()
+void threeSizeSphere()
 {
 	// Make genBalls of 3 sizes in CGS with ratios such that the mass is distributed evenly among the 3 sizes (less large genBalls than small genBalls).
 	int smalls = std::round((double)genBalls * 27 / 31.375); // Just here for reference. Whatever genBalls are left will be smalls.
@@ -788,7 +814,7 @@ void threeSize()
 		O.m[Ball] = density * 4. / 3. * 3.14159 * pow(O.R[Ball], 3);
 		O.moi[Ball] = .4 * O.m[Ball] * O.R[Ball] * O.R[Ball];
 		O.w[Ball] = { 0, 0, 0 };
-		O.pos[Ball] = randVec(spaceRange, spaceRange, spaceRange);
+		O.pos[Ball] = randSphericalVec(spaceRange, spaceRange, spaceRange);
 	}
 
 	for (int Ball = larges; Ball < (larges + mediums); Ball++)
@@ -797,7 +823,7 @@ void threeSize()
 		O.m[Ball] = density * 4. / 3. * 3.14159 * pow(O.R[Ball], 3);
 		O.moi[Ball] = .4 * O.m[Ball] * O.R[Ball] * O.R[Ball];
 		O.w[Ball] = { 0, 0, 0 };
-		O.pos[Ball] = randVec(spaceRange, spaceRange, spaceRange);
+		O.pos[Ball] = randSphericalVec(spaceRange, spaceRange, spaceRange);
 	}
 	for (int Ball = (larges + mediums); Ball < genBalls; Ball++)
 	{
@@ -805,7 +831,7 @@ void threeSize()
 		O.m[Ball] = density * 4. / 3. * 3.14159 * pow(O.R[Ball], 3);
 		O.moi[Ball] = .4 * O.m[Ball] * O.R[Ball] * O.R[Ball];
 		O.w[Ball] = { 0, 0, 0 };
-		O.pos[Ball] = randVec(spaceRange, spaceRange, spaceRange);
+		O.pos[Ball] = randSphericalVec(spaceRange, spaceRange, spaceRange);
 	}
 
 	std::cout << "Smalls: " << smalls << " Mediums: " << mediums << " Larges: " << larges << std::endl;
@@ -828,7 +854,7 @@ void threeSize()
 				{
 					collisionDetected += 1;
 					// Move the other ball:
-					O.pos[B] = randVec(spaceRange, spaceRange, spaceRange);
+					O.pos[B] = randSphericalVec(spaceRange, spaceRange, spaceRange);
 				}
 			}
 		}
@@ -849,23 +875,11 @@ void threeSize()
 			failed = 0;
 			for (int Ball = 0; Ball < genBalls; Ball++)
 			{
-				O.pos[Ball] = randVec(spaceRange, spaceRange, spaceRange); // Each time we fail and increase range, redistribute all balls randomly so we don't end up with big balls near mid and small balls outside.
+				O.pos[Ball] = randSphericalVec(spaceRange, spaceRange, spaceRange); // Each time we fail and increase range, redistribute all balls randomly so we don't end up with big balls near mid and small balls outside.
 			}
 		}
 		collisionDetected = 0;
 	}
-}
-
-void generateBallField()
-{
-	std::cout << "CLUSTER FORMATION\n";
-	O.allocateGroup(genBalls);
-
-	// Create new random number set.
-	int seedSave = time(NULL);
-	srand(seedSave);
-
-	threeSize();
 
 	std::cout << "Final spacerange: " << spaceRange << std::endl;
 	// Calculate approximate radius of imported cluster and center mass at origin:
@@ -885,8 +899,21 @@ void generateBallField()
 			O.radius = dist;
 		}
 	}
+
 	std::cout << "Initial Radius: " << O.radius << std::endl;
 	std::cout << "Mass: " << O.mTotal << std::endl;
+}
+
+void generateBallField()
+{
+	std::cout << "CLUSTER FORMATION\n";
+	O.allocateGroup(genBalls);
+
+	// Create new random number set.
+	int seedSave = time(NULL);
+	srand(seedSave);
+
+	twoSizeSphereShell3000();
 
 	// dt based on the kinetic energy equal to the total binding energy of the cluster.
 	double vMax = sqrt(2 * G * O.mTotal / O.radius);

@@ -10,9 +10,9 @@ cor = 0.8;     // Coeff of restitution
 
 // Simulation Structure
 const int
-skip = 100,     // Steps thrown away before recording a step to the buffer. 500*.04 is every 20 seconds in sim.
+skip = 500,     // Steps thrown away before recording a step to the buffer. 500*.04 is every 20 seconds in sim.
 properties = 11, // Number of columns in simData file per ball
-genBalls = 1000,
+genBalls = 3000,
 attempts = 200; // How many times to try moving every ball touching another in generator.
 
 int
