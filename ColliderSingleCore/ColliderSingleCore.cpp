@@ -42,15 +42,15 @@ int main(int argc, char const* argv[])
 	double spins[3] = { 0 };
 	if (argc > 1)
 	{
-		numThreads = atoi(argv[1]);
-		printf("\nThread count set to %i.\n", numThreads);
+		//numThreads = atoi(argv[1]);
+		//printf("\nThread count set to %i.\n", numThreads);
 		clusterAName = argv[2];
 		clusterBName = argv[3];
 		KEfactor = atof(argv[4]);
 	}
 
-	simInitTwoCluster();
-	//generateBallField();
+	//simInitTwoCluster();
+	generateBallField();
 	safetyChecks();
 	ballTotal = O.cNumBalls;
 	simAnalyzeAndCenter();
@@ -108,6 +108,7 @@ void simInitTwoCluster()
 
 	dt = .01 * O.R[O.cNumBalls - 1] / vSmall;
 	std::cout << "Collision dt: " << dt << std::endl;
+	steps = (int)(12000 / dt);
 
 	// calc kin here
 	kin = O.m[0] * vSmall * vSmall / (.1 * O.R[0] * .1 * O.R[0]);
@@ -506,7 +507,7 @@ void simOneStep(int Step)
 			O.angMom += O.m[Ball] * O.pos[Ball].cross(O.vel[Ball]) + O.moi[Ball] * O.w[Ball];
 		}
 	}
-	if (writeStep)
+	if (writeStep || Step == steps - 1)
 	{
 		// Write energy to stream:
 		energyBuffer << std::endl
@@ -704,15 +705,77 @@ ballGroup importDataFromFile(std::string initDataFileName, std::string initConst
 	return tclus;
 }
 
-void generateBallField()
+void shellerShellington()
 {
-	std::cout << "CLUSTER FORMATION\n";
-	O.allocateGroup(genBalls);
+	for (size_t i = 0; i < 3; i++)
+	{
+		for (int Ball = 0; Ball < 500; Ball++)
+		{
+			O.R[Ball] = 1. * scaleBalls;//pow(1. / (double)genBalls, 1. / 3.) * 3. * scaleBalls;
+			O.m[Ball] = density * 4. / 3. * 3.14159 * pow(O.R[Ball], 3);
+			O.moi[Ball] = .4 * O.m[Ball] * O.R[Ball] * O.R[Ball];
+			O.w[Ball] = { 0, 0, 0 };
+			O.pos[Ball] = randVec(spaceRange, spaceRange, spaceRange);
+		}
 
-	// Create new random number set.
-	int seedSave = time(NULL);
-	srand(seedSave);
+		for (int Ball = 500; Ball < 1000; Ball++)
+		{
+			O.R[Ball] = 2. * scaleBalls;//pow(1. / (double)genBalls, 1. / 3.) * 2. * scaleBalls;
+			O.m[Ball] = density * 4. / 3. * 3.14159 * pow(O.R[Ball], 3);
+			O.moi[Ball] = .4 * O.m[Ball] * O.R[Ball] * O.R[Ball];
+			O.w[Ball] = { 0, 0, 0 };
+			O.pos[Ball] = randVec(spaceRange, spaceRange, spaceRange);
+		}
 
+		// Generate non-overlapping spherical particle field:
+		int collisionDetected = 0;
+		int oldCollisions = genBalls;
+
+		for (int failed = 0; failed < attempts; failed++)
+		{
+			for (int A = 0; A < genBalls; A++)
+			{
+				for (int B = A + 1; B < genBalls; B++)
+				{
+					// Check for Ball overlap.
+					double dist = (O.pos[A] - O.pos[B]).norm();
+					double sumRaRb = O.R[A] + O.R[B];
+					double overlap = dist - sumRaRb;
+					if (overlap < 0)
+					{
+						collisionDetected += 1;
+						// Move the other ball:
+						O.pos[B] = randVec(spaceRange, spaceRange, spaceRange);
+					}
+				}
+			}
+			if (collisionDetected < oldCollisions)
+			{
+				oldCollisions = collisionDetected;
+				std::cout << "Collisions: " << collisionDetected << "                        \r";
+			}
+			if (collisionDetected == 0)
+			{
+				std::cout << "\nSuccess!\n";
+				break;
+			}
+			if (failed == attempts - 1 || collisionDetected > int(1.5 * (double)genBalls)) // Added the second part to speed up spatial constraint increase when there are clearly too many collisions for the space to be feasable.
+			{
+				std::cout << "Failed " << spaceRange << ". Increasing range " << spaceRangeIncrement << "cm^3.\n";
+				spaceRange += spaceRangeIncrement;
+				failed = 0;
+				for (int Ball = 0; Ball < genBalls; Ball++)
+				{
+					O.pos[Ball] = randVec(spaceRange, spaceRange, spaceRange); // Each time we fail and increase range, redistribute all balls randomly so we don't end up with big balls near mid and small balls outside.
+				}
+			}
+			collisionDetected = 0;
+		}
+	}
+}
+
+void threeSize()
+{
 	// Make genBalls of 3 sizes in CGS with ratios such that the mass is distributed evenly among the 3 sizes (less large genBalls than small genBalls).
 	int smalls = std::round((double)genBalls * 27 / 31.375); // Just here for reference. Whatever genBalls are left will be smalls.
 	int mediums = std::round((double)genBalls * 27 / (8 * 31.375));
@@ -791,6 +854,19 @@ void generateBallField()
 		}
 		collisionDetected = 0;
 	}
+}
+
+void generateBallField()
+{
+	std::cout << "CLUSTER FORMATION\n";
+	O.allocateGroup(genBalls);
+
+	// Create new random number set.
+	int seedSave = time(NULL);
+	srand(seedSave);
+
+	threeSize();
+
 	std::cout << "Final spacerange: " << spaceRange << std::endl;
 	// Calculate approximate radius of imported cluster and center mass at origin:
 	vector3d comNumerator;
@@ -816,6 +892,7 @@ void generateBallField()
 	double vMax = sqrt(2 * G * O.mTotal / O.radius);
 	dt = .01 * O.R[O.cNumBalls - 1] / vMax;
 	std::cout << "Calculated dt: " << dt << std::endl;
+	steps = (int)(12000 / dt);
 
 	// calc kin here
 	kin = O.m[0] * vMax * vMax / (.1 * O.R[0] * .1 * O.R[0]);
