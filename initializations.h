@@ -6,13 +6,14 @@ const double
 G = 6.67e-8,   // Gravitational constant
 density = 2.7, //2.7, // Typically based on some rock density
 mu = 0.9,      // Coeff of friction
-cor = 0.8;     // Coeff of restitution
+cor = 0.8,     // Coeff of restitution
+simTimeSeconds = 18000;
 
 // Simulation Structure
 const int
 skip = 500,     // Steps thrown away before recording a step to the buffer. 500*.04 is every 20 seconds in sim.
 properties = 11, // Number of columns in simData file per ball
-genBalls = 3000,
+genBalls = 5000,
 attempts = 200; // How many times to try moving every ball touching another in generator.
 
 int

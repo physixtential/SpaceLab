@@ -93,16 +93,19 @@ struct ballGroup
 
 	void updateRadius()
 	{
-		updateCom();
 		radius = 0;
 		if (cNumBalls > 1)
 		{
-			for (int Ball = 0; Ball < cNumBalls; Ball++)
+			for (int A = 0; A < cNumBalls; A++)
 			{
-				double dist = (pos[Ball] - com).norm();
-				if (dist > radius)
+				for (int B = A + 1; B < cNumBalls; B++)
 				{
-					radius = dist;
+					// Identify two farthest balls from eachother. That is diameter of cluster.
+					double diameter = (pos[A] - pos[B]).norm();
+					if (diameter * .5 > radius)
+					{
+						radius = diameter*.5;
+					}
 				}
 			}
 		}

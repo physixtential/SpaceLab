@@ -108,7 +108,7 @@ void simInitTwoCluster()
 
 	dt = .01 * O.R[O.cNumBalls - 1] / vSmall;
 	std::cout << "Collision dt: " << dt << std::endl;
-	steps = (int)(12000 / dt);
+	steps = (int)(simTimeSeconds / dt);
 
 	// calc kin here
 	kin = O.m[0] * vSmall * vSmall / (.1 * O.R[0] * .1 * O.R[0]);
@@ -705,99 +705,175 @@ ballGroup importDataFromFile(std::string initDataFileName, std::string initConst
 	return tclus;
 }
 
-void twoSizeSphereShell3000()
+void twoSizeSphereShell5000()
 {
-	for (int factor = 0; factor < 3; factor++)
+
+	for (int Ball = 0; Ball < 1000; Ball++)
 	{
-		std::cout << "Hello?\n";
-		for (int Ball = 1000 * factor; Ball < 1000 * factor + 500; Ball++)
-		{
-			O.R[Ball] = 1. / pow(2., factor) * scaleBalls;
-			O.m[Ball] = density * 4. / 3. * 3.14159 * pow(O.R[Ball], 3);
-			O.moi[Ball] = .4 * O.m[Ball] * O.R[Ball] * O.R[Ball];
-			O.w[Ball] = { 0, 0, 0 };
-			O.pos[Ball] = randShellVec(spaceRange, spaceRange, spaceRange, O.radius);
-		}
-
-		for (int Ball = 1000 * factor + 500; Ball < 1000 * factor + 1000; Ball++)
-		{
-			O.R[Ball] = 2. / pow(2., factor) * scaleBalls;
-			O.m[Ball] = density * 4. / 3. * 3.14159 * pow(O.R[Ball], 3);
-			O.moi[Ball] = .4 * O.m[Ball] * O.R[Ball] * O.R[Ball];
-			O.w[Ball] = { 0, 0, 0 };
-			O.pos[Ball] = randShellVec(spaceRange, spaceRange, spaceRange, O.radius);
-		}
-
-		int ballsInPhase = 1000 * factor + 1000;
-		std::cout << "Balls in phase: " << ballsInPhase << "\n";
-
-		// Generate non-overlapping spherical particle field:
-		int collisionDetected = 0;
-		int oldCollisions = 1e10;
-
-		for (int failed = 0; failed < attempts; failed++)
-		{
-			for (int A = 0; A < ballsInPhase; A++)
-			{
-				for (int B = A + 1; B < ballsInPhase; B++)
-				{
-					// Check for Ball overlap.
-					double dist = (O.pos[A] - O.pos[B]).norm();
-					double sumRaRb = O.R[A] + O.R[B];
-					double overlap = dist - sumRaRb;
-					if (overlap < 0)
-					{
-						collisionDetected += 1;
-						// Move the other ball:
-						O.pos[B] = randShellVec(spaceRange, spaceRange, spaceRange, O.radius);
-					}
-				}
-			}
-			if (collisionDetected < oldCollisions)
-			{
-				oldCollisions = collisionDetected;
-				std::cout << "Collisions: " << collisionDetected << "                        \r";
-			}
-			if (collisionDetected == 0)
-			{
-				std::cout << "\nSuccess!\n";
-				break;
-			}
-			if (failed == attempts - 1 || collisionDetected > int(1.5 * (double)ballsInPhase)) // Added the second part to speed up spatial constraint increase when there are clearly too many collisions for the space to be feasable.
-			{
-				std::cout << "Failed " << spaceRange << ". Increasing range " << spaceRangeIncrement << "cm^3.\n";
-				spaceRange += spaceRangeIncrement;
-				failed = 0;
-				for (int Ball = 0; Ball < ballsInPhase; Ball++)
-				{
-					O.pos[Ball] = randShellVec(spaceRange, spaceRange, spaceRange, O.radius); // Each time we fail and increase range, redistribute all balls randomly so we don't end up with big balls near mid and small balls outside.
-				}
-			}
-			collisionDetected = 0;
-		}
-
-		std::cout << "Final spacerange: " << spaceRange << std::endl;
-		// Calculate approximate radius of imported cluster and center mass at origin:
-		vector3d comNumerator;
-		for (int Ball = 0; Ball < O.cNumBalls; Ball++)
-		{
-			O.mTotal += O.m[Ball];
-			comNumerator += O.m[Ball] * O.pos[Ball];
-		}
-		O.com = comNumerator / O.mTotal;
-
-		for (int Ball = 0; Ball < O.cNumBalls; Ball++)
-		{
-			double dist = (O.pos[Ball] - O.com).norm();
-			if (dist > O.radius)
-			{
-				O.radius = dist;
-			}
-		}
-		spaceRange += O.radius;
-		std::cout << "Initial Radius: " << O.radius << std::endl;
-		std::cout << "Mass: " << O.mTotal << std::endl;
+		O.R[Ball] = 700;
+		O.m[Ball] = density * 4. / 3. * 3.14159 * pow(O.R[Ball], 3);
+		O.moi[Ball] = .4 * O.m[Ball] * O.R[Ball] * O.R[Ball];
+		O.w[Ball] = { 0, 0, 0 };
+		O.pos[Ball] = randShellVec(spaceRange, O.radius);
 	}
+
+	for (int Ball = 1000; Ball < 2000; Ball++)
+	{
+		O.R[Ball] = 400;
+		O.m[Ball] = density * 4. / 3. * 3.14159 * pow(O.R[Ball], 3);
+		O.moi[Ball] = .4 * O.m[Ball] * O.R[Ball] * O.R[Ball];
+		O.w[Ball] = { 0, 0, 0 };
+		O.pos[Ball] = randShellVec(spaceRange, O.radius);
+	}
+
+	int ballsInPhase1 = 2000;
+	std::cout << "Balls in phase: " << ballsInPhase1 << "\n";
+
+	// Generate non-overlapping spherical particle field:
+	int collisionDetected = 0;
+	int oldCollisions = 1e10;
+
+	for (int failed = 0; failed < attempts; failed++)
+	{
+		for (int A = 0; A < ballsInPhase1; A++)
+		{
+			for (int B = A + 1; B < ballsInPhase1; B++)
+			{
+				// Check for Ball overlap.
+				double dist = (O.pos[A] - O.pos[B]).norm();
+				double sumRaRb = O.R[A] + O.R[B];
+				double overlap = dist - sumRaRb;
+				if (overlap < 0)
+				{
+					collisionDetected += 1;
+					// Move the other ball:
+					O.pos[B] = randShellVec(spaceRange, O.radius);
+				}
+			}
+		}
+		if (collisionDetected < oldCollisions)
+		{
+			oldCollisions = collisionDetected;
+			std::cout << "Collisions: " << collisionDetected << "                        \r";
+		}
+		if (collisionDetected == 0)
+		{
+			std::cout << "\nSuccess!\n";
+			break;
+		}
+		if (failed == attempts - 1 || collisionDetected > int(1.5 * (double)ballsInPhase1)) // Added the second part to speed up spatial constraint increase when there are clearly too many collisions for the space to be feasable.
+		{
+			std::cout << "Failed " << spaceRange << ". Increasing range " << spaceRangeIncrement << "cm^3.\n";
+			spaceRange += spaceRangeIncrement;
+			failed = 0;
+			for (int Ball = 0; Ball < ballsInPhase1; Ball++)
+			{
+				O.pos[Ball] = randShellVec(spaceRange, O.radius); // Each time we fail and increase range, redistribute all balls randomly so we don't end up with big balls near mid and small balls outside.
+			}
+		}
+		collisionDetected = 0;
+	}
+
+	// Calculate cluster radius:
+	vector3d comNumerator;
+	for (int Ball = 0; Ball < O.cNumBalls; Ball++)
+	{
+		O.mTotal += O.m[Ball];
+		comNumerator += O.m[Ball] * O.pos[Ball];
+	}
+	O.com = comNumerator / O.mTotal;
+
+	O.radius = 0;
+	for (int A = 0; A < ballsInPhase1; A++)
+	{
+		for (int B = A + 1; B < ballsInPhase1; B++)
+		{
+			// Identify two farthest balls from eachother. That is diameter of cluster.
+			double diameter = (O.pos[A] - O.pos[B]).norm();
+			if (diameter * .5 > O.radius)
+			{
+				O.radius = diameter * .5;
+			}
+		}
+	}
+
+
+	spaceRange += 2 * O.R[0] + 4 * 250;
+	O.radius += O.R[0] + 250;
+	std::cout << "Making shell between " << O.radius << " and " << spaceRange * .5 << std::endl;
+
+	// PHASE 2
+
+	for (int Ball = 2000; Ball < 3500; Ball++)
+	{
+		O.R[Ball] = 250;
+		O.m[Ball] = density * 4. / 3. * 3.14159 * pow(O.R[Ball], 3);
+		O.moi[Ball] = .4 * O.m[Ball] * O.R[Ball] * O.R[Ball];
+		O.w[Ball] = { 0, 0, 0 };
+		O.pos[Ball] = randShellVec(spaceRange, O.radius);
+	}
+
+	for (int Ball = 3500; Ball < 5000; Ball++)
+	{
+		O.R[Ball] = 150;
+		O.m[Ball] = density * 4. / 3. * 3.14159 * pow(O.R[Ball], 3);
+		O.moi[Ball] = .4 * O.m[Ball] * O.R[Ball] * O.R[Ball];
+		O.w[Ball] = { 0, 0, 0 };
+		O.pos[Ball] = randShellVec(spaceRange, O.radius);
+	}
+
+	int ballsInPhase2 = 3000;
+	std::cout << "Balls in phase: " << ballsInPhase2 << "\n";
+
+	// Generate non-overlapping spherical particle field:
+	collisionDetected = 0;
+	oldCollisions = 1e10;
+
+	for (int failed = 0; failed < attempts; failed++)
+	{
+		for (int A = ballsInPhase1; A < ballsInPhase1 + ballsInPhase2; A++)
+		{
+			for (int B = A + 1; B < ballsInPhase1 + ballsInPhase2; B++)
+			{
+				// Check for Ball overlap.
+				double dist = (O.pos[A] - O.pos[B]).norm();
+				double sumRaRb = O.R[A] + O.R[B];
+				double overlap = dist - sumRaRb;
+				if (overlap < 0)
+				{
+					collisionDetected += 1;
+					// Move the other ball:
+					O.pos[B] = randShellVec(spaceRange, O.radius);
+				}
+			}
+		}
+		if (collisionDetected < oldCollisions)
+		{
+			oldCollisions = collisionDetected;
+			std::cout << "Collisions: " << collisionDetected << "                        \r";
+		}
+		if (collisionDetected == 0)
+		{
+			std::cout << "\nSuccess!\n";
+			break;
+		}
+		if (failed == attempts - 1 || collisionDetected > int(1.5 * (double)ballsInPhase2)) // Added the second part to speed up spatial constraint increase when there are clearly too many collisions for the space to be feasable.
+		{
+			std::cout << "Failed " << spaceRange << ". Increasing range " << spaceRangeIncrement << "cm^3.\n";
+			spaceRange += spaceRangeIncrement;
+			failed = 0;
+			for (int Ball = ballsInPhase1; Ball < ballsInPhase1 + ballsInPhase2; Ball++)
+			{
+				O.pos[Ball] = randShellVec(spaceRange, O.radius); // Each time we fail and increase range, redistribute all balls randomly so we don't end up with big balls near mid and small balls outside.
+			}
+		}
+		collisionDetected = 0;
+	}
+
+
+	std::cout << "Initial Radius: " << O.radius << std::endl;
+	std::cout << "Mass: " << O.mTotal << std::endl;
+
 }
 
 void threeSizeSphere()
@@ -882,7 +958,7 @@ void threeSizeSphere()
 	}
 
 	std::cout << "Final spacerange: " << spaceRange << std::endl;
-	// Calculate approximate radius of imported cluster and center mass at origin:
+	// Calculate approximate radius of imported cluster and center of mass:
 	vector3d comNumerator;
 	for (int Ball = 0; Ball < O.cNumBalls; Ball++)
 	{
@@ -913,13 +989,14 @@ void generateBallField()
 	int seedSave = time(NULL);
 	srand(seedSave);
 
-	twoSizeSphereShell3000();
+	twoSizeSphereShell5000();
 
 	// dt based on the kinetic energy equal to the total binding energy of the cluster.
 	double vMax = sqrt(2 * G * O.mTotal / O.radius);
 	dt = .01 * O.R[O.cNumBalls - 1] / vMax;
+	std::cout << "Calculated vMax: " << vMax << std::endl;
 	std::cout << "Calculated dt: " << dt << std::endl;
-	steps = (int)(12000 / dt);
+	steps = (int)(simTimeSeconds / dt);
 
 	// calc kin here
 	kin = O.m[0] * vMax * vMax / (.1 * O.R[0] * .1 * O.R[0]);
