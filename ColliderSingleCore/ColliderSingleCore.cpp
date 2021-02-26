@@ -63,7 +63,7 @@ int main(int argc, char const* argv[])
 void simInitTwoCluster()
 {
 	// Load file data:
-	std::cerr << "TWO CLUSTER SIM\n File 1: " << projectileName << '\t' << "File 2: " << targetName << std::endl;
+	std::cerr << "TWO CLUSTER SIM\nFile 1: " << projectileName << '\t' << "File 2: " << targetName << std::endl;
 	ballGroup projectile = importDataFromFile(path + projectileName + "simData.csv", path + projectileName + "constants.csv");
 	ballGroup target = importDataFromFile(path + targetName + "simData.csv", path + targetName + "constants.csv");
 
@@ -90,7 +90,7 @@ void simInitTwoCluster()
 	double mTot = mBig + mSmall;
 	double vSmall = -sqrt(2 * KEfactor * fabs(PEsys) * (mBig / (mSmall * mTot))); // Negative because small offsets right.
 	double vBig = -(mSmall / mBig) * vSmall; // Negative to be opposing projectile.
-	fprintf(stdout, "Target Velocity: %.2e\nProjectile Velocity: %.2e\n", vBig, vSmall);
+	fprintf(stdout, "\nTarget Velocity: %.2e\nProjectile Velocity: %.2e\n", vBig, vSmall);
 	if (isnan(vSmall) || isnan(vBig))
 	{
 		fprintf(stderr, "A VELOCITY WAS NAN!!!!!!!!!!!!!!!!!!!!!!\n\n");
@@ -98,19 +98,22 @@ void simInitTwoCluster()
 	}
 	projectile.kick(vSmall);
 	target.kick(vBig);
-	projectile.checkMomentum("Cluster A");
-	target.checkMomentum("Cluster B");
+
+	std::cout << std::endl;
+	projectile.checkMomentum("Projectile");
+	target.checkMomentum("Target");
 
 	O.allocateGroup(projectile.cNumBalls + target.cNumBalls);
 
-	O.addBallGroup(&projectile);
 	O.addBallGroup(&target);
+	O.addBallGroup(&projectile); // projectile second so smallest ball at end and largest ball at front for dt/k calcs.
 
 	O.updateRadius();
 	O.updateComAndMass();
 	double vMax = sqrt(2 * G * O.mTotal / O.radius);
 
 	// Check if the kick is going to be the most significant velocity basis, or if gravity will matter more.
+	std::cout << std::endl;
 	if (fabs(vSmall) > fabs(vMax))
 	{
 		std::cout << "Kick greater than binding." << vMax << "<vMax | vSmall>" << vSmall << std::endl;
@@ -134,10 +137,11 @@ void simInitTwoCluster()
 
 	steps = (int)(simTimeSeconds / dt);
 
-	std::cout << "vMax: " << vMax << std::endl;
+	std::cout << "==================" << std::endl;
 	std::cout << "dt: " << dt << std::endl;
 	std::cout << "k: " << kin << std::endl;
 	std::cout << "Steps: " << steps << std::endl;
+	std::cout << "==================" << std::endl;
 
 
 	O.initConditions();
@@ -160,6 +164,10 @@ void simInitOneCluster(double* spins)
 {
 	// Load file data:
 	ballGroup clusA = importDataFromFile(projectileName + "simData.csv", projectileName + "constants.csv");
+
+	/////////////////////////
+	/////// NEEDS ADDITIONS FROM TWOCLUSTER THAT HAVE BEEN IMPROVED 2/25/2021...
+	//...
 
 	// DO YOU WANT TO STOP EVERYTHING?
 	clusA.zeroMotion();
@@ -616,7 +624,7 @@ ballGroup importDataFromFile(std::string initDataFileName, std::string initConst
 	if (auto simDataStream = std::ifstream(initDataFileName, std::ifstream::in))
 	{
 		std::string line, lineElement;
-		std::cout << "Parsing last line of data.\n";
+		std::cout << "\nParsing last line of data.\n";
 
 		simDataStream.seekg(-1, std::ios_base::end); // go to one spot before the EOF
 
