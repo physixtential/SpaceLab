@@ -44,13 +44,13 @@ int main(int argc, char const* argv[])
 	{
 		//numThreads = atoi(argv[1]);
 		//printf("\nThread count set to %i.\n", numThreads);
-		clusterAName = argv[2];
-		clusterBName = argv[3];
+		projectileName = argv[2];
+		targetName = argv[3];
 		KEfactor = atof(argv[4]);
 	}
 
-	//simInitTwoCluster();
-	generateBallField();
+	simInitTwoCluster();
+	//generateBallField();
 	safetyChecks();
 	ballTotal = O.cNumBalls;
 	simAnalyzeAndCenter();
@@ -63,30 +63,30 @@ int main(int argc, char const* argv[])
 void simInitTwoCluster()
 {
 	// Load file data:
-	std::cerr << "TWO CLUSTER SIM\n File 1: " << clusterAName << '\t' << "File 2: " << clusterBName << std::endl;
-	ballGroup clusA = importDataFromFile(path + clusterAName + "simData.csv", path + clusterAName + "constants.csv");
-	ballGroup clusB = importDataFromFile(path + clusterBName + "simData.csv", path + clusterBName + "constants.csv");
+	std::cerr << "TWO CLUSTER SIM\n File 1: " << projectileName << '\t' << "File 2: " << targetName << std::endl;
+	ballGroup projectile = importDataFromFile(path + projectileName + "simData.csv", path + projectileName + "constants.csv");
+	ballGroup target = importDataFromFile(path + targetName + "simData.csv", path + targetName + "constants.csv");
 
 	// DO YOU WANT TO STOP EVERYTHING?
-	clusA.zeroMotion();
-	clusB.zeroMotion();
+	projectile.zeroMotion();
+	target.zeroMotion();
 
 	// Calc info to determined cluster positioning and collisions velocity:
-	clusA.updateCom();
-	clusB.updateCom();
+	projectile.updateComAndMass();
+	target.updateComAndMass();
 
-	clusA.updateRadius();
-	clusB.updateRadius();
+	projectile.updateRadius();
+	target.updateRadius();
 
-	clusA.updatePE();
-	clusB.updatePE();
+	projectile.updatePE();
+	target.updatePE();
 
-	clusA.offset(clusA.radius, clusB.radius + (clusA.R[0] * 1.), impactParameter); // Adding 3 times the radius of one ball gaurantees total separation between clusters.
-	double PEsys = clusA.PE + clusB.PE + (-G * clusA.mTotal * clusB.mTotal / (clusA.com - clusB.com).norm());
+	projectile.offset(projectile.radius, target.radius + (projectile.R[0] * 1.), impactParameter); // Adding 3 times the radius of one ball gaurantees total separation between clusters.
+	double PEsys = projectile.PE + target.PE + (-G * projectile.mTotal * target.mTotal / (projectile.com - target.com).norm());
 
 	// Collision velocity calculation:
-	double mSmall = clusA.mTotal;
-	double mBig = clusB.mTotal;
+	double mSmall = projectile.mTotal;
+	double mBig = target.mTotal;
 	double mTot = mBig + mSmall;
 	double vSmall = -sqrt(2 * KEfactor * fabs(PEsys) * (mBig / (mSmall * mTot))); // Negative because small offsets right.
 	double vBig = -(mSmall / mBig) * vSmall; // Negative to be opposing projectile.
@@ -96,30 +96,55 @@ void simInitTwoCluster()
 		fprintf(stderr, "A VELOCITY WAS NAN!!!!!!!!!!!!!!!!!!!!!!\n\n");
 		exit(EXIT_FAILURE);
 	}
-	clusA.kick(vSmall);
-	clusB.kick(vBig);
-	clusA.checkMomentum("Cluster A");
-	clusB.checkMomentum("Cluster B");
+	projectile.kick(vSmall);
+	target.kick(vBig);
+	projectile.checkMomentum("Cluster A");
+	target.checkMomentum("Cluster B");
 
-	O.allocateGroup(clusA.cNumBalls + clusB.cNumBalls);
+	O.allocateGroup(projectile.cNumBalls + target.cNumBalls);
 
-	O.addBallGroup(&clusA);
-	O.addBallGroup(&clusB);
+	O.addBallGroup(&projectile);
+	O.addBallGroup(&target);
 
-	dt = .01 * O.R[O.cNumBalls - 1] / vSmall;
-	std::cout << "Collision dt: " << dt << std::endl;
+	O.updateRadius();
+	O.updateComAndMass();
+	double vMax = sqrt(2 * G * O.mTotal / O.radius);
+
+	// Check if the kick is going to be the most significant velocity basis, or if gravity will matter more.
+	if (fabs(vSmall) > fabs(vMax))
+	{
+		std::cout << "Kick greater than binding." << vMax << "<vMax | vSmall>" << vSmall << std::endl;
+		// dt based on velocity of kick for smallest cluster (fastest velocity)
+		dt = .01 * O.R[O.cNumBalls - 1] / vSmall;
+
+		// calc kin here
+		kin = O.m[0] * vSmall * vSmall / (.1 * O.R[0] * .1 * O.R[0]);
+		kout = cor * kin;
+	}
+	else
+	{
+		std::cout << "Binding greater than kick. " << vMax << "<vMax | vSmall>" << vSmall << std::endl;
+		// dt based on the kinetic energy equal to the total binding energy of the cluster.
+		dt = .01 * O.R[O.cNumBalls - 1] / vMax;
+
+		// calc kin here
+		kin = O.m[0] * vMax * vMax / (.1 * O.R[0] * .1 * O.R[0]);
+		kout = cor * kin;
+	}
+
 	steps = (int)(simTimeSeconds / dt);
 
-	// calc kin here
-	kin = O.m[0] * vSmall * vSmall / (.1 * O.R[0] * .1 * O.R[0]);
-	std::cout << "Collision k: " << kin << std::endl;
-	kout = cor * kin;
+	std::cout << "vMax: " << vMax << std::endl;
+	std::cout << "dt: " << dt << std::endl;
+	std::cout << "k: " << kin << std::endl;
+	std::cout << "Steps: " << steps << std::endl;
+
 
 	O.initConditions();
 
 	// Name the file based on info above:
 	outputPrefix =
-		clusterAName + clusterBName +
+		projectileName + targetName +
 		"-T" + rounder(KEfactor, 4) +
 		"-vBig" + scientific(vBig) +
 		"-vSmall" + scientific(vSmall) +
@@ -134,7 +159,7 @@ void simInitTwoCluster()
 void simInitOneCluster(double* spins)
 {
 	// Load file data:
-	ballGroup clusA = importDataFromFile(clusterAName + "simData.csv", clusterAName + "constants.csv");
+	ballGroup clusA = importDataFromFile(projectileName + "simData.csv", projectileName + "constants.csv");
 
 	// DO YOU WANT TO STOP EVERYTHING?
 	clusA.zeroMotion();
@@ -152,7 +177,7 @@ void simInitOneCluster(double* spins)
 	O.allocateGroup(clusA.cNumBalls);
 
 	outputPrefix =
-		clusterAName +
+		projectileName +
 		"-T" + rounder(KEfactor, 4) +
 		"-k" + scientific(kin) +
 		"-cor" + rounder(pow(cor, 2), 4) +
@@ -555,7 +580,7 @@ void simLooper()
 	//////////////////////////////////////////////////////
 	/////////////////////////////////////////////////////
 
-	std::cout << "Beginning simulation at...\n";
+	std::cout << "Beginning simulation...\n";
 
 	for (int Step = 1; Step < steps; Step++) // Steps start at 1 because the 0 step is initial conditions.
 	{
@@ -697,7 +722,7 @@ ballGroup importDataFromFile(std::string initDataFileName, std::string initConst
 		tclus.pos[Ball] -= tclus.com;
 	}
 
-	tclus.updateCom();
+	tclus.updateComAndMass();
 
 	std::cout << "Balls: " << tclus.cNumBalls << std::endl;
 	std::cout << "Mass: " << tclus.mTotal << std::endl;
@@ -980,6 +1005,90 @@ void threeSizeSphere()
 	std::cout << "Mass: " << O.mTotal << std::endl;
 }
 
+
+
+void oneSizeSphere()
+{
+
+	for (int Ball = 0; Ball < genBalls; Ball++)
+	{
+		O.R[Ball] = scaleBalls;
+		O.m[Ball] = density * 4. / 3. * 3.14159 * pow(O.R[Ball], 3);
+		O.moi[Ball] = .4 * O.m[Ball] * O.R[Ball] * O.R[Ball];
+		O.w[Ball] = { 0, 0, 0 };
+		O.pos[Ball] = randSphericalVec(spaceRange, spaceRange, spaceRange);
+	}
+
+	// Generate non-overlapping spherical particle field:
+	int collisionDetected = 0;
+	int oldCollisions = genBalls;
+
+	for (int failed = 0; failed < attempts; failed++)
+	{
+		for (int A = 0; A < genBalls; A++)
+		{
+			for (int B = A + 1; B < genBalls; B++)
+			{
+				// Check for Ball overlap.
+				double dist = (O.pos[A] - O.pos[B]).norm();
+				double sumRaRb = O.R[A] + O.R[B];
+				double overlap = dist - sumRaRb;
+				if (overlap < 0)
+				{
+					collisionDetected += 1;
+					// Move the other ball:
+					O.pos[B] = randSphericalVec(spaceRange, spaceRange, spaceRange);
+				}
+			}
+		}
+		if (collisionDetected < oldCollisions)
+		{
+			oldCollisions = collisionDetected;
+			std::cout << "Collisions: " << collisionDetected << "                        \r";
+		}
+		if (collisionDetected == 0)
+		{
+			std::cout << "\nSuccess!\n";
+			break;
+		}
+		if (failed == attempts - 1 || collisionDetected > int(1.5 * (double)genBalls)) // Added the second part to speed up spatial constraint increase when there are clearly too many collisions for the space to be feasable.
+		{
+			std::cout << "Failed " << spaceRange << ". Increasing range " << spaceRangeIncrement << "cm^3.\n";
+			spaceRange += spaceRangeIncrement;
+			failed = 0;
+			for (int Ball = 0; Ball < genBalls; Ball++)
+			{
+				O.pos[Ball] = randSphericalVec(spaceRange, spaceRange, spaceRange); // Each time we fail and increase range, redistribute all balls randomly so we don't end up with big balls near mid and small balls outside.
+			}
+		}
+		collisionDetected = 0;
+	}
+
+	std::cout << "Final spacerange: " << spaceRange << std::endl;
+	// Calculate approximate radius of imported cluster and center of mass:
+	vector3d comNumerator;
+	for (int Ball = 0; Ball < O.cNumBalls; Ball++)
+	{
+		O.mTotal += O.m[Ball];
+		comNumerator += O.m[Ball] * O.pos[Ball];
+	}
+	O.com = comNumerator / O.mTotal;
+
+	for (int Ball = 0; Ball < O.cNumBalls; Ball++)
+	{
+		double dist = (O.pos[Ball] - O.com).norm();
+		if (dist > O.radius)
+		{
+			O.radius = dist;
+		}
+	}
+
+	std::cout << "Initial Radius: " << O.radius << std::endl;
+	std::cout << "Mass: " << O.mTotal << std::endl;
+}
+
+
+
 void generateBallField()
 {
 	std::cout << "CLUSTER FORMATION\n";
@@ -989,7 +1098,9 @@ void generateBallField()
 	int seedSave = time(NULL);
 	srand(seedSave);
 
-	twoSizeSphereShell5000();
+	//twoSizeSphereShell5000();
+	oneSizeSphere();
+	//threeSizeSphere();
 
 	// dt based on the kinetic energy equal to the total binding energy of the cluster.
 	double vMax = sqrt(2 * G * O.mTotal / O.radius);
@@ -1014,6 +1125,8 @@ void generateBallField()
 		"_";
 
 }
+
+
 
 void safetyChecks()
 {

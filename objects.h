@@ -115,7 +115,7 @@ struct ballGroup
 		}
 	}
 
-	vector3d updateCom()
+	vector3d updateComAndMass()
 	{
 		mTotal = 0;
 		{
@@ -152,13 +152,13 @@ struct ballGroup
 
 	void clusToOrigin()
 	{
-		updateCom();
+		updateComAndMass();
 
 		for (int Ball = 0; Ball < cNumBalls; Ball++)
 		{
 			pos[Ball] -= com;
 		}
-		updateCom();
+		updateComAndMass();
 	}
 
 	// Set velocity of all balls such that the cluster spins:
@@ -179,7 +179,7 @@ struct ballGroup
 		{
 			vel[Ball].x += vx;
 		}
-		updateCom(); // Update com.
+		updateComAndMass(); // Update com.
 	}
 
 	void rotAll(char axis, double angle)
@@ -352,6 +352,6 @@ struct ballGroup
 			pos[Ball].x += (rad1 + rad2) * cos(impactParam);
 			pos[Ball].y += (rad1 + rad2) * sin(impactParam);
 		}
-		updateCom(); // Update com.
+		updateComAndMass(); // Update com.
 	}
 };
