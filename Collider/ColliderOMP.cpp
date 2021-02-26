@@ -1,14 +1,13 @@
 #define _USE_MATH_DEFINES
 #include <iostream>
-#include <cmath>
 #include <fstream>
 #include <time.h>
 #include <sstream>
-#include <iomanip>
-#include <algorithm>
-#include <omp.h>
+#include <stdio.h>
+#include "math.h"
 #include "../vector3d.h"
 #include "../initializations.h"
+#include "../misc.h"
 #include "../objects.h"
 
 // File streams
@@ -24,7 +23,7 @@ energyBuffer;
 
 // Function Prototypes
 int countBalls(std::string initDataFileName);
-cluster initFromFile(std::string initDataFileName, std::string initConstFileName, bool zeroMotion);
+ballGroup initFromFile(std::string initDataFileName, std::string initConstFileName, bool zeroMotion);
 
 // Main function
 int main(int argc, char const* argv[])
@@ -51,15 +50,15 @@ int main(int argc, char const* argv[])
 		printf("\nKE=%.1f\tIP=%.1f\n", KEfactor, impactParameter);
 	}
 
-	universe cosmos;
+	ballGroup cosmos;
 
 	// Two cluster sim:
 	if (true)
 	{
 		// Count balls in files, reserve space, then load file data:
 		std::cerr << "File 1: " << clusterAName << '\t' << "File 2: " << clusterBName << std::endl;
-		cluster clusA = initFromFile(path + clusterAName + "simData.csv", path + clusterAName + "constants.csv", 1);
-		cluster clusB = initFromFile(path + clusterBName + "simData.csv", path + clusterBName + "constants.csv", 1);
+		ballGroup clusA = initFromFile(path + clusterAName + "simData.csv", path + clusterAName + "constants.csv", 1);
+		ballGroup clusB = initFromFile(path + clusterBName + "simData.csv", path + clusterBName + "constants.csv", 1);
 
 		clusA.offset(clusA.radius, clusB.radius + (clusA.balls[0].R * 1.), impactParameter); // Adding 3 times the radius of one ball gaurantees total separation between clusters.
 		double PEsys = clusA.PE + clusB.PE + (-G * clusA.m * clusB.m / (clusA.com - clusB.com).norm());
@@ -93,24 +92,24 @@ int main(int argc, char const* argv[])
 	if (false)
 	{
 		// Count balls in files, reserve space, then load file data:
-		cluster clusA = initFromFile(clusterAName + "simData.csv", clusterAName + "constants.csv", 0);
+		ballGroup clusA = initFromFile(clusterAName + "simData.csv", clusterAName + "constants.csv", 0);
 		// Rotate
 		clusA.rotAll('z', z0Rot);
 		clusA.rotAll('y', y0Rot);
 		// Spin
 		clusA.comSpinner(spins[0], spins[1], spins[2]);
-		// Check and add to universe
+		// Check and add to ballGroup
 		clusA.checkMomentum();
 		cosmos.balls.insert(cosmos.balls.end(), clusA.balls.begin(), clusA.balls.end());
 	}
 
 	// Cosmos has been filled with balls. Size is known:
-	int ballTotal = (int)cosmos.balls.size();
+	int ballTotal = (int)cosmos.numBalls;
 	std::vector<ball>& all = cosmos.balls;
 	cosmos.checkMomentum(); // Is total momentum zero like it should be?
 
 	cosmos.calcComAndMass();
-	// Re-center universe mass to origin:
+	// Re-center ballGroup mass to origin:
 	for (int Ball = 0; Ball < ballTotal; Ball++)
 	{
 		cosmos.balls[Ball].pos -= cosmos.com;
@@ -558,9 +557,9 @@ int main(int argc, char const* argv[])
 } // end main
 
 
-cluster initFromFile(std::string initDataFileName, std::string initConstFileName, bool zeroMotion)
+ballGroup initFromFile(std::string initDataFileName, std::string initConstFileName, bool zeroMotion)
 {
-	cluster tclus;
+	ballGroup tclus;
 	// Get position and angular velocity data:
 	if (auto simDataStream = std::ifstream(initDataFileName, std::ifstream::in))
 	{
@@ -596,7 +595,7 @@ cluster initFromFile(std::string initDataFileName, std::string initConstFileName
 
 		std::stringstream chosenLine(line); // This is the last line of the read file, containing all data for all balls at last time step
 
-		for (int A = 0; A < tclus.balls.size(); A++)
+		for (int A = 0; A < tclus.numBalls; A++)
 		{
 			ball& a = tclus.balls[A];
 
@@ -633,7 +632,7 @@ cluster initFromFile(std::string initDataFileName, std::string initConstFileName
 	if (auto ConstStream = std::ifstream(initConstFileName, std::ifstream::in))
 	{
 		std::string line, lineElement;
-		for (int A = 0; A < tclus.balls.size(); A++)
+		for (int A = 0; A < tclus.numBalls; A++)
 		{
 			ball& a = tclus.balls[A];
 			std::getline(ConstStream, line); // Ball line.
@@ -654,7 +653,7 @@ cluster initFromFile(std::string initDataFileName, std::string initConstFileName
 	// Zero all angular momenta and velocity:
 	if (zeroMotion)
 	{
-		for (int Ball = 0; Ball < tclus.balls.size(); Ball++)
+		for (int Ball = 0; Ball < tclus.numBalls; Ball++)
 		{
 			tclus.balls[Ball].w = { 0, 0, 0 };
 			tclus.balls[Ball].vel = { 0, 0, 0 };
@@ -663,7 +662,7 @@ cluster initFromFile(std::string initDataFileName, std::string initConstFileName
 
 	// Calculate approximate radius of imported cluster and center mass at origin:
 	vector3d comNumerator;
-	for (int Ball = 0; Ball < tclus.balls.size(); Ball++)
+	for (int Ball = 0; Ball < tclus.numBalls; Ball++)
 	{
 		ball& a = tclus.balls[Ball];
 		tclus.m += a.m;
@@ -671,7 +670,7 @@ cluster initFromFile(std::string initDataFileName, std::string initConstFileName
 	}
 	tclus.com = comNumerator / tclus.m;
 
-	for (int Ball = 0; Ball < tclus.balls.size(); Ball++)
+	for (int Ball = 0; Ball < tclus.numBalls; Ball++)
 	{
 		double dist = (tclus.balls[Ball].pos - tclus.com).norm();
 		if (dist > tclus.radius)
@@ -685,7 +684,7 @@ cluster initFromFile(std::string initDataFileName, std::string initConstFileName
 	tclus.com = { 0, 0, 0 }; // We just moved all balls to center the com.
 	tclus.initConditions();
 
-	std::cout << "Balls in current file: " << tclus.balls.size() << std::endl;
+	std::cout << "Balls in current file: " << tclus.numBalls << std::endl;
 	std::cout << "Mass in current file: " << tclus.m << std::endl;
 	std::cout << "Approximate radius of current file: " << tclus.radius << " centimeters.\n";
 	return tclus;

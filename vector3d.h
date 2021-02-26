@@ -1,8 +1,5 @@
-#include <math.h>
 #include <cassert>
-#include <stdio.h>
-#include <string>
-#include <sstream>
+
 
 #pragma once
 
@@ -23,14 +20,14 @@ public:
 		y = newy;
 		z = newz;
 	}
-	vector3d(const vector3d &v)
+	vector3d(const vector3d& v)
 	{
 		x = v.x;
 		y = v.y;
 		z = v.z;
 	}
 
-	vector3d operator=(const vector3d &v)
+	vector3d operator=(const vector3d& v)
 	{
 		x = v.x;
 		y = v.y;
@@ -43,11 +40,11 @@ public:
 		return vector3d(-x, -y, -z);
 	}
 
-	vector3d operator+(const vector3d &v) const
+	vector3d operator+(const vector3d& v) const
 	{
 		return vector3d(x + v.x, y + v.y, z + v.z);
 	}
-	vector3d operator+=(const vector3d &v)
+	vector3d operator+=(const vector3d& v)
 	{
 		x += v.x;
 		y += v.y;
@@ -55,11 +52,11 @@ public:
 		return *this;
 	}
 
-	vector3d operator-(const vector3d &v) const
+	vector3d operator-(const vector3d& v) const
 	{
 		return vector3d(x - v.x, y - v.y, z - v.z);
 	}
-	vector3d operator-=(const vector3d &v)
+	vector3d operator-=(const vector3d& v)
 	{
 		x -= v.x;
 		y -= v.y;
@@ -91,17 +88,17 @@ public:
 		return *this;
 	}
 
-	bool operator==(const vector3d &v) const
+	bool operator==(const vector3d& v) const
 	{
 		return ((x == v.x) && (y == v.y) &&
-				(z == v.z));
+			(z == v.z));
 	}
-	bool operator!=(const vector3d &v) const
+	bool operator!=(const vector3d& v) const
 	{
 		return !(*this == v);
 	}
 
-	double &operator[](const unsigned int i)
+	double& operator[](const unsigned int i)
 	{
 		switch (i)
 		{
@@ -128,15 +125,14 @@ public:
 		assert(0);
 	}
 
-	double dot(const vector3d &v) const
+	double dot(const vector3d& v) const
 	{
 		return x * v.x + y * v.y + z * v.z;
 	}
-	vector3d cross(const vector3d &v) const
+	vector3d cross(const vector3d& v) const
 	{
 		return vector3d(y * v.z - z * v.y, z * v.x - x * v.z, x * v.y - y * v.x);
 	}
-
 	double norm() const
 	{
 		return sqrt(x * x + y * y + z * z);
@@ -161,9 +157,9 @@ public:
 
 	vector3d rot(char axis, double angle)
 	{
-		double rotx[3][3] = {{1, 0, 0}, {0, cos(angle), -sin(angle)}, {0, sin(angle), cos(angle)}},
-			   roty[3][3] = {{cos(angle), 0, sin(angle)}, {0, 1, 0}, {-sin(angle), 0, cos(angle)}},
-			   rotz[3][3] = {{cos(angle), -sin(angle), 0}, {sin(angle), cos(angle), 0}, {0, 0, 1}};
+		double rotx[3][3] = { {1, 0, 0}, {0, cos(angle), -sin(angle)}, {0, sin(angle), cos(angle)} },
+			roty[3][3] = { {cos(angle), 0, sin(angle)}, {0, 1, 0}, {-sin(angle), 0, cos(angle)} },
+			rotz[3][3] = { {cos(angle), -sin(angle), 0}, {sin(angle), cos(angle), 0}, {0, 0, 1} };
 		vector3d newVec;
 		switch (axis)
 		{
@@ -190,7 +186,7 @@ public:
 	}
 };
 
-inline vector3d operator*(const double scalar, const vector3d &v)
+inline vector3d operator*(const double scalar, const vector3d& v)
 {
 	return v * scalar;
 }
@@ -203,14 +199,14 @@ public:
 		w = 1.0;
 		x = y = z = 0;
 	}
-	rotation(const rotation &q)
+	rotation(const rotation& q)
 	{
 		w = q.w;
 		x = q.x;
 		y = q.y;
 		z = q.z;
 	}
-	rotation(const double angle, const vector3d &axis)
+	rotation(const double angle, const vector3d& axis)
 	{
 		w = cos(angle / 2.0);
 		const vector3d goodaxis = axis.normalized();
@@ -220,7 +216,7 @@ public:
 		z = goodaxis.z * sinangle_over2;
 	}
 
-	rotation operator=(const rotation &q)
+	rotation operator=(const rotation& q)
 	{
 		w = q.w;
 		x = q.x;
@@ -229,26 +225,26 @@ public:
 		return *this;
 	}
 
-	rotation operator*(const rotation &q) const
+	rotation operator*(const rotation& q) const
 	{
 		return rotation(w * q.w - x * q.x - y * q.y - z * q.z,
-						w * q.x + x * q.w + y * q.z - z * q.y,
-						w * q.y - x * q.z + y * q.w + z * q.x,
-						w * q.z + x * q.y - y * q.x + z * q.w)
+			w * q.x + x * q.w + y * q.z - z * q.y,
+			w * q.y - x * q.z + y * q.w + z * q.x,
+			w * q.z + x * q.y - y * q.x + z * q.w)
 			.normalized();
 	}
-	rotation operator*=(const rotation &q)
+	rotation operator*=(const rotation& q)
 	{
 		*this = q * (*this);
 		return *this;
 	}
 
-	bool operator==(const rotation &q) const
+	bool operator==(const rotation& q) const
 	{
 		return ((w == q.w) && (x == q.x) &&
-				(y == q.y) && (z == q.z));
+			(y == q.y) && (z == q.z));
 	}
-	bool operator!=(const rotation &q) const
+	bool operator!=(const rotation& q) const
 	{
 		return !(*this == q);
 	}
@@ -258,16 +254,16 @@ public:
 		return rotation(w, -x, -y, -z);
 	}
 
-	vector3d rotate_vector(const vector3d &v) const
+	vector3d rotate_vector(const vector3d& v) const
 	{
 		const rotation p(v.x * x + v.y * y + v.z * z,
-						 v.x * w - v.y * z + v.z * y,
-						 v.x * z + v.y * w - v.z * x,
-						 -v.x * y + v.y * x + v.z * w);
+			v.x * w - v.y * z + v.z * y,
+			v.x * z + v.y * w - v.z * x,
+			-v.x * y + v.y * x + v.z * w);
 		const rotation product(w * p.w - x * p.x - y * p.y - z * p.z,
-							   w * p.x + x * p.w + y * p.z - z * p.y,
-							   w * p.y - x * p.z + y * p.w + z * p.x,
-							   w * p.z + x * p.y - y * p.x + z * p.w);
+			w * p.x + x * p.w + y * p.z - z * p.y,
+			w * p.y - x * p.z + y * p.w + z * p.x,
+			w * p.z + x * p.y - y * p.x + z * p.w);
 		return vector3d(product.x, product.y, product.z);
 	}
 
@@ -371,13 +367,30 @@ double randDouble(double lim)
 }
 
 // Returns a vector within the desired radius, resulting in spherical random distribution
-vector3d randVec(double lim1, double lim2, double lim3)
+vector3d randSphericalVec(double lim1, double lim2, double lim3)
 {
-	vector3d vec = {randDouble(lim1), randDouble(lim2), randDouble(lim3)};
+	vector3d vec = { randDouble(lim1), randDouble(lim2), randDouble(lim3) };
 	double halfLim = lim1 * .5;
 	while (vec.norm() > halfLim)
 	{
-		vec = {randDouble(lim1), randDouble(lim2), randDouble(lim3)};
+		vec = { randDouble(lim1), randDouble(lim2), randDouble(lim3) };
+	}
+	return vec;
+}
+
+// Returns a vector within the desired radius, resulting in spherical random distribution
+vector3d randShellVec(double lim, double innerRadius)
+{
+	vector3d vec = { randDouble(lim), randDouble(lim), randDouble(lim) };
+	double halfLim = lim * .5;
+	if (halfLim < innerRadius)
+	{
+		std::cout << "Inner radius is larger than boundary. Impossible.\n";
+		exit(EXIT_FAILURE);
+	}
+	while (vec.norm() > halfLim || vec.norm() < innerRadius)
+	{
+		vec = { randDouble(lim), randDouble(lim), randDouble(lim) };
 	}
 	return vec;
 }
