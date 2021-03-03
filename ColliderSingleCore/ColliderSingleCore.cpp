@@ -91,6 +91,7 @@ void simInitTwoCluster()
 	double vSmall = -sqrt(2 * KEfactor * fabs(PEsys) * (mBig / (mSmall * mTot))); // Negative because small offsets right.
 	double vBig = -(mSmall / mBig) * vSmall; // Negative to be opposing projectile.
 	fprintf(stdout, "\nTarget Velocity: %.2e\nProjectile Velocity: %.2e\n", vBig, vSmall);
+
 	if (isnan(vSmall) || isnan(vBig))
 	{
 		fprintf(stderr, "A VELOCITY WAS NAN!!!!!!!!!!!!!!!!!!!!!!\n\n");
@@ -108,30 +109,37 @@ void simInitTwoCluster()
 	O.addBallGroup(&target);
 	O.addBallGroup(&projectile); // projectile second so smallest ball at end and largest ball at front for dt/k calcs.
 
+	// Calculate max velocity due to collapse
 	O.updateRadius();
 	O.updateComAndMass();
-	double vMax = sqrt(2 * G * O.mTotal / O.radius);
+	double vCollapse = sqrt(2 * G * O.mTotal / O.radius);
 
 	// Check if the kick is going to be the most significant velocity basis, or if gravity will matter more.
 	std::cout << std::endl;
-	if (fabs(vSmall) > fabs(vMax))
+	if (fabs(vSmall) > fabs(vCollapse))
 	{
-		std::cout << "Kick greater than binding." << vMax << "<vMax | vSmall>" << vSmall << std::endl;
+		std::cout << "Kick greater than binding." << vCollapse << "<vCollapse | vSmall>" << vSmall << std::endl;
 		// dt based on velocity of kick for smallest cluster (fastest velocity)
 		dt = .01 * O.R[O.cNumBalls - 1] / vSmall;
 
 		// calc kin here
 		kin = O.m[0] * vSmall * vSmall / (.1 * O.R[0] * .1 * O.R[0]);
 		kout = cor * kin;
+
+		// Lazzati k and dt:
+		double kl = 4 / 3 * M_PI * density * O.m[0] * vSmall * vSmall / (.1 * .1);
+		double dtl = .01 * sqrt(4 / 3 * M_PI * density / kl * O.R[O.cNumBalls - 1]);
+		std::cout << "My dt " << dt << "My k " << kin << std::endl;
+		std::cout << "Lazzati dt " << dtl << "Lazzati k " << kl << std::endl;
 	}
 	else
 	{
-		std::cout << "Binding greater than kick. " << vMax << "<vMax | vSmall>" << vSmall << std::endl;
+		std::cout << "Binding greater than kick. " << vCollapse << "<vCollapse | vSmall>" << vSmall << std::endl;
 		// dt based on the kinetic energy equal to the total binding energy of the cluster.
-		dt = .01 * O.R[O.cNumBalls - 1] / vMax;
+		dt = .01 * O.R[O.cNumBalls - 1] / vCollapse;
 
 		// calc kin here
-		kin = O.m[0] * vMax * vMax / (.1 * O.R[0] * .1 * O.R[0]);
+		kin = O.m[0] * vCollapse * vCollapse / (.1 * O.R[0] * .1 * O.R[0]);
 		kout = cor * kin;
 	}
 
@@ -1111,14 +1119,14 @@ void generateBallField()
 	//threeSizeSphere();
 
 	// dt based on the kinetic energy equal to the total binding energy of the cluster.
-	double vMax = sqrt(2 * G * O.mTotal / O.radius);
-	dt = .01 * O.R[O.cNumBalls - 1] / vMax;
-	std::cout << "Calculated vMax: " << vMax << std::endl;
+	double vCollapse = sqrt(2 * G * O.mTotal / O.radius);
+	dt = .01 * O.R[O.cNumBalls - 1] / vCollapse;
+	std::cout << "Calculated vCollapse: " << vCollapse << std::endl;
 	std::cout << "Calculated dt: " << dt << std::endl;
 	steps = (int)(simTimeSeconds / dt);
 
 	// calc kin here
-	kin = O.m[0] * vMax * vMax / (.1 * O.R[0] * .1 * O.R[0]);
+	kin = O.m[0] * vCollapse * vCollapse / (.1 * O.R[0] * .1 * O.R[0]);
 	std::cout << "Collision k: " << kin << std::endl;
 	kout = cor * kin;
 
@@ -1149,4 +1157,39 @@ void safetyChecks()
 		printf("\nDT NOT SET\n");
 		exit(EXIT_FAILURE);
 	}
+}
+
+
+void calibrateDT(int numBalls, bool superSafe)
+{
+	double vMax = 0;
+	for (size_t Ball = 0; Ball < numBalls; Ball++)
+	{
+		if (O.vel[Ball].norm() > vMax)
+		{
+			vMax = O.vel[Ball].norm();
+		}
+	}
+
+	// Is vMax for some reason unreasonably small? Don't proceed. Probably a finished sim.
+	if (vMax < 1e-10)
+	{
+		printf("\nMax velocity in system is less than 1e-10. Ending sim.\n");
+		exit(EXIT_SUCCESS);
+	}
+
+	if (superSafe)
+	{
+		// Safe: dt based on fastest velocity
+		// Lazzati k and dt:
+		double kl = 4 / 3 * M_PI * density * O.m[0] * vMax * vMax / (.1 * .1);
+		double dtl = .01 * sqrt(4 / 3 * M_PI * density / kl * O.R[O.cNumBalls - 1]);
+	}
+	else
+	{
+		// Less safe: dt based on fastest velocity
+		dt = .01 * O.R[O.cNumBalls - 1] / vMax;
+	}
+
+
 }
