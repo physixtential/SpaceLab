@@ -23,6 +23,7 @@ double
 dt = -1,
 kin = -1,      // Spring constant
 kout = -1,
+soc,				// double the radius of the initial system. Any ball outside that isn't considered for dynamic dt calibration.
 scaleBalls = 12.5, // base radius of balls
 spaceRange = pow(scaleBalls * genBalls, 1. / 3.), // Rough minimum space required
 spaceRangeIncrement = scaleBalls * 3,

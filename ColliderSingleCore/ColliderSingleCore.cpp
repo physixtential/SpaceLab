@@ -111,6 +111,7 @@ void simInitTwoCluster()
 
 	// Calculate max velocity due to collapse
 	O.updateRadius();
+	soc = 2 * O.radius; // sphere of consideration for max velocity, to avoid very unbound high vel balls.
 	O.updateComAndMass();
 	double vCollapse = sqrt(2 * G * O.mTotal / O.radius);
 
@@ -119,18 +120,16 @@ void simInitTwoCluster()
 	if (fabs(vSmall) > fabs(vCollapse))
 	{
 		std::cout << "Kick greater than binding." << vCollapse << "<vCollapse | vSmall>" << vSmall << std::endl;
-		// dt based on velocity of kick for smallest cluster (fastest velocity)
-		dt = .01 * O.R[O.cNumBalls - 1] / vSmall;
-
-		// calc kin here
-		kin = O.m[0] * vSmall * vSmall / (.1 * O.R[0] * .1 * O.R[0]);
-		kout = cor * kin;
+		// Guidosj k and dt:
+		double dtg = .01 * O.R[O.cNumBalls - 1] / vSmall;
+		double kg = O.m[0] * vSmall * vSmall / (.1 * O.R[0] * .1 * O.R[0]);
 
 		// Lazzati k and dt:
-		double kl = 4 / 3 * M_PI * density * O.m[0] * vSmall * vSmall / (.1 * .1);
-		double dtl = .01 * sqrt(4 / 3 * M_PI * density / kl * O.R[O.cNumBalls - 1]);
-		std::cout << "My dt " << dt << "My k " << kin << std::endl;
-		std::cout << "Lazzati dt " << dtl << "Lazzati k " << kl << std::endl;
+		double kin = 4 / 3 * M_PI * density * O.m[0] * vSmall * vSmall / (.1 * .1);
+		double dt = .01 * sqrt(4 / 3 * M_PI * density / kin * O.R[O.cNumBalls - 1]);
+		kout = cor * kin;
+		std::cout << "My dt " << dtg << "My k " << kg << std::endl;
+		std::cout << "Lazzati dt " << dt << "Lazzati k " << kin << std::endl;
 	}
 	else
 	{
@@ -162,42 +161,6 @@ void simInitTwoCluster()
 		"-vSmall" + scientific(vSmall) +
 		"-IP" + rounder(impactParameter * 180 / 3.14159, 2) +
 		"-k" + scientific(kin) +
-		"-rho" + rounder(density, 4) +
-		"-dt" + rounder(dt, 4) +
-		"_";
-}
-
-
-void simInitOneCluster(double* spins)
-{
-	// Load file data:
-	ballGroup clusA = importDataFromFile(projectileName + "simData.csv", projectileName + "constants.csv");
-
-	/////////////////////////
-	/////// NEEDS ADDITIONS FROM TWOCLUSTER THAT HAVE BEEN IMPROVED 2/25/2021...
-	//...
-
-	// DO YOU WANT TO STOP EVERYTHING?
-	clusA.zeroMotion();
-	clusA.initConditions();
-
-	// Rotate
-	clusA.rotAll('z', z0Rot);
-	clusA.rotAll('y', y0Rot);
-
-	// Spin
-	clusA.comSpinner(spins[0], spins[1], spins[2]);
-
-	// Check and add to ballGroup
-	clusA.checkMomentum("After Zeroing");
-	O.allocateGroup(clusA.cNumBalls);
-
-	outputPrefix =
-		projectileName +
-		"-T" + rounder(KEfactor, 4) +
-		"-k" + scientific(kin) +
-		"-cor" + rounder(pow(cor, 2), 4) +
-		"-mu" + rounder(mu, 3) +
 		"-rho" + rounder(density, 4) +
 		"-dt" + rounder(dt, 4) +
 		"_";
@@ -385,6 +348,7 @@ void simOneStep(int Step)
 		float progress = ((float)Step / (float)steps * 100.f);
 		printf("Step: %i\tProgress: %2.0f%%\tETA: %5.2lf hr\tElapsed: %5.2f hr\n", Step, progress, eta, elapsed);
 		startProgress = time(NULL);
+		calibrateDT(Step, true);
 	}
 	else
 	{
@@ -824,20 +788,7 @@ void twoSizeSphereShell5000()
 	}
 	O.com = comNumerator / O.mTotal;
 
-	O.radius = 0;
-	for (int A = 0; A < ballsInPhase1; A++)
-	{
-		for (int B = A + 1; B < ballsInPhase1; B++)
-		{
-			// Identify two farthest balls from eachother. That is diameter of cluster.
-			double diameter = (O.pos[A] - O.pos[B]).norm();
-			if (diameter * .5 > O.radius)
-			{
-				O.radius = diameter * .5;
-			}
-		}
-	}
-
+	O.updateRadius();
 
 	spaceRange += 2 * O.R[0] + 4 * 250;
 	O.radius += O.R[0] + 250;
@@ -1008,14 +959,7 @@ void threeSizeSphere()
 	}
 	O.com = comNumerator / O.mTotal;
 
-	for (int Ball = 0; Ball < O.cNumBalls; Ball++)
-	{
-		double dist = (O.pos[Ball] - O.com).norm();
-		if (dist > O.radius)
-		{
-			O.radius = dist;
-		}
-	}
+	O.updateRadius();
 
 	std::cout << "Initial Radius: " << O.radius << std::endl;
 	std::cout << "Mass: " << O.mTotal << std::endl;
@@ -1090,14 +1034,7 @@ void oneSizeSphere()
 	}
 	O.com = comNumerator / O.mTotal;
 
-	for (int Ball = 0; Ball < O.cNumBalls; Ball++)
-	{
-		double dist = (O.pos[Ball] - O.com).norm();
-		if (dist > O.radius)
-		{
-			O.radius = dist;
-		}
-	}
+	O.updateRadius();
 
 	std::cout << "Initial Radius: " << O.radius << std::endl;
 	std::cout << "Mass: " << O.mTotal << std::endl;
@@ -1160,12 +1097,14 @@ void safetyChecks()
 }
 
 
-void calibrateDT(int numBalls, bool superSafe)
+void calibrateDT(const int Step, const bool superSafe)
 {
+	O.updateComAndMass();
 	double vMax = 0;
-	for (size_t Ball = 0; Ball < numBalls; Ball++)
+	double dtOld = dt;
+	for (size_t Ball = 0; Ball < O.cNumBalls; Ball++)
 	{
-		if (O.vel[Ball].norm() > vMax)
+		if ((O.pos[Ball]-O.com).norm() < soc || O.vel[Ball].norm() > vMax)
 		{
 			vMax = O.vel[Ball].norm();
 		}
@@ -1182,8 +1121,9 @@ void calibrateDT(int numBalls, bool superSafe)
 	{
 		// Safe: dt based on fastest velocity
 		// Lazzati k and dt:
-		double kl = 4 / 3 * M_PI * density * O.m[0] * vMax * vMax / (.1 * .1);
-		double dtl = .01 * sqrt(4 / 3 * M_PI * density / kl * O.R[O.cNumBalls - 1]);
+		double ktemp = 4 / 3 * M_PI * density * O.m[0] * vMax * vMax / (.1 * .1);
+		dt = .01 * sqrt(4 / 3 * M_PI * density / ktemp * O.R[O.cNumBalls - 1]);
+		std::cout << "dt Calibrated: " << dt << std::endl;
 	}
 	else
 	{
@@ -1191,5 +1131,5 @@ void calibrateDT(int numBalls, bool superSafe)
 		dt = .01 * O.R[O.cNumBalls - 1] / vMax;
 	}
 
-
+	steps = dt/dtOld * (steps - Step) + Step;
 }
