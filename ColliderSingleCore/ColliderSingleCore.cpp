@@ -26,7 +26,6 @@ int ballTotal = 0;
 
 // Prototypes
 void simInitTwoCluster();
-void simInitOneCluster(double* spins);
 void simAnalyzeAndCenter();
 void simInitWrite();
 void simOneStep(int Step);
