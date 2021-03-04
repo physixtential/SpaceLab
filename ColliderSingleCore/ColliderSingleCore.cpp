@@ -64,6 +64,7 @@ void simInitTwoCluster()
 	// Load file data:
 	std::cerr << "TWO CLUSTER SIM\nFile 1: " << projectileName << '\t' << "File 2: " << targetName << std::endl;
 	ballGroup projectile = importDataFromFile(path + projectileName + "simData.csv", path + projectileName + "constants.csv");
+
 	ballGroup target = importDataFromFile(path + targetName + "simData.csv", path + targetName + "constants.csv");
 
 	// DO YOU WANT TO STOP EVERYTHING?
