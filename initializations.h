@@ -6,7 +6,7 @@ const double
 G = 6.67e-8,   // Gravitational constant
 density = 2.7, //2.7, // Typically based on some rock density
 mu = 0.9,      // Coeff of friction
-cor = 0.3,     // Coeff of restitution
+cor = 0.8,     // Coeff of restitution
 simTimeSeconds = 18000;
 
 // Simulation Structure
