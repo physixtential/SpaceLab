@@ -33,6 +33,7 @@ void simLooper();
 ballGroup importDataFromFile(std::string initDataFileName, std::string initConstFileName);
 void generateBallField();
 void safetyChecks();
+void calibrateDT(const int Step, const bool superSafe);
 
 // Main function
 int main(int argc, char const* argv[])
@@ -63,7 +64,17 @@ void simInitTwoCluster()
 {
 	// Load file data:
 	std::cerr << "TWO CLUSTER SIM\nFile 1: " << projectileName << '\t' << "File 2: " << targetName << std::endl;
-	ballGroup projectile = importDataFromFile(path + projectileName + "simData.csv", path + projectileName + "constants.csv");
+	//ballGroup projectile = importDataFromFile(path + projectileName + "simData.csv", path + projectileName + "constants.csv");
+
+	// DART PROBE
+	ballGroup projectile;
+	projectile.allocateGroup(1);
+	projectile.pos[0] = { 0,0,0 };
+	projectile.w[0] = { 0,0,0 };
+	projectile.vel[0] = { 0,0,0 };
+	projectile.R[0] = .785;
+	projectile.m[0] = 560000;
+	projectile.moi[0] = .4 * projectile.m[0] * projectile.R[0] * projectile.R[0];
 
 	ballGroup target = importDataFromFile(path + targetName + "simData.csv", path + targetName + "constants.csv");
 
