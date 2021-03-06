@@ -321,7 +321,6 @@ struct ballGroup
 		else // For the case of just one ball:
 		{
 			PE = 0;
-			radius = R[0];
 		}
 	}
 

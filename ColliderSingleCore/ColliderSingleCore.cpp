@@ -92,7 +92,7 @@ void simInitTwoCluster()
 	projectile.updatePE();
 	target.updatePE();
 
-	projectile.offset(projectile.radius, target.radius + (projectile.R[0] * 1.), impactParameter); // Adding 3 times the radius of one ball gaurantees total separation between clusters.
+	projectile.offset(projectile.radius, target.radius + (projectile.R[0] * 1.), impactParameter); // Adding 1. times the radius of one ball gaurantees total separation between clusters.
 	double PEsys = projectile.PE + target.PE + (-G * projectile.mTotal * target.mTotal / (projectile.com - target.com).norm());
 
 	// Collision velocity calculation:
