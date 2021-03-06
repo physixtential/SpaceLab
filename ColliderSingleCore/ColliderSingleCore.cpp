@@ -1096,7 +1096,7 @@ void calibrateDT(const int Step, const bool superSafe)
 	double dtOld = dt;
 	for (size_t Ball = 0; Ball < O.cNumBalls; Ball++)
 	{
-		if ((O.pos[Ball] - O.com).norm() < soc || O.vel[Ball].norm() > vMax)
+		if ((O.pos[Ball] - O.com).norm() < soc && O.vel[Ball].norm() > vMax)
 		{
 			vMax = O.vel[Ball].norm();
 		}
