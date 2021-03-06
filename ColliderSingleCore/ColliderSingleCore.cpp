@@ -132,7 +132,7 @@ void simInitTwoCluster()
 	std::cout << std::endl;
 	if (fabs(vSmall) > fabs(vCollapse))
 	{
-		std::cout << "Kick greater than binding." << vCollapse << "<vCollapse | vSmall>" << vSmall << std::endl;
+		std::cout << "Kick greater than binding. " << vCollapse << "<vCollapse | vSmall>" << vSmall << std::endl;
 		// Guidos k and dt:
 		double dtg = .01 * O.R[O.cNumBalls - 1] / vSmall;
 		double kg = O.m[0] * vSmall * vSmall / (.1 * O.R[0] * .1 * O.R[0]);
@@ -141,8 +141,8 @@ void simInitTwoCluster()
 		kin = 4 / 3 * M_PI * density * O.m[0] * vSmall * vSmall / (.1 * .1);
 		dt = .01 * sqrt(4 / 3 * M_PI * density / kin * O.R[O.cNumBalls - 1]);
 		kout = cor * kin;
-		std::cout << "My dt " << dtg << "My k " << kg << std::endl;
-		std::cout << "Lazzati dt " << dt << "Lazzati k " << kin << std::endl;
+		std::cout << "My dt " << dtg << " k " << kg << std::endl;
+		std::cout << "Lazzati dt " << dt << " k " << kin << std::endl;
 	}
 	else
 	{
@@ -155,7 +155,7 @@ void simInitTwoCluster()
 		kout = cor * kin;
 	}
 
-	steps = (int)(simTimeSeconds / dt);
+	steps = (size_t)(simTimeSeconds / dt);
 
 	std::cout << "==================" << std::endl;
 	std::cout << "dt: " << dt << std::endl;

@@ -16,7 +16,7 @@ properties = 11, // Number of columns in simData file per ball
 genBalls = 5120,
 attempts = 200; // How many times to try moving every ball touching another in generator.
 
-int
+size_t
 steps = -1;
 
 double
