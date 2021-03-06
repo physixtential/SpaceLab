@@ -340,7 +340,7 @@ struct ballGroup
 		{
 			pTotal += m[Ball] * vel[Ball];
 		}
-		printf("%s Momentum Check: %.2e, %.2e, %.2e\n", of, pTotal.x, pTotal.y, pTotal.z);
+		printf("%s Momentum Check: %.2e, %.2e, %.2e\n", of.c_str(), pTotal.x, pTotal.y, pTotal.z);
 	}
 
 	// offset cluster
