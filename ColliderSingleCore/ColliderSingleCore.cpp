@@ -72,7 +72,7 @@ void simInitTwoCluster()
 	projectile.pos[0] = { 0,0,0 };
 	projectile.w[0] = { 0,0,0 };
 	projectile.vel[0] = { 0,0,0 };
-	projectile.R[0] = .785;
+	projectile.R[0] = 78.5;
 	projectile.m[0] = 560000;
 	projectile.moi[0] = .4 * projectile.m[0] * projectile.R[0] * projectile.R[0];
 
@@ -92,7 +92,7 @@ void simInitTwoCluster()
 	projectile.updatePE();
 	target.updatePE();
 
-	projectile.offset(projectile.radius, target.radius + (projectile.R[0] * 1.), impactParameter); // Adding 1. times the radius of one ball gaurantees total separation between clusters.
+	projectile.offset(projectile.radius, target.radius + (projectile.R[0]), impactParameter); // Adding 1. times the radius of one ball gaurantees total separation between clusters.
 	double PEsys = projectile.PE + target.PE + (-G * projectile.mTotal * target.mTotal / (projectile.com - target.com).norm());
 
 	// Collision velocity calculation:
@@ -100,7 +100,9 @@ void simInitTwoCluster()
 	double mBig = target.mTotal;
 	double mTot = mBig + mSmall;
 	double vSmall = -sqrt(2 * KEfactor * fabs(PEsys) * (mBig / (mSmall * mTot))); // Negative because small offsets right.
+	vSmall = -600000; // DART probe override.
 	double vBig = -(mSmall / mBig) * vSmall; // Negative to be opposing projectile.
+	vBig = 0; // Dymorphous override.
 	fprintf(stdout, "\nTarget Velocity: %.2e\nProjectile Velocity: %.2e\n", vBig, vSmall);
 
 	if (isnan(vSmall) || isnan(vBig))
