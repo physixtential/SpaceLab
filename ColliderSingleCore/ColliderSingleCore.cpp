@@ -811,7 +811,7 @@ void twoSizeSphereShell5000()
 
 	// Generate non-overlapping spherical particle field:
 	collisionDetected = 0;
-	oldCollisions = 1e10;
+	oldCollisions = 100000000;
 
 	for (int failed = 0; failed < attempts; failed++)
 	{
@@ -1096,7 +1096,7 @@ void calibrateDT(const int Step, const bool superSafe)
 	double dtOld = dt;
 	for (size_t Ball = 0; Ball < O.cNumBalls; Ball++)
 	{
-		if ((O.pos[Ball]-O.com).norm() < soc || O.vel[Ball].norm() > vMax)
+		if ((O.pos[Ball] - O.com).norm() < soc || O.vel[Ball].norm() > vMax)
 		{
 			vMax = O.vel[Ball].norm();
 		}
@@ -1123,5 +1123,5 @@ void calibrateDT(const int Step, const bool superSafe)
 		dt = .01 * O.R[O.cNumBalls - 1] / vMax;
 	}
 
-	steps = dt/dtOld * (steps - Step) + Step;
+	steps = dt / dtOld * (steps - Step) + Step;
 }

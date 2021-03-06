@@ -104,7 +104,7 @@ struct ballGroup
 					double diameter = (pos[A] - pos[B]).norm();
 					if (diameter * .5 > radius)
 					{
-						radius = diameter*.5;
+						radius = diameter * .5;
 					}
 				}
 			}
@@ -138,6 +138,7 @@ struct ballGroup
 		else
 		{
 			std::cout << "Mass of cluster is zero...\n";
+			return { NULL, NULL, NULL };
 		}
 	}
 
