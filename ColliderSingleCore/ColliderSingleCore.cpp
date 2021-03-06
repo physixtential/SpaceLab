@@ -182,7 +182,7 @@ void simAnalyzeAndCenter()
 {
 	O.checkMomentum("After Zeroing"); // Is total mom zero like it should be?
 
-	O.clusToOrigin();
+	O.toOrigin();
 
 	// Compute physics between all balls. Distances, collision forces, energy totals, total mass:
 	O.initConditions();
@@ -693,27 +693,9 @@ ballGroup importDataFromFile(std::string initDataFileName, std::string initConst
 		exit(EXIT_FAILURE);
 	}
 
-	// Bring cluster to origin then calc its radius:
-	vector3d comNumerator;
-	for (int Ball = 0; Ball < tclus.cNumBalls; Ball++)
-	{
-		tclus.mTotal += tclus.m[Ball];
-		comNumerator += tclus.m[Ball] * tclus.pos[Ball];
-	}
-	tclus.com = comNumerator / tclus.mTotal;
-
-	for (int Ball = 0; Ball < tclus.cNumBalls; Ball++)
-	{
-		double dist = (tclus.pos[Ball] - tclus.com).norm();
-		if (dist > tclus.radius)
-		{
-			tclus.radius = dist;
-		}
-		// Center cluster mass at origin:
-		tclus.pos[Ball] -= tclus.com;
-	}
-
-	tclus.updateComAndMass();
+	// Bring cluster to origin and calc its radius:
+	tclus.toOrigin();
+	tclus.updateRadius();
 
 	std::cout << "Balls: " << tclus.cNumBalls << std::endl;
 	std::cout << "Mass: " << tclus.mTotal << std::endl;

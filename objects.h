@@ -150,7 +150,7 @@ struct ballGroup
 		}
 	}
 
-	void clusToOrigin()
+	void toOrigin()
 	{
 		updateComAndMass();
 
