@@ -69,7 +69,7 @@ void simInitTwoCluster()
 	// DART PROBE
 	ballGroup projectile;
 	projectile.allocateGroup(1);
-	projectile.pos[0] = { 0,0,0 };
+	projectile.pos[0] = { 8800,0,0 };
 	projectile.w[0] = { 0,0,0 };
 	projectile.vel[0] = { 0,0,0 };
 	projectile.R[0] = 78.5;
@@ -92,7 +92,8 @@ void simInitTwoCluster()
 	projectile.updatePE();
 	target.updatePE();
 
-	projectile.offset(projectile.radius, target.radius + (projectile.R[0]), impactParameter); // Adding 1. times the radius of one ball gaurantees total separation between clusters.
+	//projectile.offset(projectile.radius, target.radius + (projectile.R[0]), impactParameter);
+
 	double PEsys = projectile.PE + target.PE + (-G * projectile.mTotal * target.mTotal / (projectile.com - target.com).norm());
 
 	// Collision velocity calculation:
@@ -133,26 +134,14 @@ void simInitTwoCluster()
 	if (fabs(vSmall) > fabs(vCollapse))
 	{
 		std::cout << "Kick greater than binding. " << vCollapse << "<vCollapse | vSmall>" << vSmall << std::endl;
-		// Guidos k and dt:
-		double dtg = .01 * O.R[O.cNumBalls - 1] / vSmall;
-		double kg = O.m[0] * vSmall * vSmall / (.1 * O.R[0] * .1 * O.R[0]);
-
-		// Lazzati k and dt:
-		kin = 4 / 3 * M_PI * density * O.m[0] * vSmall * vSmall / (.1 * .1);
-		dt = .01 * sqrt(4 / 3 * M_PI * density / kin * O.R[O.cNumBalls - 1]);
-		kout = cor * kin;
-		std::cout << "My dt " << dtg << " k " << kg << std::endl;
-		std::cout << "Lazzati dt " << dt << " k " << kin << std::endl;
+		guidKDT(vSmall);
+		//std::cout << "My dt " << dtg << " k " << kg << std::endl;
+		//std::cout << "Lazzati dt " << dt << " k " << kin << std::endl;
 	}
 	else
 	{
 		std::cout << "Binding greater than kick. " << vCollapse << "<vCollapse | vSmall>" << vSmall << std::endl;
-		// dt based on the kinetic energy equal to the total binding energy of the cluster.
-		dt = .01 * O.R[O.cNumBalls - 1] / vCollapse;
-
-		// calc kin here
-		kin = O.m[0] * vCollapse * vCollapse / (.1 * O.R[0] * .1 * O.R[0]);
-		kout = cor * kin;
+		guidKDT(vCollapse);
 	}
 
 	steps = (size_t)(simTimeSeconds / dt);
@@ -169,7 +158,7 @@ void simInitTwoCluster()
 	// Name the file based on info above:
 	outputPrefix =
 		projectileName + targetName +
-		"-T" + rounder(KEfactor, 4) +
+		"T" + rounder(KEfactor, 4) +
 		"-vBig" + scientific(vBig) +
 		"-vSmall" + scientific(vSmall) +
 		"-IP" + rounder(impactParameter * 180 / 3.14159, 2) +
@@ -361,7 +350,7 @@ void simOneStep(int Step)
 		float progress = ((float)Step / (float)steps * 100.f);
 		printf("Step: %i\tProgress: %2.0f%%\tETA: %5.2lf hr\tElapsed: %5.2f hr\n", Step, progress, eta, elapsed);
 		startProgress = time(NULL);
-		calibrateDT(Step, true);
+		calibrateDT(Step, false);
 	}
 	else
 	{
@@ -1126,4 +1115,20 @@ void calibrateDT(const int Step, const bool superSafe)
 	}
 
 	steps = dt / dtOld * (steps - Step) + Step;
+}
+
+void guidKDT(double vel)
+{
+	// Guidos k and dt:
+	dt = .01 * O.R[O.cNumBalls - 1] / fabs(vel);
+	kin = O.m[0] * vel * vel / (.1 * O.R[0] * .1 * O.R[0]);
+	kout = cor * kin;
+}
+
+void lazzKDT(double vel)
+{
+	// Lazzati k and dt:
+	kin = 4 / 3 * M_PI * density * O.m[0] * vel * vel / (.1 * .1);
+	dt = .01 * sqrt(4 / 3 * M_PI * density / kin * O.R[O.cNumBalls - 1]);
+	kout = cor * kin;
 }
