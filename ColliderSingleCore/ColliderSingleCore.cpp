@@ -386,7 +386,6 @@ void simOneStep(int Step)
 	}
 
 	// SECOND PASS - Check for collisions, apply forces and torques:
-	double k;
 	for (int A = 1; A < ballTotal; A++) //cuda
 	{
 		// DONT DO ANYTHING HERE. A STARTS AT 1.
