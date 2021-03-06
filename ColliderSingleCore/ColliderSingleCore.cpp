@@ -133,13 +133,13 @@ void simInitTwoCluster()
 	if (fabs(vSmall) > fabs(vCollapse))
 	{
 		std::cout << "Kick greater than binding." << vCollapse << "<vCollapse | vSmall>" << vSmall << std::endl;
-		// Guidosj k and dt:
+		// Guidos k and dt:
 		double dtg = .01 * O.R[O.cNumBalls - 1] / vSmall;
 		double kg = O.m[0] * vSmall * vSmall / (.1 * O.R[0] * .1 * O.R[0]);
 
 		// Lazzati k and dt:
-		double kin = 4 / 3 * M_PI * density * O.m[0] * vSmall * vSmall / (.1 * .1);
-		double dt = .01 * sqrt(4 / 3 * M_PI * density / kin * O.R[O.cNumBalls - 1]);
+		kin = 4 / 3 * M_PI * density * O.m[0] * vSmall * vSmall / (.1 * .1);
+		dt = .01 * sqrt(4 / 3 * M_PI * density / kin * O.R[O.cNumBalls - 1]);
 		kout = cor * kin;
 		std::cout << "My dt " << dtg << "My k " << kg << std::endl;
 		std::cout << "Lazzati dt " << dt << "Lazzati k " << kin << std::endl;
