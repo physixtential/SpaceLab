@@ -1114,6 +1114,12 @@ void safetyChecks()
 		printf("\nDT NOT SET\n");
 		exit(EXIT_FAILURE);
 	}
+
+	if (steps < 0)
+	{
+		printf("\nSTEPS NOT SET\n");
+		exit(EXIT_FAILURE);
+	}
 }
 
 
