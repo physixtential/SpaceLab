@@ -34,6 +34,8 @@ ballGroup importDataFromFile(std::string initDataFileName, std::string initConst
 void generateBallField();
 void safetyChecks();
 void calibrateDT(const int Step, const bool superSafe);
+void guidKDT(double vel);
+void lazzKDT(double vel);
 
 // Main function
 int main(int argc, char const* argv[])
@@ -164,7 +166,50 @@ void simInitTwoCluster()
 		"-IP" + rounder(impactParameter * 180 / 3.14159, 2) +
 		"-k" + scientific(kin) +
 		"-rho" + rounder(density, 4) +
-		"-dt" + rounder(dt, 4) +
+		"-dt" + scientific(dt) +
+		"_";
+}
+
+
+void simContinue()
+{
+	// Load file data:
+	std::cerr << "Continuing Sim...\nFile 1: " << projectileName << std::endl;
+
+	O = importDataFromFile(path + targetName + "simData.csv", path + targetName + "constants.csv");
+
+	O.toOrigin();
+
+	O.updateRadius();
+
+	O.updatePE();
+
+	std::cout << std::endl;
+	O.checkMomentum("O");
+
+	guidKDT(O.vMax(false));
+	// k override to stabilize cluster.
+	kin = 1.01787e16;
+	kout = cor * kin;
+
+	steps = (size_t)(simTimeSeconds / dt);
+
+	std::cout << "==================" << std::endl;
+	std::cout << "dt: " << dt << std::endl;
+	std::cout << "k: " << kin << std::endl;
+	std::cout << "Steps: " << steps << std::endl;
+	std::cout << "==================" << std::endl;
+
+
+	O.initConditions();
+
+	// Name the file based on info above:
+	outputPrefix =
+		projectileName + targetName +
+		"T" + rounder(KEfactor, 4) +
+		"-k" + scientific(kin) +
+		"-rho" + rounder(density, 4) +
+		"-dt" + scientific(dt) +
 		"_";
 }
 
@@ -1082,23 +1127,9 @@ void safetyChecks()
 
 void calibrateDT(const int Step, const bool superSafe)
 {
-	O.updateComAndMass();
-	double vMax = 0;
 	double dtOld = dt;
-	for (size_t Ball = 0; Ball < O.cNumBalls; Ball++)
-	{
-		if ((O.pos[Ball] - O.com).norm() < soc && O.vel[Ball].norm() > vMax)
-		{
-			vMax = O.vel[Ball].norm();
-		}
-	}
 
-	// Is vMax for some reason unreasonably small? Don't proceed. Probably a finished sim.
-	if (vMax < 1e-10)
-	{
-		printf("\nMax velocity in system is less than 1e-10. Ending sim.\n");
-		exit(EXIT_SUCCESS);
-	}
+	double vMax = O.vMax(soc);
 
 	if (superSafe)
 	{
@@ -1112,9 +1143,12 @@ void calibrateDT(const int Step, const bool superSafe)
 	{
 		// Less safe: dt based on fastest velocity
 		dt = .01 * O.R[O.cNumBalls - 1] / vMax;
+		std::cout << "dt Calibrated: " << dt << std::endl;
 	}
 
 	steps = dt / dtOld * (steps - Step) + Step;
+	std::cout << "New step count: " << steps << std::endl;
+
 }
 
 void guidKDT(double vel)

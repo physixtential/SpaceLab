@@ -292,7 +292,7 @@ struct ballGroup
 		}
 	}
 
-	// Initialzie accelerations and energy calculations:
+	// Update Potential Energy:
 	void updatePE()
 	{
 		PE = 0;
@@ -353,5 +353,43 @@ struct ballGroup
 			pos[Ball].y += (rad1 + rad2) * sin(impactParam);
 		}
 		updateComAndMass(); // Update com.
+	}
+
+
+	// get max velocity
+	double vMax(bool useSoc)
+	{
+		double vMax = 0;
+		updateComAndMass();
+
+		if (useSoc)
+		{
+			for (size_t Ball = 0; Ball < cNumBalls; Ball++)
+			{
+				if ((pos[Ball] - com).norm() < soc && vel[Ball].norm() > vMax)
+				{
+					vMax = vel[Ball].norm();
+				}
+			}
+		}
+		else
+		{
+			for (size_t Ball = 0; Ball < cNumBalls; Ball++)
+			{
+				if (vel[Ball].norm() > vMax)
+				{
+					vMax = vel[Ball].norm();
+				}
+			}
+		}	
+
+		// Is vMax for some reason unreasonably small? Don't proceed. Probably a finished sim.
+		if (vMax < 1e-10)
+		{
+			printf("\nMax velocity in system is less than 1e-10. Ending sim.\n");
+			exit(EXIT_SUCCESS);
+		}
+
+		return vMax;
 	}
 };
