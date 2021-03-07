@@ -154,9 +154,6 @@ void simInitTwoCluster()
 	std::cout << "Steps: " << steps << std::endl;
 	std::cout << "==================" << std::endl;
 
-
-	O.initConditions();
-
 	// Name the file based on info above:
 	outputPrefix =
 		projectileName + targetName +
@@ -178,12 +175,6 @@ void simContinue()
 
 	O = importDataFromFile(path + targetName + "simData.csv", path + targetName + "constants.csv");
 
-	O.toOrigin();
-
-	O.updateRadius();
-
-	O.updatePE();
-
 	std::cout << std::endl;
 	O.checkMomentum("O");
 
@@ -199,9 +190,6 @@ void simContinue()
 	std::cout << "k: " << kin << std::endl;
 	std::cout << "Steps: " << steps << std::endl;
 	std::cout << "==================" << std::endl;
-
-
-	O.initConditions();
 
 	// Name the file based on info above:
 	outputPrefix =
