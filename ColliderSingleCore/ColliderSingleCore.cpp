@@ -26,6 +26,7 @@ int ballTotal = 0;
 
 // Prototypes
 void simInitTwoCluster();
+void simContinue();
 void simAnalyzeAndCenter();
 void simInitWrite();
 void simOneStep(int Step);
@@ -46,12 +47,13 @@ int main(int argc, char const* argv[])
 	{
 		//numThreads = atoi(argv[1]);
 		//printf("\nThread count set to %i.\n", numThreads);
-		projectileName = argv[2];
-		targetName = argv[3];
-		KEfactor = atof(argv[4]);
+		//projectileName = argv[2];
+		//targetName = argv[3];
+		//KEfactor = atof(argv[4]);
 	}
 
-	simInitTwoCluster();
+	//simInitTwoCluster();
+	simContinue();
 	//generateBallField();
 	safetyChecks();
 	ballTotal = O.cNumBalls;
