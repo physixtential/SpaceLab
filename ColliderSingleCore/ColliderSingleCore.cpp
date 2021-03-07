@@ -160,6 +160,7 @@ void simInitTwoCluster()
 	std::cout << "Steps: " << steps << std::endl;
 	std::cout << "==================" << std::endl;
 
+
 	// Name the file based on info above:
 	outputPrefix =
 		projectileName + targetName +
@@ -177,7 +178,7 @@ void simInitTwoCluster()
 void simContinue()
 {
 	// Load file data:
-	std::cerr << "Continuing Sim...\nFile 1: " << projectileName << std::endl;
+	std::cerr << "Continuing Sim...\nFile: " << targetName << std::endl;
 
 	O = importDataFromFile(path + targetName + "simData.csv", path + targetName + "constants.csv");
 
@@ -186,9 +187,10 @@ void simContinue()
 
 	setGuidDT(O.getVelMax(false));
 	setGuidK(O.getVelMax(false));
-	// k override to stabilize cluster.
+	// k and dt override to stabilize cluster.
 	kin = 1.01787e16;
 	kout = cor * kin;
+	dt = 1e-6;
 
 	steps = (size_t)(simTimeSeconds / dt);
 
@@ -197,6 +199,7 @@ void simContinue()
 	std::cout << "k: " << kin << std::endl;
 	std::cout << "Steps: " << steps << std::endl;
 	std::cout << "==================" << std::endl;
+
 
 	// Name the file based on info above:
 	outputPrefix =
@@ -1133,6 +1136,7 @@ void calibrateDT(const int Step, const bool superSafe)
 	double dtOld = dt;
 
 	double vMax = O.getVelMax(soc);
+	std::cout << "vMax: " << vMax << std::endl;
 
 	if (superSafe)
 	{
