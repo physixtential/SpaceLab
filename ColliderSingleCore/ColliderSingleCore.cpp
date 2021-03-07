@@ -385,7 +385,6 @@ void simOneStep(int Step)
 		float progress = ((float)Step / (float)steps * 100.f);
 		printf("Step: %i\tProgress: %2.0f%%\tETA: %5.2lf hr\tElapsed: %5.2f hr\n", Step, progress, eta, elapsed);
 		startProgress = time(NULL);
-		calibrateDT(Step, false);
 	}
 	else
 	{
@@ -547,12 +546,13 @@ void simOneStep(int Step)
 			O.mom += O.m[Ball] * O.vel[Ball];
 			O.angMom += O.m[Ball] * O.pos[Ball].cross(O.vel[Ball]) + O.moi[Ball] * O.w[Ball];
 		}
-	}
+	} // THIRD PASS END
+
 	if (writeStep || Step == steps - 1)
 	{
 		// Write energy to stream:
 		energyBuffer << std::endl
-			<< dt * Step << ',' << O.PE << ',' << O.KE << ',' << O.PE + O.KE << ',' << O.mom.norm() << ',' << O.angMom.norm() << ',' << 0 << ',' << 0 << ',' << O.mTotal; // the two zeros are bound and unbound mass
+			<< simTimeElapsed << ',' << O.PE << ',' << O.KE << ',' << O.PE + O.KE << ',' << O.mom.norm() << ',' << O.angMom.norm() << ',' << 0 << ',' << 0 << ',' << O.mTotal; // the two zeros are bound and unbound mass
 
 		// Reinitialize energies for next step:
 		O.KE = 0;
@@ -583,8 +583,10 @@ void simOneStep(int Step)
 
 			lastWrite = time(NULL);
 		} // Data export end
-	}     // THIRD PASS END
-}         // Steps end
+		calibrateDT(Step, false);
+		simTimeElapsed += dt * skip;
+	} // writestep end
+} // Steps end
 
 
 void simLooper()

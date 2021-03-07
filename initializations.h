@@ -32,7 +32,8 @@ impactParameter = 0, // Impact angle radians
 z0Rot = 0,           // Cluster one z axis rotation
 y0Rot = 0,           // Cluster one y axis rotation
 z1Rot = 0,           // Cluster two z axis rotation
-y1Rot = 0;           // Cluster two y axis rotation
+y1Rot = 0,           // Cluster two y axis rotation
+simTimeElapsed = 0;
 
 const bool
 springTest = false; // If true, spring compression is checked against ball radius. If compression > .1R, send warning to console. 
