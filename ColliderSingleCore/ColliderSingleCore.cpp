@@ -305,7 +305,7 @@ void simInitWrite()
 	// Write energy data to buffer:
 	energyBuffer
 		<< std::endl
-		<< dt << ','
+		<< simTimeElapsed << ','
 		<< O.PE << ','
 		<< O.KE << ','
 		<< O.PE + O.KE << ','
