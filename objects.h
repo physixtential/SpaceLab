@@ -357,14 +357,14 @@ struct ballGroup
 
 
 	// get max velocity
-	double vMax(bool useSoc)
+	double getVelMax(bool useSoc)
 	{
 		double vMax = 0;
 		updateComAndMass();
 
 		if (useSoc)
 		{
-			for (size_t Ball = 0; Ball < cNumBalls; Ball++)
+			for (int Ball = 0; Ball < cNumBalls; Ball++)
 			{
 				if ((pos[Ball] - com).norm() < soc && vel[Ball].norm() > vMax)
 				{
@@ -374,14 +374,14 @@ struct ballGroup
 		}
 		else
 		{
-			for (size_t Ball = 0; Ball < cNumBalls; Ball++)
+			for (int Ball = 0; Ball < cNumBalls; Ball++)
 			{
 				if (vel[Ball].norm() > vMax)
 				{
 					vMax = vel[Ball].norm();
 				}
 			}
-		}	
+		}
 
 		// Is vMax for some reason unreasonably small? Don't proceed. Probably a finished sim.
 		if (vMax < 1e-10)
@@ -391,5 +391,33 @@ struct ballGroup
 		}
 
 		return vMax;
+	}
+
+
+	int getRmin()
+	{
+		int rMin = R[0];
+		for (int Ball = 0; Ball < cNumBalls; Ball++)
+		{
+			if (R[Ball] < rMin)
+			{
+				rMin = R[Ball];
+			}
+		}
+		return rMin;
+	}
+
+
+	int getMassMax()
+	{
+		int mMax = m[0];
+		for (int Ball = 0; Ball < cNumBalls; Ball++)
+		{
+			if (m[Ball] > mMax)
+			{
+				mMax = m[Ball];
+			}
+		}
+		return mMax;
 	}
 };

@@ -35,8 +35,10 @@ ballGroup importDataFromFile(std::string initDataFileName, std::string initConst
 void generateBallField();
 void safetyChecks();
 void calibrateDT(const int Step, const bool superSafe);
-void guidKDT(double vel);
-void lazzKDT(double vel);
+void setGuidDT(double vel);
+void setGuidK(double vel);
+void setLazzDT(double vel);
+void setLazzK(double vel);
 
 // Main function
 int main(int argc, char const* argv[])
@@ -138,14 +140,16 @@ void simInitTwoCluster()
 	if (fabs(vSmall) > fabs(vCollapse))
 	{
 		std::cout << "Kick greater than binding. " << vCollapse << "<vCollapse | vSmall>" << vSmall << std::endl;
-		guidKDT(vSmall);
+		setGuidDT(vSmall);
+		setGuidK(vSmall);
 		//std::cout << "My dt " << dtg << " k " << kg << std::endl;
 		//std::cout << "Lazzati dt " << dt << " k " << kin << std::endl;
 	}
 	else
 	{
 		std::cout << "Binding greater than kick. " << vCollapse << "<vCollapse | vSmall>" << vSmall << std::endl;
-		guidKDT(vCollapse);
+		setGuidDT(vCollapse);
+		setGuidK(vCollapse);
 	}
 
 	steps = (size_t)(simTimeSeconds / dt);
@@ -180,7 +184,8 @@ void simContinue()
 	std::cout << std::endl;
 	O.checkMomentum("O");
 
-	guidKDT(O.vMax(false));
+	setGuidDT(O.getVelMax(false));
+	setGuidK(O.getVelMax(false));
 	// k override to stabilize cluster.
 	kin = 1.01787e16;
 	kout = cor * kin;
@@ -1127,20 +1132,19 @@ void calibrateDT(const int Step, const bool superSafe)
 {
 	double dtOld = dt;
 
-	double vMax = O.vMax(soc);
+	double vMax = O.getVelMax(soc);
 
 	if (superSafe)
 	{
 		// Safe: dt based on fastest velocity
 		// Lazzati k and dt:
-		double ktemp = 4 / 3 * M_PI * density * O.m[0] * vMax * vMax / (.1 * .1);
-		dt = .01 * sqrt(4 / 3 * M_PI * density / ktemp * O.R[O.cNumBalls - 1]);
+		setLazzDT(vMax);
 		std::cout << "dt Calibrated: " << dt << std::endl;
 	}
 	else
 	{
 		// Less safe: dt based on fastest velocity
-		dt = .01 * O.R[O.cNumBalls - 1] / vMax;
+		setGuidDT(vMax);
 		std::cout << "dt Calibrated: " << dt << std::endl;
 	}
 
@@ -1149,18 +1153,27 @@ void calibrateDT(const int Step, const bool superSafe)
 
 }
 
-void guidKDT(double vel)
+void setGuidDT(double vel)
 {
 	// Guidos k and dt:
-	dt = .01 * O.R[O.cNumBalls - 1] / fabs(vel);
-	kin = O.m[0] * vel * vel / (.1 * O.R[0] * .1 * O.R[0]);
+	dt = .01 * O.getRmin() / fabs(vel);
+}
+
+void setGuidK(double vel)
+{
+	kin = O.getMassMax() * vel * vel / (.1 * O.R[0] * .1 * O.R[0]);
 	kout = cor * kin;
 }
 
-void lazzKDT(double vel)
+void setLazzDT(double vel)
 {
 	// Lazzati k and dt:
-	kin = 4 / 3 * M_PI * density * O.m[0] * vel * vel / (.1 * .1);
-	dt = .01 * sqrt(4 / 3 * M_PI * density / kin * O.R[O.cNumBalls - 1]);
+	double kTemp = 4 / 3 * M_PI * density * O.getMassMax() * vel * vel / (.1 * .1);
+	dt = .01 * sqrt(4 / 3 * M_PI * density / kTemp * O.getRmin());
+}
+
+void setLazzK(double vel)
+{
+	kin = 4 / 3 * M_PI * density * O.getMassMax() * vel * vel / (.1 * .1);
 	kout = cor * kin;
 }
