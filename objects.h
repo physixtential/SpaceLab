@@ -1,22 +1,13 @@
-// There are 4 important steps to creating a new random cluster:
-// 1- allocateGroup(size) the cluster
-// 3- initConditions() to set correct first step physics
-// 4- freeMemory() to clear the arrays from memory when done.
-
-/** @brief Facilitates the concept of a group of balls with physical properties.
- There are 3 recommended steps to creating a new ballGroup:
- 1- allocateGroup(size)
- 3- initConditions() to set correct first step physics
- 4- freeMemory() to clear the arrays from memory when done.
-*/
-
 #pragma once
 
+/// @brief Facilitates the concept of a group of balls with physical properties.
+/// Recommended: Use ballGroup(int nBalls) constructor to allocate all the memory needed for your ballGroup size.
 struct ballGroup
 {
 	ballGroup() = default;
 
-	ballGroup(int nBalls)
+	/// Constructor to allocate all the memory needed for your ballGroup size.
+	ballGroup(int nBalls) /// Desired number of balls in group.
 	{
 		allocateGroup(nBalls);
 	}
@@ -34,18 +25,18 @@ struct ballGroup
 
 	double* distances = 0;
 
-	vector3d* pos = 0; /**< Detailed description after the member */
+	vector3d* pos = 0;
 	vector3d* vel = 0;
-	vector3d* velh = 0;
+	vector3d* velh = 0; ///< Velocity half step for integration purposes.
 	vector3d* acc = 0;
 	vector3d* w = 0;
-	vector3d* wh = 0;
+	vector3d* wh = 0; ///< Angular velocity half step for integration purposes.
 	vector3d* aacc = 0;
-	double* R = 0;
-	double* m = 0;
-	double* moi = 0;
+	double* R = 0; ///< Radius
+	double* m = 0; ///< Mass
+	double* moi = 0; ///< Moment of inertia
 
-	// Allocate ball property arrays.
+	/// Allocate ball property arrays.
 	void allocateGroup(int nBalls)
 	{
 		cNumBalls = nBalls;
@@ -64,6 +55,8 @@ struct ballGroup
 		moi = new double[cNumBalls];
 	}
 
+	
+	/// Add another ballGroup into this one.
 	void addBallGroup(ballGroup* src)
 	{
 		// Copy incoming data to the end of the currently loaded data.
@@ -90,7 +83,7 @@ struct ballGroup
 		// DON'T FORGET TO FREEMEMORY
 	}
 
-	// Deallocate heap memory.
+	/// Deallocate arrays to recover memory.
 	void freeMemory()
 	{
 		delete[] distances;
@@ -106,6 +99,7 @@ struct ballGroup
 		delete[] moi;
 	}
 
+	/// Approximate the radius of the ballGroup.
 	void updateRadius()
 	{
 		radius = 0;
