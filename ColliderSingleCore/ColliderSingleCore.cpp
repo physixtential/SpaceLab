@@ -117,8 +117,8 @@ void simInitTwoCluster()
 		fprintf(stderr, "A VELOCITY WAS NAN!!!!!!!!!!!!!!!!!!!!!!\n\n");
 		exit(EXIT_FAILURE);
 	}
-	projectile.kick(vSmall);
-	target.kick(vBig);
+	projectile.kick(vSmall,0,0);
+	target.kick(vBig,0,0);
 
 	std::cout << std::endl;
 	projectile.checkMomentum("Projectile");
