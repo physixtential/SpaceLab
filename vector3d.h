@@ -1,7 +1,6 @@
-#include <cassert>
-
-
 #pragma once
+
+#include <cassert>
 
 class vector3d
 {

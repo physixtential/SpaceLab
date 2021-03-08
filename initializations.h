@@ -1,6 +1,8 @@
+#pragma once
 ////////////////////////////////////
 // Initialization (Units are CGS) //
 ////////////////////////////////////
+
 
 const double
 G = 6.67e-8,   // Gravitational constant

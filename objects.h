@@ -3,9 +3,24 @@
 // 3- initConditions() to set correct first step physics
 // 4- freeMemory() to clear the arrays from memory when done.
 
+/** @brief Facilitates the concept of a group of balls with physical properties.
+ There are 3 recommended steps to creating a new ballGroup:
+ 1- allocateGroup(size)
+ 3- initConditions() to set correct first step physics
+ 4- freeMemory() to clear the arrays from memory when done.
+*/
+
+#pragma once
 
 struct ballGroup
 {
+	ballGroup() = default;
+
+	ballGroup(int nBalls)
+	{
+		allocateGroup(nBalls);
+	}
+
 	int cNumBalls = 0;
 	int cNumBallsAdded = 0;
 
@@ -19,7 +34,7 @@ struct ballGroup
 
 	double* distances = 0;
 
-	vector3d* pos = 0;
+	vector3d* pos = 0; /**< Detailed description after the member */
 	vector3d* vel = 0;
 	vector3d* velh = 0;
 	vector3d* acc = 0;
@@ -173,16 +188,6 @@ struct ballGroup
 		}
 	}
 
-	// Kick projectile at target
-	void kick(double vx)
-	{
-		for (int Ball = 0; Ball < cNumBalls; Ball++)
-		{
-			vel[Ball].x += vx;
-		}
-		updateComAndMass(); // Update com.
-	}
-
 	void rotAll(char axis, double angle)
 	{
 		for (int Ball = 0; Ball < cNumBalls; Ball++)
@@ -325,7 +330,8 @@ struct ballGroup
 		}
 	}
 
-	// Kick projectile at target
+
+	// Kick ballGroup (give the whole thing a velocity)
 	void kick(double vx, double vy, double vz)
 	{
 		for (int Ball = 0; Ball < cNumBalls; Ball++)
@@ -333,6 +339,7 @@ struct ballGroup
 			vel[Ball] += {vx, vy, vz};
 		}
 	}
+
 
 	void checkMomentum(std::string of)
 	{
