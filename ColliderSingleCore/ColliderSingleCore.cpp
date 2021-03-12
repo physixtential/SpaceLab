@@ -40,6 +40,7 @@ void setGuidDT(double vel);
 void setGuidK(double vel);
 void setLazzDT(double vel);
 void setLazzK(double vel);
+void pushApart();
 
 // Main function
 int main(int argc, char const* argv[])
@@ -57,8 +58,8 @@ int main(int argc, char const* argv[])
 	}
 
 	//simInitTwoCluster();
-	simContinue();
-	//generateBallField();
+	//simContinue();
+	generateBallField();
 	safetyChecks();
 	ballTotal = O.cNumBalls;
 	simAnalyzeAndCenter();
@@ -898,6 +899,60 @@ void twoSizeSphereShell5000()
 
 }
 
+void testGen()
+{
+	// Make genBalls of 3 sizes in CGS with ratios such that the mass is distributed evenly among the 3 sizes (less large genBalls than small genBalls).
+	int smalls = std::round((double)genBalls * 27 / 31.375); // Just here for reference. Whatever genBalls are left will be smalls.
+	int mediums = std::round((double)genBalls * 27 / (8 * 31.375));
+	int larges = std::round((double)genBalls * 1 / 31.375);
+
+
+	for (int Ball = 0; Ball < larges; Ball++)
+	{
+		O.R[Ball] = 3. * scaleBalls;//pow(1. / (double)genBalls, 1. / 3.) * 3. * scaleBalls;
+		O.m[Ball] = density * 4. / 3. * 3.14159 * pow(O.R[Ball], 3);
+		O.moi[Ball] = .4 * O.m[Ball] * O.R[Ball] * O.R[Ball];
+		O.w[Ball] = { 0, 0, 0 };
+		O.pos[Ball] = randSphericalVec(spaceRange, spaceRange, spaceRange);
+	}
+
+	for (int Ball = larges; Ball < (larges + mediums); Ball++)
+	{
+		O.R[Ball] = 2. * scaleBalls;//pow(1. / (double)genBalls, 1. / 3.) * 2. * scaleBalls;
+		O.m[Ball] = density * 4. / 3. * 3.14159 * pow(O.R[Ball], 3);
+		O.moi[Ball] = .4 * O.m[Ball] * O.R[Ball] * O.R[Ball];
+		O.w[Ball] = { 0, 0, 0 };
+		O.pos[Ball] = randSphericalVec(spaceRange, spaceRange, spaceRange);
+	}
+	for (int Ball = (larges + mediums); Ball < genBalls; Ball++)
+	{
+		O.R[Ball] = 1. * scaleBalls;//pow(1. / (double)genBalls, 1. / 3.) * 1. * scaleBalls;
+		O.m[Ball] = density * 4. / 3. * 3.14159 * pow(O.R[Ball], 3);
+		O.moi[Ball] = .4 * O.m[Ball] * O.R[Ball] * O.R[Ball];
+		O.w[Ball] = { 0, 0, 0 };
+		O.pos[Ball] = randSphericalVec(spaceRange, spaceRange, spaceRange);
+	}
+
+	std::cout << "Smalls: " << smalls << " Mediums: " << mediums << " Larges: " << larges << std::endl;
+
+	pushApart();
+
+	std::cout << "Final spacerange: " << spaceRange << std::endl;
+	// Calculate approximate radius of imported cluster and center of mass:
+	vector3d comNumerator;
+	for (int Ball = 0; Ball < O.cNumBalls; Ball++)
+	{
+		O.mTotal += O.m[Ball];
+		comNumerator += O.m[Ball] * O.pos[Ball];
+	}
+	O.com = comNumerator / O.mTotal;
+
+	O.updateRadius();
+
+	std::cout << "Initial Radius: " << O.radius << std::endl;
+	std::cout << "Mass: " << O.mTotal << std::endl;
+}
+
 void threeSizeSphere()
 {
 	// Make genBalls of 3 sizes in CGS with ratios such that the mass is distributed evenly among the 3 sizes (less large genBalls than small genBalls).
@@ -1138,24 +1193,24 @@ void calibrateDT(const int Step, const bool superSafe)
 	double dtOld = dt;
 
 	double vMax = O.getVelMax(soc);
-	std::cout << "vMax: " << vMax << std::endl;
+	std::cout << "vMax: " << vMax;
 
 	if (superSafe)
 	{
 		// Safe: dt based on fastest velocity
 		// Lazzati k and dt:
 		setLazzDT(vMax);
-		std::cout << "dt Calibrated: " << dt << std::endl;
+		std::cout << " dt Calibrated: " << dt;
 	}
 	else
 	{
 		// Less safe: dt based on fastest velocity
 		setGuidDT(vMax);
-		std::cout << "dt Calibrated: " << dt << std::endl;
+		std::cout << " dt Calibrated: " << dt;
 	}
 
 	steps = dt / dtOld * (steps - Step) + Step;
-	std::cout << "New step count: " << steps << std::endl;
+	std::cout << " New step count: " << steps << std::endl;
 
 }
 
@@ -1197,15 +1252,17 @@ void pushApart()
 			for (int B = A + 1; B < genBalls; B++)
 			{
 				// Check for Ball overlap.
-				double dist = (O.pos[A] - O.pos[B]).norm();
+				vector3d rVecab = O.pos[B] - O.pos[A];
+				vector3d rVecba = -1 * rVecab;
+				double dist = (rVecab).norm();
 				double sumRaRb = O.R[A] + O.R[B];
 				double overlap = dist - sumRaRb;
 				if (overlap < 0)
 				{
 					collisionDetected += 1;
-					// Move the other ball:
-					O.pos[A] = *(rVecab / dist)
-					O.pos[B] = 
+					// Move the balls apart by a little over half the overlap.
+					O.pos[A] = (overlap * .5) * 1.01 * (rVecba / dist);
+					O.pos[B] = (overlap * .5) * 1.01 * (rVecab / dist);
 				}
 			}
 		}
