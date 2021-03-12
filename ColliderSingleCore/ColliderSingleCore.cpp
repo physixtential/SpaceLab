@@ -44,6 +44,7 @@ void setLazzK(double vel);
 // Main function
 int main(int argc, char const* argv[])
 {
+	std::cout << sizeof(double)<<std::endl;
 	// Runtime arguments:
 	double spins[3] = { 0 };
 	if (argc > 1)
