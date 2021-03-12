@@ -428,9 +428,9 @@ void simOneStep(int Step)
 		{
 			double k;
 			double sumRaRb = O.R[A] + O.R[B];
-			double dist = (O.pos[A] - O.pos[B]).norm();
 			vector3d rVecab = O.pos[B] - O.pos[A];
 			vector3d rVecba = -1 * rVecab;
+			double dist = (rVecab).norm();
 
 			// Check for collision between Ball and otherBall:
 			double overlap = sumRaRb - dist;
@@ -1082,8 +1082,8 @@ void generateBallField()
 	srand(seedSave);
 
 	//twoSizeSphereShell5000();
-	oneSizeSphere();
-	//threeSizeSphere();
+	//oneSizeSphere();
+	threeSizeSphere();
 
 	// dt based on the kinetic energy equal to the total binding energy of the cluster.
 	double vCollapse = sqrt(2 * G * O.mTotal / O.radius);
@@ -1182,4 +1182,53 @@ void setLazzK(double vel)
 {
 	kin = 4 / 3 * M_PI * density * O.getMassMax() * vel * vel / (.1 * .1);
 	kout = cor * kin;
+}
+
+void pushApart()
+{
+	// Generate non-overlapping spherical particle field:
+	int collisionDetected = 0;
+	int oldCollisions = genBalls;
+
+	for (int failed = 0; failed < attempts; failed++)
+	{
+		for (int A = 0; A < genBalls; A++)
+		{
+			for (int B = A + 1; B < genBalls; B++)
+			{
+				// Check for Ball overlap.
+				double dist = (O.pos[A] - O.pos[B]).norm();
+				double sumRaRb = O.R[A] + O.R[B];
+				double overlap = dist - sumRaRb;
+				if (overlap < 0)
+				{
+					collisionDetected += 1;
+					// Move the other ball:
+					O.pos[A] = *(rVecab / dist)
+					O.pos[B] = 
+				}
+			}
+		}
+		if (collisionDetected < oldCollisions)
+		{
+			oldCollisions = collisionDetected;
+			std::cout << "Collisions: " << collisionDetected << "                        \r";
+		}
+		if (collisionDetected == 0)
+		{
+			std::cout << "\nSuccess!\n";
+			break;
+		}
+		if (failed == attempts - 1 || collisionDetected > int(1.5 * (double)genBalls)) // Added the second part to speed up spatial constraint increase when there are clearly too many collisions for the space to be feasable.
+		{
+			std::cout << "Failed " << spaceRange << ". Increasing range " << spaceRangeIncrement << "cm^3.\n";
+			spaceRange += spaceRangeIncrement;
+			failed = 0;
+			for (int Ball = 0; Ball < genBalls; Ball++)
+			{
+				O.pos[Ball] = randSphericalVec(spaceRange, spaceRange, spaceRange); // Each time we fail and increase range, redistribute all balls randomly so we don't end up with big balls near mid and small balls outside.
+			}
+		}
+		collisionDetected = 0;
+	}
 }
