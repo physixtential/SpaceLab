@@ -427,7 +427,7 @@ struct ballGroup
 	{
 		// Generate non-overlapping spherical particle field:
 		int issuesDetected = 0;
-		float worstDiff = 0;
+		double worstDiff = 0;
 
 		while (true)
 		{
@@ -452,32 +452,19 @@ struct ballGroup
 					if (overlap > 0 && elasticForce > gravForce)
 					{
 						double move = 0;
+
 						(overlap * 2. > sumRaRb) ? move = sumRaRb : move = overlap * 2.;
+
 						issuesDetected += 1;
 
-						if (R[A] >= R[B])
-						{
-							pos[B] += move * (rVecab / dist);
-						}
-						else
-						{
-							pos[A] += move * (rVecba / dist);
-						}
+						pos[B] += move * (rVecab / dist);
+						pos[A] += move * (rVecba / dist);
+
 					}
 				}
 
 
 				//std::cout << "Overlap: " << totalOverlap << "                        \r";
-
-				if (issuesDetected > 0)
-				{
-					std::cout << worstDiff << "                        \r";
-				}
-				else
-				{
-					std::cout << "\nSuccess!\n";
-					break;
-				}
 				//if (failed == attempts - 1) // Added the second part to speed up spatial constraint increase when there are clearly too many collisions for the space to be feasable.
 				//{
 				//	std::cout << "Failed. Re-randomizing \n";// << spaceRange << ". Increasing range " << spaceRangeIncrement << "cm^3.\n";
@@ -489,7 +476,17 @@ struct ballGroup
 				//	}
 				//}
 			}
+			if (issuesDetected > 0)
+			{
+				std::cout << worstDiff << "                        \r";
+			}
+			else
+			{
+				std::cout << "\nSuccess!\n";
+				break;
+			}
 			issuesDetected = 0;
+			worstDiff = 0;
 		}
 	}
 };
