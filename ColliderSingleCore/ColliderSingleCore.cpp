@@ -1240,8 +1240,7 @@ void pushApart()
 {
 	// Generate non-overlapping spherical particle field:
 	int collisionDetected = 0;
-	double totalOverlap = 0;
-	double maxForceAllowed = (G * O.getMassMax() * O.getMassMax() / (dist * dist)) * (rVecab / dist);;
+	double largestOverlap = 0;
 
 	for (int failed = 0; failed < attempts; failed++)
 	{
@@ -1255,13 +1254,13 @@ void pushApart()
 				double dist = (rVecab).norm();
 				double sumRaRb = O.R[A] + O.R[B];
 				double overlap = sumRaRb - dist;
-				double curForce = (-kin * overlap * .5 * (rVecba / dist)).norm();
+				double elasticForce = (-kin * overlap * .5 * (rVecab / dist)).norm();
+				double gravForce = ((G * O.m[A] * O.m[B] / (dist * dist)) * (rVecab / dist)).norm();
 
-				if (overlap > 0)
+				if (overlap > 0 and elasticForce > gravForce)
 				{
 					double move = 0;
 					(overlap * 2. > sumRaRb) ? move = sumRaRb : move = overlap * 2.;
-					totalOverlap += overlap;
 					collisionDetected += 1;
 					// Move the balls apart by a little over half the overlap.
 					if (O.R[A] >= O.R[B])
@@ -1293,7 +1292,6 @@ void pushApart()
 				O.pos[Ball] = randSphericalVec(spaceRange, spaceRange, spaceRange); // Each time we fail and increase range, redistribute all balls randomly so we don't end up with big balls near mid and small balls outside.
 			}
 		}
-		totalOverlap = 0;
 		collisionDetected = 0;
 	}
 }
