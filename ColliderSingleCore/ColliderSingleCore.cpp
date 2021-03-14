@@ -23,12 +23,11 @@ ballBuffer,
 energyBuffer;
 
 ballGroup O;
-int ballTotal = 0;
 
 // Prototypes
 void simInitTwoCluster();
 void simContinue();
-void simAnalyzeAndCenter();
+void simInitCondAndCenter();
 void simInitWrite();
 void simOneStep(int Step);
 void simLooper();
@@ -45,7 +44,6 @@ void pushApart();
 // Main function
 int main(int argc, char const* argv[])
 {
-	std::cout << sizeof(double)<<std::endl;
 	// Runtime arguments:
 	double spins[3] = { 0 };
 	if (argc > 1)
@@ -61,8 +59,8 @@ int main(int argc, char const* argv[])
 	//simContinue();
 	generateBallField();
 	safetyChecks();
-	ballTotal = O.cNumBalls;
-	simAnalyzeAndCenter();
+	O.cNumBalls = O.cNumBalls;
+	simInitCondAndCenter();
 	simInitWrite();
 	simLooper();
 
@@ -120,8 +118,8 @@ void simInitTwoCluster()
 		fprintf(stderr, "A VELOCITY WAS NAN!!!!!!!!!!!!!!!!!!!!!!\n\n");
 		exit(EXIT_FAILURE);
 	}
-	projectile.kick(vSmall,0,0);
-	target.kick(vBig,0,0);
+	projectile.kick(vSmall, 0, 0);
+	target.kick(vBig, 0, 0);
 
 	std::cout << std::endl;
 	projectile.checkMomentum("Projectile");
@@ -215,7 +213,7 @@ void simContinue()
 }
 
 
-void simAnalyzeAndCenter()
+void simInitCondAndCenter()
 {
 	O.checkMomentum("After Zeroing"); // Is total mom zero like it should be?
 
@@ -224,6 +222,9 @@ void simAnalyzeAndCenter()
 	// Compute physics between all balls. Distances, collision forces, energy totals, total mass:
 	O.initConditions();
 }
+
+
+
 
 std::string simDataName;
 std::string constantsName;
@@ -283,7 +284,7 @@ void simInitWrite()
 	energyWrite << "Time,PE,KE,E,p,L,Bound,Unbound,mTotal";
 	ballWrite << "x0,y0,z0,wx0,wy0,wz0,wmag0,vx0,vy0,vz0,bound0";
 
-	for (int Ball = 1; Ball < ballTotal; Ball++) // Start at 2nd ball because first one was just written^.
+	for (int Ball = 1; Ball < O.cNumBalls; Ball++) // Start at 2nd ball because first one was just written^.
 	{
 		std::string thisBall = std::to_string(Ball);
 		ballWrite
@@ -303,7 +304,7 @@ void simInitWrite()
 	std::cout << "\nSim data, energy, and constants file streams and headers created.";
 
 	// Write constant data:
-	for (int Ball = 0; Ball < ballTotal; Ball++)
+	for (int Ball = 0; Ball < O.cNumBalls; Ball++)
 	{
 
 		constWrite
@@ -348,7 +349,7 @@ void simInitWrite()
 		<< O.vel[0].y << ','
 		<< O.vel[0].z << ','
 		<< 0; //bound[0];
-	for (int Ball = 1; Ball < ballTotal; Ball++)
+	for (int Ball = 1; Ball < O.cNumBalls; Ball++)
 	{
 		ballBuffer
 			<< ',' << O.pos[Ball].x << ',' // Needs comma start so the last bound doesn't have a dangling comma.
@@ -377,6 +378,9 @@ void simInitWrite()
 	std::cout << "\n===============================================================\n";
 }
 
+
+
+
 time_t start = time(NULL);        // For end of program analysis
 time_t startProgress; // For progress reporting (gets reset)
 time_t lastWrite;     // For write control (gets reset)
@@ -403,7 +407,7 @@ void simOneStep(int Step)
 	}
 
 	// FIRST PASS - Position, send to buffer, velocity half step:
-	for (int Ball = 0; Ball < ballTotal; Ball++)
+	for (int Ball = 0; Ball < O.cNumBalls; Ball++)
 	{
 		// Update velocity half step:
 		O.velh[Ball] = O.vel[Ball] + .5 * O.acc[Ball] * dt;
@@ -422,7 +426,7 @@ void simOneStep(int Step)
 	}
 
 	// SECOND PASS - Check for collisions, apply forces and torques:
-	for (int A = 1; A < ballTotal; A++) //cuda
+	for (int A = 1; A < O.cNumBalls; A++) //cuda
 	{
 		// DONT DO ANYTHING HERE. A STARTS AT 1.
 		for (int B = 0; B < A; B++)
@@ -526,12 +530,13 @@ void simOneStep(int Step)
 		// DONT DO ANYTHING HERE. A STARTS AT 1.
 	}
 
-	// THIRD PASS - Calculate velocity for next step:
 	if (writeStep)
 	{
 		ballBuffer << std::endl; // Prepares a new line for incoming data.
 	}
-	for (int Ball = 0; Ball < ballTotal; Ball++)
+
+	// THIRD PASS - Calculate velocity for next step:
+	for (int Ball = 0; Ball < O.cNumBalls; Ball++)
 	{
 
 		// Velocity for next step:
@@ -540,8 +545,6 @@ void simOneStep(int Step)
 
 		if (writeStep)
 		{
-			// Adds the mass of the each ball to unboundMass if it meats these conditions:
-			//bound[Ball] = false;
 
 			// Send positions and rotations to buffer:
 			if (Ball == 0)
@@ -583,13 +586,13 @@ void simOneStep(int Step)
 			// Write simData to file and clear buffer.
 			ballWrite.open(simDataName, myOpenMode);
 			ballWrite << ballBuffer.rdbuf(); // Barf buffer to file.
-			ballBuffer.str("");              // Resets the stream for that balls to blank.
+			ballBuffer.str("");              // Empty the stream for next filling.
 			ballWrite.close();
 
 			// Write Energy data to file and clear buffer.
 			energyWrite.open(energyName, myOpenMode);
 			energyWrite << energyBuffer.rdbuf();
-			energyBuffer.str(""); // Wipe energy buffer after write.
+			energyBuffer.str(""); // Empty the stream for next filling.
 			energyWrite.close();
 
 			lastWrite = time(NULL);
@@ -602,13 +605,6 @@ void simOneStep(int Step)
 
 void simLooper()
 {
-	//////////////////////////////////////////////////////////
-	// Loop Start ///////////////////////////////////////////
-	////////////////////////////////////////////////////////
-	///////////////////////////////////////////////////////
-	//////////////////////////////////////////////////////
-	/////////////////////////////////////////////////////
-
 	std::cout << "Beginning simulation...\n";
 
 	for (int Step = 1; Step < steps; Step++) // Steps start at 1 because the 0 step is initial conditions.
@@ -616,12 +612,9 @@ void simLooper()
 		simOneStep(Step);
 	}
 	time_t end = time(NULL);
-	//////////////////////////////////////////////////////////
-	// Loop End /////////////////////////////////////////////
-	////////////////////////////////////////////////////////
 
 	std::cout << "Simulation complete!\n"
-		<< ballTotal << " Particles and " << steps << " Steps.\n"
+		<< O.cNumBalls << " Particles and " << steps << " Steps.\n"
 		<< "Simulated time: " << steps * dt << " seconds\n"
 		<< "Computation time: " << end - start << " seconds\n";
 	std::cout << "\n===============================================================\n";
@@ -933,6 +926,8 @@ void testGen()
 		O.pos[Ball] = randSphericalVec(spaceRange, spaceRange, spaceRange);
 	}
 
+	//simInitWrite();
+
 	std::cout << "Smalls: " << smalls << " Mediums: " << mediums << " Larges: " << larges << std::endl;
 
 	pushApart();
@@ -1132,13 +1127,15 @@ void generateBallField()
 	std::cout << "CLUSTER FORMATION\n";
 	O.allocateGroup(genBalls);
 
+
 	// Create new random number set.
 	int seedSave = time(NULL);
 	srand(seedSave);
 
 	//twoSizeSphereShell5000();
 	//oneSizeSphere();
-	threeSizeSphere();
+	//threeSizeSphere();
+	testGen();
 
 	// dt based on the kinetic energy equal to the total binding energy of the cluster.
 	double vCollapse = sqrt(2 * G * O.mTotal / O.radius);
@@ -1243,7 +1240,8 @@ void pushApart()
 {
 	// Generate non-overlapping spherical particle field:
 	int collisionDetected = 0;
-	int oldCollisions = genBalls;
+	int oldOverlap = INFINITY;
+	double totalOverlap = 0;
 
 	for (int failed = 0; failed < attempts; failed++)
 	{
@@ -1256,36 +1254,69 @@ void pushApart()
 				vector3d rVecba = -1 * rVecab;
 				double dist = (rVecab).norm();
 				double sumRaRb = O.R[A] + O.R[B];
-				double overlap = dist - sumRaRb;
-				if (overlap < 0)
+				double overlap = sumRaRb - dist;
+
+				if (overlap > 0)
 				{
+					double move = 0;
+					(overlap * 2. > sumRaRb) ? move = sumRaRb : move = overlap * 2.;
+					totalOverlap += overlap;
 					collisionDetected += 1;
 					// Move the balls apart by a little over half the overlap.
-					O.pos[A] = (overlap * .5) * 1.01 * (rVecba / dist);
-					O.pos[B] = (overlap * .5) * 1.01 * (rVecab / dist);
+					if (O.R[A] >= O.R[B])
+					{
+						O.pos[B] += move * (rVecab / dist);
+					}
+					else
+					{
+						O.pos[A] += move * (rVecba / dist);
+					}
 				}
 			}
 		}
-		if (collisionDetected < oldCollisions)
-		{
-			oldCollisions = collisionDetected;
-			std::cout << "Collisions: " << collisionDetected << "                        \r";
-		}
+
+		//std::cout << "Overlap: " << totalOverlap << "                        \r";
+
 		if (collisionDetected == 0)
 		{
 			std::cout << "\nSuccess!\n";
 			break;
 		}
-		if (failed == attempts - 1 || collisionDetected > int(1.5 * (double)genBalls)) // Added the second part to speed up spatial constraint increase when there are clearly too many collisions for the space to be feasable.
+		if (failed == attempts - 1) // Added the second part to speed up spatial constraint increase when there are clearly too many collisions for the space to be feasable.
 		{
-			std::cout << "Failed " << spaceRange << ". Increasing range " << spaceRangeIncrement << "cm^3.\n";
-			spaceRange += spaceRangeIncrement;
+			std::cout << "Failed. Re-randomizing \n";// << spaceRange << ". Increasing range " << spaceRangeIncrement << "cm^3.\n";
+			//spaceRange += spaceRangeIncrement;
 			failed = 0;
 			for (int Ball = 0; Ball < genBalls; Ball++)
 			{
 				O.pos[Ball] = randSphericalVec(spaceRange, spaceRange, spaceRange); // Each time we fail and increase range, redistribute all balls randomly so we don't end up with big balls near mid and small balls outside.
 			}
 		}
+		totalOverlap = 0;
 		collisionDetected = 0;
 	}
+}
+
+void simDataWrite()
+{
+	ballBuffer << std::endl; // Prepares a new line for incoming data.
+
+	for (size_t Ball = 0; Ball < O.cNumBalls; Ball++)
+	{
+		// Send positions and rotations to buffer:
+		if (Ball == 0)
+		{
+			ballBuffer << O.pos[Ball][0] << ',' << O.pos[Ball][1] << ',' << O.pos[Ball][2] << ',' << O.w[Ball][0] << ',' << O.w[Ball][1] << ',' << O.w[Ball][2] << ',' << O.w[Ball].norm() << ',' << O.vel[Ball].x << ',' << O.vel[Ball].y << ',' << O.vel[Ball].z << ',' << 0;
+		}
+		else
+		{
+			ballBuffer << ',' << O.pos[Ball][0] << ',' << O.pos[Ball][1] << ',' << O.pos[Ball][2] << ',' << O.w[Ball][0] << ',' << O.w[Ball][1] << ',' << O.w[Ball][2] << ',' << O.w[Ball].norm() << ',' << O.vel[Ball].x << ',' << O.vel[Ball].y << ',' << O.vel[Ball].z << ',' << 0;
+		}
+	}
+
+	// Write simData to file and clear buffer.
+	ballWrite.open(simDataName, myOpenMode);
+	ballWrite << ballBuffer.rdbuf(); // Barf buffer to file.
+	ballBuffer.str("");              // Resets the stream for that balls to blank.
+	ballWrite.close();
 }

@@ -1,4 +1,5 @@
 #pragma once
+#include <iostream>
 ////////////////////////////////////
 // Initialization (Units are CGS) //
 ////////////////////////////////////
@@ -15,8 +16,8 @@ simTimeSeconds = 18000;
 const int
 skip = 500,     // Steps thrown away before recording a step to the buffer. 500*.04 is every 20 seconds in sim.
 properties = 11, // Number of columns in simData file per ball
-genBalls = 500,
-attempts = 200; // How many times to try moving every ball touching another in generator.
+genBalls = 5000,
+attempts = 1000; // How many times to try moving every ball touching another in generator.
 
 size_t
 steps = -1;
@@ -27,7 +28,7 @@ kin = -1,      // Spring constant
 kout = -1,
 soc,				// double the radius of the initial system. Any ball outside that isn't considered for dynamic dt calibration.
 scaleBalls = 100, // base radius of balls
-spaceRange = pow(scaleBalls * genBalls, 1. / 3.), // Rough minimum space required
+spaceRange = pow((1 / .74 * scaleBalls * scaleBalls * scaleBalls * genBalls), 1. / 3.), // Rough minimum space required
 spaceRangeIncrement = scaleBalls * 3,
 KEfactor = 0,       // Determines collision velocity based on KE/PE
 impactParameter = 0, // Impact angle radians
@@ -45,4 +46,4 @@ std::string
 path = "C:/Users/milin/Desktop/GoogleDrive/GradResearch/Development/SpaceLab/x64/Release/",
 projectileName = "",
 targetName = "10850_",
-outputPrefix = "Unnamed";
+outputPrefix = "Unnamed_";
