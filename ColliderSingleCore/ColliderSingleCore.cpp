@@ -56,8 +56,8 @@ int main(int argc, char const* argv[])
 	}
 
 	//simInitTwoCluster();
-	//simContinue();
-	generateBallField();
+	simContinue();
+	//generateBallField();
 	safetyChecks();
 	O.cNumBalls = O.cNumBalls;
 	simInitCondAndCenter();
@@ -185,6 +185,8 @@ void simContinue()
 
 	std::cout << std::endl;
 	O.checkMomentum("O");
+
+	
 
 	setGuidDT(O.getVelMax(false));
 	setGuidK(O.getVelMax(false));
@@ -1134,8 +1136,8 @@ void generateBallField()
 
 	//twoSizeSphereShell5000();
 	//oneSizeSphere();
-	//threeSizeSphere();
-	testGen();
+	threeSizeSphere();
+	//testGen();
 
 	// dt based on the kinetic energy equal to the total binding energy of the cluster.
 	double vCollapse = sqrt(2 * G * O.mTotal / O.radius);
@@ -1234,66 +1236,6 @@ void setLazzK(double vel)
 {
 	kin = 4 / 3 * M_PI * density * O.getMassMax() * vel * vel / (.1 * .1);
 	kout = cor * kin;
-}
-
-void pushApart()
-{
-	// Generate non-overlapping spherical particle field:
-	int collisionDetected = 0;
-	double largestOverlap = 0;
-
-	for (int failed = 0; failed < attempts; failed++)
-	{
-		for (int A = 0; A < genBalls; A++)
-		{
-			for (int B = A + 1; B < genBalls; B++)
-			{
-				// Check for Ball overlap.
-				vector3d rVecab = O.pos[B] - O.pos[A];
-				vector3d rVecba = -1 * rVecab;
-				double dist = (rVecab).norm();
-				double sumRaRb = O.R[A] + O.R[B];
-				double overlap = sumRaRb - dist;
-				double elasticForce = (-kin * overlap * .5 * (rVecab / dist)).norm();
-				double gravForce = ((G * O.m[A] * O.m[B] / (dist * dist)) * (rVecab / dist)).norm();
-
-				if (overlap > 0 and elasticForce > gravForce)
-				{
-					double move = 0;
-					(overlap * 2. > sumRaRb) ? move = sumRaRb : move = overlap * 2.;
-					collisionDetected += 1;
-					// Move the balls apart by a little over half the overlap.
-					if (O.R[A] >= O.R[B])
-					{
-						O.pos[B] += move * (rVecab / dist);
-					}
-					else
-					{
-						O.pos[A] += move * (rVecba / dist);
-					}
-				}
-			}
-		}
-
-		//std::cout << "Overlap: " << totalOverlap << "                        \r";
-
-		if (collisionDetected == 0)
-		{
-			std::cout << "\nSuccess!\n";
-			break;
-		}
-		if (failed == attempts - 1) // Added the second part to speed up spatial constraint increase when there are clearly too many collisions for the space to be feasable.
-		{
-			std::cout << "Failed. Re-randomizing \n";// << spaceRange << ". Increasing range " << spaceRangeIncrement << "cm^3.\n";
-			//spaceRange += spaceRangeIncrement;
-			failed = 0;
-			for (int Ball = 0; Ball < genBalls; Ball++)
-			{
-				O.pos[Ball] = randSphericalVec(spaceRange, spaceRange, spaceRange); // Each time we fail and increase range, redistribute all balls randomly so we don't end up with big balls near mid and small balls outside.
-			}
-		}
-		collisionDetected = 0;
-	}
 }
 
 void simDataWrite()

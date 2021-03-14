@@ -421,4 +421,65 @@ struct ballGroup
 		}
 		return mMax;
 	}
+
+
+	void pushApart()
+	{
+		// Generate non-overlapping spherical particle field:
+		int collisionDetected = 0;
+		double largestOverlap = 0;
+
+		for (int failed = 0; failed < attempts; failed++)
+		{
+			for (int A = 0; A < cNumBalls; A++)
+			{
+				for (int B = A + 1; B < cNumBalls; B++)
+				{
+					// Check for Ball overlap.
+					vector3d rVecab = pos[B] - pos[A];
+					vector3d rVecba = -1 * rVecab;
+					double dist = (rVecab).norm();
+					double sumRaRb = R[A] + R[B];
+					double overlap = sumRaRb - dist;
+					double elasticForce = (-kin * overlap * .5 * (rVecab / dist)).norm();
+					double gravForce = ((G * m[A] * m[B] / (dist * dist)) * (rVecab / dist)).norm();
+
+					if (overlap > 0 and elasticForce > gravForce)
+					{
+						double move = 0;
+						(overlap * 2. > sumRaRb) ? move = sumRaRb : move = overlap * 2.;
+						collisionDetected += 1;
+						// Move the balls apart by a little over half the overlap.
+						if (R[A] >= R[B])
+						{
+							pos[B] += move * (rVecab / dist);
+						}
+						else
+						{
+							pos[A] += move * (rVecba / dist);
+						}
+					}
+				}
+			}
+
+			//std::cout << "Overlap: " << totalOverlap << "                        \r";
+
+			if (collisionDetected == 0)
+			{
+				std::cout << "\nSuccess!\n";
+				break;
+			}
+			if (failed == attempts - 1) // Added the second part to speed up spatial constraint increase when there are clearly too many collisions for the space to be feasable.
+			{
+				std::cout << "Failed. Re-randomizing \n";// << spaceRange << ". Increasing range " << spaceRangeIncrement << "cm^3.\n";
+				//spaceRange += spaceRangeIncrement;
+				failed = 0;
+				for (int Ball = 0; Ball < cNumBalls; Ball++)
+				{
+					pos[Ball] = randSphericalVec(spaceRange, spaceRange, spaceRange); // Each time we fail and increase range, redistribute all balls randomly so we don't end up with big balls near mid and small balls outside.
+				}
+			}
+			collisionDetected = 0;
+		}
+	}
 };
