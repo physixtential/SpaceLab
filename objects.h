@@ -426,10 +426,10 @@ struct ballGroup
 	void pushApart()
 	{
 		// Generate non-overlapping spherical particle field:
-		int collisionDetected = 0;
-		double largestOverlap = 0;
+		int issuesDetected = 0;
+		float worstDiff = 0;
 
-		for (int failed = 0; failed < attempts; failed++)
+		while (true)
 		{
 			for (int A = 0; A < cNumBalls; A++)
 			{
@@ -444,12 +444,17 @@ struct ballGroup
 					double elasticForce = (-kin * overlap * .5 * (rVecab / dist)).norm();
 					double gravForce = ((G * m[A] * m[B] / (dist * dist)) * (rVecab / dist)).norm();
 
-					if (overlap > 0 and elasticForce > gravForce)
+					if (worstDiff < elasticForce / gravForce)
+					{
+						worstDiff = elasticForce / gravForce;
+					}
+
+					if (overlap > 0 && elasticForce > gravForce)
 					{
 						double move = 0;
 						(overlap * 2. > sumRaRb) ? move = sumRaRb : move = overlap * 2.;
-						collisionDetected += 1;
-						// Move the balls apart by a little over half the overlap.
+						issuesDetected += 1;
+
 						if (R[A] >= R[B])
 						{
 							pos[B] += move * (rVecab / dist);
@@ -460,26 +465,31 @@ struct ballGroup
 						}
 					}
 				}
-			}
 
-			//std::cout << "Overlap: " << totalOverlap << "                        \r";
 
-			if (collisionDetected == 0)
-			{
-				std::cout << "\nSuccess!\n";
-				break;
-			}
-			if (failed == attempts - 1) // Added the second part to speed up spatial constraint increase when there are clearly too many collisions for the space to be feasable.
-			{
-				std::cout << "Failed. Re-randomizing \n";// << spaceRange << ". Increasing range " << spaceRangeIncrement << "cm^3.\n";
-				//spaceRange += spaceRangeIncrement;
-				failed = 0;
-				for (int Ball = 0; Ball < cNumBalls; Ball++)
+				//std::cout << "Overlap: " << totalOverlap << "                        \r";
+
+				if (issuesDetected > 0)
 				{
-					pos[Ball] = randSphericalVec(spaceRange, spaceRange, spaceRange); // Each time we fail and increase range, redistribute all balls randomly so we don't end up with big balls near mid and small balls outside.
+					std::cout << worstDiff << "                        \r";
 				}
+				else
+				{
+					std::cout << "\nSuccess!\n";
+					break;
+				}
+				//if (failed == attempts - 1) // Added the second part to speed up spatial constraint increase when there are clearly too many collisions for the space to be feasable.
+				//{
+				//	std::cout << "Failed. Re-randomizing \n";// << spaceRange << ". Increasing range " << spaceRangeIncrement << "cm^3.\n";
+				//	//spaceRange += spaceRangeIncrement;
+				//	failed = 0;
+				//	for (int Ball = 0; Ball < cNumBalls; Ball++)
+				//	{
+				//		pos[Ball] = randSphericalVec(spaceRange, spaceRange, spaceRange); // Each time we fail and increase range, redistribute all balls randomly so we don't end up with big balls near mid and small balls outside.
+				//	}
+				//}
 			}
-			collisionDetected = 0;
+			issuesDetected = 0;
 		}
 	}
 };

@@ -39,7 +39,6 @@ void setGuidDT(double vel);
 void setGuidK(double vel);
 void setLazzDT(double vel);
 void setLazzK(double vel);
-void pushApart();
 
 // Main function
 int main(int argc, char const* argv[])
@@ -186,16 +185,15 @@ void simContinue()
 	std::cout << std::endl;
 	O.checkMomentum("O");
 
-	
-
 	setGuidDT(O.getVelMax(false));
 	setGuidK(O.getVelMax(false));
 	// k and dt override to stabilize cluster.
 	kin = 1.01787e16;
 	kout = cor * kin;
 	dt = 1e-6;
-
 	steps = (size_t)(simTimeSeconds / dt);
+
+	O.pushApart();
 
 	std::cout << "==================" << std::endl;
 	std::cout << "dt: " << dt << std::endl;
@@ -931,8 +929,6 @@ void testGen()
 	//simInitWrite();
 
 	std::cout << "Smalls: " << smalls << " Mediums: " << mediums << " Larges: " << larges << std::endl;
-
-	pushApart();
 
 	std::cout << "Final spacerange: " << spaceRange << std::endl;
 	// Calculate approximate radius of imported cluster and center of mass:
