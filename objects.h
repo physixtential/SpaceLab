@@ -55,7 +55,7 @@ struct ballGroup
 		moi = new double[cNumBalls];
 	}
 
-	
+
 	/// Add another ballGroup into this one.
 	void addBallGroup(ballGroup* src)
 	{
@@ -255,16 +255,16 @@ struct ballGroup
 						}
 						bTorque = (R[B] / sumRaRb) * rVecba.cross(frictionForceOnB);
 
-						vector3d gravForceOnA = (G * m[A] * m[B] / pow(dist, 2)) * (rVecab / dist);
+						vector3d gravForceOnA = (G * m[A] * m[B] / (dist * dist)) * (rVecab / dist);
 						totalForce = gravForceOnA + elasticForceOnA + frictionForceOnA;
 						aacc[A] += aTorque / moi[A];
 						aacc[B] += bTorque / moi[B];
-						PE += -G * m[A] * m[B] / dist + kin * pow((sumRaRb - dist) * .5, 2);
+						PE += -G * m[A] * m[B] / dist + kin * ((sumRaRb - dist) * .5) * ((sumRaRb - dist) * .5);
 					}
 					else
 					{
 						// No collision: Include gravity only:
-						vector3d gravForceOnA = (G * m[A] * m[B] / pow(dist, 2)) * (rVecab / dist);
+						vector3d gravForceOnA = (G * m[A] * m[B] / (dist * dist)) * (rVecab / dist);
 						totalForce = gravForceOnA;
 						PE += -G * m[A] * m[B] / dist;
 					}
@@ -309,7 +309,7 @@ struct ballGroup
 					// Check for collision between Ball and otherBall.
 					if (overlap > 0)
 					{
-						PE += -G * m[A] * m[B] / dist + kin * pow((sumRaRb - dist) * .5, 2);
+						PE += -G * m[A] * m[B] / dist + kin * ((sumRaRb - dist) * .5) * ((sumRaRb - dist) * .5);
 					}
 					else
 					{

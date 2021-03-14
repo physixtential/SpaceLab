@@ -499,7 +499,7 @@ void simOneStep(int Step)
 				}
 				bTorque = (O.R[B] / sumRaRb) * rVecba.cross(frictionForceOnB);
 
-				vector3d gravForceOnA = (G * O.m[A] * O.m[B] / pow(dist, 2)) * (rVecab / dist);
+				vector3d gravForceOnA = (G * O.m[A] * O.m[B] / (dist * dist)) * (rVecab / dist);
 				totalForce = gravForceOnA + elasticForceOnA + frictionForceOnA;
 				O.aacc[A] += aTorque / O.moi[A];
 				O.aacc[B] += bTorque / O.moi[B];
@@ -507,13 +507,13 @@ void simOneStep(int Step)
 				if (writeStep)
 				{
 					// Calculate potential energy. Important to recognize that the factor of 1/2 is not in front of K because this is for the spring potential in each ball and they are the same potential.
-					O.PE += -G * O.m[A] * O.m[B] / dist + k * pow((O.R[A] + O.R[B] - dist) * .5, 2);
+					O.PE += -G * O.m[A] * O.m[B] / dist + k * ((O.R[A] + O.R[B] - dist) * .5) * ((O.R[A] + O.R[B] - dist) * .5);
 				}
 			}
 			else
 			{
 				// No collision: Include gravity only:
-				vector3d gravForceOnA = (G * O.m[A] * O.m[B] / pow(dist, 2)) * (rVecab / dist);
+				vector3d gravForceOnA = (G * O.m[A] * O.m[B] / (dist * dist)) * (rVecab / dist);
 				totalForce = gravForceOnA;
 				if (writeStep)
 				{
@@ -1240,8 +1240,8 @@ void pushApart()
 {
 	// Generate non-overlapping spherical particle field:
 	int collisionDetected = 0;
-	int oldOverlap = INFINITY;
 	double totalOverlap = 0;
+	double maxForceAllowed = (G * O.getMassMax() * O.getMassMax() / (dist * dist)) * (rVecab / dist);;
 
 	for (int failed = 0; failed < attempts; failed++)
 	{
@@ -1255,6 +1255,7 @@ void pushApart()
 				double dist = (rVecab).norm();
 				double sumRaRb = O.R[A] + O.R[B];
 				double overlap = sumRaRb - dist;
+				double curForce = (-kin * overlap * .5 * (rVecba / dist)).norm();
 
 				if (overlap > 0)
 				{
