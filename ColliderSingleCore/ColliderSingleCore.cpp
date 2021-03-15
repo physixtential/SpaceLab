@@ -193,9 +193,6 @@ void simContinue()
 	dt = 1e-6;
 	steps = (size_t)(simTimeSeconds / dt);
 
-	simInitWrite();
-	O.pushApart();
-
 	std::cout << "==================" << std::endl;
 	std::cout << "dt: " << dt << std::endl;
 	std::cout << "k: " << kin << std::endl;
@@ -407,7 +404,7 @@ void simOneStep(int Step)
 		writeStep = false;
 	}
 
-	// FIRST PASS - Position, send to buffer, velocity half step:
+	/// FIRST PASS - Position, send to buffer, velocity half step:
 	for (int Ball = 0; Ball < O.cNumBalls; Ball++)
 	{
 		// Update velocity half step:
@@ -426,10 +423,10 @@ void simOneStep(int Step)
 		O.aacc[Ball] = { 0, 0, 0 };
 	}
 
-	// SECOND PASS - Check for collisions, apply forces and torques:
+	/// SECOND PASS - Check for collisions, apply forces and torques:
 	for (int A = 1; A < O.cNumBalls; A++) //cuda
 	{
-		// DONT DO ANYTHING HERE. A STARTS AT 1.
+		/// DONT DO ANYTHING HERE. A STARTS AT 1.
 		for (int B = 0; B < A; B++)
 		{
 			double k;
@@ -520,7 +517,12 @@ void simOneStep(int Step)
 				{
 					O.PE += -G * O.m[A] * O.m[B] / dist;
 				}
+
+				// For expanding overlappers:
+				O.vel[A] = { 0,0,0 };
+				O.vel[B] = { 0,0,0 };
 			}
+
 			// Newton's equal and opposite forces applied to acceleration of each ball:
 			O.acc[A] += totalForce / O.m[A];
 			O.acc[B] -= totalForce / O.m[B];
