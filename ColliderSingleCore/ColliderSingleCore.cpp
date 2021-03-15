@@ -193,6 +193,7 @@ void simContinue()
 	dt = 1e-6;
 	steps = (size_t)(simTimeSeconds / dt);
 
+	simInitWrite();
 	O.pushApart();
 
 	std::cout << "==================" << std::endl;
