@@ -387,7 +387,7 @@ struct ballGroup
 		// Is vMax for some reason unreasonably small? Don't proceed. Probably a finished sim.
 		if (vMax < 1e-10)
 		{
-			printf("\nMax velocity in system is less than 1e-10. Ending sim.\n");
+			printf("\nMax velocity in system is less than 1e-10.\n");
 			system("pause");
 		}
 
