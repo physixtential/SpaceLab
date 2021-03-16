@@ -55,8 +55,8 @@ int main(int argc, char const* argv[])
 	}
 
 	//simInitTwoCluster();
-	simContinue();
-	//generateBallField();
+	//simContinue();
+	generateBallField();
 	safetyChecks();
 	O.cNumBalls = O.cNumBalls;
 	simInitCondAndCenter();
@@ -107,9 +107,9 @@ void simInitTwoCluster()
 	double mBig = target.mTotal;
 	double mTot = mBig + mSmall;
 	double vSmall = -sqrt(2 * KEfactor * fabs(PEsys) * (mBig / (mSmall * mTot))); // Negative because small offsets right.
-	vSmall = -600000; // DART probe override.
+	//vSmall = -600000; // DART probe override.
 	double vBig = -(mSmall / mBig) * vSmall; // Negative to be opposing projectile.
-	vBig = 0; // Dymorphous override.
+	//vBig = 0; // Dymorphous override.
 	fprintf(stdout, "\nTarget Velocity: %.2e\nProjectile Velocity: %.2e\n", vBig, vSmall);
 
 	if (isnan(vSmall) || isnan(vBig))
@@ -129,49 +129,14 @@ void simInitTwoCluster()
 	O.addBallGroup(&target);
 	O.addBallGroup(&projectile); // projectile second so smallest ball at end and largest ball at front for dt/k calcs.
 
-	// Calculate max velocity due to collapse
-	O.updateRadius();
-	soc = 2 * O.radius; // sphere of consideration for max velocity, to avoid very unbound high vel balls.
-	O.updateComAndMass();
-	double vCollapse = sqrt(2 * G * O.mTotal / O.radius);
-
-	// Check if the kick is going to be the most significant velocity basis, or if gravity will matter more.
-	std::cout << std::endl;
-	if (fabs(vSmall) > fabs(vCollapse))
-	{
-		std::cout << "Kick greater than binding. " << vCollapse << "<vCollapse | vSmall>" << vSmall << std::endl;
-		setGuidDT(vSmall);
-		setGuidK(vSmall);
-		//std::cout << "My dt " << dtg << " k " << kg << std::endl;
-		//std::cout << "Lazzati dt " << dt << " k " << kin << std::endl;
-	}
-	else
-	{
-		std::cout << "Binding greater than kick. " << vCollapse << "<vCollapse | vSmall>" << vSmall << std::endl;
-		setGuidDT(vCollapse);
-		setGuidK(vCollapse);
-	}
-
-	steps = (size_t)(simTimeSeconds / dt);
-
-	std::cout << "==================" << std::endl;
-	std::cout << "dt: " << dt << std::endl;
-	std::cout << "k: " << kin << std::endl;
-	std::cout << "Steps: " << steps << std::endl;
-	std::cout << "==================" << std::endl;
-
-
-	// Name the file based on info above:
-	outputPrefix =
+	outputPrefix +=
 		projectileName + targetName +
 		"T" + rounder(KEfactor, 4) +
 		"-vBig" + scientific(vBig) +
 		"-vSmall" + scientific(vSmall) +
 		"-IP" + rounder(impactParameter * 180 / 3.14159, 2) +
 		"-k" + scientific(kin) +
-		"-rho" + rounder(density, 4) +
-		"-dt" + scientific(dt) +
-		"_";
+		"-rho" + rounder(density, 4);
 }
 
 
@@ -185,14 +150,6 @@ void simContinue()
 	std::cout << std::endl;
 	O.checkMomentum("O");
 
-	setGuidDT(O.getVelMax(false));
-	setGuidK(O.getVelMax(false));
-	// k and dt override to stabilize cluster.
-	kin = 1.01787e16;
-	kout = cor * kin;
-	dt = 1e-6;
-	steps = (size_t)(simTimeSeconds / dt);
-
 	std::cout << "==================" << std::endl;
 	std::cout << "dt: " << dt << std::endl;
 	std::cout << "k: " << kin << std::endl;
@@ -205,20 +162,44 @@ void simContinue()
 		projectileName + targetName +
 		"T" + rounder(KEfactor, 4) +
 		"-k" + scientific(kin) +
-		"-rho" + rounder(density, 4) +
-		"-dt" + scientific(dt) +
-		"_";
+		"-rho" + rounder(density, 4);
 }
 
 
 void simInitCondAndCenter()
 {
+	
+
+	calibrateDT(0, false);
+
+
+	//////////////////////////////////////////
+	// k and dt override to stabilize cluster.
+	// 
+	//kin = 1.01787e16;
+	//kout = cor * kin;
+	//dt = 1e-6;
+	//steps = (size_t)(simTimeSeconds / dt);
+
+	std::cout << "==================" << std::endl;
+	std::cout << "dt: " << dt << std::endl;
+	std::cout << "k: " << kin << std::endl;
+	std::cout << "Steps: " << steps << std::endl;
+	std::cout << "==================" << std::endl;
+
+
+
 	O.checkMomentum("After Zeroing"); // Is total mom zero like it should be?
 
 	O.toOrigin();
 
 	// Compute physics between all balls. Distances, collision forces, energy totals, total mass:
 	O.initConditions();
+
+	// Name the file based on info above:
+	outputPrefix +=
+		"-dt" + scientific(dt) +
+		"_";
 }
 
 
@@ -1138,28 +1119,13 @@ void generateBallField()
 	threeSizeSphere();
 	//testGen();
 
-	// dt based on the kinetic energy equal to the total binding energy of the cluster.
-	double vCollapse = sqrt(2 * G * O.mTotal / O.radius);
-	dt = .01 * O.R[O.cNumBalls - 1] / vCollapse;
-	std::cout << "Calculated vCollapse: " << vCollapse << std::endl;
-	std::cout << "Calculated dt: " << dt << std::endl;
-	steps = (int)(simTimeSeconds / dt);
-
-	// calc kin here
-	kin = O.m[0] * vCollapse * vCollapse / (.1 * O.R[0] * .1 * O.R[0]);
-	std::cout << "Collision k: " << kin << std::endl;
-	kout = cor * kin;
-
-	outputPrefix =
+	outputPrefix +=
 		std::to_string(genBalls) +
 		"-R" + scientific(O.radius) +
 		"-k" + scientific(kin) +
 		"-cor" + rounder(pow(cor, 2), 4) +
 		"-mu" + rounder(mu, 3) +
-		"-rho" + rounder(density, 4) +
-		"-dt" + rounder(dt, 4) +
-		"_";
-
+		"-rho" + rounder(density, 4);
 }
 
 
@@ -1190,8 +1156,34 @@ void calibrateDT(const int Step, const bool superSafe)
 {
 	double dtOld = dt;
 
-	double vMax = O.getVelMax(soc);
+	// Calculate max velocity due to collapse
+	O.updateRadius();
+	O.updateComAndMass(); // Need to know mass for vCollapse calculation.
+	double vCollapse = sqrt(2 * G * O.mTotal / O.radius);
+
+	soc = 2 * O.radius; // sphere of consideration for max velocity, to avoid very unbound high vel balls.
+
+	double vMax = O.getVelMax(false);
 	std::cout << "vMax: " << vMax;
+
+	// Check if the kick is going to be the most significant velocity basis, or if gravity will matter more.
+	std::cout << std::endl;
+	if (vMax > fabs(vCollapse))
+	{
+		std::cout << "vMax greater than binding. " << vCollapse << "<vCollapse | vMax>" << vMax << std::endl;
+		setGuidDT(vMax);
+		setGuidK(vMax);
+		//std::cout << "My dt " << dtg << " k " << kg << std::endl;
+		//std::cout << "Lazzati dt " << dt << " k " << kin << std::endl;
+	}
+	else
+	{
+		std::cout << "Binding greater than vMax. " << vCollapse << "<vCollapse | vMax>" << vMax << std::endl;
+		setGuidDT(vCollapse);
+		setGuidK(vCollapse);
+	}
+
+	steps = (size_t)(simTimeSeconds / dt);
 
 	if (superSafe)
 	{
