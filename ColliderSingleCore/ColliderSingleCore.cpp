@@ -57,9 +57,9 @@ int main(int argc, char const* argv[])
 	//simInitTwoCluster();
 	//simContinue();
 	generateBallField();
-	safetyChecks();
 	O.cNumBalls = O.cNumBalls;
 	simInitCondAndCenter();
+	safetyChecks();
 	simInitWrite();
 	simLooper();
 
@@ -129,7 +129,7 @@ void simInitTwoCluster()
 	O.addBallGroup(&target);
 	O.addBallGroup(&projectile); // projectile second so smallest ball at end and largest ball at front for dt/k calcs.
 
-	outputPrefix +=
+	outputPrefix =
 		projectileName + targetName +
 		"T" + rounder(KEfactor, 4) +
 		"-vBig" + scientific(vBig) +
@@ -1119,7 +1119,7 @@ void generateBallField()
 	threeSizeSphere();
 	//testGen();
 
-	outputPrefix +=
+	outputPrefix =
 		std::to_string(genBalls) +
 		"-R" + scientific(O.radius) +
 		"-k" + scientific(kin) +

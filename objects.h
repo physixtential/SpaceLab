@@ -388,7 +388,7 @@ struct ballGroup
 		if (vMax < 1e-10)
 		{
 			printf("\nMax velocity in system is less than 1e-10. Ending sim.\n");
-			exit(EXIT_SUCCESS);
+			system("pause");
 		}
 
 		return vMax;
