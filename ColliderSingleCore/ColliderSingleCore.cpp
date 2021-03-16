@@ -57,7 +57,6 @@ int main(int argc, char const* argv[])
 	//simInitTwoCluster();
 	//simContinue();
 	generateBallField();
-	O.cNumBalls = O.cNumBalls;
 	simInitCondAndCenter();
 	safetyChecks();
 	simInitWrite();
