@@ -34,7 +34,7 @@ void simLooper();
 ballGroup importDataFromFile(std::string initDataFileName, std::string initConstFileName);
 void generateBallField();
 void safetyChecks();
-void calibrateDT(const int Step, const bool superSafe);
+void calibrateDT(int Step, bool superSafe, bool doK);
 void setGuidDT(double vel);
 void setGuidK(double vel);
 void setLazzDT(double vel);
@@ -170,7 +170,7 @@ void simInitCondAndCenter()
 {
 
 
-	calibrateDT(0, false);
+	calibrateDT(0, false, true);
 
 
 	//////////////////////////////////////////
@@ -581,7 +581,7 @@ void simOneStep(int Step)
 
 			lastWrite = time(NULL);
 		} // Data export end
-		calibrateDT(Step, false);
+		calibrateDT(Step, false, false);
 		simTimeElapsed += dt * skip;
 	} // writestep end
 } // Steps end
