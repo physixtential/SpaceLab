@@ -39,6 +39,7 @@ void setGuidDT(double vel);
 void setGuidK(double vel);
 void setLazzDT(double vel);
 void setLazzK(double vel);
+void simDataWrite();
 
 // Main function
 int main(int argc, char const* argv[])
@@ -72,8 +73,7 @@ void simInitTwoCluster()
 	//ballGroup projectile = importDataFromFile(path + projectileName + "simData.csv", path + projectileName + "constants.csv");
 
 	// DART PROBE
-	ballGroup projectile;
-	projectile.allocateGroup(1);
+	ballGroup projectile(1);
 	projectile.pos[0] = { 8800,0,0 };
 	projectile.w[0] = { 0,0,0 };
 	projectile.vel[0] = { 0,0,0 };
@@ -909,6 +909,7 @@ void testGen()
 	}
 
 	//simInitWrite();
+	O.pushApart();
 
 	std::cout << "Smalls: " << smalls << " Mediums: " << mediums << " Larges: " << larges << std::endl;
 
@@ -1114,8 +1115,8 @@ void generateBallField()
 
 	//twoSizeSphereShell5000();
 	//oneSizeSphere();
-	threeSizeSphere();
-	//testGen();
+	//threeSizeSphere();
+	testGen();
 
 	outputPrefix =
 		std::to_string(genBalls) +
@@ -1129,6 +1130,8 @@ void generateBallField()
 
 void safetyChecks()
 {
+	printf("\n//////////// SAFETY CHECKS ////////////\n");
+
 	if (kin < 0)
 	{
 		printf("\nSPRING CONSTANT NOT SET\n");
@@ -1146,6 +1149,35 @@ void safetyChecks()
 		printf("\nSTEPS NOT SET\n");
 		exit(EXIT_FAILURE);
 	}
+
+	if (O.radius == 0)
+	{
+		printf("\nRadius is 0\n");
+		exit(EXIT_FAILURE);
+	}
+
+	for (size_t Ball = 0; Ball < O.cNumBalls; Ball++)
+	{
+		if (O.pos[Ball] == vector3d(0,0,0))
+		{
+			printf("\nA ball position is [0,0,0]. Possibly didn't initialize balls properly.\n");
+			exit(EXIT_FAILURE);
+		}
+
+		if (O.R[Ball] == 0)
+		{
+			printf("\nA balls radius is 0.\n");
+			exit(EXIT_FAILURE);
+		}
+
+		if (O.m[Ball] == 0)
+		{
+			printf("\nA balls mass is 0.\n");
+			exit(EXIT_FAILURE);
+		}
+	}
+
+	printf("\n//////////// SAFETY PASSED ////////////\n");
 }
 
 

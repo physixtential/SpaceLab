@@ -423,70 +423,99 @@ struct ballGroup
 	}
 
 	/// Push all balls apart until elastic force < gravitational force (equilibrium).
-	bool pushApart()
+	void pushApart()
 	{
-		int issuesDetected = 0;
-		double worstDiff = 0;
+		/// Allocate a collision counter for each ball:
+		int* counter = new int[cNumBalls] {};
 
-		for (int A = 0; A < cNumBalls; A++)
+		/// Using vel array as storage for accumulated position change.
+		for (size_t Ball = 0; Ball < cNumBalls; Ball++)
 		{
-			for (int B = A + 1; B < cNumBalls; B++)
+			vel[Ball] = { 0,0,0 };
+			counter[Ball] = 0;
+		}
+
+		double overlapMax = -1;
+
+		while (true)
+		{
+			for (int A = 0; A < cNumBalls; A++)
 			{
-				// Check for Ball overlap.
-				vector3d rVecab = pos[B] - pos[A];
-				vector3d rVecba = -1 * rVecab;
-				double dist = (rVecab).norm();
-				double sumRaRb = R[A] + R[B];
-				double overlap = sumRaRb - dist;
-				double elasticForce = (-kin * overlap * .5 * (rVecab / dist)).norm();
-				double gravForce = ((G * m[A] * m[B] / (dist * dist)) * (rVecab / dist)).norm();
-
-				if (worstDiff < elasticForce / gravForce)
+				for (int B = A + 1; B < cNumBalls; B++)
 				{
-					worstDiff = elasticForce / gravForce;
+					// Check for Ball overlap.
+					vector3d rVecab = pos[B] - pos[A];
+					vector3d rVecba = -1 * rVecab;
+					double dist = (rVecab).norm();
+					double sumRaRb = R[A] + R[B];
+					double overlap = sumRaRb - dist;
+					//double elasticForce = (-kin * overlap * .5 * (rVecab / dist)).norm();
+					//double gravForce = ((G * m[A] * m[B] / (dist * dist)) * (rVecab / dist)).norm();
+
+					if (overlapMax < overlap)
+					{
+						overlapMax = overlap;
+					}
+
+					if (overlap > 0)// && elasticForce > gravForce)
+					{
+						double move = 0;
+
+						//(overlap * .55 > sumRaRb) ? move = sumRaRb : move = overlap * .55;
+						move = overlap * 1.1;
+
+						if (R[B] <= R[A])
+						{
+							vel[B] += move * (rVecab / dist);
+							counter[B] += 1;
+						}
+						else
+						{
+							vel[A] += move * (rVecba / dist);
+							counter[A] += 1;
+						}
+
+					}
 				}
 
-				if (overlap > 0)// && elasticForce > gravForce)
-				{
-					double move = 0;
 
-					(overlap * .5 > sumRaRb) ? move = sumRaRb : move = overlap * .5;
 
-					issuesDetected += 1;
 
-					if (R[B] <= R[A])
-					{
-						pos[B] += move * (rVecab / dist);
-					}
-					else
-					{
-						pos[A] += move * (rVecba / dist);
-					}
-				}
+				//std::cout << "Overlap: " << totalOverlap << "                        \r";
+				//if (failed == attempts - 1) // Added the second part to speed up spatial constraint increase when there are clearly too many collisions for the space to be feasable.
+				//{
+				//	std::cout << "Failed. Re-randomizing \n";// << spaceRange << ". Increasing range " << spaceRangeIncrement << "cm^3.\n";
+				//	//spaceRange += spaceRangeIncrement;
+				//	failed = 0;
+				//	for (int Ball = 0; Ball < cNumBalls; Ball++)
+				//	{
+				//		pos[Ball] = randSphericalVec(spaceRange, spaceRange, spaceRange); // Each time we fail and increase range, redistribute all balls randomly so we don't end up with big balls near mid and small balls outside.
+				//	}
+				//}
+			}
+			// vel zero
+			// sorting method farthest to closest.
+			// only let balls me outward
+			for (size_t Ball = 0; Ball < cNumBalls; Ball++)
+			{
+				//if (pos[Ball].norm() < (pos[Ball] + vel[Ball] / counter[Ball]).norm())
+				//{
+				pos[Ball] += vel[Ball] / counter[Ball];
+				//}
+				vel[Ball] = { 0,0,0 };
+				counter[Ball] = 0;
 			}
 
-			//std::cout << "Overlap: " << totalOverlap << "                        \r";
-			//if (failed == attempts - 1) // Added the second part to speed up spatial constraint increase when there are clearly too many collisions for the space to be feasable.
-			//{
-			//	std::cout << "Failed. Re-randomizing \n";// << spaceRange << ". Increasing range " << spaceRangeIncrement << "cm^3.\n";
-			//	//spaceRange += spaceRangeIncrement;
-			//	failed = 0;
-			//	for (int Ball = 0; Ball < cNumBalls; Ball++)
-			//	{
-			//		pos[Ball] = randSphericalVec(spaceRange, spaceRange, spaceRange); // Each time we fail and increase range, redistribute all balls randomly so we don't end up with big balls near mid and small balls outside.
-			//	}
-			//}
-		}
-
-		if (issuesDetected > 0)
-		{
-			std::cout << worstDiff << "                        \r";
-			return false;
-		}
-		else
-		{
-			std::cout << "\nSuccess!\n";
-			return true;
+			if (overlapMax > 1e-11)
+			{
+				std::cout << overlapMax << "                        \r";
+			}
+			else
+			{
+				std::cout << "\nSuccess!\n";
+				break;
+			}
+			overlapMax = -1;
 		}
 	}
 };
