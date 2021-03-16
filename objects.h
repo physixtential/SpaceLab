@@ -20,7 +20,6 @@ struct ballGroup
 		mom = { 0, 0, 0 },
 		angMom = { 0, 0, 0 }; // Can be vector3d because they only matter for writing out to file. Can process on host.
 
-	double mTotal = 0, radius = 0;
 	double PE = 0, KE = 0;
 
 	double* distances = 0;
@@ -100,9 +99,10 @@ struct ballGroup
 	}
 
 	/// Approximate the radius of the ballGroup.
-	void updateRadius()
+	double getRadius()
 	{
-		radius = 0;
+		double radius=0;
+
 		if (cNumBalls > 1)
 		{
 			for (int A = 0; A < cNumBalls; A++)
@@ -122,17 +122,25 @@ struct ballGroup
 		{
 			radius = R[0];
 		}
+
+		return radius;
 	}
 
-	vector3d updateComAndMass()
+	double getMass()
 	{
-		mTotal = 0;
+		double mTotal = 0;
 		{
 			for (int Ball = 0; Ball < cNumBalls; Ball++)
 			{
 				mTotal += m[Ball];
 			}
 		}
+		return mTotal;
+	}
+
+	vector3d getCOM()
+	{
+		double mTotal = getMass();
 
 		if (mTotal > 0)
 		{
@@ -162,13 +170,12 @@ struct ballGroup
 
 	void toOrigin()
 	{
-		updateComAndMass();
+		vector3d com = getCOM();
 
 		for (int Ball = 0; Ball < cNumBalls; Ball++)
 		{
 			pos[Ball] -= com;
 		}
-		updateComAndMass();
 	}
 
 	// Set velocity of all balls such that the cluster spins:
