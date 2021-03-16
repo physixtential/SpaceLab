@@ -868,6 +868,7 @@ void twoSizeSphereShell5000()
 		collisionDetected = 0;
 	}
 
+	O.updateRadius();
 
 	std::cout << "Initial Radius: " << O.radius << std::endl;
 	std::cout << "Mass: " << O.mTotal << std::endl;
