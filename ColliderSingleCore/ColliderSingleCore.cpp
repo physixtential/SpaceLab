@@ -135,7 +135,6 @@ void simInitTwoCluster()
 		"-vBig" + scientific(vBig) +
 		"-vSmall" + scientific(vSmall) +
 		"-IP" + rounder(impactParameter * 180 / 3.14159, 2) +
-		"-k" + scientific(kin) +
 		"-rho" + rounder(density, 4);
 }
 
@@ -161,7 +160,6 @@ void simContinue()
 	outputPrefix =
 		projectileName + targetName +
 		"T" + rounder(KEfactor, 4) +
-		"-k" + scientific(kin) +
 		"-rho" + rounder(density, 4);
 }
 
@@ -198,6 +196,7 @@ void simInitCondAndCenter()
 
 	// Name the file based on info above:
 	outputPrefix +=
+		"-k" + scientific(kin) +
 		"-dt" + scientific(dt) +
 		"_";
 }
@@ -500,8 +499,8 @@ void simOneStep(int Step)
 				}
 
 				// For expanding overlappers:
-				O.vel[A] = { 0,0,0 };
-				O.vel[B] = { 0,0,0 };
+				//O.vel[A] = { 0,0,0 };
+				//O.vel[B] = { 0,0,0 };
 			}
 
 			// Newton's equal and opposite forces applied to acceleration of each ball:
@@ -581,7 +580,7 @@ void simOneStep(int Step)
 
 			lastWrite = time(NULL);
 		} // Data export end
-		calibrateDT(Step, false, false);
+		//calibrateDT(Step, false, false);
 		simTimeElapsed += dt * skip;
 	} // writestep end
 } // Steps end
@@ -1122,7 +1121,6 @@ void generateBallField()
 	outputPrefix =
 		std::to_string(genBalls) +
 		"-R" + scientific(O.radius) +
-		"-k" + scientific(kin) +
 		"-cor" + rounder(pow(cor, 2), 4) +
 		"-mu" + rounder(mu, 3) +
 		"-rho" + rounder(density, 4);
