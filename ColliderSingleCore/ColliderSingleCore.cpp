@@ -168,7 +168,7 @@ void simContinue()
 
 void simInitCondAndCenter()
 {
-	
+
 
 	calibrateDT(0, false);
 
@@ -1152,7 +1152,7 @@ void safetyChecks()
 }
 
 
-void calibrateDT(const int Step, const bool superSafe)
+void calibrateDT(const int Step, const bool superSafe, bool doK)
 {
 	double dtOld = dt;
 
@@ -1164,44 +1164,86 @@ void calibrateDT(const int Step, const bool superSafe)
 	soc = 2 * O.radius; // sphere of consideration for max velocity, to avoid very unbound high vel balls.
 
 	double vMax = O.getVelMax(false);
-	std::cout << "vMax: " << vMax;
 
 	// Check if the kick is going to be the most significant velocity basis, or if gravity will matter more.
 	std::cout << std::endl;
 	if (vMax > fabs(vCollapse))
 	{
-		std::cout << "vMax greater than binding. " << vCollapse << "<vCollapse | vMax>" << vMax << std::endl;
-		setGuidDT(vMax);
-		setGuidK(vMax);
-		//std::cout << "My dt " << dtg << " k " << kg << std::endl;
-		//std::cout << "Lazzati dt " << dt << " k " << kin << std::endl;
+		std::cout << "vMax > binding. " << vCollapse << "<vCollapse | vMax>" << vMax;
+
+		if (superSafe)
+		{
+			// Safe: dt based on fastest velocity
+			setLazzDT(vMax);
+			std::cout << " dt Calibrated: " << dt;
+		}
+		else
+		{
+			// Less safe: dt based on fastest velocity
+			setGuidDT(vMax);
+			std::cout << " dt Calibrated: " << dt;
+		}
+
+		if (doK)
+		{
+			if (superSafe)
+			{
+				// Safe: K based on fastest velocity
+				setLazzK(vMax);
+				std::cout << " K Calibrated: " << kin;
+			}
+			else
+			{
+				// Less safe: K based on fastest velocity
+				setGuidK(vMax);
+				std::cout << " K Calibrated: " << kin;
+			}
+		}
 	}
 	else
 	{
-		std::cout << "Binding greater than vMax. " << vCollapse << "<vCollapse | vMax>" << vMax << std::endl;
-		setGuidDT(vCollapse);
-		setGuidK(vCollapse);
+		std::cout << "Binding > vMax. " << vCollapse << "<vCollapse | vMax>" << vMax;
+
+		if (superSafe)
+		{
+			// Safe: dt based on fastest velocity
+			setLazzDT(vCollapse);
+			std::cout << " dt Calibrated: " << dt;
+		}
+		else
+		{
+			// Less safe: dt based on fastest velocity
+			setGuidDT(vCollapse);
+			std::cout << " dt Calibrated: " << dt;
+		}
+
+		if (doK)
+		{
+			if (superSafe)
+			{
+				// Safe: K based on fastest velocity
+				setLazzK(vCollapse);
+				std::cout << " K Calibrated: " << kin;
+			}
+			else
+			{
+				// Less safe: K based on fastest velocity
+				setGuidK(vCollapse);
+				std::cout << " K Calibrated: " << kin;
+			}
+		}
 	}
 
-	steps = (size_t)(simTimeSeconds / dt);
-
-	if (superSafe)
+	if (Step == 0)
 	{
-		// Safe: dt based on fastest velocity
-		// Lazzati k and dt:
-		setLazzDT(vMax);
-		std::cout << " dt Calibrated: " << dt;
+		steps = (size_t)(simTimeSeconds / dt);
+		std::cout << " Step count: " << steps << std::endl;
 	}
 	else
 	{
-		// Less safe: dt based on fastest velocity
-		setGuidDT(vMax);
-		std::cout << " dt Calibrated: " << dt;
+		steps = dt / dtOld * (steps - Step) + Step;
+		std::cout << " New step count: " << steps << std::endl;
 	}
-
-	steps = dt / dtOld * (steps - Step) + Step;
-	std::cout << " New step count: " << steps << std::endl;
-
 }
 
 void setGuidDT(double vel)
