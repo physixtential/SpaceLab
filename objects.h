@@ -40,7 +40,7 @@ struct ballGroup
 	{
 		cNumBalls = nBalls;
 
-		distances = new double[(cNumBalls * cNumBalls / 2.) - (cNumBalls / 2.)];
+		distances = new double[(cNumBalls * cNumBalls / 2) - (cNumBalls / 2)];
 
 		pos = new vector3d[cNumBalls];
 		vel = new vector3d[cNumBalls];
@@ -468,28 +468,12 @@ struct ballGroup
 							vel[A] += move * (rVecba / dist);
 							counter[A] += 1;
 						}
-
 					}
 				}
-
-
-
-
-				//std::cout << "Overlap: " << totalOverlap << "                        \r";
-				//if (failed == attempts - 1) // Added the second part to speed up spatial constraint increase when there are clearly too many collisions for the space to be feasable.
-				//{
-				//	std::cout << "Failed. Re-randomizing \n";// << spaceRange << ". Increasing range " << spaceRangeIncrement << "cm^3.\n";
-				//	//spaceRange += spaceRangeIncrement;
-				//	failed = 0;
-				//	for (int Ball = 0; Ball < cNumBalls; Ball++)
-				//	{
-				//		pos[Ball] = randSphericalVec(spaceRange, spaceRange, spaceRange); // Each time we fail and increase range, redistribute all balls randomly so we don't end up with big balls near mid and small balls outside.
-				//	}
-				//}
 			}
 			// vel zero
 			// sorting method farthest to closest.
-			// only let balls me outward
+			// only let balls move outward
 			for (size_t Ball = 0; Ball < cNumBalls; Ball++)
 			{
 				//if (pos[Ball].norm() < (pos[Ball] + vel[Ball] / counter[Ball]).norm())
@@ -500,7 +484,7 @@ struct ballGroup
 				counter[Ball] = 0;
 			}
 
-			if (overlapMax > 1e-11)
+			if (overlapMax > 0)
 			{
 				std::cout << overlapMax << "                        \r";
 			}

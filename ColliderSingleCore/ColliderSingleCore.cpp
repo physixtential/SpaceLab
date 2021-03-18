@@ -56,8 +56,9 @@ int main(int argc, char const* argv[])
 	}
 
 	//simInitTwoCluster();
-	//simContinue();
-	generateBallField();
+	simContinue();
+	O.pushApart();
+	//generateBallField();
 	simInitCondAndCenter();
 	safetyChecks();
 	simInitWrite();
@@ -141,13 +142,6 @@ void simContinue()
 
 	std::cout << std::endl;
 	O.checkMomentum("O");
-
-	std::cout << "==================" << std::endl;
-	std::cout << "dt: " << dt << std::endl;
-	std::cout << "k: " << kin << std::endl;
-	std::cout << "Steps: " << steps << std::endl;
-	std::cout << "==================" << std::endl;
-
 
 	// Name the file based on info above:
 	outputPrefix =
@@ -1208,7 +1202,7 @@ void calibrateDT(const int Step, const bool superSafe, bool doK)
 		}
 	}
 
-	if (Step == 0)
+	if (Step == 0 or dtOld == 0)
 	{
 		steps = (size_t)(simTimeSeconds / dt);
 		std::cout << " Step count: " << steps << std::endl;
