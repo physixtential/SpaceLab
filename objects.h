@@ -71,11 +71,6 @@ struct ballGroup
 		memcpy(&m[cNumBallsAdded], src->m, sizeof(src->m[0]) * src->cNumBalls);
 		memcpy(&moi[cNumBallsAdded], src->moi, sizeof(src->moi[0]) * src->cNumBalls);
 
-		if (cNumBallsAdded > 0)
-		{
-			radius = -1; // radius is meaningless if there is more than one cluster:
-		}
-
 		// Keep track of now loaded ball set to start next set after it:
 		cNumBallsAdded += src->cNumBalls;
 
@@ -204,7 +199,6 @@ struct ballGroup
 	// Initialzie accelerations and energy calculations:
 	void initConditions()
 	{
-		mTotal = 0;
 		KE = 0;
 		PE = 0;
 		mom = { 0, 0, 0 };
@@ -214,14 +208,12 @@ struct ballGroup
 			vector3d comNumerator = { 0, 0, 0 };
 
 			// Because A starts at 1 below:
-			mTotal += m[0];
 			KE += .5 * m[0] * vel[0].dot(vel[0]) + .5 * moi[0] * w[0].dot(w[0]);
 			mom += m[0] * vel[0];
 			angMom += m[0] * pos[0].cross(vel[0]) + moi[0] * w[0];
 			for (int A = 1; A < cNumBalls; A++)
 			{
 				// Warning: "A" Starts at 1 not 0.
-				mTotal += m[A];
 				comNumerator += m[A] * pos[A];
 
 				for (int B = 0; B < A; B++)
@@ -285,16 +277,13 @@ struct ballGroup
 				mom += m[A] * vel[A];
 				angMom += m[A] * pos[A].cross(vel[A]) + moi[A] * w[A];
 			}
-			com = comNumerator / mTotal;
 		}
 		else // For the case of just one ball:
 		{
-			mTotal = m[0];
 			PE = 0;
 			KE = .5 * m[0] * vel[0].dot(vel[0]) + .5 * moi[0] * w[0].dot(w[0]);
 			mom = m[0] * vel[0];
 			angMom = m[0] * pos[0].cross(vel[0]) + moi[0] * w[0];
-			radius = R[0];
 		}
 	}
 
@@ -360,7 +349,6 @@ struct ballGroup
 			pos[Ball].x += (rad1 + rad2) * cos(impactParam);
 			pos[Ball].y += (rad1 + rad2) * sin(impactParam);
 		}
-		updateComAndMass(); // Update com.
 	}
 
 
@@ -368,7 +356,6 @@ struct ballGroup
 	double getVelMax(bool useSoc)
 	{
 		double vMax = 0;
-		updateComAndMass();
 
 		if (useSoc)
 		{

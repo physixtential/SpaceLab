@@ -88,22 +88,16 @@ void simInitTwoCluster()
 	target.zeroMotion();
 
 	// Calc info to determined cluster positioning and collisions velocity:
-	projectile.updateComAndMass();
-	target.updateComAndMass();
-
-	projectile.updateRadius();
-	target.updateRadius();
-
 	projectile.updatePE();
 	target.updatePE();
 
 	//projectile.offset(projectile.radius, target.radius + (projectile.R[0]), impactParameter);
 
-	double PEsys = projectile.PE + target.PE + (-G * projectile.mTotal * target.mTotal / (projectile.com - target.com).norm());
+	double PEsys = projectile.PE + target.PE + (-G * projectile.getMass() * target.getMass() / (projectile.com - target.com).norm());
 
 	// Collision velocity calculation:
-	double mSmall = projectile.mTotal;
-	double mBig = target.mTotal;
+	double mSmall = projectile.getMass();
+	double mBig = target.getMass();
 	double mTot = mBig + mSmall;
 	double vSmall = -sqrt(2 * KEfactor * fabs(PEsys) * (mBig / (mSmall * mTot))); // Negative because small offsets right.
 	//vSmall = -600000; // DART probe override.
@@ -258,7 +252,7 @@ void simInitWrite()
 	constWrite.open(constantsName, myOpenMode);
 
 	// Make column headers:
-	energyWrite << "Time,PE,KE,E,p,L,Bound,Unbound,mTotal";
+	energyWrite << "Time,PE,KE,E,p,L";
 	ballWrite << "x0,y0,z0,wx0,wy0,wz0,wmag0,vx0,vy0,vz0,bound0";
 
 	for (int Ball = 1; Ball < O.cNumBalls; Ball++) // Start at 2nd ball because first one was just written^.
@@ -299,10 +293,7 @@ void simInitWrite()
 		<< O.KE << ','
 		<< O.PE + O.KE << ','
 		<< O.mom.norm() << ','
-		<< O.angMom.norm() << ','
-		<< 0 << ',' //boundMass
-		<< 0 << ',' //unboundMass
-		<< O.mTotal;
+		<< O.angMom.norm();
 	energyWrite << energyBuffer.rdbuf();
 	energyBuffer.str("");
 
@@ -351,7 +342,7 @@ void simInitWrite()
 	constWrite.close();
 
 	std::cout << "\nInitial conditions exported and file streams closed.\nSimulating " << steps * dt / 60 / 60 << " hours.\n";
-	std::cout << "Total mass: " << O.mTotal << std::endl;
+	std::cout << "Total mass: " << O.getMass() << std::endl;
 	std::cout << "\n===============================================================\n";
 }
 
@@ -548,7 +539,7 @@ void simOneStep(int Step)
 	{
 		// Write energy to stream:
 		energyBuffer << std::endl
-			<< simTimeElapsed << ',' << O.PE << ',' << O.KE << ',' << O.PE + O.KE << ',' << O.mom.norm() << ',' << O.angMom.norm() << ',' << 0 << ',' << 0 << ',' << O.mTotal; // the two zeros are bound and unbound mass
+			<< simTimeElapsed << ',' << O.PE << ',' << O.KE << ',' << O.PE + O.KE << ',' << O.mom.norm() << ',' << O.angMom.norm(); // the two zeros are bound and unbound mass
 
 		// Reinitialize energies for next step:
 		O.KE = 0;
@@ -556,7 +547,7 @@ void simOneStep(int Step)
 		O.mom = { 0, 0, 0 };
 		O.angMom = { 0, 0, 0 };
 		// unboundMass = 0;
-		// boundMass = O.mTotal;
+		// boundMass = massTotal;
 
 		////////////////////////////////////////////////////////////////////
 		// Data Export /////////////////////////////////////////////////////
@@ -708,16 +699,16 @@ ballGroup importDataFromFile(std::string initDataFileName, std::string initConst
 
 	// Bring cluster to origin and calc its radius:
 	tclus.toOrigin();
-	tclus.updateRadius();
 
 	std::cout << "Balls: " << tclus.cNumBalls << std::endl;
-	std::cout << "Mass: " << tclus.mTotal << std::endl;
-	std::cout << "Approximate radius: " << tclus.radius << " cm.\n";
+	std::cout << "Mass: " << tclus.getMass() << std::endl;
+	std::cout << "Approximate radius: " << tclus.getRadius() << " cm.\n";
 	return tclus;
 }
 
 void twoSizeSphereShell5000()
 {
+	double radius = O.getRadius();
 
 	for (int Ball = 0; Ball < 1000; Ball++)
 	{
@@ -725,7 +716,7 @@ void twoSizeSphereShell5000()
 		O.m[Ball] = density * 4. / 3. * 3.14159 * pow(O.R[Ball], 3);
 		O.moi[Ball] = .4 * O.m[Ball] * O.R[Ball] * O.R[Ball];
 		O.w[Ball] = { 0, 0, 0 };
-		O.pos[Ball] = randShellVec(spaceRange, O.radius);
+		O.pos[Ball] = randShellVec(spaceRange, radius);
 	}
 
 	for (int Ball = 1000; Ball < 2000; Ball++)
@@ -734,7 +725,7 @@ void twoSizeSphereShell5000()
 		O.m[Ball] = density * 4. / 3. * 3.14159 * pow(O.R[Ball], 3);
 		O.moi[Ball] = .4 * O.m[Ball] * O.R[Ball] * O.R[Ball];
 		O.w[Ball] = { 0, 0, 0 };
-		O.pos[Ball] = randShellVec(spaceRange, O.radius);
+		O.pos[Ball] = randShellVec(spaceRange, radius);
 	}
 
 	int ballsInPhase1 = 2000;
@@ -758,7 +749,7 @@ void twoSizeSphereShell5000()
 				{
 					collisionDetected += 1;
 					// Move the other ball:
-					O.pos[B] = randShellVec(spaceRange, O.radius);
+					O.pos[B] = randShellVec(spaceRange, radius);
 				}
 			}
 		}
@@ -779,26 +770,15 @@ void twoSizeSphereShell5000()
 			failed = 0;
 			for (int Ball = 0; Ball < ballsInPhase1; Ball++)
 			{
-				O.pos[Ball] = randShellVec(spaceRange, O.radius); // Each time we fail and increase range, redistribute all balls randomly so we don't end up with big balls near mid and small balls outside.
+				O.pos[Ball] = randShellVec(spaceRange, radius); // Each time we fail and increase range, redistribute all balls randomly so we don't end up with big balls near mid and small balls outside.
 			}
 		}
 		collisionDetected = 0;
 	}
 
-	// Calculate cluster radius:
-	vector3d comNumerator;
-	for (int Ball = 0; Ball < O.cNumBalls; Ball++)
-	{
-		O.mTotal += O.m[Ball];
-		comNumerator += O.m[Ball] * O.pos[Ball];
-	}
-	O.com = comNumerator / O.mTotal;
-
-	O.updateRadius();
-
 	spaceRange += 2 * O.R[0] + 4 * 250;
-	O.radius += O.R[0] + 250;
-	std::cout << "Making shell between " << O.radius << " and " << spaceRange * .5 << std::endl;
+	radius += O.R[0] + 250;
+	std::cout << "Making shell between " << radius << " and " << spaceRange * .5 << std::endl;
 
 	// PHASE 2
 
@@ -808,7 +788,7 @@ void twoSizeSphereShell5000()
 		O.m[Ball] = density * 4. / 3. * 3.14159 * pow(O.R[Ball], 3);
 		O.moi[Ball] = .4 * O.m[Ball] * O.R[Ball] * O.R[Ball];
 		O.w[Ball] = { 0, 0, 0 };
-		O.pos[Ball] = randShellVec(spaceRange, O.radius);
+		O.pos[Ball] = randShellVec(spaceRange, radius);
 	}
 
 	for (int Ball = 3500; Ball < 5000; Ball++)
@@ -817,7 +797,7 @@ void twoSizeSphereShell5000()
 		O.m[Ball] = density * 4. / 3. * 3.14159 * pow(O.R[Ball], 3);
 		O.moi[Ball] = .4 * O.m[Ball] * O.R[Ball] * O.R[Ball];
 		O.w[Ball] = { 0, 0, 0 };
-		O.pos[Ball] = randShellVec(spaceRange, O.radius);
+		O.pos[Ball] = randShellVec(spaceRange, radius);
 	}
 
 	int ballsInPhase2 = 3000;
@@ -841,7 +821,7 @@ void twoSizeSphereShell5000()
 				{
 					collisionDetected += 1;
 					// Move the other ball:
-					O.pos[B] = randShellVec(spaceRange, O.radius);
+					O.pos[B] = randShellVec(spaceRange, radius);
 				}
 			}
 		}
@@ -862,16 +842,14 @@ void twoSizeSphereShell5000()
 			failed = 0;
 			for (int Ball = ballsInPhase1; Ball < ballsInPhase1 + ballsInPhase2; Ball++)
 			{
-				O.pos[Ball] = randShellVec(spaceRange, O.radius); // Each time we fail and increase range, redistribute all balls randomly so we don't end up with big balls near mid and small balls outside.
+				O.pos[Ball] = randShellVec(spaceRange, radius); // Each time we fail and increase range, redistribute all balls randomly so we don't end up with big balls near mid and small balls outside.
 			}
 		}
 		collisionDetected = 0;
 	}
 
-	O.updateRadius();
-
-	std::cout << "Initial Radius: " << O.radius << std::endl;
-	std::cout << "Mass: " << O.mTotal << std::endl;
+	std::cout << "Initial Radius: " << radius << std::endl;
+	std::cout << "Mass: " << O.getMass() << std::endl;
 
 }
 
@@ -915,19 +893,9 @@ void testGen()
 	std::cout << "Smalls: " << smalls << " Mediums: " << mediums << " Larges: " << larges << std::endl;
 
 	std::cout << "Final spacerange: " << spaceRange << std::endl;
-	// Calculate approximate radius of imported cluster and center of mass:
-	vector3d comNumerator;
-	for (int Ball = 0; Ball < O.cNumBalls; Ball++)
-	{
-		O.mTotal += O.m[Ball];
-		comNumerator += O.m[Ball] * O.pos[Ball];
-	}
-	O.com = comNumerator / O.mTotal;
 
-	O.updateRadius();
-
-	std::cout << "Initial Radius: " << O.radius << std::endl;
-	std::cout << "Mass: " << O.mTotal << std::endl;
+	std::cout << "Initial Radius: " << O.getRadius() << std::endl;
+	std::cout << "Mass: " << O.getMass() << std::endl;
 }
 
 void threeSizeSphere()
@@ -1012,19 +980,8 @@ void threeSizeSphere()
 	}
 
 	std::cout << "Final spacerange: " << spaceRange << std::endl;
-	// Calculate approximate radius of imported cluster and center of mass:
-	vector3d comNumerator;
-	for (int Ball = 0; Ball < O.cNumBalls; Ball++)
-	{
-		O.mTotal += O.m[Ball];
-		comNumerator += O.m[Ball] * O.pos[Ball];
-	}
-	O.com = comNumerator / O.mTotal;
-
-	O.updateRadius();
-
-	std::cout << "Initial Radius: " << O.radius << std::endl;
-	std::cout << "Mass: " << O.mTotal << std::endl;
+	std::cout << "Initial Radius: " << O.getRadius() << std::endl;
+	std::cout << "Mass: " << O.getMass() << std::endl;
 }
 
 
@@ -1087,19 +1044,8 @@ void oneSizeSphere()
 	}
 
 	std::cout << "Final spacerange: " << spaceRange << std::endl;
-	// Calculate approximate radius of imported cluster and center of mass:
-	vector3d comNumerator;
-	for (int Ball = 0; Ball < O.cNumBalls; Ball++)
-	{
-		O.mTotal += O.m[Ball];
-		comNumerator += O.m[Ball] * O.pos[Ball];
-	}
-	O.com = comNumerator / O.mTotal;
-
-	O.updateRadius();
-
-	std::cout << "Initial Radius: " << O.radius << std::endl;
-	std::cout << "Mass: " << O.mTotal << std::endl;
+	std::cout << "Initial Radius: " << O.getRadius() << std::endl;
+	std::cout << "Mass: " << O.getMass() << std::endl;
 }
 
 
@@ -1121,7 +1067,7 @@ void generateBallField()
 
 	outputPrefix =
 		std::to_string(genBalls) +
-		"-R" + scientific(O.radius) +
+		"-R" + scientific(O.getRadius()) +
 		"-cor" + rounder(pow(cor, 2), 4) +
 		"-mu" + rounder(mu, 3) +
 		"-rho" + rounder(density, 4);
@@ -1151,7 +1097,7 @@ void safetyChecks()
 		exit(EXIT_FAILURE);
 	}
 
-	if (O.radius == 0)
+	if (O.getRadius() == 0)
 	{
 		printf("\nRadius is 0\n");
 		exit(EXIT_FAILURE);
@@ -1185,13 +1131,11 @@ void safetyChecks()
 void calibrateDT(const int Step, const bool superSafe, bool doK)
 {
 	double dtOld = dt;
-
+	double radius = O.getRadius();
 	// Calculate max velocity due to collapse
-	O.updateRadius();
-	O.updateComAndMass(); // Need to know mass for vCollapse calculation.
-	double vCollapse = sqrt(2 * G * O.mTotal / O.radius);
+	double vCollapse = sqrt(2 * G * O.getMass() / radius);
 
-	soc = 2 * O.radius; // sphere of consideration for max velocity, to avoid very unbound high vel balls.
+	soc = 2 * radius; // sphere of consideration for max velocity, to avoid very unbound high vel balls.
 
 	double vMax = O.getVelMax(false);
 
