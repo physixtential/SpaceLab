@@ -96,7 +96,7 @@ struct ballGroup
 	/// Approximate the radius of the ballGroup.
 	double getRadius()
 	{
-		double radius=0;
+		double radius = 0;
 
 		if (cNumBalls > 1)
 		{
@@ -476,12 +476,12 @@ struct ballGroup
 			// only let balls move outward
 			for (size_t Ball = 0; Ball < cNumBalls; Ball++)
 			{
-				//if (pos[Ball].norm() < (pos[Ball] + vel[Ball] / counter[Ball]).norm())
-				//{
-				pos[Ball] += vel[Ball] / counter[Ball];
-				//}
-				vel[Ball] = { 0,0,0 };
-				counter[Ball] = 0;
+				if (counter[Ball] > 0)
+				{
+					pos[Ball] += vel[Ball] / counter[Ball];
+					counter[Ball] = 0;
+					vel[Ball] = { 0,0,0 };
+				}
 			}
 
 			if (overlapMax > 0)
