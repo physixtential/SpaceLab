@@ -25,21 +25,21 @@ energyBuffer;
 ballGroup O;
 
 // Prototypes
-void simInitTwoCluster();
-void simContinue();
-void simInitCondAndCenter();
-void simInitWrite();
-void simOneStep(int Step);
-void simLooper();
-ballGroup importDataFromFile(std::string initDataFileName, std::string initConstFileName);
-void generateBallField();
-void safetyChecks();
-void calibrateDT(int Step, bool superSafe, bool doK);
-void setGuidDT(double vel);
-void setGuidK(double vel);
-void setLazzDT(double vel);
-void setLazzK(double vel);
-void simDataWrite();
+inline void simInitTwoCluster();
+inline void simContinue();
+inline void simInitCondAndCenter();
+inline void simInitWrite();
+inline void simOneStep(int Step);
+inline void simLooper();
+inline ballGroup importDataFromFile(std::string initDataFileName, std::string initConstFileName);
+inline void generateBallField();
+inline void safetyChecks();
+inline void calibrateDT(int Step, bool superSafe, bool doK);
+inline void setGuidDT(double vel);
+inline void setGuidK(double vel);
+inline void setLazzDT(double vel);
+inline void setLazzK(double vel);
+inline void simDataWrite();
 
 // Main function
 int main(int argc, char const* argv[])
@@ -67,7 +67,7 @@ int main(int argc, char const* argv[])
 	return 0;
 } // end main
 
-void simInitTwoCluster()
+inline void simInitTwoCluster()
 {
 	// Load file data:
 	std::cerr << "TWO CLUSTER SIM\nFile 1: " << projectileName << '\t' << "File 2: " << targetName << std::endl;
@@ -133,7 +133,7 @@ void simInitTwoCluster()
 }
 
 
-void simContinue()
+inline void simContinue()
 {
 	// Load file data:
 	std::cerr << "Continuing Sim...\nFile: " << targetName << std::endl;
@@ -151,7 +151,7 @@ void simContinue()
 }
 
 
-void simInitCondAndCenter()
+inline void simInitCondAndCenter()
 {
 
 
@@ -196,7 +196,7 @@ std::string constantsName;
 std::string energyName;
 std::ofstream::openmode myOpenMode = std::ofstream::app;
 
-void simInitWrite()
+inline void simInitWrite()
 {
 	// Create string for file name identifying spin combination negative is 2, positive is 1 on each axis.
 	//std::string spinCombo = "";
@@ -348,7 +348,7 @@ time_t startProgress; // For progress reporting (gets reset)
 time_t lastWrite;     // For write control (gets reset)
 bool writeStep;       // This prevents writing to file every step (which is slow).
 
-void simOneStep(int Step)
+inline void simOneStep(int Step)
 {
 	// Check if this is a write step:
 	if (Step % skip == 0)
@@ -570,7 +570,7 @@ void simOneStep(int Step)
 } // Steps end
 
 
-void simLooper()
+inline void simLooper()
 {
 	std::cout << "Beginning simulation...\n";
 
@@ -597,7 +597,7 @@ void simLooper()
 // Sets ICs from file:
 /////////////////////////////////////////////////////////////////////////////////////
 
-ballGroup importDataFromFile(std::string initDataFileName, std::string initConstFileName)
+inline ballGroup importDataFromFile(std::string initDataFileName, std::string initConstFileName)
 {
 	ballGroup tclus;
 
@@ -700,7 +700,7 @@ ballGroup importDataFromFile(std::string initDataFileName, std::string initConst
 	return tclus;
 }
 
-void twoSizeSphereShell5000()
+inline void twoSizeSphereShell5000()
 {
 	double radius = O.getRadius();
 
@@ -847,7 +847,7 @@ void twoSizeSphereShell5000()
 
 }
 
-void testGen()
+inline void testGen()
 {
 	// Make genBalls of 3 sizes in CGS with ratios such that the mass is distributed evenly among the 3 sizes (less large genBalls than small genBalls).
 	int smalls = std::round((double)genBalls * 27 / 31.375); // Just here for reference. Whatever genBalls are left will be smalls.
@@ -892,7 +892,7 @@ void testGen()
 	std::cout << "Mass: " << O.getMass() << std::endl;
 }
 
-void threeSizeSphere()
+inline void threeSizeSphere()
 {
 	// Make genBalls of 3 sizes in CGS with ratios such that the mass is distributed evenly among the 3 sizes (less large genBalls than small genBalls).
 	int smalls = std::round((double)genBalls * 27 / 31.375); // Just here for reference. Whatever genBalls are left will be smalls.
@@ -980,7 +980,7 @@ void threeSizeSphere()
 
 
 
-void oneSizeSphere()
+inline void oneSizeSphere()
 {
 
 	for (int Ball = 0; Ball < genBalls; Ball++)
@@ -1044,7 +1044,7 @@ void oneSizeSphere()
 
 
 
-void generateBallField()
+inline void generateBallField()
 {
 	std::cout << "CLUSTER FORMATION\n";
 	O.allocateGroup(genBalls);
@@ -1069,7 +1069,7 @@ void generateBallField()
 
 
 
-void safetyChecks()
+inline void safetyChecks()
 {
 	printf("\n//////////// SAFETY CHECKS ////////////\n");
 
@@ -1122,7 +1122,7 @@ void safetyChecks()
 }
 
 
-void calibrateDT(const int Step, const bool superSafe, bool doK)
+inline void calibrateDT(const int Step, const bool superSafe, bool doK)
 {
 	double dtOld = dt;
 	double radius = O.getRadius();
