@@ -24,19 +24,19 @@ struct ballGroup
 
 	double* distances = 0;
 
-	vector3d* pos = 0;
-	vector3d* vel = 0;
-	vector3d* velh = 0; ///< Velocity half step for integration purposes.
-	vector3d* acc = 0;
-	vector3d* w = 0;
-	vector3d* wh = 0; ///< Angular velocity half step for integration purposes.
-	vector3d* aacc = 0;
-	double* R = 0; ///< Radius
-	double* m = 0; ///< Mass
-	double* moi = 0; ///< Moment of inertia
+	vector3d* pos;
+	vector3d* vel;
+	vector3d* velh; ///< Velocity half step for integration purposes.
+	vector3d* acc;
+	vector3d* w;
+	vector3d* wh; ///< Angular velocity half step for integration purposes.
+	vector3d* aacc;
+	double* R; ///< Radius
+	double* m; ///< Mass
+	double* moi; ///< Moment of inertia
 
 	/// Allocate ball property arrays.
-	void allocateGroup(int nBalls)
+	inline void allocateGroup(int nBalls)
 	{
 		cNumBalls = nBalls;
 
@@ -56,7 +56,7 @@ struct ballGroup
 
 
 	/// Add another ballGroup into this one.
-	void addBallGroup(ballGroup* src)
+	inline void addBallGroup(ballGroup* src)
 	{
 		// Copy incoming data to the end of the currently loaded data.
 		memcpy(&distances[cNumBallsAdded], src->distances, sizeof(src->distances[0]) * src->cNumBalls);
@@ -78,7 +78,7 @@ struct ballGroup
 	}
 
 	/// Deallocate arrays to recover memory.
-	void freeMemory()
+	inline void freeMemory()
 	{
 		delete[] distances;
 		delete[] pos;
@@ -94,7 +94,7 @@ struct ballGroup
 	}
 
 	/// Approximate the radius of the ballGroup.
-	double getRadius()
+	inline double getRadius()
 	{
 		double radius = 0;
 
@@ -121,7 +121,7 @@ struct ballGroup
 		return radius;
 	}
 
-	double getMass()
+	inline double getMass()
 	{
 		double mTotal = 0;
 		{
@@ -133,7 +133,7 @@ struct ballGroup
 		return mTotal;
 	}
 
-	vector3d getCOM()
+	inline vector3d getCOM()
 	{
 		double mTotal = getMass();
 
@@ -154,7 +154,7 @@ struct ballGroup
 		}
 	}
 
-	void zeroMotion()
+	inline void zeroMotion()
 	{
 		for (int Ball = 0; Ball < cNumBalls; Ball++)
 		{
@@ -163,7 +163,7 @@ struct ballGroup
 		}
 	}
 
-	void toOrigin()
+	inline void toOrigin()
 	{
 		vector3d com = getCOM();
 
@@ -174,7 +174,7 @@ struct ballGroup
 	}
 
 	// Set velocity of all balls such that the cluster spins:
-	void comSpinner(double spinX, double spinY, double spinZ)
+	inline void comSpinner(double spinX, double spinY, double spinZ)
 	{
 		vector3d comRot = { spinX, spinY, spinZ }; // Rotation axis and magnitude
 		for (int Ball = 0; Ball < cNumBalls; Ball++)
@@ -184,7 +184,7 @@ struct ballGroup
 		}
 	}
 
-	void rotAll(char axis, double angle)
+	inline void rotAll(char axis, double angle)
 	{
 		for (int Ball = 0; Ball < cNumBalls; Ball++)
 		{
@@ -197,7 +197,7 @@ struct ballGroup
 
 
 	// Initialzie accelerations and energy calculations:
-	void initConditions()
+	inline void initConditions()
 	{
 		KE = 0;
 		PE = 0;
@@ -288,7 +288,7 @@ struct ballGroup
 	}
 
 	// Update Potential Energy:
-	void updatePE()
+	inline void updatePE()
 	{
 		PE = 0;
 
@@ -322,7 +322,7 @@ struct ballGroup
 
 
 	// Kick ballGroup (give the whole thing a velocity)
-	void kick(double vx, double vy, double vz)
+	inline void kick(double vx, double vy, double vz)
 	{
 		for (int Ball = 0; Ball < cNumBalls; Ball++)
 		{
@@ -331,7 +331,7 @@ struct ballGroup
 	}
 
 
-	void checkMomentum(std::string of)
+	inline void checkMomentum(std::string of)
 	{
 		vector3d pTotal = { 0,0,0 };
 		for (int Ball = 0; Ball < cNumBalls; Ball++)
@@ -342,7 +342,7 @@ struct ballGroup
 	}
 
 	// offset cluster
-	void offset(double rad1, double rad2, double impactParam)
+	inline void offset(double rad1, double rad2, double impactParam)
 	{
 		for (int Ball = 0; Ball < cNumBalls; Ball++)
 		{
@@ -353,7 +353,7 @@ struct ballGroup
 
 
 	// get max velocity
-	double getVelMax(bool useSoc)
+	inline double getVelMax(bool useSoc)
 	{
 		double vMax = 0;
 
@@ -389,7 +389,7 @@ struct ballGroup
 	}
 
 
-	int getRmin()
+	inline int getRmin()
 	{
 		int rMin = R[0];
 		for (int Ball = 0; Ball < cNumBalls; Ball++)
@@ -403,7 +403,7 @@ struct ballGroup
 	}
 
 
-	int getMassMax()
+	inline int getMassMax()
 	{
 		int mMax = m[0];
 		for (int Ball = 0; Ball < cNumBalls; Ball++)
@@ -417,7 +417,7 @@ struct ballGroup
 	}
 
 	/// Push all balls apart until elastic force < gravitational force (equilibrium).
-	void pushApart()
+	inline void pushApart()
 	{
 		/// Allocate a collision counter for each ball:
 		int* counter = new int[cNumBalls] {};
