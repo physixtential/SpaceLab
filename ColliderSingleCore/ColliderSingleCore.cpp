@@ -13,12 +13,9 @@
 
 
 
-// String buffer to hold data in memory until worth writing to file
-std::stringstream
-ballBuffer,
-energyBuffer;
-
-std::ofstream::openmode myOpenMode = std::ofstream::app;
+// String buffers to hold data in memory until worth writing to file:
+std::stringstream ballBuffer;
+std::stringstream energyBuffer;
 
 // These are used within simOneStep to keep track of time.
 // They need to survive outside its scope, and I don't want to have to pass them all.
@@ -242,9 +239,9 @@ inline void simInitWrite(const std::string& filename)
 
 	// Open all file streams:
 	std::ofstream energyWrite, ballWrite, constWrite;
-	energyWrite.open(energyFilename, myOpenMode);
-	ballWrite.open(simDataFilename, myOpenMode);
-	constWrite.open(constantsFilename, myOpenMode);
+	energyWrite.open(energyFilename, std::ofstream::app);
+	ballWrite.open(simDataFilename, std::ofstream::app);
+	constWrite.open(constantsFilename, std::ofstream::app);
 
 	// Make column headers:
 	energyWrite << "Time,PE,KE,E,p,L";
@@ -549,14 +546,14 @@ inline void simOneStep(int& Step)
 
 			// Write simData to file and clear buffer.
 			std::ofstream ballWrite;
-			ballWrite.open(outputPrefix + "simData.csv", myOpenMode);
+			ballWrite.open(outputPrefix + "simData.csv", std::ofstream::app);
 			ballWrite << ballBuffer.rdbuf(); // Barf buffer to file.
 			ballBuffer.str("");              // Empty the stream for next filling.
 			ballWrite.close();
 
 			// Write Energy data to file and clear buffer.
 			std::ofstream energyWrite;
-			energyWrite.open(outputPrefix + "energy.csv", myOpenMode);
+			energyWrite.open(outputPrefix + "energy.csv", std::ofstream::app);
 			energyWrite << energyBuffer.rdbuf();
 			energyBuffer.str(""); // Empty the stream for next filling.
 			energyWrite.close();
