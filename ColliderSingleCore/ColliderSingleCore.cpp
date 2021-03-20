@@ -11,16 +11,21 @@
 #include "../initializations.h"
 #include "../objects.h"
 
-// File streams
-std::ofstream
-ballWrite,   // All ball data, pos, vel, rotation, boundness, etc
-energyWrite, // Total energy of system, PE, KE, etc
-constWrite;  // Ball radius, mass, and moi
+
 
 // String buffer to hold data in memory until worth writing to file
 std::stringstream
 ballBuffer,
 energyBuffer;
+
+std::ofstream::openmode myOpenMode = std::ofstream::app;
+
+// These are used within simOneStep to keep track of time.
+// They need to survive outside its scope, and I don't want to have to pass them all.
+time_t start = time(NULL);        // For end of program analysis
+time_t startProgress; // For progress reporting (gets reset)
+time_t lastWrite;     // For write control (gets reset)
+bool writeStep;       // This prevents writing to file every step (which is slow).
 
 ballGroup O;
 
@@ -28,17 +33,16 @@ ballGroup O;
 inline void simInitTwoCluster();
 inline void simContinue();
 inline void simInitCondAndCenter();
-inline void simInitWrite();
-inline void simOneStep(int Step);
+inline void simInitWrite(const std::string& filename);
+inline void simOneStep(const int& Step);
 inline void simLooper();
-inline ballGroup importDataFromFile(std::string initDataFileName, std::string initConstFileName);
 inline void generateBallField();
 inline void safetyChecks();
-inline void calibrateDT(int Step, bool superSafe, bool doK);
-inline void setGuidDT(double vel);
-inline void setGuidK(double vel);
-inline void setLazzDT(double vel);
-inline void setLazzK(double vel);
+inline void calibrateDT(const int& Step, bool superSafe, bool doK);
+inline void setGuidDT(const double& vel);
+inline void setGuidK(const double& vel);
+inline void setLazzDT(const double& vel);
+inline void setLazzK(const double& vel);
 inline void simDataWrite();
 
 // Main function
@@ -61,7 +65,7 @@ int main(int argc, char const* argv[])
 	//generateBallField();
 	simInitCondAndCenter();
 	safetyChecks();
-	simInitWrite();
+	simInitWrite(outputPrefix);
 	simLooper();
 
 	return 0;
@@ -71,7 +75,7 @@ inline void simInitTwoCluster()
 {
 	// Load file data:
 	std::cerr << "TWO CLUSTER SIM\nFile 1: " << projectileName << '\t' << "File 2: " << targetName << std::endl;
-	//ballGroup projectile = importDataFromFile(path + projectileName + "simData.csv", path + projectileName + "constants.csv");
+	//ballGroup projectile(path + targetName);
 
 	// DART PROBE
 	ballGroup projectile(1);
@@ -82,7 +86,7 @@ inline void simInitTwoCluster()
 	projectile.m[0] = 560000;
 	projectile.moi[0] = .4 * projectile.m[0] * projectile.R[0] * projectile.R[0];
 
-	ballGroup target = importDataFromFile(path + targetName + "simData.csv", path + targetName + "constants.csv");
+	ballGroup target(path + targetName);
 
 	// DO YOU WANT TO STOP EVERYTHING?
 	projectile.zeroMotion();
@@ -120,8 +124,8 @@ inline void simInitTwoCluster()
 
 	O.allocateGroup(projectile.cNumBalls + target.cNumBalls);
 
-	O.addBallGroup(&target);
-	O.addBallGroup(&projectile); // projectile second so smallest ball at end and largest ball at front for dt/k calcs.
+	O.addBallGroup(target);
+	O.addBallGroup(projectile); // projectile second so smallest ball at end and largest ball at front for dt/k calcs.
 
 	outputPrefix =
 		projectileName + targetName +
@@ -138,7 +142,7 @@ inline void simContinue()
 	// Load file data:
 	std::cerr << "Continuing Sim...\nFile: " << targetName << std::endl;
 
-	O = importDataFromFile(path + targetName + "simData.csv", path + targetName + "constants.csv");
+	O.importDataFromFile(path + targetName);
 
 	std::cout << std::endl;
 	O.checkMomentum("O");
@@ -191,12 +195,9 @@ inline void simInitCondAndCenter()
 
 
 
-std::string simDataName;
-std::string constantsName;
-std::string energyName;
-std::ofstream::openmode myOpenMode = std::ofstream::app;
 
-inline void simInitWrite()
+
+inline void simInitWrite(const std::string& filename)
 {
 	// Create string for file name identifying spin combination negative is 2, positive is 1 on each axis.
 	//std::string spinCombo = "";
@@ -207,16 +208,15 @@ inline void simInitWrite()
 	//	else { spinCombo += "0"; }
 	//}
 
-	// Save file names:
-	simDataName = outputPrefix + "simData.csv";
-	constantsName = outputPrefix + "constants.csv";
-	energyName = outputPrefix + "energy.csv";
-
+	// Append for the three files:
+	std::string simDataFilename = filename + "simData.csv";
+	std::string energyFilename = filename + "energy.csv";
+	std::string constantsFilename = filename + "constants.csv";
 
 
 	// Check if file name already exists.
 	std::ifstream checkForFile;
-	checkForFile.open(simDataName, std::ifstream::in);
+	checkForFile.open(simDataFilename, std::ifstream::in);
 	int counter = 0;
 	// Add a counter to the file name until it isn't overwriting anything:
 	if (checkForFile.is_open())
@@ -227,23 +227,24 @@ inline void simInitWrite()
 			{
 				counter++;
 				checkForFile.close();
-				checkForFile.open(std::to_string(counter) + '_' + simDataName, std::ifstream::in);
+				checkForFile.open(std::to_string(counter) + '_' + simDataFilename, std::ifstream::in);
 			}
 			else
 			{
-				simDataName = std::to_string(counter) + '_' + simDataName;
-				constantsName = std::to_string(counter) + '_' + constantsName;
-				energyName = std::to_string(counter) + '_' + energyName;
+				simDataFilename = std::to_string(counter) + '_' + simDataFilename;
+				constantsFilename = std::to_string(counter) + '_' + constantsFilename;
+				energyFilename = std::to_string(counter) + '_' + energyFilename;
 				break;
 			}
 		}
 	}
-	std::cout << "New file tag: " << simDataName;
+	std::cout << "New file tag: " << simDataFilename;
 
 	// Open all file streams:
-	energyWrite.open(energyName, myOpenMode);
-	ballWrite.open(simDataName, myOpenMode);
-	constWrite.open(constantsName, myOpenMode);
+	std::ofstream energyWrite, ballWrite, constWrite;
+	energyWrite.open(energyFilename, myOpenMode);
+	ballWrite.open(simDataFilename, myOpenMode);
+	constWrite.open(constantsFilename, myOpenMode);
 
 	// Make column headers:
 	energyWrite << "Time,PE,KE,E,p,L";
@@ -343,12 +344,8 @@ inline void simInitWrite()
 
 
 
-time_t start = time(NULL);        // For end of program analysis
-time_t startProgress; // For progress reporting (gets reset)
-time_t lastWrite;     // For write control (gets reset)
-bool writeStep;       // This prevents writing to file every step (which is slow).
 
-inline void simOneStep(int Step)
+inline void simOneStep(int& Step)
 {
 	// Check if this is a write step:
 	if (Step % skip == 0)
@@ -551,13 +548,15 @@ inline void simOneStep(int Step)
 			std::cout << "\nData Write" << std::endl;
 
 			// Write simData to file and clear buffer.
-			ballWrite.open(simDataName, myOpenMode);
+			std::ofstream ballWrite;
+			ballWrite.open(outputPrefix + "simData.csv", myOpenMode);
 			ballWrite << ballBuffer.rdbuf(); // Barf buffer to file.
 			ballBuffer.str("");              // Empty the stream for next filling.
 			ballWrite.close();
 
 			// Write Energy data to file and clear buffer.
-			energyWrite.open(energyName, myOpenMode);
+			std::ofstream energyWrite;
+			energyWrite.open(outputPrefix + "energy.csv", myOpenMode);
 			energyWrite << energyBuffer.rdbuf();
 			energyBuffer.str(""); // Empty the stream for next filling.
 			energyWrite.close();
@@ -593,112 +592,7 @@ inline void simLooper()
 } // end main
 
 
-/////////////////////////////////////////////////////////////////////////////////////
-// Sets ICs from file:
-/////////////////////////////////////////////////////////////////////////////////////
 
-inline ballGroup importDataFromFile(std::string initDataFileName, std::string initConstFileName)
-{
-	ballGroup tclus;
-
-	// Get position and angular velocity data:
-	if (auto simDataStream = std::ifstream(initDataFileName, std::ifstream::in))
-	{
-		std::string line, lineElement;
-		std::cout << "\nParsing last line of data.\n";
-
-		simDataStream.seekg(-1, std::ios_base::end); // go to one spot before the EOF
-
-		bool keepLooping = true;
-		while (keepLooping)
-		{
-			char ch;
-			simDataStream.get(ch); // Get current byte's data
-
-			if ((int)simDataStream.tellg() <= 1)
-			{                           // If the data was at or before the 0th byte
-				simDataStream.seekg(0); // The first line is the last line
-				keepLooping = false;    // So stop there
-			}
-			else if (ch == '\n')
-			{                        // If the data was a newline
-				keepLooping = false; // Stop at the current position.
-			}
-			else
-			{                                                // If the data was neither a newline nor at the 0 byte
-				simDataStream.seekg(-2, std::ios_base::cur); // Move to the front of that data, then to the front of the data before it
-			}
-		}
-
-
-		std::getline(simDataStream, line);                                              // Read the current line
-		int count = std::count(line.begin(), line.end(), ',') / properties + 1;
-		tclus.allocateGroup(count); // Get number of balls in file
-
-		std::stringstream chosenLine(line); // This is the last line of the read file, containing all data for all balls at last time step
-
-		for (int A = 0; A < tclus.cNumBalls; A++)
-		{
-
-			for (int i = 0; i < 3; i++) // Position
-			{
-				std::getline(chosenLine, lineElement, ',');
-				tclus.pos[A][i] = std::stod(lineElement);
-				//std::cout << tclus.pos[A][i]<<',';
-			}
-			for (int i = 0; i < 3; i++) // Angular Velocity
-			{
-				std::getline(chosenLine, lineElement, ',');
-				tclus.w[A][i] = std::stod(lineElement);
-			}
-			std::getline(chosenLine, lineElement, ','); // Angular velocity magnitude skipped
-			for (int i = 0; i < 3; i++)                 // velocity
-			{
-				std::getline(chosenLine, lineElement, ',');
-				tclus.vel[A][i] = std::stod(lineElement);
-			}
-			for (int i = 0; i < properties - 10; i++) // We used 10 elements. This skips the rest.
-			{
-				std::getline(chosenLine, lineElement, ',');
-			}
-		}
-	}
-	else
-	{
-		std::cerr << "Could not open simData file: " << initDataFileName << "... Existing program." << std::endl;
-		exit(EXIT_FAILURE);
-	}
-
-	// Get radius, mass, moi:
-	if (auto ConstStream = std::ifstream(initConstFileName, std::ifstream::in))
-	{
-		std::string line, lineElement;
-		for (int A = 0; A < tclus.cNumBalls; A++)
-		{
-			std::getline(ConstStream, line); // Ball line.
-			std::stringstream chosenLine(line);
-			std::getline(chosenLine, lineElement, ','); // Radius.
-			tclus.R[A] = std::stod(lineElement);
-			std::getline(chosenLine, lineElement, ','); // Mass.
-			tclus.m[A] = std::stod(lineElement);
-			std::getline(chosenLine, lineElement, ','); // Moment of inertia.
-			tclus.moi[A] = std::stod(lineElement);
-		}
-	}
-	else
-	{
-		std::cerr << "Could not open constants file: " << initConstFileName << "... Existing program." << std::endl;
-		exit(EXIT_FAILURE);
-	}
-
-	// Bring cluster to origin and calc its radius:
-	tclus.toOrigin();
-
-	std::cout << "Balls: " << tclus.cNumBalls << std::endl;
-	std::cout << "Mass: " << tclus.getMass() << std::endl;
-	std::cout << "Approximate radius: " << tclus.getRadius() << " cm.\n";
-	return tclus;
-}
 
 inline void twoSizeSphereShell5000()
 {
@@ -1099,7 +993,7 @@ inline void safetyChecks()
 
 	for (size_t Ball = 0; Ball < O.cNumBalls; Ball++)
 	{
-		if (O.pos[Ball] == vector3d(0,0,0))
+		if (O.pos[Ball] == vector3d(0, 0, 0))
 		{
 			printf("\nA ball position is [0,0,0]. Possibly didn't initialize balls properly.\n");
 			exit(EXIT_FAILURE);
@@ -1122,7 +1016,7 @@ inline void safetyChecks()
 }
 
 
-inline void calibrateDT(const int Step, const bool superSafe, bool doK)
+inline void calibrateDT(const int& Step, const bool superSafe, bool doK)
 {
 	double dtOld = dt;
 	double radius = O.getRadius();
@@ -1214,26 +1108,26 @@ inline void calibrateDT(const int Step, const bool superSafe, bool doK)
 	}
 }
 
-void setGuidDT(double vel)
+void setGuidDT(const double& vel)
 {
 	// Guidos k and dt:
 	dt = .01 * O.getRmin() / fabs(vel);
 }
 
-void setGuidK(double vel)
+void setGuidK(const double& vel)
 {
 	kin = O.getMassMax() * vel * vel / (.1 * O.R[0] * .1 * O.R[0]);
 	kout = cor * kin;
 }
 
-void setLazzDT(double vel)
+void setLazzDT(const double& vel)
 {
 	// Lazzati k and dt:
 	double kTemp = 4 / 3 * M_PI * density * O.getMassMax() * vel * vel / (.1 * .1);
 	dt = .01 * sqrt(4 / 3 * M_PI * density / kTemp * O.getRmin());
 }
 
-void setLazzK(double vel)
+void setLazzK(const double& vel)
 {
 	kin = 4 / 3 * M_PI * density * O.getMassMax() * vel * vel / (.1 * .1);
 	kout = cor * kin;
@@ -1257,7 +1151,8 @@ void simDataWrite()
 	}
 
 	// Write simData to file and clear buffer.
-	ballWrite.open(simDataName, myOpenMode);
+	std::ofstream ballWrite;
+	ballWrite.open(outputPrefix + "simData.csv", myOpenMode);
 	ballWrite << ballBuffer.rdbuf(); // Barf buffer to file.
 	ballBuffer.str("");              // Resets the stream for that balls to blank.
 	ballWrite.close();

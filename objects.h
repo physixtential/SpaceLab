@@ -12,6 +12,12 @@ struct ballGroup
 		allocateGroup(nBalls);
 	}
 
+	/**/
+	ballGroup(std::string filename)
+	{
+		importDataFromFile(filename);
+	}
+
 	int cNumBalls = 0;
 	int cNumBallsAdded = 0;
 
@@ -24,16 +30,16 @@ struct ballGroup
 
 	double* distances = 0;
 
-	vector3d* pos;
-	vector3d* vel;
-	vector3d* velh; ///< Velocity half step for integration purposes.
-	vector3d* acc;
-	vector3d* w;
-	vector3d* wh; ///< Angular velocity half step for integration purposes.
-	vector3d* aacc;
-	double* R; ///< Radius
-	double* m; ///< Mass
-	double* moi; ///< Moment of inertia
+	vector3d* pos = 0;
+	vector3d* vel = 0;
+	vector3d* velh = 0; ///< Velocity half step for integration purposes.
+	vector3d* acc = 0;
+	vector3d* w = 0;
+	vector3d* wh = 0; ///< Angular velocity half step for integration purposes.
+	vector3d* aacc = 0;
+	double* R = 0; ///< Radius
+	double* m = 0; ///< Mass
+	double* moi = 0; ///< Moment of inertia
 
 	/// Allocate ball property arrays.
 	inline void allocateGroup(int nBalls)
@@ -55,29 +61,30 @@ struct ballGroup
 	}
 
 
-	/// Add another ballGroup into this one.
-	inline void addBallGroup(ballGroup* src)
+	/// @brief Add another ballGroup into this one.
+	/// @param src The ballGroup to be added.
+	inline void addBallGroup(const ballGroup& src)
 	{
 		// Copy incoming data to the end of the currently loaded data.
-		memcpy(&distances[cNumBallsAdded], src->distances, sizeof(src->distances[0]) * src->cNumBalls);
-		memcpy(&pos[cNumBallsAdded], src->pos, sizeof(src->pos[0]) * src->cNumBalls);
-		memcpy(&vel[cNumBallsAdded], src->vel, sizeof(src->vel[0]) * src->cNumBalls);
-		memcpy(&velh[cNumBallsAdded], src->velh, sizeof(src->velh[0]) * src->cNumBalls);
-		memcpy(&acc[cNumBallsAdded], src->acc, sizeof(src->acc[0]) * src->cNumBalls);
-		memcpy(&w[cNumBallsAdded], src->w, sizeof(src->w[0]) * src->cNumBalls);
-		memcpy(&wh[cNumBallsAdded], src->wh, sizeof(src->wh[0]) * src->cNumBalls);
-		memcpy(&aacc[cNumBallsAdded], src->aacc, sizeof(src->aacc[0]) * src->cNumBalls);
-		memcpy(&R[cNumBallsAdded], src->R, sizeof(src->R[0]) * src->cNumBalls);
-		memcpy(&m[cNumBallsAdded], src->m, sizeof(src->m[0]) * src->cNumBalls);
-		memcpy(&moi[cNumBallsAdded], src->moi, sizeof(src->moi[0]) * src->cNumBalls);
+		memcpy(&distances[cNumBallsAdded], src.distances, sizeof(src.distances[0]) * src.cNumBalls);
+		memcpy(&pos[cNumBallsAdded], src.pos, sizeof(src.pos[0]) * src.cNumBalls);
+		memcpy(&vel[cNumBallsAdded], src.vel, sizeof(src.vel[0]) * src.cNumBalls);
+		memcpy(&velh[cNumBallsAdded], src.velh, sizeof(src.velh[0]) * src.cNumBalls);
+		memcpy(&acc[cNumBallsAdded], src.acc, sizeof(src.acc[0]) * src.cNumBalls);
+		memcpy(&w[cNumBallsAdded], src.w, sizeof(src.w[0]) * src.cNumBalls);
+		memcpy(&wh[cNumBallsAdded], src.wh, sizeof(src.wh[0]) * src.cNumBalls);
+		memcpy(&aacc[cNumBallsAdded], src.aacc, sizeof(src.aacc[0]) * src.cNumBalls);
+		memcpy(&R[cNumBallsAdded], src.R, sizeof(src.R[0]) * src.cNumBalls);
+		memcpy(&m[cNumBallsAdded], src.m, sizeof(src.m[0]) * src.cNumBalls);
+		memcpy(&moi[cNumBallsAdded], src.moi, sizeof(src.moi[0]) * src.cNumBalls);
 
 		// Keep track of now loaded ball set to start next set after it:
-		cNumBallsAdded += src->cNumBalls;
+		cNumBallsAdded += src.cNumBalls;
 
 		// DON'T FORGET TO FREEMEMORY
 	}
 
-	/// Deallocate arrays to recover memory.
+	/// @brief Deallocate arrays to recover memory.
 	inline void freeMemory()
 	{
 		delete[] distances;
@@ -174,7 +181,7 @@ struct ballGroup
 	}
 
 	// Set velocity of all balls such that the cluster spins:
-	inline void comSpinner(double spinX, double spinY, double spinZ)
+	inline void comSpinner(const double& spinX, const double& spinY, const double& spinZ)
 	{
 		vector3d comRot = { spinX, spinY, spinZ }; // Rotation axis and magnitude
 		for (int Ball = 0; Ball < cNumBalls; Ball++)
@@ -184,7 +191,7 @@ struct ballGroup
 		}
 	}
 
-	inline void rotAll(char axis, double angle)
+	inline void rotAll(const char axis, const double angle)
 	{
 		for (int Ball = 0; Ball < cNumBalls; Ball++)
 		{
@@ -322,7 +329,7 @@ struct ballGroup
 
 
 	// Kick ballGroup (give the whole thing a velocity)
-	inline void kick(double vx, double vy, double vz)
+	inline void kick(const double& vx, const double& vy, const double& vz)
 	{
 		for (int Ball = 0; Ball < cNumBalls; Ball++)
 		{
@@ -331,7 +338,7 @@ struct ballGroup
 	}
 
 
-	inline void checkMomentum(std::string of)
+	inline void checkMomentum(const std::string& of)
 	{
 		vector3d pTotal = { 0,0,0 };
 		for (int Ball = 0; Ball < cNumBalls; Ball++)
@@ -342,7 +349,7 @@ struct ballGroup
 	}
 
 	// offset cluster
-	inline void offset(double rad1, double rad2, double impactParam)
+	inline void offset(const double& rad1, const double& rad2, const double& impactParam)
 	{
 		for (int Ball = 0; Ball < cNumBalls; Ball++)
 		{
@@ -414,6 +421,113 @@ struct ballGroup
 			}
 		}
 		return mMax;
+	}
+
+
+
+	/// Make ballGroup from file data.
+	inline void importDataFromFile(const std::string& filename)
+	{
+		std::string simDataFilename = filename + "simData.csv";
+		std::string constantsFilename = filename + "constants.csv";
+
+		// Get position and angular velocity data:
+		if (auto simDataStream = std::ifstream(simDataFilename, std::ifstream::in))
+		{
+			std::string line, lineElement;
+
+			std::cout << "\nParsing last line of data.\n";
+
+			simDataStream.seekg(-1, std::ios_base::end); // go to one spot before the EOF
+
+			bool keepLooping = true;
+			while (keepLooping)
+			{
+				char ch;
+				simDataStream.get(ch); // Get current byte's data
+
+				if ((int)simDataStream.tellg() <= 1)
+				{                           // If the data was at or before the 0th byte
+					simDataStream.seekg(0); // The first line is the last line
+					keepLooping = false;    // So stop there
+				}
+				else if (ch == '\n')
+				{                        // If the data was a newline
+					keepLooping = false; // Stop at the current position.
+				}
+				else
+				{                                                // If the data was neither a newline nor at the 0 byte
+					simDataStream.seekg(-2, std::ios_base::cur); // Move to the front of that data, then to the front of the data before it
+				}
+			}
+
+
+			std::getline(simDataStream, line);                                              // Read the current line
+			int count = std::count(line.begin(), line.end(), ',') / properties + 1;
+			allocateGroup(count); // Get number of balls in file
+
+			std::stringstream chosenLine(line); // This is the last line of the read file, containing all data for all balls at last time step
+
+			for (int A = 0; A < cNumBalls; A++)
+			{
+
+				for (int i = 0; i < 3; i++) // Position
+				{
+					std::getline(chosenLine, lineElement, ',');
+					pos[A][i] = std::stod(lineElement);
+					//std::cout << tclus.pos[A][i]<<',';
+				}
+				for (int i = 0; i < 3; i++) // Angular Velocity
+				{
+					std::getline(chosenLine, lineElement, ',');
+					w[A][i] = std::stod(lineElement);
+				}
+				std::getline(chosenLine, lineElement, ','); // Angular velocity magnitude skipped
+				for (int i = 0; i < 3; i++)                 // velocity
+				{
+					std::getline(chosenLine, lineElement, ',');
+					vel[A][i] = std::stod(lineElement);
+				}
+				for (int i = 0; i < properties - 10; i++) // We used 10 elements. This skips the rest.
+				{
+					std::getline(chosenLine, lineElement, ',');
+				}
+			}
+		}
+		else
+		{
+			std::cerr << "Could not open simData file: " << simDataFilename << "... Existing program." << std::endl;
+			exit(EXIT_FAILURE);
+		}
+
+		// Get radius, mass, moi:
+		if (auto ConstStream = std::ifstream(constantsFilename, std::ifstream::in))
+		{
+			std::string line, lineElement;
+			for (int A = 0; A < cNumBalls; A++)
+			{
+				std::getline(ConstStream, line); // Ball line.
+				std::stringstream chosenLine(line);
+				std::getline(chosenLine, lineElement, ','); // Radius.
+				R[A] = std::stod(lineElement);
+				std::getline(chosenLine, lineElement, ','); // Mass.
+				m[A] = std::stod(lineElement);
+				std::getline(chosenLine, lineElement, ','); // Moment of inertia.
+				moi[A] = std::stod(lineElement);
+			}
+		}
+		else
+		{
+			std::cerr << "Could not open constants file: " << constantsFilename << "... Existing program." << std::endl;
+			exit(EXIT_FAILURE);
+		}
+
+		// Bring cluster to origin and calc its radius:
+		toOrigin();
+
+		std::cout << "Balls: " << cNumBalls << std::endl;
+		std::cout << "Mass: " << getMass() << std::endl;
+		std::cout << "Approximate radius: " << getRadius() << " cm.\n";
 	}
 
 	/// Push all balls apart until elastic force < gravitational force (equilibrium).
