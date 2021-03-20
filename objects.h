@@ -6,13 +6,13 @@ struct ballGroup
 {
 	ballGroup() = default;
 
-	/// Constructor to allocate all the memory needed for your ballGroup size.
-	ballGroup(int nBalls) /// Desired number of balls in group.
+	/// @brief Constructor to allocate all the memory needed for your ballGroup size.
+	/// @param nBalls Number of balls to allocate.
+	ballGroup(int nBalls)
 	{
 		allocateGroup(nBalls);
 	}
 
-	/**/
 	ballGroup(std::string filename)
 	{
 		importDataFromFile(filename);
@@ -496,7 +496,7 @@ struct ballGroup
 		}
 		else
 		{
-			std::cerr << "Could not open simData file: " << simDataFilename << "... Existing program." << std::endl;
+			std::cerr << "Could not open simData file: " << simDataFilename << "... Existing program." << '\n';
 			exit(EXIT_FAILURE);
 		}
 
@@ -518,15 +518,15 @@ struct ballGroup
 		}
 		else
 		{
-			std::cerr << "Could not open constants file: " << constantsFilename << "... Existing program." << std::endl;
+			std::cerr << "Could not open constants file: " << constantsFilename << "... Existing program." << '\n';
 			exit(EXIT_FAILURE);
 		}
 
 		// Bring cluster to origin and calc its radius:
 		toOrigin();
 
-		std::cout << "Balls: " << cNumBalls << std::endl;
-		std::cout << "Mass: " << getMass() << std::endl;
+		std::cout << "Balls: " << cNumBalls << '\n';
+		std::cout << "Mass: " << getMass() << '\n';
 		std::cout << "Approximate radius: " << getRadius() << " cm.\n";
 	}
 

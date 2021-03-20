@@ -74,7 +74,7 @@ int main(int argc, char const* argv[])
 inline void simInitTwoCluster()
 {
 	// Load file data:
-	std::cerr << "TWO CLUSTER SIM\nFile 1: " << projectileName << '\t' << "File 2: " << targetName << std::endl;
+	std::cerr << "TWO CLUSTER SIM\nFile 1: " << projectileName << '\t' << "File 2: " << targetName << '\n';
 	//ballGroup projectile(path + targetName);
 
 	// DART PROBE
@@ -118,7 +118,7 @@ inline void simInitTwoCluster()
 	projectile.kick(vSmall, 0, 0);
 	target.kick(vBig, 0, 0);
 
-	std::cout << std::endl;
+	std::cout << '\n';
 	projectile.checkMomentum("Projectile");
 	target.checkMomentum("Target");
 
@@ -140,11 +140,11 @@ inline void simInitTwoCluster()
 inline void simContinue()
 {
 	// Load file data:
-	std::cerr << "Continuing Sim...\nFile: " << targetName << std::endl;
+	std::cerr << "Continuing Sim...\nFile: " << targetName << '\n';
 
 	O.importDataFromFile(path + targetName);
 
-	std::cout << std::endl;
+	std::cout << '\n';
 	O.checkMomentum("O");
 
 	// Name the file based on info above:
@@ -170,11 +170,11 @@ inline void simInitCondAndCenter()
 	//dt = 1e-6;
 	//steps = (size_t)(simTimeSeconds / dt);
 
-	std::cout << "==================" << std::endl;
-	std::cout << "dt: " << dt << std::endl;
-	std::cout << "k: " << kin << std::endl;
-	std::cout << "Steps: " << steps << std::endl;
-	std::cout << "==================" << std::endl;
+	std::cout << "==================" << '\n';
+	std::cout << "dt: " << dt << '\n';
+	std::cout << "k: " << kin << '\n';
+	std::cout << "Steps: " << steps << '\n';
+	std::cout << "==================" << '\n';
 
 
 
@@ -277,12 +277,12 @@ inline void simInitWrite(const std::string& filename)
 			<< O.R[Ball] << ','
 			<< O.m[Ball] << ','
 			<< O.moi[Ball]
-			<< std::endl;
+			<< '\n';
 	}
 
 	// Write energy data to buffer:
 	energyBuffer
-		<< std::endl
+		<< '\n'
 		<< simTimeElapsed << ','
 		<< O.PE << ','
 		<< O.KE << ','
@@ -299,7 +299,7 @@ inline void simInitWrite(const std::string& filename)
 	O.angMom = { 0, 0, 0 };
 
 	// Send position and rotation to buffer:
-	ballBuffer << std::endl; // Necessary new line after header.
+	ballBuffer << '\n'; // Necessary new line after header.
 	ballBuffer
 		<< O.pos[0].x << ','
 		<< O.pos[0].y << ','
@@ -337,7 +337,7 @@ inline void simInitWrite(const std::string& filename)
 	constWrite.close();
 
 	std::cout << "\nInitial conditions exported and file streams closed.\nSimulating " << steps * dt / 60 / 60 << " hours.\n";
-	std::cout << "Total mass: " << O.getMass() << std::endl;
+	std::cout << "Total mass: " << O.getMass() << '\n';
 	std::cout << "\n===============================================================\n";
 }
 
@@ -420,11 +420,11 @@ inline void simOneStep(int& Step)
 					//		if (clus.R[A] >= clus.R[B])
 
 					//		{
-					//			std::cout << "Warning: Ball compression is " << .5 * (sumRaRb - oldDist) / clus.R[B] << "of radius = " << clus.R[B] << std::endl;
+					//			std::cout << "Warning: Ball compression is " << .5 * (sumRaRb - oldDist) / clus.R[B] << "of radius = " << clus.R[B] << '\n';
 					//		}
 					//		else
 					//		{
-					//			std::cout << "Warning: Ball compression is " << .5 * (sumRaRb - oldDist) / clus.R[A] << "of radius = " << clus.R[A] << std::endl;
+					//			std::cout << "Warning: Ball compression is " << .5 * (sumRaRb - oldDist) / clus.R[A] << "of radius = " << clus.R[A] << '\n';
 					//		}
 					//		int garbo;
 					//		std::cin >> garbo;
@@ -496,7 +496,7 @@ inline void simOneStep(int& Step)
 
 	if (writeStep)
 	{
-		ballBuffer << std::endl; // Prepares a new line for incoming data.
+		ballBuffer << '\n'; // Prepares a new line for incoming data.
 	}
 
 	// THIRD PASS - Calculate velocity for next step:
@@ -529,7 +529,7 @@ inline void simOneStep(int& Step)
 	if (writeStep || Step == steps - 1)
 	{
 		// Write energy to stream:
-		energyBuffer << std::endl
+		energyBuffer << '\n'
 			<< simTimeElapsed << ',' << O.PE << ',' << O.KE << ',' << O.PE + O.KE << ',' << O.mom.norm() << ',' << O.angMom.norm(); // the two zeros are bound and unbound mass
 
 		// Reinitialize energies for next step:
@@ -545,7 +545,7 @@ inline void simOneStep(int& Step)
 		////////////////////////////////////////////////////////////////////
 		if (time(NULL) - lastWrite > 1800 || Step / skip % 20 == 0 || Step == steps - 1)
 		{
-			std::cout << "\nData Write" << std::endl;
+			std::cout << "\nData Write" << '\n';
 
 			// Write simData to file and clear buffer.
 			std::ofstream ballWrite;
@@ -666,7 +666,7 @@ inline void twoSizeSphereShell5000()
 
 	spaceRange += 2 * O.R[0] + 4 * 250;
 	radius += O.R[0] + 250;
-	std::cout << "Making shell between " << radius << " and " << spaceRange * .5 << std::endl;
+	std::cout << "Making shell between " << radius << " and " << spaceRange * .5 << '\n';
 
 	// PHASE 2
 
@@ -736,8 +736,8 @@ inline void twoSizeSphereShell5000()
 		collisionDetected = 0;
 	}
 
-	std::cout << "Initial Radius: " << radius << std::endl;
-	std::cout << "Mass: " << O.getMass() << std::endl;
+	std::cout << "Initial Radius: " << radius << '\n';
+	std::cout << "Mass: " << O.getMass() << '\n';
 
 }
 
@@ -778,12 +778,12 @@ inline void testGen()
 	//simInitWrite();
 	O.pushApart();
 
-	std::cout << "Smalls: " << smalls << " Mediums: " << mediums << " Larges: " << larges << std::endl;
+	std::cout << "Smalls: " << smalls << " Mediums: " << mediums << " Larges: " << larges << '\n';
 
-	std::cout << "Final spacerange: " << spaceRange << std::endl;
+	std::cout << "Final spacerange: " << spaceRange << '\n';
 
-	std::cout << "Initial Radius: " << O.getRadius() << std::endl;
-	std::cout << "Mass: " << O.getMass() << std::endl;
+	std::cout << "Initial Radius: " << O.getRadius() << '\n';
+	std::cout << "Mass: " << O.getMass() << '\n';
 }
 
 inline void threeSizeSphere()
@@ -820,7 +820,7 @@ inline void threeSizeSphere()
 		O.pos[Ball] = randSphericalVec(spaceRange, spaceRange, spaceRange);
 	}
 
-	std::cout << "Smalls: " << smalls << " Mediums: " << mediums << " Larges: " << larges << std::endl;
+	std::cout << "Smalls: " << smalls << " Mediums: " << mediums << " Larges: " << larges << '\n';
 
 	// Generate non-overlapping spherical particle field:
 	int collisionDetected = 0;
@@ -867,9 +867,9 @@ inline void threeSizeSphere()
 		collisionDetected = 0;
 	}
 
-	std::cout << "Final spacerange: " << spaceRange << std::endl;
-	std::cout << "Initial Radius: " << O.getRadius() << std::endl;
-	std::cout << "Mass: " << O.getMass() << std::endl;
+	std::cout << "Final spacerange: " << spaceRange << '\n';
+	std::cout << "Initial Radius: " << O.getRadius() << '\n';
+	std::cout << "Mass: " << O.getMass() << '\n';
 }
 
 
@@ -931,9 +931,9 @@ inline void oneSizeSphere()
 		collisionDetected = 0;
 	}
 
-	std::cout << "Final spacerange: " << spaceRange << std::endl;
-	std::cout << "Initial Radius: " << O.getRadius() << std::endl;
-	std::cout << "Mass: " << O.getMass() << std::endl;
+	std::cout << "Final spacerange: " << spaceRange << '\n';
+	std::cout << "Initial Radius: " << O.getRadius() << '\n';
+	std::cout << "Mass: " << O.getMass() << '\n';
 }
 
 
@@ -1028,7 +1028,7 @@ inline void calibrateDT(const int& Step, const bool superSafe, bool doK)
 	double vMax = O.getVelMax(false);
 
 	// Check if the kick is going to be the most significant velocity basis, or if gravity will matter more.
-	std::cout << std::endl;
+	std::cout << '\n';
 	if (vMax > fabs(vCollapse))
 	{
 		std::cout << "vMax > binding. " << vCollapse << "<vCollapse | vMax>" << vMax;
@@ -1099,12 +1099,12 @@ inline void calibrateDT(const int& Step, const bool superSafe, bool doK)
 	if (Step == 0 or dtOld == 0)
 	{
 		steps = (size_t)(simTimeSeconds / dt);
-		std::cout << " Step count: " << steps << std::endl;
+		std::cout << " Step count: " << steps << '\n';
 	}
 	else
 	{
 		steps = dt / dtOld * (steps - Step) + Step;
-		std::cout << " New step count: " << steps << std::endl;
+		std::cout << " New step count: " << steps << '\n';
 	}
 }
 
@@ -1135,7 +1135,7 @@ void setLazzK(const double& vel)
 
 void simDataWrite()
 {
-	ballBuffer << std::endl; // Prepares a new line for incoming data.
+	ballBuffer << '\n'; // Prepares a new line for incoming data.
 
 	for (size_t Ball = 0; Ball < O.cNumBalls; Ball++)
 	{
