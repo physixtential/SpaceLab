@@ -1149,7 +1149,7 @@ void simDataWrite()
 
 	// Write simData to file and clear buffer.
 	std::ofstream ballWrite;
-	ballWrite.open(outputPrefix + "simData.csv", myOpenMode);
+	ballWrite.open(outputPrefix + "simData.csv", std::ofstream::app);
 	ballWrite << ballBuffer.rdbuf(); // Barf buffer to file.
 	ballBuffer.str("");              // Resets the stream for that balls to blank.
 	ballWrite.close();
