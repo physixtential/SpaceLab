@@ -612,6 +612,7 @@ struct ballGroup
 		checkForFile.open(outFilename, std::ifstream::in);
 		if (checkForFile.is_open() == false)
 		{
+			checkForFile.close();
 			simInitWrite(outFilename);
 		}
 		else
@@ -681,6 +682,8 @@ struct ballGroup
 				}
 			}
 		}
+		checkForFile.close();
+
 		std::cout << "New file tag: " << simDataFilename;
 
 		// Open all file streams:
