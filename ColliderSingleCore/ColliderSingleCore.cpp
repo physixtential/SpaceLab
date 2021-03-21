@@ -218,7 +218,7 @@ inline void simInitWrite(const std::string& filename)
 	std::string energyFilename = filename + "energy.csv";
 	std::string constantsFilename = filename + "constants.csv";
 
-
+	// hack - This check will become redundant once the new simDataWrite function is operational, as it will have an on off switch for initialization if file does not exist.
 	// Check if file name already exists.
 	std::ifstream checkForFile;
 	checkForFile.open(simDataFilename, std::ifstream::in);
@@ -746,6 +746,7 @@ inline void twoSizeSphereShell5000()
 
 }
 
+// hack to test pushAparting.
 inline void testGen()
 {
 	// Make genBalls of 3 sizes in CGS with ratios such that the mass is distributed evenly among the 3 sizes (less large genBalls than small genBalls).
@@ -756,7 +757,7 @@ inline void testGen()
 
 	for (int Ball = 0; Ball < larges; Ball++)
 	{
-		O.R[Ball] = 3. * scaleBalls;//pow(1. / (double)genBalls, 1. / 3.) * 3. * scaleBalls;
+		O.R[Ball] = 3. * scaleBalls;
 		O.m[Ball] = density * 4. / 3. * 3.14159 * pow(O.R[Ball], 3);
 		O.moi[Ball] = .4 * O.m[Ball] * O.R[Ball] * O.R[Ball];
 		O.w[Ball] = { 0, 0, 0 };
@@ -765,7 +766,7 @@ inline void testGen()
 
 	for (int Ball = larges; Ball < (larges + mediums); Ball++)
 	{
-		O.R[Ball] = 2. * scaleBalls;//pow(1. / (double)genBalls, 1. / 3.) * 2. * scaleBalls;
+		O.R[Ball] = 2. * scaleBalls;
 		O.m[Ball] = density * 4. / 3. * 3.14159 * pow(O.R[Ball], 3);
 		O.moi[Ball] = .4 * O.m[Ball] * O.R[Ball] * O.R[Ball];
 		O.w[Ball] = { 0, 0, 0 };
@@ -773,7 +774,7 @@ inline void testGen()
 	}
 	for (int Ball = (larges + mediums); Ball < genBalls; Ball++)
 	{
-		O.R[Ball] = 1. * scaleBalls;//pow(1. / (double)genBalls, 1. / 3.) * 1. * scaleBalls;
+		O.R[Ball] = 1. * scaleBalls;
 		O.m[Ball] = density * 4. / 3. * 3.14159 * pow(O.R[Ball], 3);
 		O.moi[Ball] = .4 * O.m[Ball] * O.R[Ball] * O.R[Ball];
 		O.w[Ball] = { 0, 0, 0 };
@@ -781,7 +782,7 @@ inline void testGen()
 	}
 
 	//simInitWrite();
-	O.pushApart();
+	O.pushApart2();
 
 	std::cout << "Smalls: " << smalls << " Mediums: " << mediums << " Larges: " << larges << '\n';
 
@@ -1101,7 +1102,7 @@ inline void calibrateDT(const int& Step, const bool superSafe, bool doK)
 		}
 	}
 
-	if (Step == 0 or dtOld == 0)
+	if (Step == 0 or dtOld == -1)
 	{
 		steps = (size_t)(simTimeSeconds / dt);
 		std::cout << " Step count: " << steps << '\n';
@@ -1138,27 +1139,37 @@ void setLazzK(const double& vel)
 	kout = cor * kin;
 }
 
-void simDataWrite()
+void simDataWrite(std::string outFilename)
 {
-	ballBuffer << '\n'; // Prepares a new line for incoming data.
-
-	for (size_t Ball = 0; Ball < O.cNumBalls; Ball++)
+	// Check if file name already exists. If not, initialize
+	std::ifstream checkForFile;
+	checkForFile.open(outFilename, std::ifstream::in);
+	if (checkForFile.is_open() == false)
 	{
-		// Send positions and rotations to buffer:
-		if (Ball == 0)
-		{
-			ballBuffer << O.pos[Ball][0] << ',' << O.pos[Ball][1] << ',' << O.pos[Ball][2] << ',' << O.w[Ball][0] << ',' << O.w[Ball][1] << ',' << O.w[Ball][2] << ',' << O.w[Ball].norm() << ',' << O.vel[Ball].x << ',' << O.vel[Ball].y << ',' << O.vel[Ball].z << ',' << 0;
-		}
-		else
-		{
-			ballBuffer << ',' << O.pos[Ball][0] << ',' << O.pos[Ball][1] << ',' << O.pos[Ball][2] << ',' << O.w[Ball][0] << ',' << O.w[Ball][1] << ',' << O.w[Ball][2] << ',' << O.w[Ball].norm() << ',' << O.vel[Ball].x << ',' << O.vel[Ball].y << ',' << O.vel[Ball].z << ',' << 0;
-		}
+		simInitWrite(outFilename);
 	}
+	else
+	{
+		ballBuffer << '\n'; // Prepares a new line for incoming data.
 
-	// Write simData to file and clear buffer.
-	std::ofstream ballWrite;
-	ballWrite.open(outputPrefix + "simData.csv", std::ofstream::app);
-	ballWrite << ballBuffer.rdbuf(); // Barf buffer to file.
-	ballBuffer.str("");              // Resets the stream for that balls to blank.
-	ballWrite.close();
+		for (size_t Ball = 0; Ball < O.cNumBalls; Ball++)
+		{
+			// Send positions and rotations to buffer:
+			if (Ball == 0)
+			{
+				ballBuffer << O.pos[Ball][0] << ',' << O.pos[Ball][1] << ',' << O.pos[Ball][2] << ',' << O.w[Ball][0] << ',' << O.w[Ball][1] << ',' << O.w[Ball][2] << ',' << O.w[Ball].norm() << ',' << O.vel[Ball].x << ',' << O.vel[Ball].y << ',' << O.vel[Ball].z << ',' << 0;
+			}
+			else
+			{
+				ballBuffer << ',' << O.pos[Ball][0] << ',' << O.pos[Ball][1] << ',' << O.pos[Ball][2] << ',' << O.w[Ball][0] << ',' << O.w[Ball][1] << ',' << O.w[Ball][2] << ',' << O.w[Ball].norm() << ',' << O.vel[Ball].x << ',' << O.vel[Ball].y << ',' << O.vel[Ball].z << ',' << 0;
+			}
+		}
+
+		// Write simData to file and clear buffer.
+		std::ofstream ballWrite;
+		ballWrite.open(outputPrefix + "simData.csv", std::ofstream::app);
+		ballWrite << ballBuffer.rdbuf(); // Barf buffer to file.
+		ballBuffer.str("");              // Resets the stream for that balls to blank.
+		ballWrite.close();
+	}
 }

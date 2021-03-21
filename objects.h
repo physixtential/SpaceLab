@@ -534,13 +534,15 @@ struct ballGroup
 	inline void pushApart2()
 	{
 		/// Using vel array as storage for accumulated position change.
+		int* counter = new int[cNumBalls];
 		for (size_t Ball = 0; Ball < cNumBalls; Ball++)
 		{
 			vel[Ball] = { 0,0,0 };
+			counter[Ball] = 0;
 		}
 
 		double overlapMax = -1;
-		double pseudoDT = O.getRmin() * .01;
+		double pseudoDT = getRmin() * .01;
 
 		while (true)
 		{
@@ -562,16 +564,22 @@ struct ballGroup
 
 					if (overlap > 0)
 					{
-						vel[B] += overlap * (rVecab / dist);
 						vel[A] += overlap * (rVecba / dist);
+						vel[B] += overlap * (rVecab / dist);
+						counter[A] += 1;
+						counter[B] += 1;
 					}
 				}
 			}
 
 			for (size_t Ball = 0; Ball < cNumBalls; Ball++)
 			{
-				pos[Ball] += vel[Ball].normalized() * pseudoDT;
-				vel[Ball] = { 0,0,0 };
+				if (counter[Ball] > 0)
+				{
+					pos[Ball] += vel[Ball].normalized() * pseudoDT;
+					vel[Ball] = { 0,0,0 };
+					counter[Ball] = 0;
+				}
 			}
 
 			if (overlapMax > 0)
