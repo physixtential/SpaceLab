@@ -551,10 +551,11 @@ struct ballGroup
 
 		while (true)
 		{
-			if (step % 20 == 0)
+			if (step % 10 == 0)
 			{
 				simDataWrite("pushApart_");
 			}
+
 			for (int A = 0; A < cNumBalls; A++)
 			{
 				for (int B = A + 1; B < cNumBalls; B++)
@@ -605,14 +606,17 @@ struct ballGroup
 		}
 	}
 
+
+
+
 	void simDataWrite(std::string outFilename)
 	{
+		// TODO for some reason I need checkForFile instead of just using ballWrite. Need to work out why.
 		// Check if file name already exists. If not, initialize
 		std::ifstream checkForFile;
-		checkForFile.open(outFilename, std::ifstream::in);
+		checkForFile.open(outFilename + "simData.csv", std::ifstream::in);
 		if (checkForFile.is_open() == false)
 		{
-			checkForFile.close();
 			simInitWrite(outFilename);
 		}
 		else
@@ -624,21 +628,44 @@ struct ballGroup
 				// Send positions and rotations to buffer:
 				if (Ball == 0)
 				{
-					ballBuffer << pos[Ball][0] << ',' << pos[Ball][1] << ',' << pos[Ball][2] << ',' << w[Ball][0] << ',' << w[Ball][1] << ',' << w[Ball][2] << ',' << w[Ball].norm() << ',' << vel[Ball].x << ',' << vel[Ball].y << ',' << vel[Ball].z << ',' << 0;
+					ballBuffer 
+						<< pos[Ball][0] << ',' 
+						<< pos[Ball][1] << ',' 
+						<< pos[Ball][2] << ',' 
+						<< w[Ball][0] << ',' 
+						<< w[Ball][1] << ',' 
+						<< w[Ball][2] << ',' 
+						<< w[Ball].norm() << ',' 
+						<< vel[Ball].x << ',' 
+						<< vel[Ball].y << ',' 
+						<< vel[Ball].z << ',' 
+						<< 0;
 				}
 				else
 				{
-					ballBuffer << ',' << pos[Ball][0] << ',' << pos[Ball][1] << ',' << pos[Ball][2] << ',' << w[Ball][0] << ',' << w[Ball][1] << ',' << w[Ball][2] << ',' << w[Ball].norm() << ',' << vel[Ball].x << ',' << vel[Ball].y << ',' << vel[Ball].z << ',' << 0;
+					ballBuffer << ',' 
+						<< pos[Ball][0] << ',' 
+						<< pos[Ball][1] << ',' 
+						<< pos[Ball][2] << ',' 
+						<< w[Ball][0] << ',' 
+						<< w[Ball][1] << ',' 
+						<< w[Ball][2] << ',' 
+						<< w[Ball].norm() << ',' 
+						<< vel[Ball].x << ',' 
+						<< vel[Ball].y << ',' 
+						<< vel[Ball].z << ',' 
+						<< 0;
 				}
 			}
 
 			// Write simData to file and clear buffer.
 			std::ofstream ballWrite;
-			ballWrite.open(outputPrefix + "simData.csv", std::ofstream::app);
+			ballWrite.open(outFilename + "simData.csv", std::ofstream::app);
 			ballWrite << ballBuffer.rdbuf(); // Barf buffer to file.
 			ballBuffer.str("");              // Resets the stream for that balls to blank.
 			ballWrite.close();
 		}
+		checkForFile.close();
 	}
 
 	inline void simInitWrite(const std::string& filename)
