@@ -24,6 +24,7 @@ time_t startProgress; // For progress reporting (gets reset)
 time_t lastWrite;     // For write control (gets reset)
 bool writeStep;       // This prevents writing to file every step (which is slow).
 
+/// @brief The ballGroup run by the main sim looper.
 ballGroup O;
 
 // Prototypes
@@ -42,7 +43,9 @@ inline void setLazzDT(const double& vel);
 inline void setLazzK(const double& vel);
 inline void simDataWrite();
 
-// Main function
+//////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////
 int main(int argc, char const* argv[])
 {
 	// Runtime arguments:
@@ -57,9 +60,9 @@ int main(int argc, char const* argv[])
 	}
 
 	//simInitTwoCluster();
-	simContinue();
-	O.pushApart();
-	//generateBallField();
+	//simContinue();
+	//O.pushApart();
+	generateBallField();
 	simInitCondAndCenter();
 	safetyChecks();
 	simInitWrite(outputPrefix);
@@ -67,6 +70,11 @@ int main(int argc, char const* argv[])
 
 	return 0;
 } // end main
+//////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////
+
+
 
 inline void simInitTwoCluster()
 {

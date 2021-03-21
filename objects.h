@@ -531,6 +531,64 @@ struct ballGroup
 	}
 
 	/// Push all balls apart until elastic force < gravitational force (equilibrium).
+	inline void pushApart2()
+	{
+		/// Using vel array as storage for accumulated position change.
+		for (size_t Ball = 0; Ball < cNumBalls; Ball++)
+		{
+			vel[Ball] = { 0,0,0 };
+		}
+
+		double overlapMax = -1;
+		double pseudoDT = O.getRmin() * .01;
+
+		while (true)
+		{
+			for (int A = 0; A < cNumBalls; A++)
+			{
+				for (int B = A + 1; B < cNumBalls; B++)
+				{
+					// Check for Ball overlap.
+					vector3d rVecab = pos[B] - pos[A];
+					vector3d rVecba = -1 * rVecab;
+					double dist = (rVecab).norm();
+					double sumRaRb = R[A] + R[B];
+					double overlap = sumRaRb - dist;
+
+					if (overlapMax < overlap)
+					{
+						overlapMax = overlap;
+					}
+
+					if (overlap > 0)
+					{
+						vel[B] += overlap * (rVecab / dist);
+						vel[A] += overlap * (rVecba / dist);
+					}
+				}
+			}
+
+			for (size_t Ball = 0; Ball < cNumBalls; Ball++)
+			{
+				pos[Ball] += vel[Ball].normalized() * pseudoDT;
+				vel[Ball] = { 0,0,0 };
+			}
+
+			if (overlapMax > 0)
+			{
+				std::cout << overlapMax << "                        \r";
+			}
+			else
+			{
+				std::cout << "\nSuccess!\n";
+				break;
+			}
+			overlapMax = -1;
+		}
+	}
+
+
+	/// Push all balls apart until elastic force < gravitational force (equilibrium).
 	inline void pushApart()
 	{
 		/// Allocate a collision counter for each ball:
