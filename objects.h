@@ -531,7 +531,7 @@ struct ballGroup
 	}
 
 	/// Push all balls apart until elastic force < gravitational force (equilibrium).
-	inline void pushApart2()
+	inline void pushApart()
 	{
 		/// Using vel array as storage for accumulated position change.
 		int* counter = new int[cNumBalls];
@@ -579,88 +579,6 @@ struct ballGroup
 					pos[Ball] += vel[Ball].normalized() * pseudoDT;
 					vel[Ball] = { 0,0,0 };
 					counter[Ball] = 0;
-				}
-			}
-
-			if (overlapMax > 0)
-			{
-				std::cout << overlapMax << "                        \r";
-			}
-			else
-			{
-				std::cout << "\nSuccess!\n";
-				break;
-			}
-			overlapMax = -1;
-		}
-	}
-
-
-	/// Push all balls apart until elastic force < gravitational force (equilibrium).
-	inline void pushApart()
-	{
-		/// Allocate a collision counter for each ball:
-		int* counter = new int[cNumBalls] {};
-
-		/// Using vel array as storage for accumulated position change.
-		for (size_t Ball = 0; Ball < cNumBalls; Ball++)
-		{
-			vel[Ball] = { 0,0,0 };
-			counter[Ball] = 0;
-		}
-
-		double overlapMax = -1;
-
-		while (true)
-		{
-			for (int A = 0; A < cNumBalls; A++)
-			{
-				for (int B = A + 1; B < cNumBalls; B++)
-				{
-					// Check for Ball overlap.
-					vector3d rVecab = pos[B] - pos[A];
-					vector3d rVecba = -1 * rVecab;
-					double dist = (rVecab).norm();
-					double sumRaRb = R[A] + R[B];
-					double overlap = sumRaRb - dist;
-					//double elasticForce = (-kin * overlap * .5 * (rVecab / dist)).norm();
-					//double gravForce = ((G * m[A] * m[B] / (dist * dist)) * (rVecab / dist)).norm();
-
-					if (overlapMax < overlap)
-					{
-						overlapMax = overlap;
-					}
-
-					if (overlap > 0)// && elasticForce > gravForce)
-					{
-						double move = 0;
-
-						//(overlap * .55 > sumRaRb) ? move = sumRaRb : move = overlap * .55;
-						move = overlap * 1.1;
-
-						if (R[B] <= R[A])
-						{
-							vel[B] += move * (rVecab / dist);
-							counter[B] += 1;
-						}
-						else
-						{
-							vel[A] += move * (rVecba / dist);
-							counter[A] += 1;
-						}
-					}
-				}
-			}
-			// vel zero
-			// sorting method farthest to closest.
-			// only let balls move outward
-			for (size_t Ball = 0; Ball < cNumBalls; Ball++)
-			{
-				if (counter[Ball] > 0)
-				{
-					pos[Ball] += vel[Ball] / counter[Ball];
-					counter[Ball] = 0;
-					vel[Ball] = { 0,0,0 };
 				}
 			}
 
