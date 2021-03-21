@@ -534,7 +534,8 @@ struct ballGroup
 		std::cout << "Approximate radius: " << getRadius() << " cm.\n";
 	}
 
-	/// Push all balls apart until elastic force < gravitational force (equilibrium).
+	// Todo - make bigger balls favor the middle, or, smaller balls favor the outside.
+	/// @brief Push balls apart until no overlaps
 	inline void pushApart()
 	{
 		/// Using vel array as storage for accumulated position change.
@@ -546,7 +547,7 @@ struct ballGroup
 		}
 
 		double overlapMax = -1;
-		double pseudoDT = getRmin() * .01;
+		double pseudoDT = getRmin() * .1;
 		int step = 0;
 
 		while (true)
