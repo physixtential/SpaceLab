@@ -31,7 +31,7 @@ ballGroup O;
 inline void simInitTwoCluster();
 inline void simContinue();
 inline void simInitCondAndCenter();
-inline void simInitWrite(const std::string& filename);
+
 inline void simOneStep(const int& Step);
 inline void simLooper();
 inline void generateBallField();
@@ -41,7 +41,7 @@ inline void setGuidDT(const double& vel);
 inline void setGuidK(const double& vel);
 inline void setLazzDT(const double& vel);
 inline void setLazzK(const double& vel);
-inline void simDataWrite();
+
 
 //////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////
@@ -65,7 +65,7 @@ int main(int argc, char const* argv[])
 	generateBallField();
 	simInitCondAndCenter();
 	safetyChecks();
-	simInitWrite(outputPrefix);
+	O.simInitWrite(outputPrefix);
 	simLooper();
 
 	return 0;
@@ -196,157 +196,6 @@ inline void simInitCondAndCenter()
 		"-dt" + scientific(dt) +
 		"_";
 }
-
-
-
-
-
-
-inline void simInitWrite(const std::string& filename)
-{
-	// Create string for file name identifying spin combination negative is 2, positive is 1 on each axis.
-	//std::string spinCombo = "";
-	//for (int i = 0; i < 3; i++)
-	//{
-	//	if (spins[i] < 0) { spinCombo += "2"; }
-	//	else if (spins[i] > 0) { spinCombo += "1"; }
-	//	else { spinCombo += "0"; }
-	//}
-
-	// Append for the three files:
-	std::string simDataFilename = filename + "simData.csv";
-	std::string energyFilename = filename + "energy.csv";
-	std::string constantsFilename = filename + "constants.csv";
-
-	// hack - This check will become redundant once the new simDataWrite function is operational, as it will have an on off switch for initialization if file does not exist.
-	// Check if file name already exists.
-	std::ifstream checkForFile;
-	checkForFile.open(simDataFilename, std::ifstream::in);
-	int counter = 0;
-	// Add a counter to the file name until it isn't overwriting anything:
-	if (checkForFile.is_open())
-	{
-		while (true)
-		{
-			if (checkForFile.is_open())
-			{
-				counter++;
-				checkForFile.close();
-				checkForFile.open(std::to_string(counter) + '_' + simDataFilename, std::ifstream::in);
-			}
-			else
-			{
-				simDataFilename = std::to_string(counter) + '_' + simDataFilename;
-				constantsFilename = std::to_string(counter) + '_' + constantsFilename;
-				energyFilename = std::to_string(counter) + '_' + energyFilename;
-				break;
-			}
-		}
-	}
-	std::cout << "New file tag: " << simDataFilename;
-
-	// Open all file streams:
-	std::ofstream energyWrite, ballWrite, constWrite;
-	energyWrite.open(energyFilename, std::ofstream::app);
-	ballWrite.open(simDataFilename, std::ofstream::app);
-	constWrite.open(constantsFilename, std::ofstream::app);
-
-	// Make column headers:
-	energyWrite << "Time,PE,KE,E,p,L";
-	ballWrite << "x0,y0,z0,wx0,wy0,wz0,wmag0,vx0,vy0,vz0,bound0";
-
-	for (int Ball = 1; Ball < O.cNumBalls; Ball++) // Start at 2nd ball because first one was just written^.
-	{
-		std::string thisBall = std::to_string(Ball);
-		ballWrite
-			<< ",x" + thisBall
-			<< ",y" + thisBall
-			<< ",z" + thisBall
-			<< ",wx" + thisBall
-			<< ",wy" + thisBall
-			<< ",wz" + thisBall
-			<< ",wmag" + thisBall
-			<< ",vx" + thisBall
-			<< ",vy" + thisBall
-			<< ",vz" + thisBall
-			<< ",bound" + thisBall;
-	}
-
-	std::cout << "\nSim data, energy, and constants file streams and headers created.";
-
-	// Write constant data:
-	for (int Ball = 0; Ball < O.cNumBalls; Ball++)
-	{
-
-		constWrite
-			<< O.R[Ball] << ','
-			<< O.m[Ball] << ','
-			<< O.moi[Ball]
-			<< '\n';
-	}
-
-	// Write energy data to buffer:
-	energyBuffer
-		<< '\n'
-		<< simTimeElapsed << ','
-		<< O.PE << ','
-		<< O.KE << ','
-		<< O.PE + O.KE << ','
-		<< O.mom.norm() << ','
-		<< O.angMom.norm();
-	energyWrite << energyBuffer.rdbuf();
-	energyBuffer.str("");
-
-	// Reinitialize energies for next step:
-	O.KE = 0;
-	O.PE = 0;
-	O.mom = { 0, 0, 0 };
-	O.angMom = { 0, 0, 0 };
-
-	// Send position and rotation to buffer:
-	ballBuffer << '\n'; // Necessary new line after header.
-	ballBuffer
-		<< O.pos[0].x << ','
-		<< O.pos[0].y << ','
-		<< O.pos[0].z << ','
-		<< O.w[0].x << ','
-		<< O.w[0].y << ','
-		<< O.w[0].z << ','
-		<< O.w[0].norm() << ','
-		<< O.vel[0].x << ','
-		<< O.vel[0].y << ','
-		<< O.vel[0].z << ','
-		<< 0; //bound[0];
-	for (int Ball = 1; Ball < O.cNumBalls; Ball++)
-	{
-		ballBuffer
-			<< ',' << O.pos[Ball].x << ',' // Needs comma start so the last bound doesn't have a dangling comma.
-			<< O.pos[Ball].y << ','
-			<< O.pos[Ball].z << ','
-			<< O.w[Ball].x << ','
-			<< O.w[Ball].y << ','
-			<< O.w[Ball].z << ','
-			<< O.w[Ball].norm() << ','
-			<< O.vel[Ball].x << ','
-			<< O.vel[Ball].y << ','
-			<< O.vel[Ball].z << ','
-			<< 0; //bound[Ball];
-	}
-	// Write position and rotation data to file:
-	ballWrite << ballBuffer.rdbuf();
-	ballBuffer.str(""); // Resets the stream buffer to blank.
-
-	// Close Streams for user viewing:
-	energyWrite.close();
-	ballWrite.close();
-	constWrite.close();
-
-	std::cout << "\nInitial conditions exported and file streams closed.\nSimulating " << steps * dt / 60 / 60 << " hours.\n";
-	std::cout << "Total mass: " << O.getMass() << '\n';
-	std::cout << "\n===============================================================\n";
-}
-
-
 
 
 
@@ -781,8 +630,7 @@ inline void testGen()
 		O.pos[Ball] = randSphericalVec(spaceRange, spaceRange, spaceRange);
 	}
 
-	//simInitWrite();
-	O.pushApart2();
+	O.pushApart();
 
 	std::cout << "Smalls: " << smalls << " Mediums: " << mediums << " Larges: " << larges << '\n';
 
@@ -1137,39 +985,4 @@ void setLazzK(const double& vel)
 {
 	kin = 4 / 3 * M_PI * density * O.getMassMax() * vel * vel / (.1 * .1);
 	kout = cor * kin;
-}
-
-void simDataWrite(std::string outFilename)
-{
-	// Check if file name already exists. If not, initialize
-	std::ifstream checkForFile;
-	checkForFile.open(outFilename, std::ifstream::in);
-	if (checkForFile.is_open() == false)
-	{
-		simInitWrite(outFilename);
-	}
-	else
-	{
-		ballBuffer << '\n'; // Prepares a new line for incoming data.
-
-		for (size_t Ball = 0; Ball < O.cNumBalls; Ball++)
-		{
-			// Send positions and rotations to buffer:
-			if (Ball == 0)
-			{
-				ballBuffer << O.pos[Ball][0] << ',' << O.pos[Ball][1] << ',' << O.pos[Ball][2] << ',' << O.w[Ball][0] << ',' << O.w[Ball][1] << ',' << O.w[Ball][2] << ',' << O.w[Ball].norm() << ',' << O.vel[Ball].x << ',' << O.vel[Ball].y << ',' << O.vel[Ball].z << ',' << 0;
-			}
-			else
-			{
-				ballBuffer << ',' << O.pos[Ball][0] << ',' << O.pos[Ball][1] << ',' << O.pos[Ball][2] << ',' << O.w[Ball][0] << ',' << O.w[Ball][1] << ',' << O.w[Ball][2] << ',' << O.w[Ball].norm() << ',' << O.vel[Ball].x << ',' << O.vel[Ball].y << ',' << O.vel[Ball].z << ',' << 0;
-			}
-		}
-
-		// Write simData to file and clear buffer.
-		std::ofstream ballWrite;
-		ballWrite.open(outputPrefix + "simData.csv", std::ofstream::app);
-		ballWrite << ballBuffer.rdbuf(); // Barf buffer to file.
-		ballBuffer.str("");              // Resets the stream for that balls to blank.
-		ballWrite.close();
-	}
 }
