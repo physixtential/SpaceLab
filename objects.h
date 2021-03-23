@@ -45,6 +45,7 @@ struct ballGroup
 	double* m = 0; ///< Mass
 	double* moi = 0; ///< Moment of inertia
 
+
 	/// Allocate ball property arrays.
 	inline void allocateGroup(int nBalls)
 	{

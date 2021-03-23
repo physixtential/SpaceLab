@@ -29,6 +29,11 @@
   <ItemGroup>
     <ClCompile Include="ColliderSingleCore.cpp" />
   </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\initializations.h" />
+    <ClInclude Include="..\objects.h" />
+    <ClInclude Include="..\vector3d.h" />
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
