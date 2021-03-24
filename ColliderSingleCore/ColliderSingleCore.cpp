@@ -166,7 +166,7 @@ inline void simInitCondAndCenter()
 {
 
 
-	calibrateDT(0, false, true);
+	calibrateDT(0, true, true);
 
 	// Hack temporarily manually setting k and dt
 	// k and dt override to stabilize cluster.
@@ -417,7 +417,7 @@ inline void simOneStep(int& Step)
 
 			lastWrite = time(NULL);
 		} // Data export end
-		//calibrateDT(Step, false, false);
+		calibrateDT(Step, true, false);
 		simTimeElapsed += dt * skip;
 	} // writestep end
 } // Steps end
