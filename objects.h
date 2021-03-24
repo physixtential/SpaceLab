@@ -553,10 +553,10 @@ struct ballGroup
 
 		while (true)
 		{
-			if (step % 10 == 0)
-			{
-				simDataWrite("pushApart_");
-			}
+			//if (step % 10 == 0)
+			//{
+			//	simDataWrite("pushApart_");
+			//}
 
 			for (int A = 0; A < cNumBalls; A++)
 			{

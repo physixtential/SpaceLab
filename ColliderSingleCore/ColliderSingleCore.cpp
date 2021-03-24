@@ -60,9 +60,9 @@ int main(int argc, char const* argv[])
 	}
 
 	//simInitTwoCluster();
-	//simContinue();
+	simContinue();
 	//O.pushApart();
-	generateBallField();
+	//generateBallField();
 	simInitCondAndCenter();
 	safetyChecks();
 	O.simInitWrite(outputPrefix);
@@ -149,6 +149,8 @@ inline void simContinue()
 
 	O.importDataFromFile(path + targetName);
 
+	O.pushApart();
+
 	std::cout << '\n';
 	O.checkMomentum("O");
 
@@ -166,14 +168,12 @@ inline void simInitCondAndCenter()
 
 	calibrateDT(0, false, true);
 
-
-	//////////////////////////////////////////
+	// Hack temporarily manually setting k and dt
 	// k and dt override to stabilize cluster.
-	// 
-	//kin = 1.01787e16;
-	//kout = cor * kin;
-	//dt = 1e-6;
-	//steps = (size_t)(simTimeSeconds / dt);
+	kin = 1.01787e16;
+	kout = cor * kin;
+	dt = 1e-6;
+	steps = (size_t)(simTimeSeconds / dt);
 
 	std::cout << "==================" << '\n';
 	std::cout << "dt: " << dt << '\n';
