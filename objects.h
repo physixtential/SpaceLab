@@ -620,6 +620,7 @@ struct ballGroup
 			overlapMax = -1;
 			step++;
 		}
+		delete[] counter;
 	}
 
 

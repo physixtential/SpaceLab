@@ -27,7 +27,7 @@ kin = -1,      // Spring constant
 kout = -1,
 soc,				// double the radius of the initial system. Any ball outside that isn't considered for dynamic dt calibration.
 scaleBalls = 100, // base radius of balls
-spaceRange = pow((1 / .74 * scaleBalls * scaleBalls * scaleBalls * genBalls), 1. / 3.), // Rough minimum space required
+spaceRange = std::pow((1 / .74 * scaleBalls * scaleBalls * scaleBalls * genBalls), 1. / 3.), // Rough minimum space required
 spaceRangeIncrement = scaleBalls * 3,
 KEfactor = 0,       // Determines collision velocity based on KE/PE
 impactParameter = 0, // Impact angle radians

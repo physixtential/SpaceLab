@@ -1,4 +1,3 @@
-#pragma once
 #define _USE_MATH_DEFINES
 #include <iostream>
 #include <cmath>
@@ -48,7 +47,6 @@ inline void setLazzK(const double& vel);
 int main(int argc, char const* argv[])
 {
 	// Runtime arguments:
-	double spins[3] = { 0 };
 	if (argc > 1)
 	{
 		//numThreads = atoi(argv[1]);
@@ -208,7 +206,6 @@ inline void simOneStep(int& Step)
 
 		// Progress reporting:
 		float eta = ((time(NULL) - startProgress) / 500.0 * (steps - Step)) / 3600.; // In seconds.
-		sizeof(int);
 		float elapsed = (time(NULL) - start) / 3600.;
 		float progress = ((float)Step / (float)steps * 100.f);
 		printf("Step: %i\tProgress: %2.0f%%\tETA: %5.2lf hr\tElapsed: %5.2f hr\n", Step, progress, eta, elapsed);
@@ -455,7 +452,7 @@ inline void twoSizeSphereShell5000()
 	for (int Ball = 0; Ball < 1000; Ball++)
 	{
 		O.R[Ball] = 700;
-		O.m[Ball] = density * 4. / 3. * 3.14159 * pow(O.R[Ball], 3);
+		O.m[Ball] = density * 4. / 3. * 3.14159 * std::pow(O.R[Ball], 3);
 		O.moi[Ball] = .4 * O.m[Ball] * O.R[Ball] * O.R[Ball];
 		O.w[Ball] = { 0, 0, 0 };
 		O.pos[Ball] = randShellVec(spaceRange, radius);
@@ -464,7 +461,7 @@ inline void twoSizeSphereShell5000()
 	for (int Ball = 1000; Ball < 2000; Ball++)
 	{
 		O.R[Ball] = 400;
-		O.m[Ball] = density * 4. / 3. * 3.14159 * pow(O.R[Ball], 3);
+		O.m[Ball] = density * 4. / 3. * 3.14159 * std::pow(O.R[Ball], 3);
 		O.moi[Ball] = .4 * O.m[Ball] * O.R[Ball] * O.R[Ball];
 		O.w[Ball] = { 0, 0, 0 };
 		O.pos[Ball] = randShellVec(spaceRange, radius);
@@ -475,7 +472,7 @@ inline void twoSizeSphereShell5000()
 
 	// Generate non-overlapping spherical particle field:
 	int collisionDetected = 0;
-	int oldCollisions = 1e10;
+	int oldCollisions = (int)1e10;
 
 	for (int failed = 0; failed < attempts; failed++)
 	{
@@ -527,7 +524,7 @@ inline void twoSizeSphereShell5000()
 	for (int Ball = 2000; Ball < 3500; Ball++)
 	{
 		O.R[Ball] = 250;
-		O.m[Ball] = density * 4. / 3. * 3.14159 * pow(O.R[Ball], 3);
+		O.m[Ball] = density * 4. / 3. * 3.14159 * std::pow(O.R[Ball], 3);
 		O.moi[Ball] = .4 * O.m[Ball] * O.R[Ball] * O.R[Ball];
 		O.w[Ball] = { 0, 0, 0 };
 		O.pos[Ball] = randShellVec(spaceRange, radius);
@@ -536,7 +533,7 @@ inline void twoSizeSphereShell5000()
 	for (int Ball = 3500; Ball < 5000; Ball++)
 	{
 		O.R[Ball] = 150;
-		O.m[Ball] = density * 4. / 3. * 3.14159 * pow(O.R[Ball], 3);
+		O.m[Ball] = density * 4. / 3. * 3.14159 * std::pow(O.R[Ball], 3);
 		O.moi[Ball] = .4 * O.m[Ball] * O.R[Ball] * O.R[Ball];
 		O.w[Ball] = { 0, 0, 0 };
 		O.pos[Ball] = randShellVec(spaceRange, radius);
@@ -607,7 +604,7 @@ inline void testGen()
 	for (int Ball = 0; Ball < larges; Ball++)
 	{
 		O.R[Ball] = 3. * scaleBalls;
-		O.m[Ball] = density * 4. / 3. * 3.14159 * pow(O.R[Ball], 3);
+		O.m[Ball] = density * 4. / 3. * 3.14159 * std::pow(O.R[Ball], 3);
 		O.moi[Ball] = .4 * O.m[Ball] * O.R[Ball] * O.R[Ball];
 		O.w[Ball] = { 0, 0, 0 };
 		O.pos[Ball] = randSphericalVec(spaceRange, spaceRange, spaceRange);
@@ -616,7 +613,7 @@ inline void testGen()
 	for (int Ball = larges; Ball < (larges + mediums); Ball++)
 	{
 		O.R[Ball] = 2. * scaleBalls;
-		O.m[Ball] = density * 4. / 3. * 3.14159 * pow(O.R[Ball], 3);
+		O.m[Ball] = density * 4. / 3. * 3.14159 * std::pow(O.R[Ball], 3);
 		O.moi[Ball] = .4 * O.m[Ball] * O.R[Ball] * O.R[Ball];
 		O.w[Ball] = { 0, 0, 0 };
 		O.pos[Ball] = randSphericalVec(spaceRange, spaceRange, spaceRange);
@@ -624,7 +621,7 @@ inline void testGen()
 	for (int Ball = (larges + mediums); Ball < genBalls; Ball++)
 	{
 		O.R[Ball] = 1. * scaleBalls;
-		O.m[Ball] = density * 4. / 3. * 3.14159 * pow(O.R[Ball], 3);
+		O.m[Ball] = density * 4. / 3. * 3.14159 * std::pow(O.R[Ball], 3);
 		O.moi[Ball] = .4 * O.m[Ball] * O.R[Ball] * O.R[Ball];
 		O.w[Ball] = { 0, 0, 0 };
 		O.pos[Ball] = randSphericalVec(spaceRange, spaceRange, spaceRange);
@@ -650,8 +647,8 @@ inline void threeSizeSphere()
 
 	for (int Ball = 0; Ball < larges; Ball++)
 	{
-		O.R[Ball] = 3. * scaleBalls;//pow(1. / (double)genBalls, 1. / 3.) * 3. * scaleBalls;
-		O.m[Ball] = density * 4. / 3. * 3.14159 * pow(O.R[Ball], 3);
+		O.R[Ball] = 3. * scaleBalls;//std::pow(1. / (double)genBalls, 1. / 3.) * 3. * scaleBalls;
+		O.m[Ball] = density * 4. / 3. * 3.14159 * std::pow(O.R[Ball], 3);
 		O.moi[Ball] = .4 * O.m[Ball] * O.R[Ball] * O.R[Ball];
 		O.w[Ball] = { 0, 0, 0 };
 		O.pos[Ball] = randSphericalVec(spaceRange, spaceRange, spaceRange);
@@ -659,16 +656,16 @@ inline void threeSizeSphere()
 
 	for (int Ball = larges; Ball < (larges + mediums); Ball++)
 	{
-		O.R[Ball] = 2. * scaleBalls;//pow(1. / (double)genBalls, 1. / 3.) * 2. * scaleBalls;
-		O.m[Ball] = density * 4. / 3. * 3.14159 * pow(O.R[Ball], 3);
+		O.R[Ball] = 2. * scaleBalls;//std::pow(1. / (double)genBalls, 1. / 3.) * 2. * scaleBalls;
+		O.m[Ball] = density * 4. / 3. * 3.14159 * std::pow(O.R[Ball], 3);
 		O.moi[Ball] = .4 * O.m[Ball] * O.R[Ball] * O.R[Ball];
 		O.w[Ball] = { 0, 0, 0 };
 		O.pos[Ball] = randSphericalVec(spaceRange, spaceRange, spaceRange);
 	}
 	for (int Ball = (larges + mediums); Ball < genBalls; Ball++)
 	{
-		O.R[Ball] = 1. * scaleBalls;//pow(1. / (double)genBalls, 1. / 3.) * 1. * scaleBalls;
-		O.m[Ball] = density * 4. / 3. * 3.14159 * pow(O.R[Ball], 3);
+		O.R[Ball] = 1. * scaleBalls;//std::pow(1. / (double)genBalls, 1. / 3.) * 1. * scaleBalls;
+		O.m[Ball] = density * 4. / 3. * 3.14159 * std::pow(O.R[Ball], 3);
 		O.moi[Ball] = .4 * O.m[Ball] * O.R[Ball] * O.R[Ball];
 		O.w[Ball] = { 0, 0, 0 };
 		O.pos[Ball] = randSphericalVec(spaceRange, spaceRange, spaceRange);
@@ -734,7 +731,7 @@ inline void oneSizeSphere()
 	for (int Ball = 0; Ball < genBalls; Ball++)
 	{
 		O.R[Ball] = scaleBalls;
-		O.m[Ball] = density * 4. / 3. * 3.14159 * pow(O.R[Ball], 3);
+		O.m[Ball] = density * 4. / 3. * 3.14159 * std::pow(O.R[Ball], 3);
 		O.moi[Ball] = .4 * O.m[Ball] * O.R[Ball] * O.R[Ball];
 		O.w[Ball] = { 0, 0, 0 };
 		O.pos[Ball] = randSphericalVec(spaceRange, spaceRange, spaceRange);
@@ -810,7 +807,7 @@ inline void generateBallField()
 	outputPrefix =
 		std::to_string(genBalls) +
 		"-R" + scientific(O.getRadius()) +
-		"-cor" + rounder(pow(cor, 2), 4) +
+		"-cor" + rounder(std::pow(cor, 2), 4) +
 		"-mu" + rounder(mu, 3) +
 		"-rho" + rounder(density, 4);
 }
@@ -879,9 +876,9 @@ inline void calibrateDT(const int& Step, const bool superSafe, bool doK)
 	// What velocity can a sphere have starting at 0 velocity after moving under gravity for 1/10 of the largest sphere radius.
 	double position = 0;
 	double vCollapse = 0;
-	double rMax = O.getRmax();
+	double rMin = O.getRmin();
 	std::cout << "\nvCollapse:\n";
-	while (position < rMax * .1)
+	while (position < rMin * .1)
 	{
 		std::cout << vCollapse << "                        \r";
 		vCollapse += G * mass / (radius * radius) * 0.1;
