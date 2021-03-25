@@ -1,4 +1,6 @@
 #pragma once
+#include <iostream>
+#include "vector3d.h"
 
 /// @brief Facilitates the concept of a group of balls with physical properties.
 /// Recommended: Use ballGroup(int nBalls) constructor to allocate all the memory needed for your ballGroup size.
@@ -51,6 +53,7 @@ struct ballGroup
 	{
 		cNumBalls = nBalls;
 
+		// Todo - Notes that this formula does not work when cNumBalls is odd.
 		distances = new double[(cNumBalls * cNumBalls / 2) - (cNumBalls / 2)];
 
 		pos = new vector3d[cNumBalls];

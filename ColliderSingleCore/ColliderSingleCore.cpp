@@ -592,50 +592,7 @@ inline void twoSizeSphereShell5000()
 
 }
 
-// hack to test pushAparting.
-inline void testGen()
-{
-	// Make genBalls of 3 sizes in CGS with ratios such that the mass is distributed evenly among the 3 sizes (less large genBalls than small genBalls).
-	int smalls = std::round((double)genBalls * 27 / 31.375); // Just here for reference. Whatever genBalls are left will be smalls.
-	int mediums = std::round((double)genBalls * 27 / (8 * 31.375));
-	int larges = std::round((double)genBalls * 1 / 31.375);
 
-
-	for (int Ball = 0; Ball < larges; Ball++)
-	{
-		O.R[Ball] = 3. * scaleBalls;
-		O.m[Ball] = density * 4. / 3. * 3.14159 * std::pow(O.R[Ball], 3);
-		O.moi[Ball] = .4 * O.m[Ball] * O.R[Ball] * O.R[Ball];
-		O.w[Ball] = { 0, 0, 0 };
-		O.pos[Ball] = randSphericalVec(spaceRange, spaceRange, spaceRange);
-	}
-
-	for (int Ball = larges; Ball < (larges + mediums); Ball++)
-	{
-		O.R[Ball] = 2. * scaleBalls;
-		O.m[Ball] = density * 4. / 3. * 3.14159 * std::pow(O.R[Ball], 3);
-		O.moi[Ball] = .4 * O.m[Ball] * O.R[Ball] * O.R[Ball];
-		O.w[Ball] = { 0, 0, 0 };
-		O.pos[Ball] = randSphericalVec(spaceRange, spaceRange, spaceRange);
-	}
-	for (int Ball = (larges + mediums); Ball < genBalls; Ball++)
-	{
-		O.R[Ball] = 1. * scaleBalls;
-		O.m[Ball] = density * 4. / 3. * 3.14159 * std::pow(O.R[Ball], 3);
-		O.moi[Ball] = .4 * O.m[Ball] * O.R[Ball] * O.R[Ball];
-		O.w[Ball] = { 0, 0, 0 };
-		O.pos[Ball] = randSphericalVec(spaceRange, spaceRange, spaceRange);
-	}
-
-	O.pushApart();
-
-	std::cout << "Smalls: " << smalls << " Mediums: " << mediums << " Larges: " << larges << '\n';
-
-	std::cout << "Final spacerange: " << spaceRange << '\n';
-
-	std::cout << "Initial Radius: " << O.getRadius() << '\n';
-	std::cout << "Mass: " << O.getMass() << '\n';
-}
 
 inline void threeSizeSphere()
 {
