@@ -4,8 +4,8 @@
 #include <sstream>
 #include <fstream>
 #include <iomanip>
-#include "initializations.h"
-#include "vector3d.h"
+#include "initializations.hpp"
+#include "vector3d.hpp"
 
 /// @brief Facilitates the concept of a group of balls with physical properties.
 /// Recommended: Use ballGroup(int nBalls) constructor to allocate all the memory needed for your ballGroup size.

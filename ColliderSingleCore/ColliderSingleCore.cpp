@@ -6,9 +6,9 @@
 #include <sstream>
 #include <iomanip>
 #include <algorithm>
-#include "../vector3d.h"
-#include "../initializations.h"
-#include "../objects.h"
+#include "../vector3d.hpp"
+#include "../initializations.hpp"
+#include "../objects.hpp"
 
 
 
