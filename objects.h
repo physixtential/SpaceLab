@@ -552,7 +552,7 @@ struct ballGroup
 	/// @brief Push balls apart until no overlaps
 	inline void pushApart()
 	{
-		std::cout << "Separating spheres - Current max overlap: ";
+		std::cout << "Separating spheres - Current max overlap:\n";
 		/// Using vel array as storage for accumulated position change.
 		int* counter = new int[cNumBalls];
 		for (size_t Ball = 0; Ball < cNumBalls; Ball++)
