@@ -31,7 +31,6 @@ ballGroup O;
 inline void simInitTwoCluster();
 inline void simContinue();
 inline void simInitCondAndCenter();
-
 inline void simOneStep(const int& Step);
 inline void simLooper();
 inline void generateBallField();
@@ -61,7 +60,7 @@ int main(int argc, char const* argv[])
 
 	//simInitTwoCluster();
 	simContinue();
-	//O.pushApart();
+	O.pushApart();
 	//generateBallField();
 	simInitCondAndCenter();
 	safetyChecks();
@@ -148,6 +147,8 @@ inline void simContinue()
 	std::cerr << "Continuing Sim...\nFile: " << targetName << '\n';
 
 	O.importDataFromFile(path + targetName);
+
+	O.toOrigin();
 
 	std::cout << '\n';
 	O.checkMomentum("O");
@@ -341,7 +342,7 @@ inline void simOneStep(int& Step)
 			O.acc[A] += totalForce / O.m[A];
 			O.acc[B] -= totalForce / O.m[B];
 
-			// So last distance can be known for cor:
+			// So last distance can be known for COR:
 			O.distances[e] = dist;
 		}
 		// DONT DO ANYTHING HERE. A STARTS AT 1.
@@ -504,7 +505,7 @@ inline void twoSizeSphereShell5000()
 			std::cout << "\nSuccess!\n";
 			break;
 		}
-		if (failed == attempts - 1 || collisionDetected > int(1.5 * (double)ballsInPhase1)) // Added the second part to speed up spatial constraint increase when there are clearly too many collisions for the space to be feasable.
+		if (failed == attempts - 1 || collisionDetected > int(1.5 * (double)ballsInPhase1)) // Added the second part to speed up spatial constraint increase when there are clearly too many collisions for the space to be feasible.
 		{
 			std::cout << "Failed " << spaceRange << ". Increasing range " << spaceRangeIncrement << "cm^3.\n";
 			spaceRange += spaceRangeIncrement;
@@ -576,7 +577,7 @@ inline void twoSizeSphereShell5000()
 			std::cout << "\nSuccess!\n";
 			break;
 		}
-		if (failed == attempts - 1 || collisionDetected > int(1.5 * (double)ballsInPhase2)) // Added the second part to speed up spatial constraint increase when there are clearly too many collisions for the space to be feasable.
+		if (failed == attempts - 1 || collisionDetected > int(1.5 * (double)ballsInPhase2)) // Added the second part to speed up spatial constraint increase when there are clearly too many collisions for the space to be feasible.
 		{
 			std::cout << "Failed " << spaceRange << ". Increasing range " << spaceRangeIncrement << "cm^3.\n";
 			spaceRange += spaceRangeIncrement;
@@ -707,7 +708,7 @@ inline void threeSizeSphere()
 			std::cout << "\nSuccess!\n";
 			break;
 		}
-		if (failed == attempts - 1 || collisionDetected > int(1.5 * (double)genBalls)) // Added the second part to speed up spatial constraint increase when there are clearly too many collisions for the space to be feasable.
+		if (failed == attempts - 1 || collisionDetected > int(1.5 * (double)genBalls)) // Added the second part to speed up spatial constraint increase when there are clearly too many collisions for the space to be feasible.
 		{
 			std::cout << "Failed " << spaceRange << ". Increasing range " << spaceRangeIncrement << "cm^3.\n";
 			spaceRange += spaceRangeIncrement;
@@ -771,7 +772,7 @@ inline void oneSizeSphere()
 			std::cout << "\nSuccess!\n";
 			break;
 		}
-		if (failed == attempts - 1 || collisionDetected > int(1.5 * (double)genBalls)) // Added the second part to speed up spatial constraint increase when there are clearly too many collisions for the space to be feasable.
+		if (failed == attempts - 1 || collisionDetected > int(1.5 * (double)genBalls)) // Added the second part to speed up spatial constraint increase when there are clearly too many collisions for the space to be feasible.
 		{
 			std::cout << "Failed " << spaceRange << ". Increasing range " << spaceRangeIncrement << "cm^3.\n";
 			spaceRange += spaceRangeIncrement;
@@ -865,7 +866,7 @@ inline void safetyChecks()
 		}
 	}
 
-	printf("\n//////////// SAFETY PASSED ////////////\n");
+	printf("\n//////////// SAFETY PASSED ////////////\n\n");
 }
 
 
@@ -874,10 +875,16 @@ inline void calibrateDT(const int& Step, const bool superSafe, bool doK)
 	double dtOld = dt;
 	double radius = O.getRadius();
 	double mass = O.getMass();
-	// Calculate max velocity due to collapse
-	// Todo - vCollapse needs to be more optimistic. Consider max fall distances to surface of asteroid instead of fall to center against all other mass?
-	//double vCollapse = sqrt(2 * G * O.getMass() / radius);
-	double vCollapse = sqrt(3. / 5. * G * mass / radius);
+
+	// Quick sim assuming no all will fall more than the largest sphere's diameter.
+	double position = 0;
+	double vCollapse = 0;
+	double rMax = O.getRmax();
+	while (position < rMax)
+	{
+		vCollapse += G * mass / (2*rMax * rMax) * dt;
+		position += vCollapse * dt;
+	}
 
 	soc = 2 * radius; // sphere of consideration for max velocity, to avoid very unbound high vel balls.
 

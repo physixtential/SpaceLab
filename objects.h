@@ -116,7 +116,7 @@ struct ballGroup
 			{
 				for (int B = A + 1; B < cNumBalls; B++)
 				{
-					// Identify two farthest balls from eachother. That is diameter of cluster.
+					// Identify two farthest balls from each other. That is diameter of cluster.
 					double diameter = (pos[A] - pos[B]).norm();
 					if (diameter * .5 > radius)
 					{
@@ -161,7 +161,7 @@ struct ballGroup
 		}
 		else
 		{
-			std::cout << "Mass of cluster is zer..\n";
+			std::cout << "Mass of cluster is zero..\n";
 			return { NULL, NULL, NULL };
 		}
 	}
@@ -208,7 +208,7 @@ struct ballGroup
 
 
 
-	// Initialzie accelerations and energy calculations:
+	// Initialize accelerations and energy calculations:
 	inline void initConditions()
 	{
 		KE = 0;
@@ -414,6 +414,19 @@ struct ballGroup
 		return rMin;
 	}
 
+	inline int getRmax()
+	{
+		int rMax = R[0];
+		for (int Ball = 0; Ball < cNumBalls; Ball++)
+		{
+			if (R[Ball] > rMax)
+			{
+				rMax = R[Ball];
+			}
+		}
+		return rMax;
+	}
+
 
 	inline int getMassMax()
 	{
@@ -539,6 +552,7 @@ struct ballGroup
 	/// @brief Push balls apart until no overlaps
 	inline void pushApart()
 	{
+		std::cout << "Separating spheres - Current max overlap: ";
 		/// Using vel array as storage for accumulated position change.
 		int* counter = new int[cNumBalls];
 		for (size_t Ball = 0; Ball < cNumBalls; Ball++)

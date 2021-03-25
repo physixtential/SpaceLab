@@ -27,6 +27,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\objects.cpp" />
     <ClCompile Include="ColliderSingleCore.cpp" />
   </ItemGroup>
   <ItemGroup>
