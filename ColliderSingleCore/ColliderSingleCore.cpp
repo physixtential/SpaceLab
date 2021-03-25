@@ -881,7 +881,7 @@ inline void calibrateDT(const int& Step, const bool superSafe, bool doK)
 	double vCollapse = 0;
 	double rMax = O.getRmax();
 	std::cout << "\nvCollapse:\n";
-	while (position < rMax*.1)
+	while (position < rMax * .1)
 	{
 		std::cout << vCollapse << "                        \r";
 		vCollapse += G * mass / (radius * radius) * 0.1;
@@ -989,8 +989,9 @@ void setLazzDT(const double& vel)
 {
 	// Lazzati k and dt:
 	// dt is ultimately depend on the velocities in the system, k is a part of this calculation because we derive dt with a dependence on k. Even if we don't choose to modify k, such as in the middle of a simulation (which would break conservation of energy), we maintain the concept of k for comprehension. One could just copy kTemp into the dt formula and ignore the k dependence.
+	double rMin = O.getRmin();
 	double kTemp = 4 / 3 * M_PI * density * O.getMassMax() * vel * vel / (.1 * .1);
-	dt = .01 * sqrt(4 / 3 * M_PI * density / kTemp * O.getRmin());
+	dt = .01 * sqrt(4 / 3 * M_PI * density / kTemp * rMin * rMin * rMin);
 }
 
 void setLazzK(const double& vel)
