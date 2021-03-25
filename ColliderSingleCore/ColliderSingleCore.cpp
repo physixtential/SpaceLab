@@ -873,10 +873,11 @@ inline void calibrateDT(const int& Step, const bool superSafe, bool doK)
 {
 	double dtOld = dt;
 	double radius = O.getRadius();
+	double mass = O.getMass();
 	// Calculate max velocity due to collapse
 	// Todo - vCollapse needs to be more optimistic. Consider max fall distances to surface of asteroid instead of fall to center against all other mass?
 	//double vCollapse = sqrt(2 * G * O.getMass() / radius);
-	double vCollapse = sqrt(3 / 5 * G * O.getMass() / radius);
+	double vCollapse = sqrt(3. / 5. * G * mass / radius);
 
 	soc = 2 * radius; // sphere of consideration for max velocity, to avoid very unbound high vel balls.
 
@@ -886,7 +887,7 @@ inline void calibrateDT(const int& Step, const bool superSafe, bool doK)
 	std::cout << '\n';
 	if (vMax > fabs(vCollapse))
 	{
-		std::cout << "vMax > binding. " << vCollapse << " =vCollapse | vMax= " << vMax;
+		std::cout << "vMax > binding:\n" << vCollapse << " = vCollapse | vMax = " << vMax;
 
 		if (superSafe)
 		{
@@ -919,7 +920,7 @@ inline void calibrateDT(const int& Step, const bool superSafe, bool doK)
 	}
 	else
 	{
-		std::cout << "Binding > vMax. " << vCollapse << " =vCollapse | vMax= " << vMax;
+		std::cout << "Binding > vMax:\n" << vCollapse << " = vCollapse | vMax = " << vMax;
 
 		if (superSafe)
 		{
@@ -978,7 +979,7 @@ void setGuidK(const double& vel)
 void setLazzDT(const double& vel)
 {
 	// Lazzati k and dt:
-	// dt is ultimately depend on the velocities in the system, k is a part of this calculation because we derive dt with a dependance on k. Even if we don't choose to modify k, such as in the middle of a simulation (which would break conservation of energy), we maintain the concept of k for comprehension. One could just copy kTemp into the dt formula and ignore the k dependance.
+	// dt is ultimately depend on the velocities in the system, k is a part of this calculation because we derive dt with a dependence on k. Even if we don't choose to modify k, such as in the middle of a simulation (which would break conservation of energy), we maintain the concept of k for comprehension. One could just copy kTemp into the dt formula and ignore the k dependence.
 	double kTemp = 4 / 3 * M_PI * density * O.getMassMax() * vel * vel / (.1 * .1);
 	dt = .01 * sqrt(4 / 3 * M_PI * density / kTemp * O.getRmin());
 }
