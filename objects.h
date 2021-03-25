@@ -1,5 +1,6 @@
 #pragma once
 #include <iostream>
+#include "initializations.h"
 #include "vector3d.h"
 
 /// @brief Facilitates the concept of a group of balls with physical properties.

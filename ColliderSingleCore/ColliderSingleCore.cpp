@@ -264,23 +264,6 @@ inline void simOneStep(int& Step)
 				if (dist >= oldDist)
 				{
 					k = kout;
-					//if (springTest)
-					//{
-					//	if (oldDist < 0.9 * clus.R[A] || oldDist < 0.9 * clus.R[B])
-					//	{
-					//		if (clus.R[A] >= clus.R[B])
-
-					//		{
-					//			std::cout << "Warning: Ball compression is " << .5 * (sumRaRb - oldDist) / clus.R[B] << "of radius = " << clus.R[B] << '\n';
-					//		}
-					//		else
-					//		{
-					//			std::cout << "Warning: Ball compression is " << .5 * (sumRaRb - oldDist) / clus.R[A] << "of radius = " << clus.R[A] << '\n';
-					//		}
-					//		int garbo;
-					//		std::cin >> garbo;
-					//	}
-					//}
 				}
 				else
 				{
