@@ -875,7 +875,9 @@ inline void calibrateDT(const int& Step, const bool superSafe, bool doK)
 	double dtOld = dt;
 	double radius = O.getRadius();
 	// Calculate max velocity due to collapse
-	double vCollapse = sqrt(2 * G * O.getMass() / radius);
+	// Todo - vCollapse needs to be more optimistic. Consider max fall distances to surface of asteroid instead of fall to center against all other mass?
+	//double vCollapse = sqrt(2 * G * O.getMass() / radius);
+	double vCollapse = sqrt(3 / 5 * G * O.getMass() / radius);
 
 	soc = 2 * radius; // sphere of consideration for max velocity, to avoid very unbound high vel balls.
 
