@@ -44,5 +44,5 @@ springTest = false; // If true, spring compression is checked against ball radiu
 std::string
 path = "C:/Users/milin/Desktop/GoogleDrive/GradResearch/Development/SpaceLab/x64/Release/",
 projectileName = "",
-targetName = "10850_",
+targetName = "10850_T0.00-rho2.70-k1.01787e+16-dt1e-06_",
 outputPrefix = "Unnamed_";

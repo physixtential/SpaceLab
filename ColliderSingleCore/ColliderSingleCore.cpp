@@ -149,8 +149,6 @@ inline void simContinue()
 
 	O.importDataFromFile(path + targetName);
 
-	O.pushApart();
-
 	std::cout << '\n';
 	O.checkMomentum("O");
 
@@ -170,9 +168,10 @@ inline void simInitCondAndCenter()
 
 	// Hack temporarily manually setting k and dt
 	// k and dt override to stabilize cluster.
+	std::cout << "OVERRIDING K AND DT" << '\n';
 	kin = 1.01787e16;
 	kout = cor * kin;
-	dt = 1e-6;
+	calibrateDT(0, true, false);
 	steps = (size_t)(simTimeSeconds / dt);
 
 	std::cout << "==================" << '\n';
@@ -887,7 +886,7 @@ inline void calibrateDT(const int& Step, const bool superSafe, bool doK)
 	std::cout << '\n';
 	if (vMax > fabs(vCollapse))
 	{
-		std::cout << "vMax > binding. " << vCollapse << "<vCollapse | vMax>" << vMax;
+		std::cout << "vMax > binding. " << vCollapse << " =vCollapse | vMax= " << vMax;
 
 		if (superSafe)
 		{
@@ -920,7 +919,7 @@ inline void calibrateDT(const int& Step, const bool superSafe, bool doK)
 	}
 	else
 	{
-		std::cout << "Binding > vMax. " << vCollapse << "<vCollapse | vMax>" << vMax;
+		std::cout << "Binding > vMax. " << vCollapse << " =vCollapse | vMax= " << vMax;
 
 		if (superSafe)
 		{
@@ -979,6 +978,7 @@ void setGuidK(const double& vel)
 void setLazzDT(const double& vel)
 {
 	// Lazzati k and dt:
+	// dt is ultimately depend on the velocities in the system, k is a part of this calculation because we derive dt with a dependance on k. Even if we don't choose to modify k, such as in the middle of a simulation (which would break conservation of energy), we maintain the concept of k for comprehension. One could just copy kTemp into the dt formula and ignore the k dependance.
 	double kTemp = 4 / 3 * M_PI * density * O.getMassMax() * vel * vel / (.1 * .1);
 	dt = .01 * sqrt(4 / 3 * M_PI * density / kTemp * O.getRmin());
 }
