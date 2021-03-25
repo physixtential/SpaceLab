@@ -884,8 +884,8 @@ inline void calibrateDT(const int& Step, const bool superSafe, bool doK)
 	while (position < rMax)
 	{
 		std::cout << vCollapse << "                        \r";
-		vCollapse += G * mass / (2*rMax * rMax) * dt;
-		position += vCollapse * dt;
+		vCollapse += G * mass / (2*rMax * rMax) * 0.1;
+		position += vCollapse * 0.1;
 	}
 
 	soc = 2 * radius; // sphere of consideration for max velocity, to avoid very unbound high vel balls.
