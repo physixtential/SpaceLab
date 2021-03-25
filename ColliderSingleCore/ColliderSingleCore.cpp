@@ -161,16 +161,13 @@ inline void simContinue()
 
 inline void simInitCondAndCenter()
 {
-
-
-	calibrateDT(0, true, true);
-
 	// Hack temporarily manually setting k and dt
 	// k and dt override to stabilize cluster.
 	std::cout << "OVERRIDING K AND DT" << '\n';
 	kin = 1.01787e16;
 	kout = cor * kin;
-	calibrateDT(0, true, false);
+	dt = .001;
+	//calibrateDT(0, true, false);
 	steps = (size_t)(simTimeSeconds / dt);
 
 	std::cout << "==================" << '\n';
@@ -397,7 +394,9 @@ inline void simOneStep(int& Step)
 
 			lastWrite = time(NULL);
 		} // Data export end
-		calibrateDT(Step, true, false);
+
+		// Hack temporarily disabled dynamic time.
+		//calibrateDT(Step, true, false);
 		simTimeElapsed += dt * skip;
 	} // writestep end
 } // Steps end

@@ -709,7 +709,6 @@ struct ballGroup
 		std::string energyFilename = filename + "energy.csv";
 		std::string constantsFilename = filename + "constants.csv";
 
-		// hack - This check will become redundant once the new simDataWrite function is operational, as it will have an on off switch for initialization if file does not exist.
 		// Check if file name already exists.
 		std::ifstream checkForFile;
 		checkForFile.open(simDataFilename, std::ifstream::in);
