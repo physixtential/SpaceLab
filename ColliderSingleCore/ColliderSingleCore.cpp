@@ -815,10 +815,8 @@ inline void calibrateDT(const int& Step, const bool superSafe, bool doK)
 	double position = 0;
 	double vCollapse = 0;
 	double rMin = O.getRmin();
-	std::cout << "\nvCollapse:\n";
 	while (position < rMin * .1)
 	{
-		std::cout << vCollapse << "                        \r";
 		vCollapse += G * mass / (radius * radius) * 0.1;
 		position += vCollapse * 0.1;
 	}
