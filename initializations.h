@@ -38,9 +38,6 @@ z1Rot = 0,           // Cluster two z axis rotation
 y1Rot = 0,           // Cluster two y axis rotation
 simTimeElapsed = 0;
 
-const bool
-springTest = false; // If true, spring compression is checked against ball radius. If compression > .1R, send warning to console. 
-
 // File from which to proceed with further simulations
 std::string
 path = "C:/Users/milin/Desktop/GoogleDrive/GradResearch/Development/SpaceLab/x64/Release/",
