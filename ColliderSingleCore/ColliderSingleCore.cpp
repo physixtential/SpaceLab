@@ -876,15 +876,15 @@ inline void calibrateDT(const int& Step, const bool superSafe, bool doK)
 	double radius = O.getRadius();
 	double mass = O.getMass();
 
-	// Quick sim assuming no all will fall more than the largest sphere's diameter.
+	// What velocity can a sphere have starting at 0 velocity after moving under gravity for 1/10 of the largest sphere radius.
 	double position = 0;
 	double vCollapse = 0;
 	double rMax = O.getRmax();
 	std::cout << "\nvCollapse:\n";
-	while (position < rMax)
+	while (position < rMax*.1)
 	{
 		std::cout << vCollapse << "                        \r";
-		vCollapse += G * mass / (2*rMax * rMax) * 0.1;
+		vCollapse += G * mass / (radius * radius) * 0.1;
 		position += vCollapse * 0.1;
 	}
 
