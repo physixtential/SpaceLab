@@ -742,7 +742,6 @@ inline void generateBallField()
 	//twoSizeSphereShell5000();
 	//oneSizeSphere();
 	//threeSizeSphere();
-	testGen();
 
 	outputPrefix =
 		std::to_string(genBalls) +
