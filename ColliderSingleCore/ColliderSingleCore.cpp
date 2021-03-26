@@ -166,8 +166,7 @@ inline void simInitCondAndCenter()
 	std::cout << "OVERRIDING K AND DT" << '\n';
 	kin = 1.01787e16;
 	kout = cor * kin;
-	dt = .0001;
-	//calibrateDT(0, true, false);
+	calibrateDT(0, true, false);
 	steps = (size_t)(simTimeSeconds / dt);
 
 	std::cout << "==================" << '\n';
@@ -180,7 +179,6 @@ inline void simInitCondAndCenter()
 
 	O.checkMomentum("After Zeroing"); // Is total mom zero like it should be?
 
-	O.toOrigin();
 
 	// Compute physics between all balls. Distances, collision forces, energy totals, total mass:
 	O.initConditions();
@@ -814,9 +812,9 @@ inline void calibrateDT(const int& Step, const bool superSafe, bool doK)
 	double position = 0;
 	double vCollapse = 0;
 	double rMin = O.getRmin();
-	while (position < rMin * .1)
+	while (position < rMin)
 	{
-		vCollapse += G * mass / (radius * radius) * 0.1;
+		vCollapse += G * mass / (radius * radius);
 		position += vCollapse * 0.1;
 	}
 

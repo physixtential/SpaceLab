@@ -561,11 +561,11 @@ struct ballGroup
 	inline void pushApart()
 	{
 		std::cout << "Separating spheres - Current max overlap:\n";
-		/// Using vel array as storage for accumulated position change.
+		/// Using acc array as storage for accumulated position change.
 		int* counter = new int[cNumBalls];
 		for (size_t Ball = 0; Ball < cNumBalls; Ball++)
 		{
-			vel[Ball] = { 0,0,0 };
+			acc[Ball] = { 0,0,0 };
 			counter[Ball] = 0;
 		}
 
@@ -598,8 +598,8 @@ struct ballGroup
 
 					if (overlap > 0)
 					{
-						vel[A] += overlap * (rVecba / dist);
-						vel[B] += overlap * (rVecab / dist);
+						acc[A] += overlap * (rVecba / dist);
+						acc[B] += overlap * (rVecab / dist);
 						counter[A] += 1;
 						counter[B] += 1;
 					}
@@ -610,8 +610,8 @@ struct ballGroup
 			{
 				if (counter[Ball] > 0)
 				{
-					pos[Ball] += vel[Ball].normalized() * pseudoDT;
-					vel[Ball] = { 0,0,0 };
+					pos[Ball] += acc[Ball].normalized() * pseudoDT;
+					acc[Ball] = { 0,0,0 };
 					counter[Ball] = 0;
 				}
 			}
