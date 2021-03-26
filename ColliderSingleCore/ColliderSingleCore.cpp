@@ -166,7 +166,7 @@ inline void simInitCondAndCenter()
 	std::cout << "OVERRIDING K AND DT" << '\n';
 	kin = 1.01787e16;
 	kout = cor * kin;
-	dt = .001;
+	dt = .0001;
 	//calibrateDT(0, true, false);
 	steps = (size_t)(simTimeSeconds / dt);
 
@@ -395,8 +395,7 @@ inline void simOneStep(int& Step)
 			lastWrite = time(NULL);
 		} // Data export end
 
-		// Hack temporarily disabled dynamic time.
-		//calibrateDT(Step, true, false);
+		calibrateDT(Step, true, false);
 		simTimeElapsed += dt * skip;
 	} // writestep end
 } // Steps end
@@ -497,8 +496,8 @@ inline void twoSizeSphereShell5000()
 		collisionDetected = 0;
 	}
 
-	spaceRange += 2 * O.R[0] + 4 * 250;
-	radius += O.R[0] + 250;
+	spaceRange += 2. * O.R[0] + 4. * 250.;
+	radius += O.R[0] + 250.;
 	std::cout << "Making shell between " << radius << " and " << spaceRange * .5 << '\n';
 
 	// PHASE 2
@@ -923,7 +922,7 @@ void setLazzDT(const double& vel)
 	// Lazzati k and dt:
 	// dt is ultimately depend on the velocities in the system, k is a part of this calculation because we derive dt with a dependence on k. Even if we don't choose to modify k, such as in the middle of a simulation (which would break conservation of energy), we maintain the concept of k for comprehension. One could just copy kTemp into the dt formula and ignore the k dependence.
 	double rMin = O.getRmin();
-	double kTemp = 4 / 3 * M_PI * density * O.getMassMax() * vel * vel / (.1 * .1);
+	double kTemp = 4 / 3 * M_PI * density * O.getRmax() * vel * vel / (.1 * .1);
 	dt = .01 * sqrt(4 / 3 * M_PI * density / kTemp * rMin * rMin * rMin);
 }
 

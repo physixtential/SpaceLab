@@ -1,6 +1,8 @@
 #pragma once
 
+#include <iostream>
 #include <cassert>
+#include <string>
 
 class vector3d
 {
@@ -149,6 +151,7 @@ public:
 	{
 		return "[" + std::to_string(x) + ", " + std::to_string(y) + ", " + std::to_string(z) + "]";
 	}
+
 	void print()
 	{
 		std::cout << "[" << x << ", " << y << ", " << z << "]";

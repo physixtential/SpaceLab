@@ -11,9 +11,11 @@
 //#include "../vector3d.h"
 //#include "../objects.h"
 
+void scaryUninitValues(int occ)
+{
 
-
+}
 int main()
 {
-	std::cout << "okay";
+
 }
