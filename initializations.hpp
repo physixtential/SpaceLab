@@ -37,8 +37,7 @@ z0Rot = 0,           // Cluster one z axis rotation
 y0Rot = 0,           // Cluster one y axis rotation
 z1Rot = 0,           // Cluster two z axis rotation
 y1Rot = 0,           // Cluster two y axis rotation
-simTimeElapsed = 0,
-oldKE = 0;
+simTimeElapsed = 0;
 
 // File from which to proceed with further simulations
 std::string

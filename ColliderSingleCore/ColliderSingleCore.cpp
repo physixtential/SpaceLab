@@ -358,17 +358,19 @@ inline void simOneStep(int& Step)
 		energyBuffer << '\n'
 			<< simTimeElapsed << ',' << O.PE << ',' << O.KE << ',' << O.PE + O.KE << ',' << O.mom.norm() << ',' << O.angMom.norm(); // the two zeros are bound and unbound mass
 
+		// hack temporary k increaser.
 		if (kin < kTarget)
 		{
-			if (O.KE < oldKE)
+			double vMax = .01 * O.getRmin() / dt;
+			if (O.getVelMax(true) < vMax)
 			{
-				oldKE = O.KE;
+				std::cout << "Increasing k\n";
 				kin *= 2;
 				kout = cor * kin;
 			}
 			else
 			{
-				std::cout << "KE still increasing\n";
+				std::cout << "vMax above " << vMax << '\n';
 			}
 
 		}
@@ -824,13 +826,12 @@ inline void calibrateDT(const int& Step, const bool superSafe, bool doK)
 	double radius = O.getRadius();
 	double mass = O.getMass();
 
-	// What velocity can a sphere have starting at 0 velocity after moving under gravity for 1/10 of the largest sphere radius.
+	// Sim fall velocity onto cluster:
 	double position = 0;
 	double vCollapse = 0;
-	double rMin = O.getRmin();
-	while (position < rMin)
+	while (position < radius)
 	{
-		vCollapse += G * mass / (radius * radius);
+		vCollapse += G * mass / (radius * radius) * 0.1;
 		position += vCollapse * 0.1;
 	}
 
