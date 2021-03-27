@@ -6,6 +6,7 @@
 #include <sstream>
 #include <iomanip>
 #include <algorithm>
+#include <vector>
 #include "../vector3d.hpp"
 #include "../initializations.hpp"
 #include "../objects.hpp"
@@ -34,7 +35,7 @@ inline void simOneStep(const int& Step);
 inline void simLooper();
 inline void generateBallField();
 inline void safetyChecks();
-inline void calibrateDT(const int& Step, bool superSafe, bool doK);
+inline void calibrateDT(const int& Step, const bool superSafe, bool doK);
 inline void setGuidDT(const double& vel);
 inline void setGuidK(const double& vel);
 inline void setLazzDT(const double& vel);
@@ -58,7 +59,7 @@ int main(int argc, char const* argv[])
 
 	//simInitTwoCluster();
 	simContinue();
-	O.pushApart();
+	//O.pushApart();
 	//generateBallField();
 	simInitCondAndCenter();
 	safetyChecks();
@@ -161,12 +162,8 @@ inline void simContinue()
 
 inline void simInitCondAndCenter()
 {
-	// Hack temporarily manually setting k and dt
 	// k and dt override to stabilize cluster.
-	std::cout << "OVERRIDING K AND DT" << '\n';
-	kin = 1.01787e16;
-	kout = cor * kin;
-	calibrateDT(0, true, false);
+	calibrateDT(0, true, true);
 	steps = (size_t)(simTimeSeconds / dt);
 
 	std::cout << "==================" << '\n';
@@ -361,6 +358,25 @@ inline void simOneStep(int& Step)
 		energyBuffer << '\n'
 			<< simTimeElapsed << ',' << O.PE << ',' << O.KE << ',' << O.PE + O.KE << ',' << O.mom.norm() << ',' << O.angMom.norm(); // the two zeros are bound and unbound mass
 
+		if (kin < kTarget)
+		{
+			if (O.KE < oldKE)
+			{
+				oldKE = O.KE;
+				kin *= 2;
+				kout = cor * kin;
+			}
+			else
+			{
+				std::cout << "KE still increasing\n";
+			}
+
+		}
+		else
+		{
+			std::cout << "\nREACHED DESIRED K\n";
+		}
+
 		// Reinitialize energies for next step:
 		O.KE = 0;
 		O.PE = 0;
@@ -374,7 +390,7 @@ inline void simOneStep(int& Step)
 		////////////////////////////////////////////////////////////////////
 		if (time(NULL) - lastWrite > 1800 || Step / skip % 20 == 0 || Step == steps - 1)
 		{
-			std::cout << "\nData Write" << '\n';
+			std::cout << "\nData Write\n";
 
 			// Write simData to file and clear buffer.
 			std::ofstream ballWrite;
