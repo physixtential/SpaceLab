@@ -200,7 +200,7 @@ inline void simOneStep(int& Step)
 		float eta = ((time(NULL) - startProgress) / 500.0 * (steps - Step)) / 3600.; // In seconds.
 		float elapsed = (time(NULL) - start) / 3600.;
 		float progress = ((float)Step / (float)steps * 100.f);
-		printf("Step: %i\tProgress: %2.0f%%\tETA: %5.2lf hr\tElapsed: %5.2f hr\n", Step, progress, eta, elapsed);
+		printf("Step: %i\tProgress: %2.0f%%\tETA: %5.2lf hr\tElapsed: %5.2f hr ", Step, progress, eta, elapsed);
 		startProgress = time(NULL);
 	}
 	else
