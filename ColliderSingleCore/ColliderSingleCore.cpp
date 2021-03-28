@@ -200,7 +200,8 @@ inline void simOneStep(int& Step)
 		float eta = ((time(NULL) - startProgress) / 500.0 * (steps - Step)) / 3600.; // In seconds.
 		float elapsed = (time(NULL) - start) / 3600.;
 		float progress = ((float)Step / (float)steps * 100.f);
-		printf("Step: %i\tProgress: %2.0f%%\tETA: %5.2lf hr\tElapsed: %5.2f hr ", Step, progress, eta, elapsed);
+		// hack temporary disable progress
+		//printf("Step: %i\tProgress: %2.0f%%\tETA: %5.2lf hr\tElapsed: %5.2f hr ", Step, progress, eta, elapsed);
 		startProgress = time(NULL);
 	}
 	else
@@ -361,11 +362,13 @@ inline void simOneStep(int& Step)
 		// hack temporary k increaser.
 		if (kin < kTarget)
 		{
-			double U = O.PE;
-			double totalEnergy = O.KE + U;
+			double U = fabs(O.PE);
+			double T = fabs(O.KE);
+			double totalEnergy = T + U;
 			double bindingEnergy = 0.6 * G * O.getMass() * O.getMass() / O.getRadius();
 			// Check that total energy is mostly potential
 			// Also check that potential energy isn't more than binding energy (after an increase in k this will temporarily happen).
+			// todo is the elastic PE = gravitational PE?
 			if (totalEnergy < U * 1.1 and U < bindingEnergy * 1.1)
 			{
 				kin *= 2;
@@ -850,7 +853,7 @@ inline void calibrateDT(const int& Step, const bool superSafe, bool doK)
 	std::cout << '\n';
 	if (vMax > fabs(vCollapse))
 	{
-		std::cout << "vMax > binding:\n" << vCollapse << " = vCollapse | vMax = " << vMax;
+		std::cout << "vMax > binding: " << vCollapse << " = vCollapse | vMax = " << vMax;
 
 		if (superSafe)
 		{
@@ -883,7 +886,7 @@ inline void calibrateDT(const int& Step, const bool superSafe, bool doK)
 	}
 	else
 	{
-		std::cout << "Binding > vMax:\n" << vCollapse << " = vCollapse | vMax = " << vMax;
+		std::cout << "Binding > vMax: " << vCollapse << " = vCollapse | vMax = " << vMax;
 
 		if (superSafe)
 		{
