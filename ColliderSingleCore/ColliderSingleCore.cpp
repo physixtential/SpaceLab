@@ -59,7 +59,7 @@ int main(int argc, char const* argv[])
 
 	//simInitTwoCluster();
 	simContinue();
-	//O.pushApart();
+	O.pushApart();
 	//generateBallField();
 	simInitCondAndCenter();
 	safetyChecks();
@@ -361,16 +361,21 @@ inline void simOneStep(int& Step)
 		// hack temporary k increaser.
 		if (kin < kTarget)
 		{
-			double vMax = .01 * O.getRmin() / dt;
-			if (O.getVelMax(true) < vMax)
+			double U = O.PE;
+			double totalEnergy = O.KE + U;
+			double bindingEnergy = 0.6 * G * O.getMass() * O.getMass() / O.getRadius();
+			// Check that total energy is mostly potential
+			// Also check that potential energy isn't more than binding energy (after an increase in k this will temporarily happen).
+			if (totalEnergy < U * 1.1 and U < bindingEnergy * 1.1)
 			{
-				std::cout << "Increasing k\n";
 				kin *= 2;
+				printf("INCREASING K: E = %e\tU = %e\tB = %e\tK = %e\n", totalEnergy, U, bindingEnergy, kin);
 				kout = cor * kin;
 			}
 			else
 			{
-				std::cout << "vMax above " << vMax << '\n';
+				printf("NOT READY: E = %e\tU = %e\tB = %e\tK = %e\n", totalEnergy, U, bindingEnergy, kin);
+
 			}
 
 		}
@@ -827,6 +832,7 @@ inline void calibrateDT(const int& Step, const bool superSafe, bool doK)
 	double mass = O.getMass();
 
 	// Sim fall velocity onto cluster:
+	// Todo If a ball flies away, the calced radius will get huge, making vCollapse incorrectly tiny.
 	double position = 0;
 	double vCollapse = 0;
 	while (position < radius)
@@ -834,6 +840,7 @@ inline void calibrateDT(const int& Step, const bool superSafe, bool doK)
 		vCollapse += G * mass / (radius * radius) * 0.1;
 		position += vCollapse * 0.1;
 	}
+
 
 	soc = 2 * radius; // sphere of consideration for max velocity, to avoid very unbound high vel balls.
 

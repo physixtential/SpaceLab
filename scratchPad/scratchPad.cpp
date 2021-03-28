@@ -1,21 +1,27 @@
-#define _USE_MATH_DEFINES
 #include <iostream>
-#include <cmath>
-#include <fstream>
-#include <time.h>
-#include <sstream>
-#include <iomanip>
-#include <algorithm>
-#include <vector>
-#include <omp.h>
-//#include "../vector3d.h"
-//#include "../objects.h"
+#include <string>
+using namespace std;
 
-void scaryUninitValues(int occ)
+int check(string str, string a)
 {
-
+	if (str.find(a))
+	{
+		return NULL;
+	}
 }
+
 int main()
 {
+	int output;
+	string str;
+	string a;
+	cout << "Enter the first string" << endl;
+	getline(cin, str);
+	cout << "Enter what character you're looking for" << endl;
+	getline(cin, a);
 
+
+
+	system("pause");
+	return 0;
 }
