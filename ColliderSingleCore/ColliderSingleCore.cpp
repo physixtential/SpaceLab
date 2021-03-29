@@ -363,13 +363,15 @@ inline void simOneStep(int& Step)
 		// hack temporary k increaser.
 		if (kin < kTarget)
 		{
-			double U = fabs(O.PE);
-			double T = fabs(O.KE);
-			double totalEnergy = T + U;
-			double bindingEnergy = 0.6 * G * O.getMass() * O.getMass() / O.getRadius();
-			// Check that total energy is mostly potential
-			// Also check that potential energy isn't more than binding energy (after an increase in k this will temporarily happen).
-			// todo is the elastic PE = gravitational PE?
+			for (size_t A = 1; A < O.cNumBalls; A++)
+			{
+				for (size_t B = 0; B < A; B++)
+				{
+					const vector3d gravForceOnA = (G * O.m[A] * O.m[B] / (dist * dist)) * (rVecab / dist);
+				}
+			}
+
+			// todo - If sum of all elastic forces = sum of all gravitational force, increase k.
 			if (totalEnergy < U * 1.1 and U < bindingEnergy * 1.1)
 			{
 				kin *= 2;
@@ -836,7 +838,7 @@ inline void calibrateDT(const int& Step, const bool superSafe, bool doK)
 	double mass = O.getMass();
 
 	// Sim fall velocity onto cluster:
-	// Todo If a ball flies away, the calced radius will get huge, making vCollapse incorrectly tiny.
+	// vCollapse shrinks if a ball escapes but velMax should take over at that point, unless it is ignoring far balls.
 	double position = 0;
 	double vCollapse = 0;
 	while (position < radius)
