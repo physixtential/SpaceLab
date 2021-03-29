@@ -265,8 +265,8 @@ inline void simOneStep(int& Step)
 
 				// Calculate force and torque for a:
 				vector3d dVel = O.vel[B] - O.vel[A];
-				vector3d relativeVelOfA = (dVel)-((dVel).dot(rVecab)) * (rVecab / (dist * dist)) - O.w[A].cross(O.R[A] / sumRaRb * rVecab) - O.w[B].cross(O.R[B] / sumRaRb * rVecab);
-				vector3d elasticForceOnA = -k * overlap * .5 * (rVecab / dist);
+				const vector3d relativeVelOfA = (dVel)-((dVel).dot(rVecab)) * (rVecab / (dist * dist)) - O.w[A].cross(O.R[A] / sumRaRb * rVecab) - O.w[B].cross(O.R[B] / sumRaRb * rVecab);
+				const vector3d elasticForceOnA = -k * overlap * .5 * (rVecab / dist);
 				vector3d frictionForceOnA = { 0,0,0 };
 				if (relativeVelOfA.norm() > 1e-12) // When relative velocity is very low, dividing its vector components by its magnitude below is unstable.
 				{
@@ -276,8 +276,8 @@ inline void simOneStep(int& Step)
 
 				// Calculate force and torque for b:
 				dVel = O.vel[A] - O.vel[B];
-				vector3d relativeVelOfB = (dVel)-((dVel).dot(rVecba)) * (rVecba / (dist * dist)) - O.w[B].cross(O.R[B] / sumRaRb * rVecba) - O.w[A].cross(O.R[A] / sumRaRb * rVecba);
-				vector3d elasticForceOnB = -k * overlap * .5 * (rVecba / dist);
+				const vector3d relativeVelOfB = (dVel)-((dVel).dot(rVecba)) * (rVecba / (dist * dist)) - O.w[B].cross(O.R[B] / sumRaRb * rVecba) - O.w[A].cross(O.R[A] / sumRaRb * rVecba);
+				const vector3d elasticForceOnB = -k * overlap * .5 * (rVecba / dist);
 				vector3d frictionForceOnB = { 0,0,0 };
 				if (relativeVelOfB.norm() > 1e-12)
 				{
@@ -285,7 +285,7 @@ inline void simOneStep(int& Step)
 				}
 				bTorque = (O.R[B] / sumRaRb) * rVecba.cross(frictionForceOnB);
 
-				vector3d gravForceOnA = (G * O.m[A] * O.m[B] / (dist * dist)) * (rVecab / dist);
+				const vector3d gravForceOnA = (G * O.m[A] * O.m[B] / (dist * dist)) * (rVecab / dist);
 				totalForce = gravForceOnA + elasticForceOnA + frictionForceOnA;
 				O.aacc[A] += aTorque / O.moi[A];
 				O.aacc[B] += bTorque / O.moi[B];
@@ -293,7 +293,8 @@ inline void simOneStep(int& Step)
 				if (writeStep)
 				{
 					// Calculate potential energy. Important to recognize that the factor of 1/2 is not in front of K because this is for the spring potential in each ball and they are the same potential.
-					O.PE += -G * O.m[A] * O.m[B] / dist + k * ((O.R[A] + O.R[B] - dist) * .5) * ((O.R[A] + O.R[B] - dist) * .5);
+					const double x = (O.R[A] + O.R[B] - dist);
+					O.PE += -G * O.m[A] * O.m[B] / dist + 0.5 * k * x * x;
 				}
 			}
 			else
