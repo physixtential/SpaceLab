@@ -129,9 +129,9 @@ struct ballGroup
 
 		if (cNumBalls > 1)
 		{
-			for (int A = 0; A < cNumBalls; A++)
+			for (unsigned int A = 0; A < cNumBalls; A++)
 			{
-				for (int B = A + 1; B < cNumBalls; B++)
+				for (unsigned int B = A + 1; B < cNumBalls; B++)
 				{
 					// Identify two farthest balls from each other. That is diameter of cluster.
 					double diameter = (pos[A] - pos[B]).norm();
@@ -154,7 +154,7 @@ struct ballGroup
 	{
 		double mTotal = 0;
 		{
-			for (int Ball = 0; Ball < cNumBalls; Ball++)
+			for (unsigned int Ball = 0; Ball < cNumBalls; Ball++)
 			{
 				mTotal += m[Ball];
 			}
@@ -169,7 +169,7 @@ struct ballGroup
 		if (mTotal > 0)
 		{
 			vector3d comNumerator = { 0, 0, 0 };
-			for (int Ball = 0; Ball < cNumBalls; Ball++)
+			for (unsigned int Ball = 0; Ball < cNumBalls; Ball++)
 			{
 				comNumerator += m[Ball] * pos[Ball];
 			}
@@ -185,7 +185,7 @@ struct ballGroup
 
 	inline void zeroMotion()
 	{
-		for (int Ball = 0; Ball < cNumBalls; Ball++)
+		for (unsigned int Ball = 0; Ball < cNumBalls; Ball++)
 		{
 			w[Ball] = { 0, 0, 0 };
 			vel[Ball] = { 0, 0, 0 };
@@ -196,7 +196,7 @@ struct ballGroup
 	{
 		vector3d com = getCOM();
 
-		for (int Ball = 0; Ball < cNumBalls; Ball++)
+		for (unsigned int Ball = 0; Ball < cNumBalls; Ball++)
 		{
 			pos[Ball] -= com;
 		}
@@ -206,7 +206,7 @@ struct ballGroup
 	inline void comSpinner(const double& spinX, const double& spinY, const double& spinZ)
 	{
 		vector3d comRot = { spinX, spinY, spinZ }; // Rotation axis and magnitude
-		for (int Ball = 0; Ball < cNumBalls; Ball++)
+		for (unsigned int Ball = 0; Ball < cNumBalls; Ball++)
 		{
 			vel[Ball] += comRot.cross(pos[Ball] - com);
 			w[Ball] += comRot;
@@ -215,7 +215,7 @@ struct ballGroup
 
 	inline void rotAll(const char axis, const double angle)
 	{
-		for (int Ball = 0; Ball < cNumBalls; Ball++)
+		for (unsigned int Ball = 0; Ball < cNumBalls; Ball++)
 		{
 			pos[Ball] = pos[Ball].rot(axis, angle);
 			vel[Ball] = vel[Ball].rot(axis, angle);
@@ -240,12 +240,12 @@ struct ballGroup
 			KE += .5 * m[0] * vel[0].dot(vel[0]) + .5 * moi[0] * w[0].dot(w[0]);
 			mom += m[0] * vel[0];
 			angMom += m[0] * pos[0].cross(vel[0]) + moi[0] * w[0];
-			for (int A = 1; A < cNumBalls; A++)
+			for (unsigned int A = 1; A < cNumBalls; A++)
 			{
 				// Warning: "A" Starts at 1 not 0.
 				comNumerator += m[A] * pos[A];
 
-				for (int B = 0; B < A; B++)
+				for (unsigned int B = 0; B < A; B++)
 				{
 					double sumRaRb = R[A] + R[B];
 					double dist = (pos[A] - pos[B]).norm();
@@ -299,7 +299,7 @@ struct ballGroup
 					// Newton's equal and opposite forces applied to acceleration of each ball:
 					acc[A] += totalForce / m[A];
 					acc[B] -= totalForce / m[B];
-					int e = (A * (A - 1) * .5) + B; // Complex storage of n square over 2 distances.
+					unsigned int e = (unsigned int)(A * (A - 1) * .5) + B; // Complex storage of n square over 2 distances.
 					distances[e] = dist;
 				}
 				KE += .5 * m[A] * vel[A].dot(vel[A]) + .5 * moi[A] * w[A].dot(w[A]);
@@ -323,9 +323,9 @@ struct ballGroup
 
 		if (cNumBalls > 1) // Code below only necessary for effects between balls.
 		{
-			for (int A = 1; A < cNumBalls; A++)
+			for (unsigned int A = 1; A < cNumBalls; A++)
 			{
-				for (int B = 0; B < A; B++)
+				for (unsigned int B = 0; B < A; B++)
 				{
 					double sumRaRb = R[A] + R[B];
 					double dist = (pos[A] - pos[B]).norm();
@@ -353,7 +353,7 @@ struct ballGroup
 	// Kick ballGroup (give the whole thing a velocity)
 	inline void kick(const double& vx, const double& vy, const double& vz)
 	{
-		for (int Ball = 0; Ball < cNumBalls; Ball++)
+		for (unsigned int Ball = 0; Ball < cNumBalls; Ball++)
 		{
 			vel[Ball] += {vx, vy, vz};
 		}
@@ -363,7 +363,7 @@ struct ballGroup
 	inline void checkMomentum(const std::string& of)
 	{
 		vector3d pTotal = { 0,0,0 };
-		for (int Ball = 0; Ball < cNumBalls; Ball++)
+		for (unsigned int Ball = 0; Ball < cNumBalls; Ball++)
 		{
 			pTotal += m[Ball] * vel[Ball];
 		}
@@ -373,7 +373,7 @@ struct ballGroup
 	// offset cluster
 	inline void offset(const double& rad1, const double& rad2, const double& impactParam)
 	{
-		for (int Ball = 0; Ball < cNumBalls; Ball++)
+		for (unsigned int Ball = 0; Ball < cNumBalls; Ball++)
 		{
 			pos[Ball].x += (rad1 + rad2) * cos(impactParam);
 			pos[Ball].y += (rad1 + rad2) * sin(impactParam);
@@ -388,7 +388,7 @@ struct ballGroup
 
 		if (useSoc)
 		{
-			for (int Ball = 0; Ball < cNumBalls; Ball++)
+			for (unsigned int Ball = 0; Ball < cNumBalls; Ball++)
 			{
 				if ((pos[Ball] - com).norm() < soc && vel[Ball].norm() > vMax)
 				{
@@ -398,7 +398,7 @@ struct ballGroup
 		}
 		else
 		{
-			for (int Ball = 0; Ball < cNumBalls; Ball++)
+			for (unsigned int Ball = 0; Ball < cNumBalls; Ball++)
 			{
 				if (vel[Ball].norm() > vMax)
 				{
@@ -418,10 +418,10 @@ struct ballGroup
 	}
 
 
-	inline int getRmin()
+	inline double getRmin()
 	{
 		double rMin = R[0];
-		for (int Ball = 0; Ball < cNumBalls; Ball++)
+		for (unsigned int Ball = 0; Ball < cNumBalls; Ball++)
 		{
 			if (R[Ball] < rMin)
 			{
@@ -431,10 +431,10 @@ struct ballGroup
 		return rMin;
 	}
 
-	inline int getRmax()
+	inline double getRmax()
 	{
 		double rMax = R[0];
-		for (int Ball = 0; Ball < cNumBalls; Ball++)
+		for (unsigned int Ball = 0; Ball < cNumBalls; Ball++)
 		{
 			if (R[Ball] > rMax)
 			{
@@ -445,10 +445,10 @@ struct ballGroup
 	}
 
 
-	inline int getMassMax()
+	inline double getMassMax()
 	{
 		double mMax = m[0];
-		for (int Ball = 0; Ball < cNumBalls; Ball++)
+		for (unsigned int Ball = 0; Ball < cNumBalls; Ball++)
 		{
 			if (m[Ball] > mMax)
 			{
@@ -503,27 +503,27 @@ struct ballGroup
 
 			std::stringstream chosenLine(line); // This is the last line of the read file, containing all data for all balls at last time step
 
-			for (int A = 0; A < cNumBalls; A++)
+			for (unsigned int A = 0; A < cNumBalls; A++)
 			{
 
-				for (int i = 0; i < 3; i++) // Position
+				for (unsigned int i = 0; i < 3; i++) // Position
 				{
 					std::getline(chosenLine, lineElement, ',');
 					pos[A][i] = std::stod(lineElement);
 					//std::cout << tclus.pos[A][i]<<',';
 				}
-				for (int i = 0; i < 3; i++) // Angular Velocity
+				for (unsigned int i = 0; i < 3; i++) // Angular Velocity
 				{
 					std::getline(chosenLine, lineElement, ',');
 					w[A][i] = std::stod(lineElement);
 				}
 				std::getline(chosenLine, lineElement, ','); // Angular velocity magnitude skipped
-				for (int i = 0; i < 3; i++)                 // velocity
+				for (unsigned int i = 0; i < 3; i++)                 // velocity
 				{
 					std::getline(chosenLine, lineElement, ',');
 					vel[A][i] = std::stod(lineElement);
 				}
-				for (int i = 0; i < properties - 10; i++) // We used 10 elements. This skips the rest.
+				for (unsigned int i = 0; i < properties - 10; i++) // We used 10 elements. This skips the rest.
 				{
 					std::getline(chosenLine, lineElement, ',');
 				}
@@ -539,7 +539,7 @@ struct ballGroup
 		if (auto ConstStream = std::ifstream(constantsFilename, std::ifstream::in))
 		{
 			std::string line, lineElement;
-			for (int A = 0; A < cNumBalls; A++)
+			for (unsigned int A = 0; A < cNumBalls; A++)
 			{
 				std::getline(ConstStream, line); // Ball line.
 				std::stringstream chosenLine(line);
@@ -589,9 +589,9 @@ struct ballGroup
 			//	simDataWrite("pushApart_");
 			//}
 
-			for (int A = 0; A < cNumBalls; A++)
+			for (unsigned int A = 0; A < cNumBalls; A++)
 			{
-				for (int B = A + 1; B < cNumBalls; B++)
+				for (unsigned int B = A + 1; B < cNumBalls; B++)
 				{
 					// Check for Ball overlap.
 					vector3d rVecab = pos[B] - pos[A];
@@ -706,7 +706,7 @@ struct ballGroup
 	{
 		// Create string for file name identifying spin combination negative is 2, positive is 1 on each axis.
 		//std::string spinCombo = "";
-		//for (int i = 0; i < 3; i++)
+		//for (unsigned int i = 0; i < 3; i++)
 		//{
 		//	if (spins[i] < 0) { spinCombo += "2"; }
 		//	else if (spins[i] > 0) { spinCombo += "1"; }
@@ -756,7 +756,7 @@ struct ballGroup
 		energyWrite << "Time,PE,KE,E,p,L";
 		ballWrite << "x0,y0,z0,wx0,wy0,wz0,wmag0,vx0,vy0,vz0,bound0";
 
-		for (int Ball = 1; Ball < cNumBalls; Ball++) // Start at 2nd ball because first one was just written^.
+		for (unsigned int Ball = 1; Ball < cNumBalls; Ball++) // Start at 2nd ball because first one was just written^.
 		{
 			std::string thisBall = std::to_string(Ball);
 			ballWrite
@@ -776,7 +776,7 @@ struct ballGroup
 		std::cout << "\nSim data, energy, and constants file streams and headers created.";
 
 		// Write constant data:
-		for (int Ball = 0; Ball < cNumBalls; Ball++)
+		for (unsigned int Ball = 0; Ball < cNumBalls; Ball++)
 		{
 
 			constWrite
@@ -818,7 +818,7 @@ struct ballGroup
 			<< vel[0].y << ','
 			<< vel[0].z << ','
 			<< 0; //bound[0];
-		for (int Ball = 1; Ball < cNumBalls; Ball++)
+		for (unsigned int Ball = 1; Ball < cNumBalls; Ball++)
 		{
 			ballBuffer
 				<< ',' << pos[Ball].x << ',' // Needs comma start so the last bound doesn't have a dangling comma.
