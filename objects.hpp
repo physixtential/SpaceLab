@@ -13,13 +13,15 @@ struct ballGroup
 {
 	ballGroup() = default;
 
-	/// @brief Constructor to allocate all the memory needed for your ballGroup size.
+	/// @brief For creating a new ballGroup of size nBalls
 	/// @param nBalls Number of balls to allocate.
 	ballGroup(int nBalls)
 	{
 		allocateGroup(nBalls);
 	}
 
+	/// @brief for importing a ballGroup from file.
+	/// @param filename 
 	ballGroup(std::string filename)
 	{
 		importDataFromFile(filename);
@@ -29,8 +31,8 @@ struct ballGroup
 	std::stringstream ballBuffer;
 	std::stringstream energyBuffer;
 
-	int cNumBalls = 0;
-	int cNumBallsAdded = 0;
+	unsigned int cNumBalls = 0;
+	unsigned int cNumBallsAdded = 0;
 
 	vector3d
 		com = { 0, 0, 0 },
