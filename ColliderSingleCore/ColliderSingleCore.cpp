@@ -31,11 +31,11 @@ ballGroup O;
 inline void simInitTwoCluster();
 inline void simContinue();
 inline void simInitCondAndCenter();
-inline void simOneStep(const int& Step);
+inline void simOneStep(const unsigned int& Step);
 inline void simLooper();
 inline void generateBallField();
 inline void safetyChecks();
-inline void calibrateDT(const int& Step, const bool superSafe, bool doK);
+inline void calibrateDT(const unsigned int& Step, const bool superSafe, bool doK);
 inline void setGuidDT(const double& vel);
 inline void setGuidK(const double& vel);
 inline void setLazzDT(const double& vel);
@@ -188,7 +188,7 @@ inline void simInitCondAndCenter()
 
 
 
-inline void simOneStep(int& Step)
+inline void simOneStep(const unsigned int& Step)
 {
 	// Check if this is a write step:
 	if (Step % skip == 0)
