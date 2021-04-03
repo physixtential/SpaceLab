@@ -60,19 +60,26 @@ struct ballGroup
 	{
 		cNumBalls = nBalls;
 
-		// Todo - Notes that this formula does not work when cNumBalls is odd.
-		distances = new double[(cNumBalls * cNumBalls / 2) - (cNumBalls / 2)];
+		try
+		{
+			// Todo - Notes that this formula does not work when cNumBalls is odd.
+			distances = new double[(cNumBalls * cNumBalls / 2) - (cNumBalls / 2)];
 
-		pos = new vector3d[cNumBalls];
-		vel = new vector3d[cNumBalls];
-		velh = new vector3d[cNumBalls];
-		acc = new vector3d[cNumBalls];
-		w = new vector3d[cNumBalls];
-		wh = new vector3d[cNumBalls];
-		aacc = new vector3d[cNumBalls];
-		R = new double[cNumBalls];
-		m = new double[cNumBalls];
-		moi = new double[cNumBalls];
+			pos = new vector3d[cNumBalls];
+			vel = new vector3d[cNumBalls];
+			velh = new vector3d[cNumBalls];
+			acc = new vector3d[cNumBalls];
+			w = new vector3d[cNumBalls];
+			wh = new vector3d[cNumBalls];
+			aacc = new vector3d[cNumBalls];
+			R = new double[cNumBalls];
+			m = new double[cNumBalls];
+			moi = new double[cNumBalls];
+		}
+		catch (const std::exception& e)
+		{
+			std::cout << "Failed trying to allocated group. " << e.what() << '\n';
+		}
 	}
 
 
@@ -471,7 +478,7 @@ struct ballGroup
 			bool keepLooping = true;
 			while (keepLooping)
 			{
-				char ch;
+				char ch = ' ';
 				simDataStream.get(ch); // Get current byte's data
 
 				if ((int)simDataStream.tellg() <= 1)
@@ -655,32 +662,32 @@ struct ballGroup
 				// Send positions and rotations to buffer:
 				if (Ball == 0)
 				{
-					ballBuffer 
-						<< pos[Ball][0] << ',' 
-						<< pos[Ball][1] << ',' 
-						<< pos[Ball][2] << ',' 
-						<< w[Ball][0] << ',' 
-						<< w[Ball][1] << ',' 
-						<< w[Ball][2] << ',' 
-						<< w[Ball].norm() << ',' 
-						<< vel[Ball].x << ',' 
-						<< vel[Ball].y << ',' 
-						<< vel[Ball].z << ',' 
+					ballBuffer
+						<< pos[Ball][0] << ','
+						<< pos[Ball][1] << ','
+						<< pos[Ball][2] << ','
+						<< w[Ball][0] << ','
+						<< w[Ball][1] << ','
+						<< w[Ball][2] << ','
+						<< w[Ball].norm() << ','
+						<< vel[Ball].x << ','
+						<< vel[Ball].y << ','
+						<< vel[Ball].z << ','
 						<< 0;
 				}
 				else
 				{
-					ballBuffer << ',' 
-						<< pos[Ball][0] << ',' 
-						<< pos[Ball][1] << ',' 
-						<< pos[Ball][2] << ',' 
-						<< w[Ball][0] << ',' 
-						<< w[Ball][1] << ',' 
-						<< w[Ball][2] << ',' 
-						<< w[Ball].norm() << ',' 
-						<< vel[Ball].x << ',' 
-						<< vel[Ball].y << ',' 
-						<< vel[Ball].z << ',' 
+					ballBuffer << ','
+						<< pos[Ball][0] << ','
+						<< pos[Ball][1] << ','
+						<< pos[Ball][2] << ','
+						<< w[Ball][0] << ','
+						<< w[Ball][1] << ','
+						<< w[Ball][2] << ','
+						<< w[Ball].norm() << ','
+						<< vel[Ball].x << ','
+						<< vel[Ball].y << ','
+						<< vel[Ball].z << ','
 						<< 0;
 				}
 			}

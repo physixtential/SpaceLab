@@ -199,8 +199,7 @@ inline void simOneStep(int& Step)
 		float eta = ((time(NULL) - startProgress) / 500.0 * (steps - Step)) / 3600.; // In seconds.
 		float elapsed = (time(NULL) - start) / 3600.;
 		float progress = ((float)Step / (float)steps * 100.f);
-		// hack temporary disable progress
-		//printf("Step: %i\tProgress: %2.0f%%\tETA: %5.2lf hr\tElapsed: %5.2f hr ", Step, progress, eta, elapsed);
+		printf("Step: %i\tProgress: %2.0f%%\tETA: %5.2lf hr\tElapsed: %5.2f hr ", Step, progress, eta, elapsed);
 		startProgress = time(NULL);
 	}
 	else
@@ -431,7 +430,7 @@ inline void simLooper()
 {
 	std::cout << "Beginning simulation...\n";
 
-	for (int Step = 1; Step < steps; Step++) // Steps start at 1 because the 0 step is initial conditions.
+	for (size_t Step = 1; Step < steps; Step++) // Steps start at 1 because the 0 step is initial conditions.
 	{
 		simOneStep(Step);
 	}
@@ -478,8 +477,9 @@ inline void twoSizeSphereShell5000()
 	std::cout << "Balls in phase: " << ballsInPhase1 << "\n";
 
 	// Generate non-overlapping spherical particle field:
+	// Note that int can only handle 46340 spheres before potential int overflow.
 	int collisionDetected = 0;
-	int oldCollisions = (int)1e10;
+	int oldCollisions = INT_MAX;
 
 	for (int failed = 0; failed < attempts; failed++)
 	{
@@ -760,7 +760,7 @@ inline void generateBallField()
 
 
 	// Create new random number set.
-	int seedSave = time(NULL);
+	time_t seedSave = time(NULL);
 	srand(seedSave);
 
 	//twoSizeSphereShell5000();
