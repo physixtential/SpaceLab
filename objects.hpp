@@ -424,7 +424,7 @@ struct ballGroup
 
 	inline int getRmax()
 	{
-		int rMax = R[0];
+		double rMax = R[0];
 		for (int Ball = 0; Ball < cNumBalls; Ball++)
 		{
 			if (R[Ball] > rMax)
