@@ -4,7 +4,6 @@
 // Initialization (Units are CGS) //
 ////////////////////////////////////
 
-
 const double
 G = 6.67e-8,   // Gravitational constant
 density = 2.7, //2.7, // Typically based on some rock density

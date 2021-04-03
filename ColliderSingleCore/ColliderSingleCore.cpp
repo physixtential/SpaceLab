@@ -56,7 +56,6 @@ int main(int argc, char const* argv[])
 		//targetName = argv[3];
 		//KEfactor = atof(argv[4]);
 	}
-
 	//simInitTwoCluster();
 	simContinue();
 	O.pushApart();
