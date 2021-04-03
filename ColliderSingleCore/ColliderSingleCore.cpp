@@ -360,34 +360,34 @@ inline void simOneStep(int& Step)
 			<< simTimeElapsed << ',' << O.PE << ',' << O.KE << ',' << O.PE + O.KE << ',' << O.mom.norm() << ',' << O.angMom.norm(); // the two zeros are bound and unbound mass
 
 		// hack temporary k increaser.
-		if (kin < kTarget)
-		{
-			for (size_t A = 1; A < O.cNumBalls; A++)
-			{
-				for (size_t B = 0; B < A; B++)
-				{
-					const vector3d gravForceOnA = (G * O.m[A] * O.m[B] / (dist * dist)) * (rVecab / dist);
-				}
-			}
+		//if (kin < kTarget)
+		//{
+		//	for (size_t A = 1; A < O.cNumBalls; A++)
+		//	{
+		//		for (size_t B = 0; B < A; B++)
+		//		{
+		//			const vector3d gravForceOnA = (G * O.m[A] * O.m[B] / (dist * dist)) * (rVecab / dist);
+		//		}
+		//	}
 
-			// todo - If sum of all elastic forces = sum of all gravitational force, increase k.
-			if (totalEnergy < U * 1.1 and U < bindingEnergy * 1.1)
-			{
-				kin *= 2;
-				printf("INCREASING K: E = %e\tU = %e\tB = %e\tK = %e\n", totalEnergy, U, bindingEnergy, kin);
-				kout = cor * kin;
-			}
-			else
-			{
-				printf("NOT READY: E = %e\tU = %e\tB = %e\tK = %e\n", totalEnergy, U, bindingEnergy, kin);
+		//	// todo - If sum of all elastic forces = sum of all gravitational force, increase k.
+		//	if (totalEnergy < U * 1.1 and U < bindingEnergy * 1.1)
+		//	{
+		//		kin *= 2;
+		//		printf("INCREASING K: E = %e\tU = %e\tB = %e\tK = %e\n", totalEnergy, U, bindingEnergy, kin);
+		//		kout = cor * kin;
+		//	}
+		//	else
+		//	{
+		//		printf("NOT READY: E = %e\tU = %e\tB = %e\tK = %e\n", totalEnergy, U, bindingEnergy, kin);
 
-			}
+		//	}
 
-		}
-		else
-		{
-			std::cout << "\nREACHED DESIRED K\n";
-		}
+		//}
+		//else
+		//{
+		//	std::cout << "\nREACHED DESIRED K\n";
+		//}
 
 		// Reinitialize energies for next step:
 		O.KE = 0;

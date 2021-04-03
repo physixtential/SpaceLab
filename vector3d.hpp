@@ -327,12 +327,12 @@ std::string scientific(double value)
 void titleBar(std::string title)
 {
 	std::cout << '\n';
-	for (int i = 0; i < ((62 - title.size()) / 2); i++)
+	for (size_t i = 0; i < ((62 - title.size()) / 2); i++)
 	{
 		std::cout << '=';
 	}
 	std::cout << ' ' << title << ' ';
-	for (int i = 0; i < ((62 - title.size()) / 2); i++)
+	for (size_t i = 0; i < ((62 - title.size()) / 2); i++)
 	{
 		std::cout << '=';
 	}

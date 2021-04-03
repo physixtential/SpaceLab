@@ -290,7 +290,7 @@ struct ballGroup
 					// Newton's equal and opposite forces applied to acceleration of each ball:
 					acc[A] += totalForce / m[A];
 					acc[B] -= totalForce / m[B];
-					int e = (A * (A - 1) * .5) + B;
+					int e = (A * (A - 1) * .5) + B; // Complex storage of n square over 2 distances.
 					distances[e] = dist;
 				}
 				KE += .5 * m[A] * vel[A].dot(vel[A]) + .5 * moi[A] * w[A].dot(w[A]);
@@ -411,7 +411,7 @@ struct ballGroup
 
 	inline int getRmin()
 	{
-		int rMin = R[0];
+		double rMin = R[0];
 		for (int Ball = 0; Ball < cNumBalls; Ball++)
 		{
 			if (R[Ball] < rMin)
