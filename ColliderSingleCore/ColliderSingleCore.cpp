@@ -914,6 +914,6 @@ void setLazzDT(const double& vel)
 
 void setLazzK(const double& vel)
 {
-	kin = 4 / 3 * M_PI * density * O.getMassMax() * vel * vel / (.1 * .1);
+	kin = 4. / 3. * M_PI * density * O.getMassMax() * vel * vel / (.1 * .1);
 	kout = cor * kin;
 }
