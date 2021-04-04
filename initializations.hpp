@@ -15,7 +15,7 @@ simTimeSeconds = 18000;
 const unsigned int
 skip = 500,     // Steps thrown away before recording a step to the buffer. 500*.04 is every 20 seconds in sim.
 properties = 11, // Number of columns in simData file per ball
-genBalls = 5000,
+genBalls = 100,
 attempts = 200; // How many times to try moving every ball touching another in generator.
 
 unsigned int

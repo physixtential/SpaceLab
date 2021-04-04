@@ -21,31 +21,11 @@ void printBigOlVectorception(std::vector<std::vector<std::vector<int>>>& matList
 
 int main()
 {
-	int numMatrices = 4;
+	unsigned int a = INFINITY;
+	unsigned int b = UINT32_MAX;
 
-	std::vector<std::vector<std::vector<int>>> matList;
-
-	for (size_t matSize = 3; matSize < numMatrices + 3; matSize++)
+	if (a < b)
 	{
-		std::vector<std::vector<int>> oneMatrix(matSize);
-
-		// Set the size of the internal vectors:
-		for (size_t i = 0; i < matSize; i++)
-		{
-			oneMatrix[i].resize(matSize);
-		}
-
-		// Populate
-		for (size_t i = 0; i < matSize; i++)
-		{
-			for (size_t j = 0; j < matSize; j++)
-			{
-				oneMatrix[i][j] = i + j; // Whatever you want here.
-			}
-		}
-
-		matList.push_back(oneMatrix);
+		std::cout << "WELP";
 	}
-
-	printBigOlVectorception(matList);
 }

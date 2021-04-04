@@ -35,7 +35,7 @@ inline void simOneStep(const unsigned int& Step);
 inline void simLooper();
 inline void generateBallField();
 inline void safetyChecks();
-inline void calibrateDT(const unsigned int& Step, const bool superSafe, bool doK);
+inline void calibrateDT(const unsigned int& Step, const bool doK, const double customVel = 0);
 inline void setGuidDT(const double& vel);
 inline void setGuidK(const double& vel);
 inline void setLazzDT(const double& vel);
@@ -57,9 +57,9 @@ int main(int argc, char const* argv[])
 		//KEfactor = atof(argv[4]);
 	}
 	//simInitTwoCluster();
-	simContinue();
-	O.pushApart();
-	//generateBallField();
+	//simContinue();
+	//O.pushApart();
+	generateBallField();
 	simInitCondAndCenter();
 	safetyChecks();
 	O.simInitWrite(outputPrefix);
@@ -162,6 +162,7 @@ inline void simContinue()
 inline void simInitCondAndCenter()
 {
 	// k and dt override to stabilize cluster.
+
 	calibrateDT(0, true, true);
 	steps = (unsigned int)(simTimeSeconds / dt);
 
@@ -779,7 +780,7 @@ inline void generateBallField()
 
 inline void safetyChecks()
 {
-	printf("\n//////////// SAFETY CHECKS ////////////\n");
+	titleBar("SAFETY CHECKS");
 
 	if (kin < 0)
 	{
@@ -826,11 +827,11 @@ inline void safetyChecks()
 		}
 	}
 
-	printf("\n//////////// SAFETY PASSED ////////////\n\n");
+	titleBar("SAFETY PASSED");
 }
 
 
-inline void calibrateDT(const unsigned int& Step, const bool superSafe, bool doK)
+inline void calibrateDT(const unsigned int& Step, const bool doK, const double customVel = 0)
 {
 	double dtOld = dt;
 	double radius = O.getRadius();
@@ -845,6 +846,7 @@ inline void calibrateDT(const unsigned int& Step, const bool superSafe, bool doK
 		vCollapse += G * mass / (radius * radius) * 0.1;
 		position += vCollapse * 0.1;
 	}
+	vCollapse = fabs(vCollapse);
 
 
 	soc = 2 * radius; // sphere of consideration for max velocity, to avoid very unbound high vel balls.
@@ -853,71 +855,31 @@ inline void calibrateDT(const unsigned int& Step, const bool superSafe, bool doK
 
 	// Check if the kick is going to be the most significant velocity basis, or if gravity will matter more.
 	std::cout << '\n';
-	if (vMax > fabs(vCollapse))
+	if (customVel > 0.)
+	{
+		vMax = customVel;
+		std::cout << "Using custom velocity for dt calibrate: " << customVel;
+	}
+	else if (vMax > fabs(vCollapse))
 	{
 		std::cout << "vMax > binding: " << vCollapse << " = vCollapse | vMax = " << vMax;
-
-		if (superSafe)
-		{
-			// Safe: dt based on fastest velocity
-			setLazzDT(vMax);
-			std::cout << " dt Calibrated: " << dt;
-		}
-		else
-		{
-			// Less safe: dt based on fastest velocity
-			setGuidDT(vMax);
-			std::cout << " dt Calibrated: " << dt;
-		}
-
-		if (doK)
-		{
-			if (superSafe)
-			{
-				// Safe: K based on fastest velocity
-				setLazzK(vMax);
-				std::cout << " K Calibrated: " << kin;
-			}
-			else
-			{
-				// Less safe: K based on fastest velocity
-				setGuidK(vMax);
-				std::cout << " K Calibrated: " << kin;
-			}
-		}
 	}
 	else
 	{
 		std::cout << "Binding > vMax: " << vCollapse << " = vCollapse | vMax = " << vMax;
+		vMax = vCollapse;
+	}
 
-		if (superSafe)
-		{
-			// Safe: dt based on fastest velocity
-			setLazzDT(vCollapse);
-			std::cout << " dt Calibrated: " << dt;
-		}
-		else
-		{
-			// Less safe: dt based on fastest velocity
-			setGuidDT(vCollapse);
-			std::cout << " dt Calibrated: " << dt;
-		}
+	// Safe: dt based on fastest velocity
+	setLazzDT(vMax);
+	std::cout << " dt Calibrated: " << dt;
 
-		if (doK)
-		{
-			if (superSafe)
-			{
-				// Safe: K based on fastest velocity
-				setLazzK(vCollapse);
-				std::cout << " K Calibrated: " << kin;
-			}
-			else
-			{
-				// Less safe: K based on fastest velocity
-				setGuidK(vCollapse);
-				std::cout << " K Calibrated: " << kin;
-			}
-		}
+	if (doK)
+	{
+		// Safe: K based on fastest velocity
+		setLazzK(vMax);
+		std::cout << " K Calibrated: " << kin;
+
 	}
 
 	if (Step == 0 or dtOld == -1)
