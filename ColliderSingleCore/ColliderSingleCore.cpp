@@ -12,7 +12,6 @@
 #include "../objects.hpp"
 
 
-
 // String buffers to hold data in memory until worth writing to file:
 std::stringstream ballBuffer;
 std::stringstream energyBuffer;
@@ -252,6 +251,7 @@ inline void simOneStep(const unsigned int& Step)
 			// Check for collision between Ball and otherBall.
 			if (overlap > 0)
 			{
+				std::cout << O.getVelMax(false);
 				// Apply coefficient of restitution to balls leaving collision.
 				if (dist >= oldDist)
 				{
@@ -923,6 +923,6 @@ void setLazzDT(const double& vel)
 
 void setLazzK(const double& vel)
 {
-	kin = 4. / 3. * M_PI * density * O.getMassMax() * vel * vel / (.1 * .1);
+	kin = 4. / 3. * M_PI * density * O.getRmax() * vel * vel / (.1 * .1);
 	kout = cor * kin;
 }
