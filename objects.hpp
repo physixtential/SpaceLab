@@ -498,7 +498,7 @@ struct ballGroup
 
 
 			std::getline(simDataStream, line);                                              // Read the current line
-			int count = std::count(line.begin(), line.end(), ',') / properties + 1;
+			unsigned int count = std::count(line.begin(), line.end(), ',') / properties + 1;
 			allocateGroup(count); // Get number of balls in file
 
 			std::stringstream chosenLine(line); // This is the last line of the read file, containing all data for all balls at last time step
