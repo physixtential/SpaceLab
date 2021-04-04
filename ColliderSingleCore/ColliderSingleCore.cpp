@@ -163,6 +163,7 @@ inline void simInitCondAndCenter()
 {
 	// k and dt override to stabilize cluster.
 	calibrateDT(0, true, 600000.);
+	dt = 0.001;
 	steps = (unsigned int)(simTimeSeconds / dt);
 
 	std::cout << "==================" << '\n';
@@ -199,7 +200,7 @@ inline void simOneStep(const unsigned int& Step)
 		float eta = ((time(NULL) - startProgress) / 500.f * (steps - Step)) / 3600.f; // In seconds.
 		float elapsed = (time(NULL) - start) / 3600.f;
 		float progress = ((float)Step / (float)steps * 100.f);
-		printf("Step: %i\tProgress: %2.0f%%\tETA: %5.2lf hr\tElapsed: %5.2f hr ", Step, progress, eta, elapsed);
+		printf("Step: %i\tProgress: %2.0f%%\tETA: %5.2lf hr\tElapsed: %5.2f hr\n", Step, progress, eta, elapsed);
 		startProgress = time(NULL);
 	}
 	else
@@ -781,6 +782,12 @@ inline void safetyChecks()
 {
 	titleBar("SAFETY CHECKS");
 
+	if (skip < 0)
+	{
+		printf("\nSKIP NOT SET\n");
+		exit(EXIT_FAILURE);
+	}
+
 	if (kin < 0)
 	{
 		printf("\nSPRING CONSTANT NOT SET\n");
@@ -878,6 +885,8 @@ inline void calibrateDT(const unsigned int& Step, const bool doK, const double& 
 		std::cout << " K Calibrated: " << kin;
 
 	}
+
+	skip = 20. / dt;
 
 	if (Step == 0 or dtOld == -1)
 	{
