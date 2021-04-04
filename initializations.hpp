@@ -9,7 +9,8 @@ G = 6.67e-8,   // Gravitational constant
 density = 2.7, //2.7, // Typically based on some rock density
 mu = 0.9,      // Coeff of friction
 cor = 0.8,     // Coeff of restitution
-simTimeSeconds = 18000;
+simTimeSeconds = 18000., // Seconds
+timeResolution = 20.; // Seconds
 
 // Simulation Structure
 const unsigned int
@@ -28,7 +29,7 @@ kout = -1,
 kTarget = 2.85e17,
 soc,				// double the radius of the initial system. Any ball outside that isn't considered for dynamic dt calibration.
 scaleBalls = 100, // base radius of balls
-spaceRange = std::pow((1 / .74 * scaleBalls * scaleBalls * scaleBalls * genBalls), 1. / 3.), // Rough minimum space required
+spaceRange = std::pow((1. / .74 * scaleBalls * scaleBalls * scaleBalls * genBalls), 1. / 3.), // Rough minimum space required
 spaceRangeIncrement = scaleBalls * 3,
 KEfactor = 0,       // Determines collision velocity based on KE/PE
 impactParameter = 0, // Impact angle radians

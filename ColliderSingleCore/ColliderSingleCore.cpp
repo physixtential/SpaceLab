@@ -161,11 +161,11 @@ inline void simContinue()
 inline void simInitCondAndCenter()
 {
 	// k and dt override to stabilize cluster.
-	calibrateDT(0, true, 600000.);
+	calibrateDT(0, true);
 	// hack temporary dt, skip, and steps override.
-	dt = 0.001;
-	skip = 20 / dt;
-	steps = (unsigned int)(simTimeSeconds / dt);
+	//dt = 0.0001;
+	//skip = 200 / dt;
+	//steps = (unsigned int)(simTimeSeconds / dt);
 
 	std::cout << "==================" << '\n';
 	std::cout << "dt: " << dt << '\n';
@@ -889,7 +889,15 @@ inline void calibrateDT(const unsigned int& Step, const bool doK, const double& 
 
 	}
 
-	skip = 20 / dt;
+	if (timeResolution / dt > 1.)
+	{
+		skip = timeResolution / dt;
+	}
+	else
+	{
+		std::cout << "Desired time resolution is lower than dt.\n";
+		system("pause");
+	}
 
 	if (Step == 0 or dtOld == -1)
 	{
