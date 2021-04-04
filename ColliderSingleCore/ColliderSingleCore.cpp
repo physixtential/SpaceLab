@@ -162,12 +162,15 @@ inline void simInitCondAndCenter()
 {
 	// k and dt override to stabilize cluster.
 	calibrateDT(0, true, 600000.);
+	// hack temporary dt, skip, and steps override.
 	dt = 0.001;
+	skip = 20 / dt;
 	steps = (unsigned int)(simTimeSeconds / dt);
 
 	std::cout << "==================" << '\n';
 	std::cout << "dt: " << dt << '\n';
 	std::cout << "k: " << kin << '\n';
+	std::cout << "Skip: " << skip << '\n';
 	std::cout << "Steps: " << steps << '\n';
 	std::cout << "==================" << '\n';
 
@@ -251,7 +254,7 @@ inline void simOneStep(const unsigned int& Step)
 			// Check for collision between Ball and otherBall.
 			if (overlap > 0)
 			{
-				std::cout << O.getVelMax(false);
+				// todo, make calibrateDT activate only after the first collision occurs, and based on the velocity of that collision.
 				// Apply coefficient of restitution to balls leaving collision.
 				if (dist >= oldDist)
 				{
@@ -862,7 +865,7 @@ inline void calibrateDT(const unsigned int& Step, const bool doK, const double& 
 	if (customVel > 0.)
 	{
 		vMax = customVel;
-		std::cout << "Using custom velocity for dt calibrate: " << customVel;
+		std::cout << "OVERRIDE velocity for dt calc: " << customVel;
 	}
 	else if (vMax > fabs(vCollapse))
 	{
@@ -876,7 +879,7 @@ inline void calibrateDT(const unsigned int& Step, const bool doK, const double& 
 
 	// Safe: dt based on fastest velocity
 	setLazzDT(vMax);
-	std::cout << " dt Calibrated: " << dt;
+	std::cout << " | dt Calibrated: " << dt;
 
 	if (doK)
 	{
@@ -886,7 +889,7 @@ inline void calibrateDT(const unsigned int& Step, const bool doK, const double& 
 
 	}
 
-	skip = 20. / dt;
+	skip = 20 / dt;
 
 	if (Step == 0 or dtOld == -1)
 	{
