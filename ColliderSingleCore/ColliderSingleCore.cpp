@@ -35,7 +35,7 @@ inline void simOneStep(const unsigned int& Step);
 inline void simLooper();
 inline void generateBallField();
 inline void safetyChecks();
-inline void calibrateDT(const unsigned int& Step, const bool doK, const double customVel = 0);
+inline void calibrateDT(const unsigned int& Step, const bool doK, const double& customVel = 0);
 inline void setGuidDT(const double& vel);
 inline void setGuidK(const double& vel);
 inline void setLazzDT(const double& vel);
@@ -162,8 +162,7 @@ inline void simContinue()
 inline void simInitCondAndCenter()
 {
 	// k and dt override to stabilize cluster.
-
-	calibrateDT(0, true, true);
+	calibrateDT(0, true, 600000.);
 	steps = (unsigned int)(simTimeSeconds / dt);
 
 	std::cout << "==================" << '\n';
@@ -421,7 +420,7 @@ inline void simOneStep(const unsigned int& Step)
 			lastWrite = time(NULL);
 		} // Data export end
 
-		calibrateDT(Step, true, false);
+		//calibrateDT(Step, false);
 		simTimeElapsed += dt * skip;
 	} // writestep end
 } // Steps end
@@ -766,7 +765,7 @@ inline void generateBallField()
 
 	//twoSizeSphereShell5000();
 	//oneSizeSphere();
-	//threeSizeSphere();
+	threeSizeSphere();
 
 	outputPrefix =
 		std::to_string(genBalls) +
@@ -826,12 +825,11 @@ inline void safetyChecks()
 			exit(EXIT_FAILURE);
 		}
 	}
-
 	titleBar("SAFETY PASSED");
 }
 
 
-inline void calibrateDT(const unsigned int& Step, const bool doK, const double customVel = 0)
+inline void calibrateDT(const unsigned int& Step, const bool doK, const double& customVel)
 {
 	double dtOld = dt;
 	double radius = O.getRadius();
@@ -847,7 +845,6 @@ inline void calibrateDT(const unsigned int& Step, const bool doK, const double c
 		position += vCollapse * 0.1;
 	}
 	vCollapse = fabs(vCollapse);
-
 
 	soc = 2 * radius; // sphere of consideration for max velocity, to avoid very unbound high vel balls.
 
