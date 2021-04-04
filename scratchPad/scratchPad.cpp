@@ -19,13 +19,9 @@ void printBigOlVectorception(std::vector<std::vector<std::vector<int>>>& matList
 	}
 }
 
+
+
 int main()
 {
-	unsigned int a = INFINITY;
-	unsigned int b = UINT32_MAX;
 
-	if (a < b)
-	{
-		std::cout << "WELP";
-	}
 }
