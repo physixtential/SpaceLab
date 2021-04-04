@@ -31,11 +31,11 @@ ballGroup O;
 inline void simInitTwoCluster();
 inline void simContinue();
 inline void simInitCondAndCenter();
-inline void simOneStep(const int& Step);
+inline void simOneStep(const unsigned int& Step);
 inline void simLooper();
 inline void generateBallField();
 inline void safetyChecks();
-inline void calibrateDT(const int& Step, const bool superSafe, bool doK);
+inline void calibrateDT(const unsigned int& Step, const bool doK, const double& customVel = 0);
 inline void setGuidDT(const double& vel);
 inline void setGuidK(const double& vel);
 inline void setLazzDT(const double& vel);
@@ -57,9 +57,9 @@ int main(int argc, char const* argv[])
 		//KEfactor = atof(argv[4]);
 	}
 	//simInitTwoCluster();
-	simContinue();
-	O.pushApart();
-	//generateBallField();
+	//simContinue();
+	//O.pushApart();
+	generateBallField();
 	simInitCondAndCenter();
 	safetyChecks();
 	O.simInitWrite(outputPrefix);
@@ -162,8 +162,8 @@ inline void simContinue()
 inline void simInitCondAndCenter()
 {
 	// k and dt override to stabilize cluster.
-	calibrateDT(0, true, true);
-	steps = (size_t)(simTimeSeconds / dt);
+	calibrateDT(0, true, 600000.);
+	steps = (unsigned int)(simTimeSeconds / dt);
 
 	std::cout << "==================" << '\n';
 	std::cout << "dt: " << dt << '\n';
@@ -188,7 +188,7 @@ inline void simInitCondAndCenter()
 
 
 
-inline void simOneStep(int& Step)
+inline void simOneStep(const unsigned int& Step)
 {
 	// Check if this is a write step:
 	if (Step % skip == 0)
@@ -196,11 +196,10 @@ inline void simOneStep(int& Step)
 		writeStep = true;
 
 		// Progress reporting:
-		float eta = ((time(NULL) - startProgress) / 500.0 * (steps - Step)) / 3600.; // In seconds.
-		float elapsed = (time(NULL) - start) / 3600.;
+		float eta = ((time(NULL) - startProgress) / 500.f * (steps - Step)) / 3600.f; // In seconds.
+		float elapsed = (time(NULL) - start) / 3600.f;
 		float progress = ((float)Step / (float)steps * 100.f);
-		// hack temporary disable progress
-		//printf("Step: %i\tProgress: %2.0f%%\tETA: %5.2lf hr\tElapsed: %5.2f hr ", Step, progress, eta, elapsed);
+		printf("Step: %i\tProgress: %2.0f%%\tETA: %5.2lf hr\tElapsed: %5.2f hr ", Step, progress, eta, elapsed);
 		startProgress = time(NULL);
 	}
 	else
@@ -209,7 +208,7 @@ inline void simOneStep(int& Step)
 	}
 
 	/// FIRST PASS - Position, send to buffer, velocity half step:
-	for (int Ball = 0; Ball < O.cNumBalls; Ball++)
+	for (unsigned int Ball = 0; Ball < O.cNumBalls; Ball++)
 	{
 		// Update velocity half step:
 		O.velh[Ball] = O.vel[Ball] + .5 * O.acc[Ball] * dt;
@@ -228,10 +227,10 @@ inline void simOneStep(int& Step)
 	}
 
 	/// SECOND PASS - Check for collisions, apply forces and torques:
-	for (int A = 1; A < O.cNumBalls; A++) //cuda
+	for (unsigned int A = 1; A < O.cNumBalls; A++) //cuda
 	{
 		/// DONT DO ANYTHING HERE. A STARTS AT 1.
-		for (int B = 0; B < A; B++)
+		for (unsigned int B = 0; B < A; B++)
 		{
 			double k;
 			double sumRaRb = O.R[A] + O.R[B];
@@ -246,7 +245,7 @@ inline void simOneStep(int& Step)
 			vector3d bTorque = { 0, 0, 0 };
 
 			// Distance array element: 1,0    2,0    2,1    3,0    3,1    3,2 ...
-			int e = (A * (A - 1) * .5) + B;
+			unsigned int e = (unsigned int)(A * (A - 1) * .5) + B;
 			double oldDist = O.distances[e];
 
 			// Check for collision between Ball and otherBall.
@@ -327,7 +326,7 @@ inline void simOneStep(int& Step)
 	}
 
 	// THIRD PASS - Calculate velocity for next step:
-	for (int Ball = 0; Ball < O.cNumBalls; Ball++)
+	for (unsigned int Ball = 0; Ball < O.cNumBalls; Ball++)
 	{
 
 		// Velocity for next step:
@@ -360,34 +359,34 @@ inline void simOneStep(int& Step)
 			<< simTimeElapsed << ',' << O.PE << ',' << O.KE << ',' << O.PE + O.KE << ',' << O.mom.norm() << ',' << O.angMom.norm(); // the two zeros are bound and unbound mass
 
 		// hack temporary k increaser.
-		if (kin < kTarget)
-		{
-			for (size_t A = 1; A < O.cNumBalls; A++)
-			{
-				for (size_t B = 0; B < A; B++)
-				{
-					const vector3d gravForceOnA = (G * O.m[A] * O.m[B] / (dist * dist)) * (rVecab / dist);
-				}
-			}
+		//if (kin < kTarget)
+		//{
+		//	for (unsigned int A = 1; A < O.cNumBalls; A++)
+		//	{
+		//		for (unsigned int B = 0; B < A; B++)
+		//		{
+		//			const vector3d gravForceOnA = (G * O.m[A] * O.m[B] / (dist * dist)) * (rVecab / dist);
+		//		}
+		//	}
 
-			// todo - If sum of all elastic forces = sum of all gravitational force, increase k.
-			if (totalEnergy < U * 1.1 and U < bindingEnergy * 1.1)
-			{
-				kin *= 2;
-				printf("INCREASING K: E = %e\tU = %e\tB = %e\tK = %e\n", totalEnergy, U, bindingEnergy, kin);
-				kout = cor * kin;
-			}
-			else
-			{
-				printf("NOT READY: E = %e\tU = %e\tB = %e\tK = %e\n", totalEnergy, U, bindingEnergy, kin);
+		//	// todo - If sum of all elastic forces = sum of all gravitational force, increase k.
+		//	if (totalEnergy < U * 1.1 and U < bindingEnergy * 1.1)
+		//	{
+		//		kin *= 2;
+		//		printf("INCREASING K: E = %e\tU = %e\tB = %e\tK = %e\n", totalEnergy, U, bindingEnergy, kin);
+		//		kout = cor * kin;
+		//	}
+		//	else
+		//	{
+		//		printf("NOT READY: E = %e\tU = %e\tB = %e\tK = %e\n", totalEnergy, U, bindingEnergy, kin);
 
-			}
+		//	}
 
-		}
-		else
-		{
-			std::cout << "\nREACHED DESIRED K\n";
-		}
+		//}
+		//else
+		//{
+		//	std::cout << "\nREACHED DESIRED K\n";
+		//}
 
 		// Reinitialize energies for next step:
 		O.KE = 0;
@@ -421,7 +420,7 @@ inline void simOneStep(int& Step)
 			lastWrite = time(NULL);
 		} // Data export end
 
-		calibrateDT(Step, true, false);
+		//calibrateDT(Step, false);
 		simTimeElapsed += dt * skip;
 	} // writestep end
 } // Steps end
@@ -431,7 +430,7 @@ inline void simLooper()
 {
 	std::cout << "Beginning simulation...\n";
 
-	for (int Step = 1; Step < steps; Step++) // Steps start at 1 because the 0 step is initial conditions.
+	for (unsigned int Step = 1; Step < steps; Step++) // Steps start at 1 because the 0 step is initial conditions.
 	{
 		simOneStep(Step);
 	}
@@ -456,7 +455,7 @@ inline void twoSizeSphereShell5000()
 {
 	double radius = O.getRadius();
 
-	for (int Ball = 0; Ball < 1000; Ball++)
+	for (unsigned int Ball = 0; Ball < 1000; Ball++)
 	{
 		O.R[Ball] = 700;
 		O.m[Ball] = density * 4. / 3. * 3.14159 * std::pow(O.R[Ball], 3);
@@ -465,7 +464,7 @@ inline void twoSizeSphereShell5000()
 		O.pos[Ball] = randShellVec(spaceRange, radius);
 	}
 
-	for (int Ball = 1000; Ball < 2000; Ball++)
+	for (unsigned int Ball = 1000; Ball < 2000; Ball++)
 	{
 		O.R[Ball] = 400;
 		O.m[Ball] = density * 4. / 3. * 3.14159 * std::pow(O.R[Ball], 3);
@@ -474,18 +473,19 @@ inline void twoSizeSphereShell5000()
 		O.pos[Ball] = randShellVec(spaceRange, radius);
 	}
 
-	int ballsInPhase1 = 2000;
+	unsigned int ballsInPhase1 = 2000;
 	std::cout << "Balls in phase: " << ballsInPhase1 << "\n";
 
 	// Generate non-overlapping spherical particle field:
+	// Note that int can only handle 46340 spheres before potential int overflow.
 	int collisionDetected = 0;
-	int oldCollisions = (int)1e10;
+	int oldCollisions = INT_MAX;
 
-	for (int failed = 0; failed < attempts; failed++)
+	for (unsigned int failed = 0; failed < attempts; failed++)
 	{
-		for (int A = 0; A < ballsInPhase1; A++)
+		for (unsigned int A = 0; A < ballsInPhase1; A++)
 		{
-			for (int B = A + 1; B < ballsInPhase1; B++)
+			for (unsigned int B = A + 1; B < ballsInPhase1; B++)
 			{
 				// Check for Ball overlap.
 				double dist = (O.pos[A] - O.pos[B]).norm();
@@ -514,7 +514,7 @@ inline void twoSizeSphereShell5000()
 			std::cout << "Failed " << spaceRange << ". Increasing range " << spaceRangeIncrement << "cm^3.\n";
 			spaceRange += spaceRangeIncrement;
 			failed = 0;
-			for (int Ball = 0; Ball < ballsInPhase1; Ball++)
+			for (unsigned int Ball = 0; Ball < ballsInPhase1; Ball++)
 			{
 				O.pos[Ball] = randShellVec(spaceRange, radius); // Each time we fail and increase range, redistribute all balls randomly so we don't end up with big balls near mid and small balls outside.
 			}
@@ -528,7 +528,7 @@ inline void twoSizeSphereShell5000()
 
 	// PHASE 2
 
-	for (int Ball = 2000; Ball < 3500; Ball++)
+	for (unsigned int Ball = 2000; Ball < 3500; Ball++)
 	{
 		O.R[Ball] = 250;
 		O.m[Ball] = density * 4. / 3. * 3.14159 * std::pow(O.R[Ball], 3);
@@ -537,7 +537,7 @@ inline void twoSizeSphereShell5000()
 		O.pos[Ball] = randShellVec(spaceRange, radius);
 	}
 
-	for (int Ball = 3500; Ball < 5000; Ball++)
+	for (unsigned int Ball = 3500; Ball < 5000; Ball++)
 	{
 		O.R[Ball] = 150;
 		O.m[Ball] = density * 4. / 3. * 3.14159 * std::pow(O.R[Ball], 3);
@@ -546,18 +546,18 @@ inline void twoSizeSphereShell5000()
 		O.pos[Ball] = randShellVec(spaceRange, radius);
 	}
 
-	int ballsInPhase2 = 3000;
+	unsigned int ballsInPhase2 = 3000;
 	std::cout << "Balls in phase: " << ballsInPhase2 << "\n";
 
 	// Generate non-overlapping spherical particle field:
 	collisionDetected = 0;
 	oldCollisions = 100000000;
 
-	for (int failed = 0; failed < attempts; failed++)
+	for (unsigned int failed = 0; failed < attempts; failed++)
 	{
-		for (int A = ballsInPhase1; A < ballsInPhase1 + ballsInPhase2; A++)
+		for (unsigned int A = ballsInPhase1; A < ballsInPhase1 + ballsInPhase2; A++)
 		{
-			for (int B = A + 1; B < ballsInPhase1 + ballsInPhase2; B++)
+			for (unsigned int B = A + 1; B < ballsInPhase1 + ballsInPhase2; B++)
 			{
 				// Check for Ball overlap.
 				double dist = (O.pos[A] - O.pos[B]).norm();
@@ -586,7 +586,7 @@ inline void twoSizeSphereShell5000()
 			std::cout << "Failed " << spaceRange << ". Increasing range " << spaceRangeIncrement << "cm^3.\n";
 			spaceRange += spaceRangeIncrement;
 			failed = 0;
-			for (int Ball = ballsInPhase1; Ball < ballsInPhase1 + ballsInPhase2; Ball++)
+			for (unsigned int Ball = ballsInPhase1; Ball < ballsInPhase1 + ballsInPhase2; Ball++)
 			{
 				O.pos[Ball] = randShellVec(spaceRange, radius); // Each time we fail and increase range, redistribute all balls randomly so we don't end up with big balls near mid and small balls outside.
 			}
@@ -604,12 +604,12 @@ inline void twoSizeSphereShell5000()
 inline void threeSizeSphere()
 {
 	// Make genBalls of 3 sizes in CGS with ratios such that the mass is distributed evenly among the 3 sizes (less large genBalls than small genBalls).
-	int smalls = std::round((double)genBalls * 27 / 31.375); // Just here for reference. Whatever genBalls are left will be smalls.
-	int mediums = std::round((double)genBalls * 27 / (8 * 31.375));
-	int larges = std::round((double)genBalls * 1 / 31.375);
+	unsigned int smalls = (unsigned int)std::round((double)genBalls * 27. / 31.375); // Just here for reference. Whatever genBalls are left will be smalls.
+	unsigned int mediums = (unsigned int)std::round((double)genBalls * 27. / (8 * 31.375));
+	unsigned int larges = (unsigned int)std::round((double)genBalls * 1. / 31.375);
 
 
-	for (int Ball = 0; Ball < larges; Ball++)
+	for (unsigned int Ball = 0; Ball < larges; Ball++)
 	{
 		O.R[Ball] = 3. * scaleBalls;//std::pow(1. / (double)genBalls, 1. / 3.) * 3. * scaleBalls;
 		O.m[Ball] = density * 4. / 3. * 3.14159 * std::pow(O.R[Ball], 3);
@@ -618,7 +618,7 @@ inline void threeSizeSphere()
 		O.pos[Ball] = randSphericalVec(spaceRange, spaceRange, spaceRange);
 	}
 
-	for (int Ball = larges; Ball < (larges + mediums); Ball++)
+	for (unsigned int Ball = larges; Ball < (larges + mediums); Ball++)
 	{
 		O.R[Ball] = 2. * scaleBalls;//std::pow(1. / (double)genBalls, 1. / 3.) * 2. * scaleBalls;
 		O.m[Ball] = density * 4. / 3. * 3.14159 * std::pow(O.R[Ball], 3);
@@ -626,7 +626,7 @@ inline void threeSizeSphere()
 		O.w[Ball] = { 0, 0, 0 };
 		O.pos[Ball] = randSphericalVec(spaceRange, spaceRange, spaceRange);
 	}
-	for (int Ball = (larges + mediums); Ball < genBalls; Ball++)
+	for (unsigned int Ball = (larges + mediums); Ball < genBalls; Ball++)
 	{
 		O.R[Ball] = 1. * scaleBalls;//std::pow(1. / (double)genBalls, 1. / 3.) * 1. * scaleBalls;
 		O.m[Ball] = density * 4. / 3. * 3.14159 * std::pow(O.R[Ball], 3);
@@ -641,11 +641,11 @@ inline void threeSizeSphere()
 	int collisionDetected = 0;
 	int oldCollisions = genBalls;
 
-	for (int failed = 0; failed < attempts; failed++)
+	for (unsigned int failed = 0; failed < attempts; failed++)
 	{
-		for (int A = 0; A < genBalls; A++)
+		for (unsigned int A = 0; A < genBalls; A++)
 		{
-			for (int B = A + 1; B < genBalls; B++)
+			for (unsigned int B = A + 1; B < genBalls; B++)
 			{
 				// Check for Ball overlap.
 				double dist = (O.pos[A] - O.pos[B]).norm();
@@ -674,7 +674,7 @@ inline void threeSizeSphere()
 			std::cout << "Failed " << spaceRange << ". Increasing range " << spaceRangeIncrement << "cm^3.\n";
 			spaceRange += spaceRangeIncrement;
 			failed = 0;
-			for (int Ball = 0; Ball < genBalls; Ball++)
+			for (unsigned int Ball = 0; Ball < genBalls; Ball++)
 			{
 				O.pos[Ball] = randSphericalVec(spaceRange, spaceRange, spaceRange); // Each time we fail and increase range, redistribute all balls randomly so we don't end up with big balls near mid and small balls outside.
 			}
@@ -692,7 +692,7 @@ inline void threeSizeSphere()
 inline void oneSizeSphere()
 {
 
-	for (int Ball = 0; Ball < genBalls; Ball++)
+	for (unsigned int Ball = 0; Ball < genBalls; Ball++)
 	{
 		O.R[Ball] = scaleBalls;
 		O.m[Ball] = density * 4. / 3. * 3.14159 * std::pow(O.R[Ball], 3);
@@ -705,11 +705,11 @@ inline void oneSizeSphere()
 	int collisionDetected = 0;
 	int oldCollisions = genBalls;
 
-	for (int failed = 0; failed < attempts; failed++)
+	for (unsigned int failed = 0; failed < attempts; failed++)
 	{
-		for (int A = 0; A < genBalls; A++)
+		for (unsigned int A = 0; A < genBalls; A++)
 		{
-			for (int B = A + 1; B < genBalls; B++)
+			for (unsigned int B = A + 1; B < genBalls; B++)
 			{
 				// Check for Ball overlap.
 				double dist = (O.pos[A] - O.pos[B]).norm();
@@ -738,7 +738,7 @@ inline void oneSizeSphere()
 			std::cout << "Failed " << spaceRange << ". Increasing range " << spaceRangeIncrement << "cm^3.\n";
 			spaceRange += spaceRangeIncrement;
 			failed = 0;
-			for (int Ball = 0; Ball < genBalls; Ball++)
+			for (unsigned int Ball = 0; Ball < genBalls; Ball++)
 			{
 				O.pos[Ball] = randSphericalVec(spaceRange, spaceRange, spaceRange); // Each time we fail and increase range, redistribute all balls randomly so we don't end up with big balls near mid and small balls outside.
 			}
@@ -760,12 +760,12 @@ inline void generateBallField()
 
 
 	// Create new random number set.
-	int seedSave = time(NULL);
+	unsigned int seedSave = (unsigned int)time(NULL);
 	srand(seedSave);
 
 	//twoSizeSphereShell5000();
 	//oneSizeSphere();
-	//threeSizeSphere();
+	threeSizeSphere();
 
 	outputPrefix =
 		std::to_string(genBalls) +
@@ -779,7 +779,7 @@ inline void generateBallField()
 
 inline void safetyChecks()
 {
-	printf("\n//////////// SAFETY CHECKS ////////////\n");
+	titleBar("SAFETY CHECKS");
 
 	if (kin < 0)
 	{
@@ -805,7 +805,7 @@ inline void safetyChecks()
 		exit(EXIT_FAILURE);
 	}
 
-	for (size_t Ball = 0; Ball < O.cNumBalls; Ball++)
+	for (unsigned int Ball = 0; Ball < O.cNumBalls; Ball++)
 	{
 		if (O.pos[Ball] == vector3d(0, 0, 0))
 		{
@@ -825,12 +825,11 @@ inline void safetyChecks()
 			exit(EXIT_FAILURE);
 		}
 	}
-
-	printf("\n//////////// SAFETY PASSED ////////////\n\n");
+	titleBar("SAFETY PASSED");
 }
 
 
-inline void calibrateDT(const int& Step, const bool superSafe, bool doK)
+inline void calibrateDT(const unsigned int& Step, const bool doK, const double& customVel)
 {
 	double dtOld = dt;
 	double radius = O.getRadius();
@@ -845,7 +844,7 @@ inline void calibrateDT(const int& Step, const bool superSafe, bool doK)
 		vCollapse += G * mass / (radius * radius) * 0.1;
 		position += vCollapse * 0.1;
 	}
-
+	vCollapse = fabs(vCollapse);
 
 	soc = 2 * radius; // sphere of consideration for max velocity, to avoid very unbound high vel balls.
 
@@ -853,81 +852,41 @@ inline void calibrateDT(const int& Step, const bool superSafe, bool doK)
 
 	// Check if the kick is going to be the most significant velocity basis, or if gravity will matter more.
 	std::cout << '\n';
-	if (vMax > fabs(vCollapse))
+	if (customVel > 0.)
+	{
+		vMax = customVel;
+		std::cout << "Using custom velocity for dt calibrate: " << customVel;
+	}
+	else if (vMax > fabs(vCollapse))
 	{
 		std::cout << "vMax > binding: " << vCollapse << " = vCollapse | vMax = " << vMax;
-
-		if (superSafe)
-		{
-			// Safe: dt based on fastest velocity
-			setLazzDT(vMax);
-			std::cout << " dt Calibrated: " << dt;
-		}
-		else
-		{
-			// Less safe: dt based on fastest velocity
-			setGuidDT(vMax);
-			std::cout << " dt Calibrated: " << dt;
-		}
-
-		if (doK)
-		{
-			if (superSafe)
-			{
-				// Safe: K based on fastest velocity
-				setLazzK(vMax);
-				std::cout << " K Calibrated: " << kin;
-			}
-			else
-			{
-				// Less safe: K based on fastest velocity
-				setGuidK(vMax);
-				std::cout << " K Calibrated: " << kin;
-			}
-		}
 	}
 	else
 	{
 		std::cout << "Binding > vMax: " << vCollapse << " = vCollapse | vMax = " << vMax;
+		vMax = vCollapse;
+	}
 
-		if (superSafe)
-		{
-			// Safe: dt based on fastest velocity
-			setLazzDT(vCollapse);
-			std::cout << " dt Calibrated: " << dt;
-		}
-		else
-		{
-			// Less safe: dt based on fastest velocity
-			setGuidDT(vCollapse);
-			std::cout << " dt Calibrated: " << dt;
-		}
+	// Safe: dt based on fastest velocity
+	setLazzDT(vMax);
+	std::cout << " dt Calibrated: " << dt;
 
-		if (doK)
-		{
-			if (superSafe)
-			{
-				// Safe: K based on fastest velocity
-				setLazzK(vCollapse);
-				std::cout << " K Calibrated: " << kin;
-			}
-			else
-			{
-				// Less safe: K based on fastest velocity
-				setGuidK(vCollapse);
-				std::cout << " K Calibrated: " << kin;
-			}
-		}
+	if (doK)
+	{
+		// Safe: K based on fastest velocity
+		setLazzK(vMax);
+		std::cout << " K Calibrated: " << kin;
+
 	}
 
 	if (Step == 0 or dtOld == -1)
 	{
-		steps = (size_t)(simTimeSeconds / dt);
+		steps = (unsigned int)(simTimeSeconds / dt);
 		std::cout << " Step count: " << steps << '\n';
 	}
 	else
 	{
-		steps = dt / dtOld * (steps - Step) + Step;
+		steps = (unsigned int)(dt / dtOld * (steps - Step) + Step);
 		std::cout << " New step count: " << steps << '\n';
 	}
 }
