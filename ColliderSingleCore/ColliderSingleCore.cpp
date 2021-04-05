@@ -99,7 +99,7 @@ inline void simInitTwoCluster()
 
 	//projectile.offset(projectile.radius, target.radius + (projectile.R[0]), impactParameter);
 
-	double PEsys = projectile.PE + target.PE + (-G * projectile.getMass() * target.getMass() / (projectile.com - target.com).norm());
+	double PEsys = projectile.PE + target.PE + (-G * projectile.getMass() * target.getMass() / (projectile.getCOM() - target.getCOM()).norm());
 
 	// Collision velocity calculation:
 	double mSmall = projectile.getMass();
@@ -196,7 +196,7 @@ inline void simOneStep(const unsigned int& Step)
 		float eta = ((time(NULL) - startProgress) / 500.f * (steps - Step)) / 3600.f; // In seconds.
 		float elapsed = (time(NULL) - start) / 3600.f;
 		float progress = ((float)Step / (float)steps * 100.f);
-		printf("Step: %i\tProgress: %2.0f%%\tETA: %5.2lf hr\tElapsed: %5.2f hr\n", Step, progress, eta, elapsed);
+		printf("Step: %u\tProgress: %2.0f%%\tETA: %5.2lf hr\tElapsed: %5.2f hr\n", Step, progress, eta, elapsed);
 		startProgress = time(NULL);
 	}
 	else
@@ -229,7 +229,6 @@ inline void simOneStep(const unsigned int& Step)
 		/// DONT DO ANYTHING HERE. A STARTS AT 1.
 		for (unsigned int B = 0; B < A; B++)
 		{
-			double k;
 			double sumRaRb = O.R[A] + O.R[B];
 			vector3d rVecab = O.pos[B] - O.pos[A];
 			vector3d rVecba = -1 * rVecab;
@@ -237,9 +236,9 @@ inline void simOneStep(const unsigned int& Step)
 
 			// Check for collision between Ball and otherBall:
 			double overlap = sumRaRb - dist;
-			vector3d totalForce = { 0, 0, 0 };
-			vector3d aTorque = { 0, 0, 0 };
-			vector3d bTorque = { 0, 0, 0 };
+			vector3d totalForce;
+			vector3d aTorque;
+			vector3d bTorque;
 
 			// Distance array element: 1,0    2,0    2,1    3,0    3,1    3,2 ...
 			unsigned int e = (unsigned int)(A * (A - 1) * .5) + B;
@@ -248,6 +247,7 @@ inline void simOneStep(const unsigned int& Step)
 			// Check for collision between Ball and otherBall.
 			if (overlap > 0)
 			{
+				double k;
 				// todo, make calibrateDT activate only after the first collision occurs, and based on the velocity of that collision.
 				// Apply coefficient of restitution to balls leaving collision.
 				if (dist >= oldDist)
@@ -801,7 +801,7 @@ inline void safetyChecks()
 {
 	titleBar("SAFETY CHECKS");
 
-	if (skip < 0)
+	if (skip == 0)
 	{
 		printf("\nSKIP NOT SET\n");
 		exit(EXIT_FAILURE);
@@ -819,7 +819,7 @@ inline void safetyChecks()
 		exit(EXIT_FAILURE);
 	}
 
-	if (steps < 0)
+	if (steps == 0)
 	{
 		printf("\nSTEPS NOT SET\n");
 		exit(EXIT_FAILURE);

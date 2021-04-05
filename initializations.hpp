@@ -20,8 +20,8 @@ genBalls = 2,
 attempts = 200; // How many times to try moving every ball touching another in generator.
 
 unsigned int
-skip = -1,     // Steps thrown away before recording a step to the buffer. 500*.04 is every 20 seconds in sim.
-steps = -1;
+skip = 0,     // Steps thrown away before recording a step to the buffer. 500*.04 is every 20 seconds in sim.
+steps = 0;
 
 double
 dt = -1,

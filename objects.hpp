@@ -15,14 +15,14 @@ struct ballGroup
 
 	/// @brief For creating a new ballGroup of size nBalls
 	/// @param nBalls Number of balls to allocate.
-	ballGroup(int nBalls)
+	explicit ballGroup(int nBalls)
 	{
 		allocateGroup(nBalls);
 	}
 
 	/// @brief for importing a ballGroup from file.
 	/// @param filename 
-	ballGroup(std::string filename)
+	explicit ballGroup(const std::string& filename)
 	{
 		importDataFromFile(filename);
 	}
@@ -35,7 +35,6 @@ struct ballGroup
 	unsigned int cNumBallsAdded = 0;
 
 	vector3d
-		com = { 0, 0, 0 },
 		mom = { 0, 0, 0 },
 		angMom = { 0, 0, 0 }; // Can be vector3d because they only matter for writing out to file. Can process on host.
 
@@ -107,7 +106,7 @@ struct ballGroup
 	}
 
 	/// @brief Deallocate arrays to recover memory.
-	inline void freeMemory()
+	inline void freeMemory() const
 	{
 		delete[] distances;
 		delete[] pos;
@@ -150,7 +149,7 @@ struct ballGroup
 		return radius;
 	}
 
-	[[nodiscard]] inline double getMass()
+	[[nodiscard]] inline double getMass() const
 	{
 		double mTotal = 0;
 		{
@@ -162,13 +161,14 @@ struct ballGroup
 		return mTotal;
 	}
 
-	[[nodiscard]] inline vector3d getCOM()
+	[[nodiscard]] inline vector3d getCOM() const
 	{
 		double mTotal = getMass();
+		vector3d com;
 
 		if (mTotal > 0)
 		{
-			vector3d comNumerator = { 0, 0, 0 };
+			vector3d comNumerator;
 			for (unsigned int Ball = 0; Ball < cNumBalls; Ball++)
 			{
 				comNumerator += m[Ball] * pos[Ball];
@@ -208,7 +208,7 @@ struct ballGroup
 		vector3d comRot = { spinX, spinY, spinZ }; // Rotation axis and magnitude
 		for (unsigned int Ball = 0; Ball < cNumBalls; Ball++)
 		{
-			vel[Ball] += comRot.cross(pos[Ball] - com);
+			vel[Ball] += comRot.cross(pos[Ball] - getCOM());
 			w[Ball] += comRot;
 		}
 	}
@@ -234,8 +234,6 @@ struct ballGroup
 		angMom = { 0, 0, 0 };
 		if (cNumBalls > 1) // Code below only necessary for effects between balls.
 		{
-			vector3d comNumerator = { 0, 0, 0 };
-
 			// Because A starts at 1 below:
 			KE += .5 * m[0] * vel[0].dot(vel[0]) + .5 * moi[0] * w[0].dot(w[0]);
 			mom += m[0] * vel[0];
@@ -243,7 +241,6 @@ struct ballGroup
 			for (unsigned int A = 1; A < cNumBalls; A++)
 			{
 				// Warning: "A" Starts at 1 not 0.
-				comNumerator += m[A] * pos[A];
 
 				for (unsigned int B = 0; B < A; B++)
 				{
@@ -254,9 +251,9 @@ struct ballGroup
 
 					// Check for collision between Ball and otherBall:
 					double overlap = sumRaRb - dist;
-					vector3d totalForce = { 0, 0, 0 };
-					vector3d aTorque = { 0, 0, 0 };
-					vector3d bTorque = { 0, 0, 0 };
+					vector3d totalForce;
+					vector3d aTorque;
+					vector3d bTorque;
 
 					// Check for collision between Ball and otherBall.
 					if (overlap > 0)
@@ -360,7 +357,7 @@ struct ballGroup
 	}
 
 
-	inline void checkMomentum(const std::string& of)
+	inline void checkMomentum(const std::string& of) const
 	{
 		vector3d pTotal = { 0,0,0 };
 		for (unsigned int Ball = 0; Ball < cNumBalls; Ball++)
@@ -390,7 +387,7 @@ struct ballGroup
 		{
 			for (unsigned int Ball = 0; Ball < cNumBalls; Ball++)
 			{
-				if ((pos[Ball] - com).norm() < soc && vel[Ball].norm() > vMax)
+				if ((pos[Ball] - getCOM()).norm() < soc && vel[Ball].norm() > vMax)
 				{
 					vMax = vel[Ball].norm();
 				}
@@ -418,7 +415,7 @@ struct ballGroup
 	}
 
 
-	[[nodiscard]] inline double getRmin()
+	[[nodiscard]] inline double getRmin() const
 	{
 		double rMin = R[0];
 		for (unsigned int Ball = 0; Ball < cNumBalls; Ball++)
@@ -431,7 +428,7 @@ struct ballGroup
 		return rMin;
 	}
 
-	[[nodiscard]] inline double getRmax()
+	[[nodiscard]] inline double getRmax() const
 	{
 		double rMax = R[0];
 		for (unsigned int Ball = 0; Ball < cNumBalls; Ball++)
@@ -445,7 +442,7 @@ struct ballGroup
 	}
 
 
-	[[nodiscard]] inline double getMassMax()
+	[[nodiscard]] inline double getMassMax() const
 	{
 		double mMax = m[0];
 		for (unsigned int Ball = 0; Ball < cNumBalls; Ball++)
@@ -643,7 +640,7 @@ struct ballGroup
 
 
 
-	void simDataWrite(std::string outFilename)
+	void simDataWrite(const std::string& outFilename)
 	{
 		// TODO for some reason I need checkForFile instead of just using ballWrite. Need to work out why.
 		// Check if file name already exists. If not, initialize
@@ -721,10 +718,10 @@ struct ballGroup
 		// Check if file name already exists.
 		std::ifstream checkForFile;
 		checkForFile.open(simDataFilename, std::ifstream::in);
-		int counter = 0;
 		// Add a counter to the file name until it isn't overwriting anything:
 		if (checkForFile.is_open())
 		{
+			int counter = 0;
 			while (true)
 			{
 				if (checkForFile.is_open())

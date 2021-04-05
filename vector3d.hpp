@@ -152,12 +152,12 @@ public:
 		return "[" + std::to_string(x) + ", " + std::to_string(y) + ", " + std::to_string(z) + "]";
 	}
 
-	void print()
+	void print() const
 	{
 		std::cout << "[" << x << ", " << y << ", " << z << "]";
 	}
 
-	vector3d rot(char axis, double angle)
+	vector3d rot(char axis, double angle) const
 	{
 		double rotx[3][3] = { {1, 0, 0}, {0, cos(angle), -sin(angle)}, {0, sin(angle), cos(angle)} },
 			roty[3][3] = { {cos(angle), 0, sin(angle)}, {0, 1, 0}, {-sin(angle), 0, cos(angle)} },
@@ -347,7 +347,7 @@ void titleBar(std::string title)
 // }
 
 // Ask a yes or no question:
-bool input(std::string question)
+bool input(const std::string& question)
 {
 	char answer;
 	std::cout << question;
