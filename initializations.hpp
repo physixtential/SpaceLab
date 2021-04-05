@@ -10,7 +10,8 @@ density = 2.7, //2.7, // Typically based on some rock density
 mu = 0.9,      // Coeff of friction
 cor = 0.8,     // Coeff of restitution
 simTimeSeconds = 18000., // Seconds
-timeResolution = 20.; // Seconds
+timeResolution = 20., // Seconds
+maxOverlap = .1; // fraction of smallest sphere radius.
 
 // Simulation Structure
 const unsigned int

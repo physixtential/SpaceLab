@@ -928,7 +928,7 @@ void setLazzDT(const double& vel)
 	// Lazzati k and dt:
 	// dt is ultimately depend on the velocities in the system, k is a part of this calculation because we derive dt with a dependence on k. Even if we don't choose to modify k, such as in the middle of a simulation (which would break conservation of energy), we maintain the concept of k for comprehension. One could just copy kTemp into the dt formula and ignore the k dependence.
 	double rMin = O.getRmin();
-	double kTemp = 4. / 3. * M_PI * density * O.getRmax() * vel * vel / (.1 * .1);
+	double kTemp = 4. / 3. * M_PI * density * O.getRmax() * vel * vel / (maxOverlap * maxOverlap);
 	dt = .01 * sqrt(4. / 3. * M_PI * density / kTemp * rMin * rMin * rMin);
 }
 
