@@ -337,32 +337,32 @@ inline void simOneStep(const unsigned int& Step)
 			// Send positions and rotations to buffer:
 			if (Ball == 0)
 			{
-				ballBuffer 
+				ballBuffer
 					<< O.pos[Ball][0] << ','
-					<< O.pos[Ball][1] << ',' 
-					<< O.pos[Ball][2] << ',' 
-					<< O.w[Ball][0] << ',' 
-					<< O.w[Ball][1] << ',' 
-					<< O.w[Ball][2] << ',' 
-					<< O.w[Ball].norm() << ',' 
-					<< O.vel[Ball].x << ',' 
-					<< O.vel[Ball].y << ',' 
-					<< O.vel[Ball].z << ',' 
+					<< O.pos[Ball][1] << ','
+					<< O.pos[Ball][2] << ','
+					<< O.w[Ball][0] << ','
+					<< O.w[Ball][1] << ','
+					<< O.w[Ball][2] << ','
+					<< O.w[Ball].norm() << ','
+					<< O.vel[Ball].x << ','
+					<< O.vel[Ball].y << ','
+					<< O.vel[Ball].z << ','
 					<< 0;
 			}
 			else
 			{
-				ballBuffer 
-					<< ',' << O.pos[Ball][0] << ',' 
-					<< O.pos[Ball][1] << ',' 
-					<< O.pos[Ball][2] << ',' 
-					<< O.w[Ball][0] << ',' 
-					<< O.w[Ball][1] << ',' 
-					<< O.w[Ball][2] << ',' 
+				ballBuffer
+					<< ',' << O.pos[Ball][0] << ','
+					<< O.pos[Ball][1] << ','
+					<< O.pos[Ball][2] << ','
+					<< O.w[Ball][0] << ','
+					<< O.w[Ball][1] << ','
+					<< O.w[Ball][2] << ','
 					<< O.w[Ball].norm() << ','
 					<< O.vel[Ball].x << ',' <<
-					O.vel[Ball].y << ',' 
-					<< O.vel[Ball].z << ',' 
+					O.vel[Ball].y << ','
+					<< O.vel[Ball].z << ','
 					<< 0;
 			}
 
@@ -903,7 +903,7 @@ inline void calibrateDT(const unsigned int& Step, const double& customSpeed)
 
 	if (timeResolution / dt > 1.)
 	{
-		skip = timeResolution / dt;
+		skip = (unsigned int)floor(timeResolution / dt);
 	}
 	else
 	{
@@ -911,7 +911,7 @@ inline void calibrateDT(const unsigned int& Step, const double& customSpeed)
 		system("pause");
 	}
 
-	if (Step == 0 or dtOld == -1)
+	if (Step == 0 or dtOld < 0)
 	{
 		steps = (unsigned int)(simTimeSeconds / dt);
 		std::cout << " Step count: " << steps << '\n';

@@ -15,7 +15,7 @@ struct ballGroup
 
 	/// @brief For creating a new ballGroup of size nBalls
 	/// @param nBalls Number of balls to allocate.
-	explicit ballGroup(int nBalls)
+	explicit ballGroup(const int nBalls)
 	{
 		allocateGroup(nBalls);
 	}
@@ -55,7 +55,7 @@ struct ballGroup
 
 
 	/// Allocate ball property arrays.
-	inline void allocateGroup(int nBalls)
+	inline void allocateGroup(const int nBalls)
 	{
 		cNumBalls = nBalls;
 
@@ -122,7 +122,7 @@ struct ballGroup
 	}
 
 	/// Approximate the radius of the ballGroup.
-	[[nodiscard]] inline double getRadius()
+	[[nodiscard]] inline double getRadius() const
 	{
 		double radius = 0;
 
@@ -133,7 +133,7 @@ struct ballGroup
 				for (unsigned int B = A + 1; B < cNumBalls; B++)
 				{
 					// Identify two farthest balls from each other. That is diameter of cluster.
-					double diameter = (pos[A] - pos[B]).norm();
+					const double diameter = (pos[A] - pos[B]).norm();
 					if (diameter * .5 > radius)
 					{
 						radius = diameter * .5;
