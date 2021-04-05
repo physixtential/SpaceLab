@@ -14,16 +14,16 @@ timeResolution = 200., // Seconds
 maxOverlap = .1; // fraction of smallest sphere radius.
 
 // Simulation Structure
-const unsigned int
+inline const unsigned int
 properties = 11, // Number of columns in simData file per ball
 genBalls = 2,
 attempts = 200; // How many times to try moving every ball touching another in generator.
 
-unsigned int
+inline unsigned int
 skip = 0,     // Steps thrown away before recording a step to the buffer. 500*.04 is every 20 seconds in sim.
 steps = 0;
 
-double
+inline double
 dt = -1,
 kin = -1,      // Spring constant
 kout = -1,
@@ -41,7 +41,7 @@ y1Rot = 0,           // Cluster two y axis rotation
 simTimeElapsed = 0;
 
 // File from which to proceed with further simulations
-std::string
+inline std::string
 path = "C:/Users/milin/Desktop/GoogleDrive/GradResearch/Development/SpaceLab/x64/Release/",
 projectileName = "",
 targetName = "10850_",

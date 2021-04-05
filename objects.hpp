@@ -40,22 +40,22 @@ struct ballGroup
 
 	double PE = 0, KE = 0, initialRadius = 0;
 
-	double* distances = 0;
+	double* distances = nullptr;
 
-	vector3d* pos = 0;
-	vector3d* vel = 0;
-	vector3d* velh = 0; ///< Velocity half step for integration purposes.
-	vector3d* acc = 0;
-	vector3d* w = 0;
-	vector3d* wh = 0; ///< Angular velocity half step for integration purposes.
-	vector3d* aacc = 0;
-	double* R = 0; ///< Radius
-	double* m = 0; ///< Mass
-	double* moi = 0; ///< Moment of inertia
+	vector3d* pos = nullptr;
+	vector3d* vel = nullptr;
+	vector3d* velh = nullptr; ///< Velocity half step for integration purposes.
+	vector3d* acc = nullptr;
+	vector3d* w = nullptr;
+	vector3d* wh = nullptr; ///< Angular velocity half step for integration purposes.
+	vector3d* aacc = nullptr;
+	double* R = nullptr; ///< Radius
+	double* m = nullptr; ///< Mass
+	double* moi = nullptr; ///< Moment of inertia
 
 
 	/// Allocate ball property arrays.
-	inline void allocateGroup(const int nBalls)
+	 void allocateGroup(const unsigned int nBalls)
 	{
 		cNumBalls = nBalls;
 
@@ -84,7 +84,7 @@ struct ballGroup
 
 	/// @brief Add another ballGroup into this one.
 	/// @param src The ballGroup to be added.
-	inline void addBallGroup(const ballGroup& src)
+	 void addBallGroup(const ballGroup& src)
 	{
 		// Copy incoming data to the end of the currently loaded data.
 		memcpy(&distances[cNumBallsAdded], src.distances, sizeof(src.distances[0]) * src.cNumBalls);
@@ -106,7 +106,7 @@ struct ballGroup
 	}
 
 	/// @brief Deallocate arrays to recover memory.
-	inline void freeMemory() const
+	 void freeMemory() const
 	{
 		delete[] distances;
 		delete[] pos;
@@ -122,7 +122,7 @@ struct ballGroup
 	}
 
 	/// Approximate the radius of the ballGroup.
-	[[nodiscard]] inline double getRadius() const
+	[[nodiscard]]  double getRadius() const
 	{
 		double radius = 0;
 
@@ -149,7 +149,7 @@ struct ballGroup
 		return radius;
 	}
 
-	[[nodiscard]] inline double getMass() const
+	[[nodiscard]]  double getMass() const
 	{
 		double mTotal = 0;
 		{
@@ -161,10 +161,9 @@ struct ballGroup
 		return mTotal;
 	}
 
-	[[nodiscard]] inline vector3d getCOM() const
+	[[nodiscard]]  vector3d getCOM() const
 	{
-		double mTotal = getMass();
-		vector3d com;
+		const double mTotal = getMass();
 
 		if (mTotal > 0)
 		{
@@ -173,7 +172,7 @@ struct ballGroup
 			{
 				comNumerator += m[Ball] * pos[Ball];
 			}
-			com = comNumerator / mTotal;
+			vector3d com = comNumerator / mTotal;
 			return com;
 		}
 		else
@@ -183,8 +182,8 @@ struct ballGroup
 		}
 	}
 
-	inline void zeroMotion()
-	{
+	 void zeroMotion() const
+	 {
 		for (unsigned int Ball = 0; Ball < cNumBalls; Ball++)
 		{
 			w[Ball] = { 0, 0, 0 };
@@ -192,9 +191,9 @@ struct ballGroup
 		}
 	}
 
-	inline void toOrigin()
-	{
-		vector3d com = getCOM();
+	 void toOrigin() const
+	 {
+		const vector3d com = getCOM();
 
 		for (unsigned int Ball = 0; Ball < cNumBalls; Ball++)
 		{
@@ -203,9 +202,9 @@ struct ballGroup
 	}
 
 	// Set velocity of all balls such that the cluster spins:
-	inline void comSpinner(const double& spinX, const double& spinY, const double& spinZ)
-	{
-		vector3d comRot = { spinX, spinY, spinZ }; // Rotation axis and magnitude
+	 void comSpinner(const double& spinX, const double& spinY, const double& spinZ) const
+	 {
+		const vector3d comRot = { spinX, spinY, spinZ }; // Rotation axis and magnitude
 		for (unsigned int Ball = 0; Ball < cNumBalls; Ball++)
 		{
 			vel[Ball] += comRot.cross(pos[Ball] - getCOM());
@@ -213,8 +212,8 @@ struct ballGroup
 		}
 	}
 
-	inline void rotAll(const char axis, const double angle)
-	{
+	 void rotAll(const char axis, const double angle) const
+	 {
 		for (unsigned int Ball = 0; Ball < cNumBalls; Ball++)
 		{
 			pos[Ball] = pos[Ball].rot(axis, angle);
@@ -226,7 +225,7 @@ struct ballGroup
 
 
 	// Initialize accelerations and energy calculations:
-	inline void initConditions()
+	 void initConditions()
 	{
 		KE = 0;
 		PE = 0;
@@ -244,13 +243,13 @@ struct ballGroup
 
 				for (unsigned int B = 0; B < A; B++)
 				{
-					double sumRaRb = R[A] + R[B];
-					double dist = (pos[A] - pos[B]).norm();
+					const double sumRaRb = R[A] + R[B];
+					const double dist = (pos[A] - pos[B]).norm();
 					vector3d rVecab = pos[B] - pos[A];
 					vector3d rVecba = -1 * rVecab;
 
 					// Check for collision between Ball and otherBall:
-					double overlap = sumRaRb - dist;
+					const double overlap = sumRaRb - dist;
 					vector3d totalForce;
 					vector3d aTorque;
 					vector3d bTorque;
@@ -289,14 +288,14 @@ struct ballGroup
 					else
 					{
 						// No collision: Include gravity only:
-						vector3d gravForceOnA = (G * m[A] * m[B] / (dist * dist)) * (rVecab / dist);
+						const vector3d gravForceOnA = (G * m[A] * m[B] / (dist * dist)) * (rVecab / dist);
 						totalForce = gravForceOnA;
 						PE += -G * m[A] * m[B] / dist;
 					}
 					// Newton's equal and opposite forces applied to acceleration of each ball:
 					acc[A] += totalForce / m[A];
 					acc[B] -= totalForce / m[B];
-					unsigned int e = (unsigned int)(A * (A - 1) * .5) + B; // Complex storage of n square over 2 distances.
+					const unsigned int e = static_cast<unsigned>(A * (A - 1) * .5) + B; // Complex storage of n square over 2 distances.
 					distances[e] = dist;
 				}
 				KE += .5 * m[A] * vel[A].dot(vel[A]) + .5 * moi[A] * w[A].dot(w[A]);
@@ -314,7 +313,7 @@ struct ballGroup
 	}
 
 	// Update Potential Energy:
-	inline void updatePE()
+	 void updatePE()
 	{
 		PE = 0;
 
@@ -324,9 +323,9 @@ struct ballGroup
 			{
 				for (unsigned int B = 0; B < A; B++)
 				{
-					double sumRaRb = R[A] + R[B];
-					double dist = (pos[A] - pos[B]).norm();
-					double overlap = sumRaRb - dist;
+					const double sumRaRb = R[A] + R[B];
+					const double dist = (pos[A] - pos[B]).norm();
+					const double overlap = sumRaRb - dist;
 
 					// Check for collision between Ball and otherBall.
 					if (overlap > 0)
@@ -348,8 +347,8 @@ struct ballGroup
 
 
 	// Kick ballGroup (give the whole thing a velocity)
-	inline void kick(const double& vx, const double& vy, const double& vz)
-	{
+	 void kick(const double& vx, const double& vy, const double& vz) const
+	 {
 		for (unsigned int Ball = 0; Ball < cNumBalls; Ball++)
 		{
 			vel[Ball] += {vx, vy, vz};
@@ -357,7 +356,7 @@ struct ballGroup
 	}
 
 
-	inline void checkMomentum(const std::string& of) const
+	 void checkMomentum(const std::string& of) const
 	{
 		vector3d pTotal = { 0,0,0 };
 		for (unsigned int Ball = 0; Ball < cNumBalls; Ball++)
@@ -368,8 +367,8 @@ struct ballGroup
 	}
 
 	// offset cluster
-	inline void offset(const double& rad1, const double& rad2, const double& impactParam)
-	{
+	 void offset(const double& rad1, const double& rad2, const double& impactParam) const
+	 {
 		for (unsigned int Ball = 0; Ball < cNumBalls; Ball++)
 		{
 			pos[Ball].x += (rad1 + rad2) * cos(impactParam);
@@ -379,7 +378,7 @@ struct ballGroup
 
 
 	// get max velocity
-	[[nodiscard]] inline double getVelMax(bool useSoc)
+	[[nodiscard]]  double getVelMax(bool useSoc) const
 	{
 		double vMax = 0;
 
@@ -415,7 +414,7 @@ struct ballGroup
 	}
 
 
-	[[nodiscard]] inline double getRmin() const
+	[[nodiscard]]  double getRmin() const
 	{
 		double rMin = R[0];
 		for (unsigned int Ball = 0; Ball < cNumBalls; Ball++)
@@ -428,7 +427,7 @@ struct ballGroup
 		return rMin;
 	}
 
-	[[nodiscard]] inline double getRmax() const
+	[[nodiscard]]  double getRmax() const
 	{
 		double rMax = R[0];
 		for (unsigned int Ball = 0; Ball < cNumBalls; Ball++)
@@ -442,7 +441,7 @@ struct ballGroup
 	}
 
 
-	[[nodiscard]] inline double getMassMax() const
+	[[nodiscard]]  double getMassMax() const
 	{
 		double mMax = m[0];
 		for (unsigned int Ball = 0; Ball < cNumBalls; Ball++)
@@ -458,7 +457,7 @@ struct ballGroup
 
 
 	/// Make ballGroup from file data.
-	inline void importDataFromFile(const std::string& filename)
+	 void importDataFromFile(const std::string& filename)
 	{
 		std::string simDataFilename = filename + "simData.csv";
 		std::string constantsFilename = filename + "constants.csv";
@@ -478,7 +477,7 @@ struct ballGroup
 				char ch = ' ';
 				simDataStream.get(ch); // Get current byte's data
 
-				if ((int)simDataStream.tellg() <= 1)
+				if (static_cast<int>(simDataStream.tellg()) <= 1)
 				{                           // If the data was at or before the 0th byte
 					simDataStream.seekg(0); // The first line is the last line
 					keepLooping = false;    // So stop there
@@ -564,8 +563,8 @@ struct ballGroup
 
 	// Todo - make bigger balls favor the middle, or, smaller balls favor the outside.
 	/// @brief Push balls apart until no overlaps
-	inline void pushApart()
-	{
+	 void pushApart() const
+	 {
 		std::cout << "Separating spheres - Current max overlap:\n";
 		/// Using acc array as storage for accumulated position change.
 		int* counter = new int[cNumBalls];
@@ -576,7 +575,7 @@ struct ballGroup
 		}
 
 		double overlapMax = -1;
-		double pseudoDT = getRmin() * .1;
+		const double pseudoDT = getRmin() * .1;
 		int step = 0;
 
 		while (true)
@@ -593,9 +592,9 @@ struct ballGroup
 					// Check for Ball overlap.
 					vector3d rVecab = pos[B] - pos[A];
 					vector3d rVecba = -1 * rVecab;
-					double dist = (rVecab).norm();
-					double sumRaRb = R[A] + R[B];
-					double overlap = sumRaRb - dist;
+					const double dist = (rVecab).norm();
+					const double sumRaRb = R[A] + R[B];
+					const double overlap = sumRaRb - dist;
 
 					if (overlapMax < overlap)
 					{
@@ -699,7 +698,7 @@ struct ballGroup
 		checkForFile.close();
 	}
 
-	inline void simInitWrite(const std::string& filename)
+	 void simInitWrite(const std::string& filename)
 	{
 		// Create string for file name identifying spin combination negative is 2, positive is 1 on each axis.
 		//std::string spinCombo = "";
@@ -732,9 +731,9 @@ struct ballGroup
 				}
 				else
 				{
-					simDataFilename = std::to_string(counter) + '_' + simDataFilename;
-					constantsFilename = std::to_string(counter) + '_' + constantsFilename;
-					energyFilename = std::to_string(counter) + '_' + energyFilename;
+					simDataFilename.insert(0, std::to_string(counter) + '_');
+					constantsFilename.insert(0, std::to_string(counter) + '_');
+					energyFilename.insert(0, std::to_string(counter) + '_');
 					break;
 				}
 			}

@@ -28,7 +28,7 @@ public:
 		z = v.z;
 	}
 
-	vector3d operator=(const vector3d& v)
+	vector3d& operator=(const vector3d& v)
 	{
 		x = v.x;
 		y = v.y;
@@ -89,15 +89,15 @@ public:
 		return *this;
 	}
 
-	bool operator==(const vector3d& v) const
-	{
-		return ((x == v.x) && (y == v.y) &&
-			(z == v.z));
-	}
-	bool operator!=(const vector3d& v) const
-	{
-		return !(*this == v);
-	}
+	//bool operator==(const vector3d& v) const
+	//{
+	//	return ((x == v.x) && (y == v.y) &&
+	//		(z == v.z));
+	//}
+	//bool operator!=(const vector3d& v) const
+	//{
+	//	return !(*this == v);
+	//}
 
 	double& operator[](const unsigned int i)
 	{
@@ -126,28 +126,28 @@ public:
 		assert(0);
 	}
 
-	double dot(const vector3d& v) const
+	[[nodiscard]] double dot(const vector3d& v) const
 	{
 		return x * v.x + y * v.y + z * v.z;
 	}
-	vector3d cross(const vector3d& v) const
+	[[nodiscard]] vector3d cross(const vector3d& v) const
 	{
 		return vector3d(y * v.z - z * v.y, z * v.x - x * v.z, x * v.y - y * v.x);
 	}
-	double norm() const
+	[[nodiscard]] double norm() const
 	{
 		return sqrt(x * x + y * y + z * z);
 	}
-	double normsquared() const
+	[[nodiscard]] double normsquared() const
 	{
 		return x * x + y * y + z * z;
 	}
-	vector3d normalized() const
+	[[nodiscard]] vector3d normalized() const
 	{
 		return *this / this->norm();
 	}
 
-	std::string tostr()
+	[[nodiscard]] std::string toStr() const
 	{
 		return "[" + std::to_string(x) + ", " + std::to_string(y) + ", " + std::to_string(z) + "]";
 	}
@@ -157,7 +157,7 @@ public:
 		std::cout << "[" << x << ", " << y << ", " << z << "]";
 	}
 
-	vector3d rot(char axis, double angle) const
+	[[nodiscard]] vector3d rot(char axis, double angle) const
 	{
 		double rotx[3][3] = { {1, 0, 0}, {0, cos(angle), -sin(angle)}, {0, sin(angle), cos(angle)} },
 			roty[3][3] = { {cos(angle), 0, sin(angle)}, {0, 1, 0}, {-sin(angle), 0, cos(angle)} },
@@ -218,7 +218,7 @@ public:
 		z = goodaxis.z * sinangle_over2;
 	}
 
-	rotation operator=(const rotation& q)
+	rotation& operator=(const rotation& q)
 	{
 		w = q.w;
 		x = q.x;
@@ -309,13 +309,13 @@ private:
 };
 
 // Rounding
-std::string rounder(double value, int digits)
+inline std::string rounder(double value, int digits)
 {
 	return std::to_string(value).substr(0, digits);
 }
 
 // Scientific Notation
-std::string scientific(double value)
+inline std::string scientific(double value)
 {
 	std::stringstream ss;
 	ss << value;
@@ -324,7 +324,7 @@ std::string scientific(double value)
 }
 
 // Output a nice title bar in terminal:
-void titleBar(std::string title)
+inline void titleBar(std::string title)
 {
 	std::cout << '\n';
 	for (size_t i = 0; i < ((62 - title.size()) / 2); i++)
@@ -347,7 +347,7 @@ void titleBar(std::string title)
 // }
 
 // Ask a yes or no question:
-bool input(const std::string& question)
+inline bool input(const std::string& question)
 {
 	char answer;
 	std::cout << question;
@@ -363,16 +363,16 @@ bool input(const std::string& question)
 }
 
 // Generate a random double from -.5lim to .5lim so that numbers are distributed evenly around 0:
-double randDouble(double lim)
+inline double randDouble(double lim)
 {
-	return lim * ((double)rand() / (double)RAND_MAX - .5);
+	return lim * (static_cast<double>(rand()) / static_cast<double>(RAND_MAX) - .5);
 }
 
 // Returns a vector within the desired radius, resulting in spherical random distribution
-vector3d randSphericalVec(double lim1, double lim2, double lim3)
+inline vector3d randSphericalVec(double lim1, double lim2, double lim3)
 {
 	vector3d vec = { randDouble(lim1), randDouble(lim2), randDouble(lim3) };
-	double halfLim = lim1 * .5;
+	const double halfLim = lim1 * .5;
 	while (vec.norm() > halfLim)
 	{
 		vec = { randDouble(lim1), randDouble(lim2), randDouble(lim3) };
@@ -381,10 +381,10 @@ vector3d randSphericalVec(double lim1, double lim2, double lim3)
 }
 
 // Returns a vector within the desired radius, resulting in spherical random distribution
-vector3d randShellVec(double lim, double innerRadius)
+inline vector3d randShellVec(double lim, double innerRadius)
 {
 	vector3d vec = { randDouble(lim), randDouble(lim), randDouble(lim) };
-	double halfLim = lim * .5;
+	const double halfLim = lim * .5;
 	if (halfLim < innerRadius)
 	{
 		std::cout << "Inner radius is larger than boundary. Impossible.\n";

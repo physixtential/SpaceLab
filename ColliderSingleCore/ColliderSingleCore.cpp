@@ -2,11 +2,9 @@
 #include <iostream>
 #include <cmath>
 #include <fstream>
-#include <time.h>
+#include <ctime>
 #include <sstream>
 #include <iomanip>
-#include <algorithm>
-#include <vector>
 #include "../vector3d.hpp"
 #include "../initializations.hpp"
 #include "../objects.hpp"
@@ -18,7 +16,7 @@ std::stringstream energyBuffer;
 
 // These are used within simOneStep to keep track of time.
 // They need to survive outside its scope, and I don't want to have to pass them all.
-time_t start = time(NULL);        // For end of program analysis
+time_t start = time(nullptr);        // For end of program analysis
 time_t startProgress; // For progress reporting (gets reset)
 time_t lastWrite;     // For write control (gets reset)
 bool writeStep;       // This prevents writing to file every step (which is slow).
@@ -27,24 +25,24 @@ bool writeStep;       // This prevents writing to file every step (which is slow
 ballGroup O;
 
 // Prototypes
-inline void simInitTwoCluster();
-inline void simContinue();
-inline void simInitCondAndCenter();
-inline void simOneStep(const unsigned int& Step);
-inline void simLooper();
-inline void generateBallField();
-inline void safetyChecks();
-inline void calibrateDT(const unsigned int& Step, const double& customSpeed = -1.0);
+void simInitTwoCluster();
+void simContinue();
+void simInitCondAndCenter();
+void simOneStep(const unsigned int& Step);
+[[noreturn]] void simLooper();
+void generateBallField();
+void safetyChecks();
+void calibrateDT(const unsigned int& Step, const double& customSpeed = -1.0);
 void setGuidDT(const double& vel);
 void setGuidK(const double& vel);
-inline double getLazzDT(const double& vel);
-inline double getLazzK(const double& vel);
+double getLazzDT(const double& vel);
+double getLazzK(const double& vel);
 
 
 //////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////
-int main(int argc, char const* argv[])
+int main(const int argc, char const* argv[])
 {
 	// Runtime arguments:
 	if (argc > 1)
@@ -64,7 +62,6 @@ int main(int argc, char const* argv[])
 	O.simInitWrite(outputPrefix);
 	simLooper();
 
-	return 0;
 } // end main
 //////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////
@@ -72,7 +69,7 @@ int main(int argc, char const* argv[])
 
 
 
-inline void simInitTwoCluster()
+void simInitTwoCluster()
 {
 	// Load file data:
 	std::cerr << "TWO CLUSTER SIM\nFile 1: " << projectileName << '\t' << "File 2: " << targetName << '\n';
@@ -99,15 +96,15 @@ inline void simInitTwoCluster()
 
 	//projectile.offset(projectile.radius, target.radius + (projectile.R[0]), impactParameter);
 
-	double PEsys = projectile.PE + target.PE + (-G * projectile.getMass() * target.getMass() / (projectile.getCOM() - target.getCOM()).norm());
+	const double PEsys = projectile.PE + target.PE + (-G * projectile.getMass() * target.getMass() / (projectile.getCOM() - target.getCOM()).norm());
 
 	// Collision velocity calculation:
-	double mSmall = projectile.getMass();
-	double mBig = target.getMass();
-	double mTot = mBig + mSmall;
-	double vSmall = -sqrt(2 * KEfactor * fabs(PEsys) * (mBig / (mSmall * mTot))); // Negative because small offsets right.
+	const double mSmall = projectile.getMass();
+	const double mBig = target.getMass();
+	const double mTot = mBig + mSmall;
+	const double vSmall = -sqrt(2 * KEfactor * fabs(PEsys) * (mBig / (mSmall * mTot))); // Negative because small offsets right.
 	//vSmall = -600000; // DART probe override.
-	double vBig = -(mSmall / mBig) * vSmall; // Negative to be opposing projectile.
+	const double vBig = -(mSmall / mBig) * vSmall; // Negative to be opposing projectile.
 	//vBig = 0; // Dymorphous override.
 	fprintf(stdout, "\nTarget Velocity: %.2e\nProjectile Velocity: %.2e\n", vBig, vSmall);
 
@@ -138,7 +135,7 @@ inline void simInitTwoCluster()
 }
 
 
-inline void simContinue()
+void simContinue()
 {
 	// Load file data:
 	std::cerr << "Continuing Sim...\nFile: " << targetName << '\n';
@@ -158,7 +155,7 @@ inline void simContinue()
 }
 
 
-inline void simInitCondAndCenter()
+void simInitCondAndCenter()
 {
 	O.initialRadius = O.getRadius();
 
@@ -185,7 +182,7 @@ inline void simInitCondAndCenter()
 
 
 
-inline void simOneStep(const unsigned int& Step)
+void simOneStep(const unsigned int& Step)
 {
 	// Check if this is a write step:
 	if (Step % skip == 0)
@@ -193,11 +190,11 @@ inline void simOneStep(const unsigned int& Step)
 		writeStep = true;
 
 		// Progress reporting:
-		float eta = ((time(NULL) - startProgress) / 500.f * (steps - Step)) / 3600.f; // In seconds.
-		float elapsed = (time(NULL) - start) / 3600.f;
-		float progress = ((float)Step / (float)steps * 100.f);
+		float eta = ((time(nullptr) - startProgress) / 500.f * static_cast<float>(steps - Step)) / 3600.f; // In seconds.
+		float elapsed = (time(nullptr) - start) / 3600.f;
+		float progress = (Step / steps * 100.f);
 		printf("Step: %u\tProgress: %2.0f%%\tETA: %5.2lf hr\tElapsed: %5.2f hr\n", Step, progress, eta, elapsed);
-		startProgress = time(NULL);
+		startProgress = time(nullptr);
 	}
 	else
 	{
@@ -241,7 +238,7 @@ inline void simOneStep(const unsigned int& Step)
 			vector3d bTorque;
 
 			// Distance array element: 1,0    2,0    2,1    3,0    3,1    3,2 ...
-			unsigned int e = (unsigned int)(A * (A - 1) * .5) + B;
+			unsigned int e = static_cast<unsigned>(A * (A - 1) * .5) + B;
 			double oldDist = O.distances[e];
 
 			// Check for collision between Ball and otherBall.
@@ -419,7 +416,7 @@ inline void simOneStep(const unsigned int& Step)
 		////////////////////////////////////////////////////////////////////
 		// Data Export /////////////////////////////////////////////////////
 		////////////////////////////////////////////////////////////////////
-		if (time(NULL) - lastWrite > 1800 || Step / skip % 20 == 0 || Step == steps - 1)
+		if (time(nullptr) - lastWrite > 1800 || Step / skip % 20 == 0 || Step == steps - 1)
 		{
 			std::cout << "\nData Write\n";
 
@@ -437,7 +434,7 @@ inline void simOneStep(const unsigned int& Step)
 			energyBuffer.str(""); // Empty the stream for next filling.
 			energyWrite.close();
 
-			lastWrite = time(NULL);
+			lastWrite = time(nullptr);
 		} // Data export end
 
 		//calibrateDT(Step, false);
@@ -446,7 +443,7 @@ inline void simOneStep(const unsigned int& Step)
 } // Steps end
 
 
-inline void simLooper()
+[[noreturn]] void simLooper()
 {
 	std::cout << "Beginning simulation...\n";
 
@@ -454,7 +451,7 @@ inline void simLooper()
 	{
 		simOneStep(Step);
 	}
-	time_t end = time(NULL);
+	const time_t end = time(nullptr);
 
 	std::cout << "Simulation complete!\n"
 		<< O.cNumBalls << " Particles and " << steps << " Steps.\n"
@@ -471,7 +468,7 @@ inline void simLooper()
 
 
 
-inline void twoSizeSphereShell5000()
+void twoSizeSphereShell5000()
 {
 	double radius = O.getRadius();
 
@@ -493,7 +490,7 @@ inline void twoSizeSphereShell5000()
 		O.pos[Ball] = randShellVec(spaceRange, radius);
 	}
 
-	unsigned int ballsInPhase1 = 2000;
+	const unsigned int ballsInPhase1 = 2000;
 	std::cout << "Balls in phase: " << ballsInPhase1 << "\n";
 
 	// Generate non-overlapping spherical particle field:
@@ -508,9 +505,9 @@ inline void twoSizeSphereShell5000()
 			for (unsigned int B = A + 1; B < ballsInPhase1; B++)
 			{
 				// Check for Ball overlap.
-				double dist = (O.pos[A] - O.pos[B]).norm();
-				double sumRaRb = O.R[A] + O.R[B];
-				double overlap = dist - sumRaRb;
+				const double dist = (O.pos[A] - O.pos[B]).norm();
+				const double sumRaRb = O.R[A] + O.R[B];
+				const double overlap = dist - sumRaRb;
 				if (overlap < 0)
 				{
 					collisionDetected += 1;
@@ -529,7 +526,7 @@ inline void twoSizeSphereShell5000()
 			std::cout << "\nSuccess!\n";
 			break;
 		}
-		if (failed == attempts - 1 || collisionDetected > int(1.5 * (double)ballsInPhase1)) // Added the second part to speed up spatial constraint increase when there are clearly too many collisions for the space to be feasible.
+		if (failed == attempts - 1 || collisionDetected > static_cast<int>(1.5 * static_cast<double>(ballsInPhase1))) // Added the second part to speed up spatial constraint increase when there are clearly too many collisions for the space to be feasible.
 		{
 			std::cout << "Failed " << spaceRange << ". Increasing range " << spaceRangeIncrement << "cm^3.\n";
 			spaceRange += spaceRangeIncrement;
@@ -566,7 +563,7 @@ inline void twoSizeSphereShell5000()
 		O.pos[Ball] = randShellVec(spaceRange, radius);
 	}
 
-	unsigned int ballsInPhase2 = 3000;
+	const unsigned int ballsInPhase2 = 3000;
 	std::cout << "Balls in phase: " << ballsInPhase2 << "\n";
 
 	// Generate non-overlapping spherical particle field:
@@ -580,9 +577,9 @@ inline void twoSizeSphereShell5000()
 			for (unsigned int B = A + 1; B < ballsInPhase1 + ballsInPhase2; B++)
 			{
 				// Check for Ball overlap.
-				double dist = (O.pos[A] - O.pos[B]).norm();
-				double sumRaRb = O.R[A] + O.R[B];
-				double overlap = dist - sumRaRb;
+				const double dist = (O.pos[A] - O.pos[B]).norm();
+				const double sumRaRb = O.R[A] + O.R[B];
+				const double overlap = dist - sumRaRb;
 				if (overlap < 0)
 				{
 					collisionDetected += 1;
@@ -601,7 +598,7 @@ inline void twoSizeSphereShell5000()
 			std::cout << "\nSuccess!\n";
 			break;
 		}
-		if (failed == attempts - 1 || collisionDetected > int(1.5 * (double)ballsInPhase2)) // Added the second part to speed up spatial constraint increase when there are clearly too many collisions for the space to be feasible.
+		if (failed == attempts - 1 || collisionDetected > static_cast<int>(1.5 * static_cast<double>(ballsInPhase2))) // Added the second part to speed up spatial constraint increase when there are clearly too many collisions for the space to be feasible.
 		{
 			std::cout << "Failed " << spaceRange << ". Increasing range " << spaceRangeIncrement << "cm^3.\n";
 			spaceRange += spaceRangeIncrement;
@@ -621,12 +618,12 @@ inline void twoSizeSphereShell5000()
 
 
 
-inline void threeSizeSphere()
+void threeSizeSphere()
 {
 	// Make genBalls of 3 sizes in CGS with ratios such that the mass is distributed evenly among the 3 sizes (less large genBalls than small genBalls).
-	unsigned int smalls = (unsigned int)std::round((double)genBalls * 27. / 31.375); // Just here for reference. Whatever genBalls are left will be smalls.
-	unsigned int mediums = (unsigned int)std::round((double)genBalls * 27. / (8 * 31.375));
-	unsigned int larges = (unsigned int)std::round((double)genBalls * 1. / 31.375);
+	const unsigned int smalls = static_cast<unsigned>(std::round(static_cast<double>(genBalls) * 27. / 31.375)); // Just here for reference. Whatever genBalls are left will be smalls.
+	const unsigned int mediums = static_cast<unsigned>(std::round(static_cast<double>(genBalls) * 27. / (8 * 31.375)));
+	const unsigned int larges = static_cast<unsigned>(std::round(static_cast<double>(genBalls) * 1. / 31.375));
 
 
 	for (unsigned int Ball = 0; Ball < larges; Ball++)
@@ -668,9 +665,9 @@ inline void threeSizeSphere()
 			for (unsigned int B = A + 1; B < genBalls; B++)
 			{
 				// Check for Ball overlap.
-				double dist = (O.pos[A] - O.pos[B]).norm();
-				double sumRaRb = O.R[A] + O.R[B];
-				double overlap = dist - sumRaRb;
+				const double dist = (O.pos[A] - O.pos[B]).norm();
+				const double sumRaRb = O.R[A] + O.R[B];
+				const double overlap = dist - sumRaRb;
 				if (overlap < 0)
 				{
 					collisionDetected += 1;
@@ -689,7 +686,7 @@ inline void threeSizeSphere()
 			std::cout << "\nSuccess!\n";
 			break;
 		}
-		if (failed == attempts - 1 || collisionDetected > int(1.5 * (double)genBalls)) // Added the second part to speed up spatial constraint increase when there are clearly too many collisions for the space to be feasible.
+		if (failed == attempts - 1 || collisionDetected > static_cast<int>(1.5 * static_cast<double>(genBalls))) // Added the second part to speed up spatial constraint increase when there are clearly too many collisions for the space to be feasible.
 		{
 			std::cout << "Failed " << spaceRange << ". Increasing range " << spaceRangeIncrement << "cm^3.\n";
 			spaceRange += spaceRangeIncrement;
@@ -709,7 +706,7 @@ inline void threeSizeSphere()
 
 
 
-inline void oneSizeSphere()
+void oneSizeSphere()
 {
 
 	for (unsigned int Ball = 0; Ball < genBalls; Ball++)
@@ -732,9 +729,9 @@ inline void oneSizeSphere()
 			for (unsigned int B = A + 1; B < genBalls; B++)
 			{
 				// Check for Ball overlap.
-				double dist = (O.pos[A] - O.pos[B]).norm();
-				double sumRaRb = O.R[A] + O.R[B];
-				double overlap = dist - sumRaRb;
+				const double dist = (O.pos[A] - O.pos[B]).norm();
+				const double sumRaRb = O.R[A] + O.R[B];
+				const double overlap = dist - sumRaRb;
 				if (overlap < 0)
 				{
 					collisionDetected += 1;
@@ -753,7 +750,7 @@ inline void oneSizeSphere()
 			std::cout << "\nSuccess!\n";
 			break;
 		}
-		if (failed == attempts - 1 || collisionDetected > int(1.5 * (double)genBalls)) // Added the second part to speed up spatial constraint increase when there are clearly too many collisions for the space to be feasible.
+		if (failed == attempts - 1 || collisionDetected > static_cast<int>(1.5 * static_cast<double>(genBalls))) // Added the second part to speed up spatial constraint increase when there are clearly too many collisions for the space to be feasible.
 		{
 			std::cout << "Failed " << spaceRange << ". Increasing range " << spaceRangeIncrement << "cm^3.\n";
 			spaceRange += spaceRangeIncrement;
@@ -773,14 +770,14 @@ inline void oneSizeSphere()
 
 
 
-inline void generateBallField()
+void generateBallField()
 {
 	std::cout << "CLUSTER FORMATION\n";
 	O.allocateGroup(genBalls);
 
 
 	// Create new random number set.
-	unsigned int seedSave = (unsigned int)time(NULL);
+	const unsigned int seedSave = static_cast<unsigned>(time(nullptr));
 	srand(seedSave);
 
 	//twoSizeSphereShell5000();
@@ -797,7 +794,7 @@ inline void generateBallField()
 
 
 
-inline void safetyChecks()
+void safetyChecks()
 {
 	titleBar("SAFETY CHECKS");
 
@@ -825,29 +822,29 @@ inline void safetyChecks()
 		exit(EXIT_FAILURE);
 	}
 
-	if (O.getRadius() == 0)
+	if (O.getRadius() <= 0)
 	{
-		printf("\nRadius is 0\n");
+		printf("\nCluster radius <= 0\n");
 		exit(EXIT_FAILURE);
 	}
 
 	for (unsigned int Ball = 0; Ball < O.cNumBalls; Ball++)
 	{
-		if (O.pos[Ball] == vector3d(0, 0, 0))
+		if (O.pos[Ball].norm() < vector3d(1e-10, 1e-10, 1e-10).norm())
 		{
 			printf("\nA ball position is [0,0,0]. Possibly didn't initialize balls properly.\n");
 			exit(EXIT_FAILURE);
 		}
 
-		if (O.R[Ball] == 0)
+		if (O.R[Ball] <= 0)
 		{
-			printf("\nA balls radius is 0.\n");
+			printf("\nA balls radius <= 0.\n");
 			exit(EXIT_FAILURE);
 		}
 
-		if (O.m[Ball] == 0)
+		if (O.m[Ball] <= 0)
 		{
-			printf("\nA balls mass is 0.\n");
+			printf("\nA balls mass <= 0.\n");
 			exit(EXIT_FAILURE);
 		}
 	}
@@ -855,11 +852,11 @@ inline void safetyChecks()
 }
 
 
-inline void calibrateDT(const unsigned int& Step, const double& customSpeed)
+void calibrateDT(const unsigned int& Step, const double& customSpeed)
 {
-	double dtOld = dt;
+	const double dtOld = dt;
 
-	double mass = O.getMass();
+	const double mass = O.getMass();
 
 	// Sim fall velocity onto cluster:
 	// vCollapse shrinks if a ball escapes but velMax should take over at that point, unless it is ignoring far balls.
@@ -903,7 +900,7 @@ inline void calibrateDT(const unsigned int& Step, const double& customSpeed)
 
 	if (timeResolution / dt > 1.)
 	{
-		skip = (unsigned int)floor(timeResolution / dt);
+		skip = static_cast<unsigned>(floor(timeResolution / dt));
 	}
 	else
 	{
@@ -913,23 +910,23 @@ inline void calibrateDT(const unsigned int& Step, const double& customSpeed)
 
 	if (Step == 0 or dtOld < 0)
 	{
-		steps = (unsigned int)(simTimeSeconds / dt);
+		steps = static_cast<unsigned>(simTimeSeconds / dt);
 		std::cout << " Step count: " << steps << '\n';
 	}
 	else
 	{
-		steps = (unsigned int)(dt / dtOld * (steps - Step) + Step);
+		steps = static_cast<unsigned>(dt / dtOld * (steps - Step) + Step);
 		std::cout << " New step count: " << steps << '\n';
 	}
 }
 
-inline void setGuidDT(const double& vel)
+void setGuidDT(const double& vel)
 {
 	// Guidos k and dt:
 	dt = .01 * O.getRmin() / fabs(vel);
 }
 
-inline void setGuidK(const double& vel)
+void setGuidK(const double& vel)
 {
 	kin = O.getMassMax() * vel * vel / (.1 * O.R[0] * .1 * O.R[0]);
 	kout = cor * kin;
@@ -939,8 +936,8 @@ inline void setGuidK(const double& vel)
 {
 	// Lazzati k and dt:
 	// dt is ultimately depend on the velocities in the system, k is a part of this calculation because we derive dt with a dependence on k. Even if we don't choose to modify k, such as in the middle of a simulation (which would break conservation of energy), we maintain the concept of k for comprehension. One could just copy kTemp into the dt formula and ignore the k dependence.
-	double rMin = O.getRmin();
-	double kTemp = getLazzK(vel);
+	const double rMin = O.getRmin();
+	const double kTemp = getLazzK(vel);
 	return .01 * sqrt(4. / 3. * M_PI * density / kTemp * rMin * rMin * rMin);
 }
 
