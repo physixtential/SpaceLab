@@ -123,7 +123,7 @@ struct ballGroup
 	}
 
 	/// Approximate the radius of the ballGroup.
-	inline double getRadius()
+	[[nodiscard]] inline double getRadius()
 	{
 		double radius = 0;
 
@@ -150,7 +150,7 @@ struct ballGroup
 		return radius;
 	}
 
-	inline double getMass()
+	[[nodiscard]] inline double getMass()
 	{
 		double mTotal = 0;
 		{
@@ -162,7 +162,7 @@ struct ballGroup
 		return mTotal;
 	}
 
-	inline vector3d getCOM()
+	[[nodiscard]] inline vector3d getCOM()
 	{
 		double mTotal = getMass();
 
@@ -382,7 +382,7 @@ struct ballGroup
 
 
 	// get max velocity
-	inline double getVelMax(bool useSoc)
+	[[nodiscard]] inline double getVelMax(bool useSoc)
 	{
 		double vMax = 0;
 
@@ -418,7 +418,7 @@ struct ballGroup
 	}
 
 
-	inline double getRmin()
+	[[nodiscard]] inline double getRmin()
 	{
 		double rMin = R[0];
 		for (unsigned int Ball = 0; Ball < cNumBalls; Ball++)
@@ -431,7 +431,7 @@ struct ballGroup
 		return rMin;
 	}
 
-	inline double getRmax()
+	[[nodiscard]] inline double getRmax()
 	{
 		double rMax = R[0];
 		for (unsigned int Ball = 0; Ball < cNumBalls; Ball++)
@@ -445,7 +445,7 @@ struct ballGroup
 	}
 
 
-	inline double getMassMax()
+	[[nodiscard]] inline double getMassMax()
 	{
 		double mMax = m[0];
 		for (unsigned int Ball = 0; Ball < cNumBalls; Ball++)

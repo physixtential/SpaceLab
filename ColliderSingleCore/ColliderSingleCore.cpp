@@ -35,6 +35,8 @@ inline void simLooper();
 inline void generateBallField();
 inline void safetyChecks();
 inline void calibrateDT(const unsigned int& Step, const double& customSpeed = -1.0);
+void setGuidDT(const double& vel);
+void setGuidK(const double& vel);
 inline double getLazzDT(const double& vel);
 inline double getLazzK(const double& vel);
 
@@ -335,11 +337,33 @@ inline void simOneStep(const unsigned int& Step)
 			// Send positions and rotations to buffer:
 			if (Ball == 0)
 			{
-				ballBuffer << O.pos[Ball][0] << ',' << O.pos[Ball][1] << ',' << O.pos[Ball][2] << ',' << O.w[Ball][0] << ',' << O.w[Ball][1] << ',' << O.w[Ball][2] << ',' << O.w[Ball].norm() << ',' << O.vel[Ball].x << ',' << O.vel[Ball].y << ',' << O.vel[Ball].z << ',' << 0;
+				ballBuffer 
+					<< O.pos[Ball][0] << ','
+					<< O.pos[Ball][1] << ',' 
+					<< O.pos[Ball][2] << ',' 
+					<< O.w[Ball][0] << ',' 
+					<< O.w[Ball][1] << ',' 
+					<< O.w[Ball][2] << ',' 
+					<< O.w[Ball].norm() << ',' 
+					<< O.vel[Ball].x << ',' 
+					<< O.vel[Ball].y << ',' 
+					<< O.vel[Ball].z << ',' 
+					<< 0;
 			}
 			else
 			{
-				ballBuffer << ',' << O.pos[Ball][0] << ',' << O.pos[Ball][1] << ',' << O.pos[Ball][2] << ',' << O.w[Ball][0] << ',' << O.w[Ball][1] << ',' << O.w[Ball][2] << ',' << O.w[Ball].norm() << ',' << O.vel[Ball].x << ',' << O.vel[Ball].y << ',' << O.vel[Ball].z << ',' << 0;
+				ballBuffer 
+					<< ',' << O.pos[Ball][0] << ',' 
+					<< O.pos[Ball][1] << ',' 
+					<< O.pos[Ball][2] << ',' 
+					<< O.w[Ball][0] << ',' 
+					<< O.w[Ball][1] << ',' 
+					<< O.w[Ball][2] << ',' 
+					<< O.w[Ball].norm() << ','
+					<< O.vel[Ball].x << ',' <<
+					O.vel[Ball].y << ',' 
+					<< O.vel[Ball].z << ',' 
+					<< 0;
 			}
 
 			O.KE += .5 * O.m[Ball] * O.vel[Ball].normsquared() + .5 * O.moi[Ball] * O.w[Ball].normsquared(); // Now includes rotational kinetic energy.
@@ -911,7 +935,7 @@ inline void setGuidK(const double& vel)
 	kout = cor * kin;
 }
 
-inline double getLazzDT(const double& vel)
+[[nodiscard]] double getLazzDT(const double& vel)
 {
 	// Lazzati k and dt:
 	// dt is ultimately depend on the velocities in the system, k is a part of this calculation because we derive dt with a dependence on k. Even if we don't choose to modify k, such as in the middle of a simulation (which would break conservation of energy), we maintain the concept of k for comprehension. One could just copy kTemp into the dt formula and ignore the k dependence.
@@ -920,7 +944,7 @@ inline double getLazzDT(const double& vel)
 	return .01 * sqrt(4. / 3. * M_PI * density / kTemp * rMin * rMin * rMin);
 }
 
-inline double getLazzK(const double& vel)
+[[nodiscard]] double getLazzK(const double& vel)
 {
 	return 4. / 3. * M_PI * density * O.getRmax() * vel * vel / (maxOverlap * maxOverlap);
 }
