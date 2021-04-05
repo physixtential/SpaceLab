@@ -11,12 +11,12 @@ mu = 0.9,      // Coeff of friction
 cor = 0.8,     // Coeff of restitution
 simTimeSeconds = 18000., // Seconds
 timeResolution = 200., // Seconds
-maxOverlap = .9; // fraction of smallest sphere radius.
+maxOverlap = .1; // fraction of smallest sphere radius.
 
 // Simulation Structure
 const unsigned int
 properties = 11, // Number of columns in simData file per ball
-genBalls = 10,
+genBalls = 2,
 attempts = 200; // How many times to try moving every ball touching another in generator.
 
 unsigned int

@@ -34,7 +34,7 @@ inline void simOneStep(const unsigned int& Step);
 inline void simLooper();
 inline void generateBallField();
 inline void safetyChecks();
-inline void calibrateDT(const unsigned int& Step, const bool doK, const double& customVel = 0);
+inline void calibrateDT(const unsigned int& Step, const double& customSpeed = -1.0);
 inline double getLazzDT(const double& vel);
 inline double getLazzK(const double& vel);
 
@@ -158,12 +158,9 @@ inline void simContinue()
 
 inline void simInitCondAndCenter()
 {
-	// hack k and dt override to stabilize cluster.
-	calibrateDT(0, true);
-	// hack temporary dt, skip, and steps override.
-	//dt = 0.0001;
-	//skip = 200 / dt;
-	//steps = (unsigned int)(simTimeSeconds / dt);
+	O.initialRadius = O.getRadius();
+
+	calibrateDT(0, 600000.);
 
 	std::cout << "==================" << '\n';
 	std::cout << "dt: " << dt << '\n';
@@ -834,35 +831,31 @@ inline void safetyChecks()
 }
 
 
-inline void calibrateDT(const unsigned int& Step, const bool doK, const double& customVel)
+inline void calibrateDT(const unsigned int& Step, const double& customSpeed)
 {
 	double dtOld = dt;
-	double radius = O.getRadius();
+
 	double mass = O.getMass();
 
 	// Sim fall velocity onto cluster:
 	// vCollapse shrinks if a ball escapes but velMax should take over at that point, unless it is ignoring far balls.
 	double position = 0;
 	double vCollapse = 0;
-	while (position < radius)
+	while (position < O.initialRadius)
 	{
-		vCollapse += G * mass / (radius * radius) * 0.1;
+		vCollapse += G * mass / (O.initialRadius * O.initialRadius) * 0.1;
 		position += vCollapse * 0.1;
 	}
 	vCollapse = fabs(vCollapse);
 
-	soc = 2 * radius; // sphere of consideration for max velocity, to avoid very unbound high vel balls.
+	soc = 2 * O.initialRadius; // sphere of consideration for max velocity, to avoid very unbound high vel balls.
 
 	double vMax = O.getVelMax(false);
 
-	// Check if the kick is going to be the most significant velocity basis, or if gravity will matter more.
 	std::cout << '\n';
-	if (customVel > 0.)
-	{
-		vMax = customVel;
-		std::cout << "OVERRIDE velocity for dt calc: " << customVel;
-	}
-	else if (vMax > fabs(vCollapse))
+
+	// Take whichever velocity is greatest:
+	if (vMax > fabs(vCollapse))
 	{
 		std::cout << "vMax > binding: " << vCollapse << " = vCollapse | vMax = " << vMax;
 	}
@@ -872,18 +865,17 @@ inline void calibrateDT(const unsigned int& Step, const bool doK, const double& 
 		vMax = vCollapse;
 	}
 
-	// Safe: dt based on fastest velocity
+	// We only want to calc k at the beginning of the sim, and always based on the velocity of collision we intend for the cluster, so don't do k otherwise:
+	if (customSpeed > 0.)
+	{
+		kin = getLazzK(customSpeed);
+		kout = cor * kin;
+		std::cout << "K WAS SET BASED ON ASSUMED SPEED: " << customSpeed;
+	}
+
+	// dt based on fastest velocity
 	dt = getLazzDT(vMax);
 	std::cout << " | dt Calibrated: " << dt;
-
-	if (doK)
-	{
-		// Safe: K based on fastest velocity
-		kin = getLazzK(vMax);
-		kout = cor * kin;
-		std::cout << " K Calibrated: " << kin;
-
-	}
 
 	if (timeResolution / dt > 1.)
 	{

@@ -39,7 +39,7 @@ struct ballGroup
 		mom = { 0, 0, 0 },
 		angMom = { 0, 0, 0 }; // Can be vector3d because they only matter for writing out to file. Can process on host.
 
-	double PE = 0, KE = 0;
+	double PE = 0, KE = 0, initialRadius = 0;
 
 	double* distances = 0;
 
