@@ -35,10 +35,8 @@ inline void simLooper();
 inline void generateBallField();
 inline void safetyChecks();
 inline void calibrateDT(const unsigned int& Step, const bool doK, const double& customVel = 0);
-inline void setGuidDT(const double& vel);
-inline void setGuidK(const double& vel);
-inline void setLazzDT(const double& vel);
-inline void setLazzK(const double& vel);
+inline double getLazzDT(const double& vel);
+inline double getLazzK(const double& vel);
 
 
 //////////////////////////////////////////////////////////////
@@ -160,7 +158,7 @@ inline void simContinue()
 
 inline void simInitCondAndCenter()
 {
-	// k and dt override to stabilize cluster.
+	// hack k and dt override to stabilize cluster.
 	calibrateDT(0, true);
 	// hack temporary dt, skip, and steps override.
 	//dt = 0.0001;
@@ -174,10 +172,7 @@ inline void simInitCondAndCenter()
 	std::cout << "Steps: " << steps << '\n';
 	std::cout << "==================" << '\n';
 
-
-
 	O.checkMomentum("After Zeroing"); // Is total mom zero like it should be?
-
 
 	// Compute physics between all balls. Distances, collision forces, energy totals, total mass:
 	O.initConditions();
@@ -878,13 +873,14 @@ inline void calibrateDT(const unsigned int& Step, const bool doK, const double& 
 	}
 
 	// Safe: dt based on fastest velocity
-	setLazzDT(vMax);
+	dt = getLazzDT(vMax);
 	std::cout << " | dt Calibrated: " << dt;
 
 	if (doK)
 	{
 		// Safe: K based on fastest velocity
-		setLazzK(vMax);
+		kin = getLazzK(vMax);
+		kout = cor * kin;
 		std::cout << " K Calibrated: " << kin;
 
 	}
@@ -911,29 +907,28 @@ inline void calibrateDT(const unsigned int& Step, const bool doK, const double& 
 	}
 }
 
-void setGuidDT(const double& vel)
+inline void setGuidDT(const double& vel)
 {
 	// Guidos k and dt:
 	dt = .01 * O.getRmin() / fabs(vel);
 }
 
-void setGuidK(const double& vel)
+inline void setGuidK(const double& vel)
 {
 	kin = O.getMassMax() * vel * vel / (.1 * O.R[0] * .1 * O.R[0]);
 	kout = cor * kin;
 }
 
-void setLazzDT(const double& vel)
+inline double getLazzDT(const double& vel)
 {
 	// Lazzati k and dt:
 	// dt is ultimately depend on the velocities in the system, k is a part of this calculation because we derive dt with a dependence on k. Even if we don't choose to modify k, such as in the middle of a simulation (which would break conservation of energy), we maintain the concept of k for comprehension. One could just copy kTemp into the dt formula and ignore the k dependence.
 	double rMin = O.getRmin();
-	double kTemp = 4. / 3. * M_PI * density * O.getRmax() * vel * vel / (maxOverlap * maxOverlap);
-	dt = .01 * sqrt(4. / 3. * M_PI * density / kTemp * rMin * rMin * rMin);
+	double kTemp = getLazzK(vel);
+	return .01 * sqrt(4. / 3. * M_PI * density / kTemp * rMin * rMin * rMin);
 }
 
-void setLazzK(const double& vel)
+inline double getLazzK(const double& vel)
 {
-	kin = 4. / 3. * M_PI * density * O.getRmax() * vel * vel / (.1 * .1);
-	kout = cor * kin;
+	return 4. / 3. * M_PI * density * O.getRmax() * vel * vel / (maxOverlap * maxOverlap);
 }
