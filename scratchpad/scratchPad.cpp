@@ -1,35 +1,54 @@
 #include "scratchPad.h"
 
 #include <iostream>
-#include <cmath>
-double integral(float a, float b)
+using namespace std;
+
+class Base
 {
-    double n = 16777215; //number of parts
-    float Dx = (b - a) / n;
-    float i = 1;
-    double sum = 0;
-
-    float x;
-    float f;
-    while (i <= n)
+public:
+    int a;
+    Base()
     {
-        x = a + Dx * i;
-        f = cos(x); //define expression here
-        //printf("%f",f);
-        sum = sum + Dx * f;
-        if (i == n)
-        {
-            //printf("Area = %f\n", sum);
-            return sum;
-        }
-
-        i = i + 1;
+        a = 1;
+    }
+    Base& operator = (Base& obj)
+    {
+        a = obj.a;
+        return *this;
     }
 
-}
+    virtual int eq() const
+    {
+        cout << "asd1";
+        return 0;
+    }
+};
+
+class Derived
+{
+public:
+    int b;
+    Derived()
+    {
+        b = 2;
+    }
+
+    virtual int eq() override
+    {
+        cout << "asd2";
+        return 1;
+    }
+
+};
 
 int main()
 {
-    printf("%f", integral(1, 3));
-    return 0;
+    Derived ob1;
+    Derived ob2;
+
+    cout << ob1.b;
+
+    ob1 = ob2;
+
+    cout << ob1.b;
 }

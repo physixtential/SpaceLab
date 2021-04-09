@@ -20,7 +20,7 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\objects.hpp">
+    <ClInclude Include="..\ballGroup.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\vector3d.hpp">
