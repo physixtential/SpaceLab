@@ -920,23 +920,27 @@ void calibrateDT(const unsigned int& Step, const double& customSpeed)
 	}
 }
 
-void setGuidDT(const double& vel)
-{
-	// Guidos k and dt:
-	dt = .01 * O.getRmin() / fabs(vel);
-}
-
-void setGuidK(const double& vel)
-{
-	kin = O.getMassMax() * vel * vel / (.1 * O.R[0] * .1 * O.R[0]);
-	kout = cor * kin;
-}
+//void setGuidDT(const double& vel)
+//{
+//	// Guidos k and dt:
+//	dt = .01 * O.getRmin() / fabs(vel);
+//}
+//
+//void setGuidK(const double& vel)
+//{
+//	kin = O.getMassMax() * vel * vel / (.1 * O.R[0] * .1 * O.R[0]);
+//	kout = cor * kin;
+//}
 
 [[nodiscard]] double getLazzDT(const double& vel)
 {
 	// Lazzati k and dt:
 	// dt is ultimately depend on the velocities in the system, k is a part of this calculation because we derive dt with a dependence on k. Even if we don't choose to modify k, such as in the middle of a simulation (which would break conservation of energy), we maintain the concept of k for comprehension. One could just copy kTemp into the dt formula and ignore the k dependence.
 	const double rMin = O.getRmin();
+	// todo - set R min and other constants in constructor by running these functions
+	// make everything that can be constant constant.
+	// get rid of ktemp
+	// if current vMax greater than original, send warning and pause simulation.
 	const double kTemp = getLazzK(vel);
 	return .01 * sqrt(4. / 3. * M_PI * density / kTemp * rMin * rMin * rMin);
 }
