@@ -7,7 +7,7 @@
 #include <iomanip>
 #include "../vector3d.hpp"
 #include "../initializations.hpp"
-#include "../objects.hpp"
+#include "../ballGroup.hpp"
 
 
 // String buffers to hold data in memory until worth writing to file:
@@ -33,8 +33,6 @@ void simOneStep(const unsigned int& Step);
 void generateBallField();
 void safetyChecks();
 void calibrateDT(const unsigned int& Step, const double& customSpeed = -1.0);
-void setGuidDT(const double& vel);
-void setGuidK(const double& vel);
 double getLazzDT(const double& vel);
 double getLazzK(const double& vel);
 

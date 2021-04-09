@@ -30,8 +30,8 @@
     <ClCompile Include="ColliderSingleCore.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\initializations.hpp" />
     <ClInclude Include="..\ballGroup.hpp" />
+    <ClInclude Include="..\initializations.hpp" />
     <ClInclude Include="..\vector3d.hpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
