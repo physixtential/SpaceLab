@@ -242,8 +242,8 @@ void simOneStep(const unsigned int& Step)
 			// Check for collision between Ball and otherBall.
 			if (overlap > 0)
 			{
-				double k;
 				// todo, make calibrateDT activate only after the first collision occurs, and based on the velocity of that collision.
+				double k;
 				// Apply coefficient of restitution to balls leaving collision.
 				if (dist >= oldDist)
 				{
