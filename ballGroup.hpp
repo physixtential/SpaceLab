@@ -11,7 +11,7 @@
 /// Recommended: Use ballGroup(int nBalls) constructor to allocate all the memory needed for your ballGroup size.
 struct ballGroup
 {
-	ballGroup() = default;
+	//ballGroup() = default;
 
 	/// @brief For creating a new ballGroup of size nBalls
 	/// @param nBalls Number of balls to allocate.
@@ -30,6 +30,7 @@ struct ballGroup
 		rMin = getRmin();
 		rMax = getRmax();
 		mTotal = getMass();
+		initialRadius = getRadius();
 	}
 
 	// String buffers to hold data in memory until worth writing to file:
@@ -253,6 +254,9 @@ struct ballGroup
 
 				for (unsigned int B = 0; B < A; B++)
 				{
+					// todo - profile this section. Look for slow parts to improve.
+					// Break this up into standalone functions if useful.
+
 					const double sumRaRb = R[A] + R[B];
 					const double dist = (pos[A] - pos[B]).norm();
 					vector3d rVecab = pos[B] - pos[A];

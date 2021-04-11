@@ -154,8 +154,6 @@ void simContinue()
 
 void simInitCondAndCenter()
 {
-	O.initialRadius = O.getRadius();
-
 	calibrateDT(0, 600000.);
 
 	std::cout << "==================" << '\n';
