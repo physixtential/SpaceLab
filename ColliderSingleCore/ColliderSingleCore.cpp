@@ -33,6 +33,7 @@ void simOneStep(const unsigned int& Step);
 void generateBallField();
 void safetyChecks();
 void calibrateDT(const unsigned int& Step, const double& customSpeed = -1.0);
+void updateDTK(const double& vel);
 
 
 //////////////////////////////////////////////////////////////
