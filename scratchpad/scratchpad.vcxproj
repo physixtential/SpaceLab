@@ -170,7 +170,11 @@
     <ClCompile Include="scratchpad.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\vector3d.hpp" />
     <ClInclude Include="scratchPad.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="scratchpad.rc" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

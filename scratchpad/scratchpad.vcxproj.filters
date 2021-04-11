@@ -23,5 +23,13 @@
     <ClInclude Include="scratchPad.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\vector3d.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="scratchpad.rc">
+      <Filter>Resource Files</Filter>
+    </ResourceCompile>
   </ItemGroup>
 </Project>

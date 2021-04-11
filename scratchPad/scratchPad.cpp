@@ -1,9 +1,28 @@
 #include "scratchPad.h"
 
-using std::cout, std::cin, std::string;
-
-double Game_Process(string playerName)
+struct Triangle
 {
-	INT64 test = 3;
-	float casted = test;
+    vector3d
+};
+
+float getWeightA()
+{
+    return ((marker.y - c.y) * (b.x - c.x) + (marker.x - c.x)
+        * (c.y - b.y) / ((a.y - c.y) * (b.x - c.x) + (a.x - c.x)
+            * (c.y - b.y));
+}
+
+void calcMix()
+{
+    auto mixA = getWeightA();
+
+    auto mixB = (marker.x - mixA * a.x - c.x + mixA *
+        c.x) / (b.x - c.x);
+
+    auto mixC = 1.f - mixA - mixB;
+}
+
+int main()
+{
+
 }
