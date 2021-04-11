@@ -4,14 +4,15 @@
 // Initialization (Units are CGS) //
 ////////////////////////////////////
 
-const double
+constexpr double
 G = 6.67e-8,   // Gravitational constant
 density = 2.7, //2.7, // Typically based on some rock density
 mu = 0.9,      // Coeff of friction
 cor = 0.8,     // Coeff of restitution
 simTimeSeconds = 18000., // Seconds
 timeResolution = 200., // Seconds
-maxOverlap = .1; // fraction of smallest sphere radius.
+maxOverlap = .1,
+fourThirdsPiRho = 4. / 3. * M_PI * density; // fraction of smallest sphere radius.
 
 // Simulation Structure
 inline const unsigned int

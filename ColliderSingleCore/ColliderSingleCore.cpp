@@ -33,8 +33,6 @@ void simOneStep(const unsigned int& Step);
 void generateBallField();
 void safetyChecks();
 void calibrateDT(const unsigned int& Step, const double& customSpeed = -1.0);
-double getLazzDT(const double& vel);
-double getLazzK(const double& vel);
 
 
 //////////////////////////////////////////////////////////////
@@ -75,9 +73,9 @@ void simInitTwoCluster()
 
 	// DART PROBE
 	ballGroup projectile(1);
-	projectile.pos[0] = { 8800,0,0 };
-	projectile.w[0] = { 0,0,0 };
-	projectile.vel[0] = { 0,0,0 };
+	projectile.pos[0] = { 8800, 0, 0 };
+	projectile.w[0] = { 0, 0, 0 };
+	projectile.vel[0] = { 0, 0, 0 };
 	projectile.R[0] = 78.5;
 	projectile.m[0] = 560000;
 	projectile.moi[0] = .4 * projectile.m[0] * projectile.R[0] * projectile.R[0];
@@ -138,7 +136,7 @@ void simContinue()
 	// Load file data:
 	std::cerr << "Continuing Sim...\nFile: " << targetName << '\n';
 
-	O.importDataFromFile(path + targetName);
+	O.loadSim(path + targetName);
 
 	O.toOrigin();
 
@@ -258,7 +256,7 @@ void simOneStep(const unsigned int& Step)
 				vector3d dVel = O.vel[B] - O.vel[A];
 				const vector3d relativeVelOfA = (dVel)-((dVel).dot(rVecab)) * (rVecab / (dist * dist)) - O.w[A].cross(O.R[A] / sumRaRb * rVecab) - O.w[B].cross(O.R[B] / sumRaRb * rVecab);
 				const vector3d elasticForceOnA = -k * overlap * .5 * (rVecab / dist);
-				vector3d frictionForceOnA = { 0,0,0 };
+				vector3d frictionForceOnA = { 0, 0, 0 };
 				if (relativeVelOfA.norm() > 1e-12) // When relative velocity is very low, dividing its vector components by its magnitude below is unstable.
 				{
 					frictionForceOnA = mu * elasticForceOnA.norm() * (relativeVelOfA / relativeVelOfA.norm());
@@ -269,7 +267,7 @@ void simOneStep(const unsigned int& Step)
 				dVel = O.vel[A] - O.vel[B];
 				const vector3d relativeVelOfB = (dVel)-((dVel).dot(rVecba)) * (rVecba / (dist * dist)) - O.w[B].cross(O.R[B] / sumRaRb * rVecba) - O.w[A].cross(O.R[A] / sumRaRb * rVecba);
 				const vector3d elasticForceOnB = -k * overlap * .5 * (rVecba / dist);
-				vector3d frictionForceOnB = { 0,0,0 };
+				vector3d frictionForceOnB = { 0, 0, 0 };
 				if (relativeVelOfB.norm() > 1e-12)
 				{
 					frictionForceOnB = mu * elasticForceOnB.norm() * (relativeVelOfB / relativeVelOfB.norm());
@@ -854,56 +852,51 @@ void calibrateDT(const unsigned int& Step, const double& customSpeed)
 {
 	const double dtOld = dt;
 
-	const double mass = O.getMass();
-
-	// Sim fall velocity onto cluster:
-	// vCollapse shrinks if a ball escapes but velMax should take over at that point, unless it is ignoring far balls.
-	double position = 0;
-	double vCollapse = 0;
-	while (position < O.initialRadius)
-	{
-		vCollapse += G * mass / (O.initialRadius * O.initialRadius) * 0.1;
-		position += vCollapse * 0.1;
-	}
-	vCollapse = fabs(vCollapse);
-
-	soc = 2 * O.initialRadius; // sphere of consideration for max velocity, to avoid very unbound high vel balls.
-
-	double vMax = O.getVelMax(false);
-
-	std::cout << '\n';
-
-	// Take whichever velocity is greatest:
-	if (vMax > fabs(vCollapse))
-	{
-		std::cout << "vMax > binding: " << vCollapse << " = vCollapse | vMax = " << vMax;
-	}
-	else
-	{
-		std::cout << "Binding > vMax: " << vCollapse << " = vCollapse | vMax = " << vMax;
-		vMax = vCollapse;
-	}
-
-	// We only want to calc k at the beginning of the sim, and always based on the velocity of collision we intend for the cluster, so don't do k otherwise:
 	if (customSpeed > 0.)
 	{
-		kin = getLazzK(customSpeed);
-		kout = cor * kin;
-		std::cout << "K WAS SET BASED ON ASSUMED SPEED: " << customSpeed;
-	}
-
-	// dt based on fastest velocity
-	dt = getLazzDT(vMax);
-	std::cout << " | dt Calibrated: " << dt;
-
-	if (timeResolution / dt > 1.)
-	{
-		skip = static_cast<unsigned>(floor(timeResolution / dt));
+		updateDTK(customSpeed);
+		std::cout << "CUSTOM SPEED: " << customSpeed;
 	}
 	else
 	{
-		std::cout << "Desired time resolution is lower than dt.\n";
+		// Sim fall velocity onto cluster:
+		// vCollapse shrinks if a ball escapes but velMax should take over at that point, unless it is ignoring far balls.
+		double position = 0;
+		double vCollapse = 0;
+		while (position < O.initialRadius)
+		{
+			vCollapse += G * O.mTotal / (O.initialRadius * O.initialRadius) * 0.1;
+			position += vCollapse * 0.1;
+		}
+		vCollapse = fabs(vCollapse);
+
+		std::cout << vCollapse << " <- vCollapse | Lazz Calc -> " << M_PI * M_PI * G * pow(density, 4. / 3.) * pow(O.mTotal, 2. / 3.) * O.rMax;
 		system("pause");
+
+		soc = 2 * O.initialRadius; // sphere of consideration for max velocity, to avoid very unbound high vel balls.
+
+		double vMax = O.getVelMax(false);
+
+		std::cout << '\n';
+
+		// Take whichever velocity is greatest:
+		if (vMax > fabs(vCollapse))
+		{
+			std::cout << "vMax > binding: " << vCollapse << " = vCollapse | vMax = " << vMax;
+		}
+		else
+		{
+			std::cout << "Binding > vMax: " << vCollapse << " = vCollapse | vMax = " << vMax;
+			vMax = vCollapse;
+		}
+
+		updateDTK(vMax);
+	}
+
+	// If current vMax greater than original, send warning and pause simulation.
+	if (vMax > vMaxPrev)
+	{
+
 	}
 
 	if (Step == 0 or dtOld < 0)
@@ -915,6 +908,16 @@ void calibrateDT(const unsigned int& Step, const double& customSpeed)
 	{
 		steps = static_cast<unsigned>(dt / dtOld * (steps - Step) + Step);
 		std::cout << " New step count: " << steps << '\n';
+	}
+
+	if (timeResolution / dt > 1.)
+	{
+		skip = static_cast<unsigned>(floor(timeResolution / dt));
+	}
+	else
+	{
+		std::cout << "Desired time resolution is lower than dt.\n";
+		system("pause");
 	}
 }
 
@@ -930,20 +933,13 @@ void calibrateDT(const unsigned int& Step, const double& customSpeed)
 //	kout = cor * kin;
 //}
 
-[[nodiscard]] double getLazzDT(const double& vel)
+void updateDTK(const double& vel)
 {
-	// Lazzati k and dt:
-	// dt is ultimately depend on the velocities in the system, k is a part of this calculation because we derive dt with a dependence on k. Even if we don't choose to modify k, such as in the middle of a simulation (which would break conservation of energy), we maintain the concept of k for comprehension. One could just copy kTemp into the dt formula and ignore the k dependence.
+	constexpr double kConsts = fourThirdsPiRho / (maxOverlap * maxOverlap);
 	const double rMin = O.getRmin();
-	// todo - set R min and other constants in constructor by running these functions
-	// make everything that can be constant constant.
-	// get rid of ktemp
-	// if current vMax greater than original, send warning and pause simulation.
-	const double kTemp = getLazzK(vel);
-	return .01 * sqrt(4. / 3. * M_PI * density / kTemp * rMin * rMin * rMin);
-}
+	const double rMax = O.getRmax();
 
-[[nodiscard]] double getLazzK(const double& vel)
-{
-	return 4. / 3. * M_PI * density * O.getRmax() * vel * vel / (maxOverlap * maxOverlap);
+	kin = kConsts * rMax * vel * vel;
+	kout = cor * kin;
+	dt = .01 * sqrt(fourThirdsPiRho / kin * rMin * rMin * rMin);
 }

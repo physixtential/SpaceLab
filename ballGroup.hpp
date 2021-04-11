@@ -21,10 +21,15 @@ struct ballGroup
 	}
 
 	/// @brief for importing a ballGroup from file.
-	/// @param filename 
-	explicit ballGroup(const std::string& filename)
+	/// @param fileTag is the filename excluding the suffix _simData.csv, _constants.csv, etc.
+	explicit ballGroup(const std::string& fileTag)
 	{
-		importDataFromFile(filename);
+		loadSim(fileTag);
+
+		// Initialized some useful constants:
+		rMin = getRmin();
+		rMax = getRmax();
+		mTotal = getMass();
 	}
 
 	// String buffers to hold data in memory until worth writing to file:
@@ -34,11 +39,16 @@ struct ballGroup
 	unsigned int cNumBalls = 0;
 	unsigned int cNumBallsAdded = 0;
 
-	vector3d
-		mom = { 0, 0, 0 },
-		angMom = { 0, 0, 0 }; // Can be vector3d because they only matter for writing out to file. Can process on host.
+	// Useful constants:
+	double rMin = -1;
+	double rMax = -1;
+	double mTotal = -1;
+	double initialRadius = -1;
 
-	double PE = 0, KE = 0, initialRadius = 0;
+	vector3d mom = { 0, 0, 0 };
+	vector3d angMom = { 0, 0, 0 }; // Can be vector3d because they only matter for writing out to file. Can process on host.
+
+	double PE = 0, KE = 0;
 
 	double* distances = nullptr;
 
@@ -457,10 +467,94 @@ struct ballGroup
 
 
 	/// Make ballGroup from file data.
-	void importDataFromFile(const std::string& filename)
+	void loadSim(const std::string& fileTag)
+	{
+		parseSimData(getLastLine(fileTag));
+
+		loadConsts(fileTag);
+
+		// Bring cluster to origin:
+		toOrigin();
+
+		std::cout << "Balls: " << cNumBalls << '\n';
+		std::cout << "Mass: " << getMass() << '\n';
+		std::cout << "Approximate radius: " << getRadius() << " cm.\n";
+	}
+
+
+
+	void parseSimData(std::string line)
+	{
+		std::string lineElement;
+
+		// Get number of balls in file
+		unsigned int count = std::count(line.begin(), line.end(), ',') / properties + 1;
+		allocateGroup(count);
+
+		std::stringstream chosenLine(line); // This is the last line of the read file, containing all data for all balls at last time step
+
+		// Get position and angular velocity data:
+		for (unsigned int A = 0; A < cNumBalls; A++)
+		{
+
+			for (unsigned int i = 0; i < 3; i++) // Position
+			{
+				std::getline(chosenLine, lineElement, ',');
+				pos[A][i] = std::stod(lineElement);
+				//std::cout << tclus.pos[A][i]<<',';
+			}
+			for (unsigned int i = 0; i < 3; i++) // Angular Velocity
+			{
+				std::getline(chosenLine, lineElement, ',');
+				w[A][i] = std::stod(lineElement);
+			}
+			std::getline(chosenLine, lineElement, ','); // Angular velocity magnitude skipped
+			for (unsigned int i = 0; i < 3; i++)                 // velocity
+			{
+				std::getline(chosenLine, lineElement, ',');
+				vel[A][i] = std::stod(lineElement);
+			}
+			for (unsigned int i = 0; i < properties - 10; i++) // We used 10 elements. This skips the rest.
+			{
+				std::getline(chosenLine, lineElement, ',');
+			}
+		}
+	}
+
+
+	/// Get previous sim constants by filename.
+	void loadConsts(const std::string& fileTag)
+	{
+		// Get radius, mass, moi:
+		std::string constantsFilename = fileTag + "constants.csv";
+		if (auto ConstStream = std::ifstream(constantsFilename, std::ifstream::in))
+		{
+			std::string line, lineElement;
+			for (unsigned int A = 0; A < cNumBalls; A++)
+			{
+				std::getline(ConstStream, line); // Ball line.
+				std::stringstream chosenLine(line);
+				std::getline(chosenLine, lineElement, ','); // Radius.
+				R[A] = std::stod(lineElement);
+				std::getline(chosenLine, lineElement, ','); // Mass.
+				m[A] = std::stod(lineElement);
+				std::getline(chosenLine, lineElement, ','); // Moment of inertia.
+				moi[A] = std::stod(lineElement);
+			}
+		}
+		else
+		{
+			std::cerr << "Could not open constants file: " << constantsFilename << "... Existing program." << '\n';
+			exit(EXIT_FAILURE);
+		}
+	}
+
+
+
+	/// Get last line of previous simData by filename.
+	[[nodiscard]] std::string getLastLine(const std::string& filename)
 	{
 		std::string simDataFilename = filename + "simData.csv";
-		std::string constantsFilename = filename + "constants.csv";
 
 		if (auto simDataStream = std::ifstream(simDataFilename, std::ifstream::in))
 		{
@@ -489,42 +583,10 @@ struct ballGroup
 					simDataStream.seekg(-2, std::ios_base::cur); // Move to the front of that data, then to the front of the data before it
 				}
 			}
+			std::string line;
+			std::getline(simDataStream, line); // Read the current line
 
-			std::string line, lineElement;
-
-			std::getline(simDataStream, line);                                              // Read the current line
-			unsigned int count = std::count(line.begin(), line.end(), ',') / properties + 1;
-
-			allocateGroup(count); // Get number of balls in file
-
-			std::stringstream chosenLine(line); // This is the last line of the read file, containing all data for all balls at last time step
-
-			// Get position and angular velocity data:
-			for (unsigned int A = 0; A < cNumBalls; A++)
-			{
-
-				for (unsigned int i = 0; i < 3; i++) // Position
-				{
-					std::getline(chosenLine, lineElement, ',');
-					pos[A][i] = std::stod(lineElement);
-					//std::cout << tclus.pos[A][i]<<',';
-				}
-				for (unsigned int i = 0; i < 3; i++) // Angular Velocity
-				{
-					std::getline(chosenLine, lineElement, ',');
-					w[A][i] = std::stod(lineElement);
-				}
-				std::getline(chosenLine, lineElement, ','); // Angular velocity magnitude skipped
-				for (unsigned int i = 0; i < 3; i++)                 // velocity
-				{
-					std::getline(chosenLine, lineElement, ',');
-					vel[A][i] = std::stod(lineElement);
-				}
-				for (unsigned int i = 0; i < properties - 10; i++) // We used 10 elements. This skips the rest.
-				{
-					std::getline(chosenLine, lineElement, ',');
-				}
-			}
+			return line;
 		}
 		else
 		{
@@ -532,34 +594,6 @@ struct ballGroup
 			exit(EXIT_FAILURE);
 		}
 
-		// Get radius, mass, moi:
-		if (auto ConstStream = std::ifstream(constantsFilename, std::ifstream::in))
-		{
-			std::string line, lineElement;
-			for (unsigned int A = 0; A < cNumBalls; A++)
-			{
-				std::getline(ConstStream, line); // Ball line.
-				std::stringstream chosenLine(line);
-				std::getline(chosenLine, lineElement, ','); // Radius.
-				R[A] = std::stod(lineElement);
-				std::getline(chosenLine, lineElement, ','); // Mass.
-				m[A] = std::stod(lineElement);
-				std::getline(chosenLine, lineElement, ','); // Moment of inertia.
-				moi[A] = std::stod(lineElement);
-			}
-		}
-		else
-		{
-			std::cerr << "Could not open constants file: " << constantsFilename << "... Existing program." << '\n';
-			exit(EXIT_FAILURE);
-		}
-
-		// Bring cluster to origin and calc its radius:
-		toOrigin();
-
-		std::cout << "Balls: " << cNumBalls << '\n';
-		std::cout << "Mass: " << getMass() << '\n';
-		std::cout << "Approximate radius: " << getRadius() << " cm.\n";
 	}
 
 	// Todo - make bigger balls favor the middle, or, smaller balls favor the outside.
