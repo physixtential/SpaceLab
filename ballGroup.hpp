@@ -11,7 +11,8 @@
 /// Recommended: Use ballGroup(int nBalls) constructor to allocate all the memory needed for your ballGroup size.
 struct ballGroup
 {
-	//ballGroup() = default;
+	// todo - Consider getting rid of default, and getting rid of global O ballGroup.
+	ballGroup() = default;
 
 	/// @brief For creating a new ballGroup of size nBalls
 	/// @param nBalls Number of balls to allocate.
@@ -68,11 +69,16 @@ struct ballGroup
 	/// Allocate ball property arrays.
 	void allocateGroup(const unsigned int nBalls)
 	{
+		if (nBalls % 2 != 0)
+		{
+			std::cout << "Number of spheres must be even.";
+			exit(EXIT_FAILURE);
+		}
+
 		cNumBalls = nBalls;
 
 		try
 		{
-			// Todo - Note that this formula does not work when cNumBalls is odd.
 			distances = new double[(cNumBalls * cNumBalls / 2) - (cNumBalls / 2)];
 
 			pos = new vector3d[cNumBalls];

@@ -154,7 +154,7 @@ void simContinue()
 
 void simInitCondAndCenter()
 {
-	calibrateDT(0, 600000.);
+	calibrateDT(0, 0);
 
 	std::cout << "==================" << '\n';
 	std::cout << "dt: " << dt << '\n';
@@ -778,6 +778,7 @@ void generateBallField()
 	//twoSizeSphereShell5000();
 	//oneSizeSphere();
 	threeSizeSphere();
+	O.initialRadius = O.getRadius();
 
 	outputPrefix =
 		std::to_string(genBalls) +
@@ -892,11 +893,8 @@ void calibrateDT(const unsigned int& Step, const double& customSpeed)
 		updateDTK(vMax);
 	}
 
-	// If current vMax greater than original, send warning and pause simulation.
-	if (vMax > vMaxPrev)
-	{
+	// todo - If current vMax greater than original, send warning and pause simulation.
 
-	}
 
 	if (Step == 0 or dtOld < 0)
 	{

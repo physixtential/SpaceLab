@@ -8,11 +8,7 @@
 #include <chrono>
 #include <thread>
 #include <limits>
-#include "vector3d.hpp"
-
-
-
-
+#include "../vector3d.hpp"
 
 
 void matrixMaker(std::vector<std::vector<std::vector<int>>>& matList)

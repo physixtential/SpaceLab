@@ -10,14 +10,14 @@ density = 2.7, //2.7, // Typically based on some rock density
 mu = 0.9,      // Coeff of friction
 cor = 0.8,     // Coeff of restitution
 simTimeSeconds = 18000., // Seconds
-timeResolution = 200., // Seconds
+timeResolution = 20., // Seconds
 maxOverlap = .1,
 fourThirdsPiRho = 4. / 3. * M_PI * density; // fraction of smallest sphere radius.
 
 // Simulation Structure
 inline const unsigned int
 properties = 11, // Number of columns in simData file per ball
-genBalls = 2,
+genBalls = 500,
 attempts = 200; // How many times to try moving every ball touching another in generator.
 
 inline unsigned int
