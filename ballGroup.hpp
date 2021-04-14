@@ -261,7 +261,7 @@ struct ballGroup
 				for (unsigned int B = 0; B < A; B++)
 				{
 					// todo - profile this section. Look for slow parts to improve.
-					// Break this up into standalone functions if useful.
+					// Break this up into standalone functions at least for profiling, or figure out how to profile line by line.
 
 					const double sumRaRb = R[A] + R[B];
 					const double dist = (pos[A] - pos[B]).norm();

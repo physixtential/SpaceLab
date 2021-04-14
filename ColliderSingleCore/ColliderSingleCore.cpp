@@ -65,7 +65,7 @@ int main(const int argc, char const* argv[])
 //////////////////////////////////////////////////////////////
 
 
-
+// Set's up a two cluster collision.
 void simInitTwoCluster()
 {
 	// Load file data:
@@ -779,6 +779,7 @@ void generateBallField()
 	//oneSizeSphere();
 	threeSizeSphere();
 	O.initialRadius = O.getRadius();
+	O.mTotal = O.getMass();
 
 	outputPrefix =
 		std::to_string(genBalls) +

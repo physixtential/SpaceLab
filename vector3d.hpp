@@ -11,30 +11,24 @@ public:
 	double y;
 	double z;
 
-	vector3d()
-	{
-		x = y = z = 0;
-	}
+	vector3d() : x(0), y(0), z(0) {}
+
 	vector3d(const double newx, const double newy, const double newz)
+		: x(newx), y(newy), z(newz)
 	{
-		x = newx;
-		y = newy;
-		z = newz;
-	}
-	vector3d(const vector3d& v)
-	{
-		x = v.x;
-		y = v.y;
-		z = v.z;
 	}
 
-	vector3d& operator=(const vector3d& v)
-	{
-		x = v.x;
-		y = v.y;
-		z = v.z;
-		return *this;
-	}
+	//vector3d(const vector3d& v) : x(v.x), y(v.y), z(v.z)
+	//{
+	//}
+
+	//vector3d& operator=(const vector3d& v)
+	//{
+	//	x = v.x;
+	//	y = v.y;
+	//	z = v.z;
+	//	return *this;
+	//}
 
 	vector3d operator-() const
 	{
@@ -45,6 +39,7 @@ public:
 	{
 		return vector3d(x + v.x, y + v.y, z + v.z);
 	}
+
 	vector3d operator+=(const vector3d& v)
 	{
 		x += v.x;
@@ -57,6 +52,7 @@ public:
 	{
 		return vector3d(x - v.x, y - v.y, z - v.z);
 	}
+
 	vector3d operator-=(const vector3d& v)
 	{
 		x -= v.x;
@@ -69,6 +65,7 @@ public:
 	{
 		return vector3d(scalar * x, scalar * y, scalar * z);
 	}
+
 	vector3d operator*=(const double scalar)
 	{
 		x *= scalar;
@@ -81,6 +78,7 @@ public:
 	{
 		return vector3d(x / scalar, y / scalar, z / scalar);
 	}
+
 	vector3d operator/=(const double scalar)
 	{
 		x /= scalar;
@@ -159,9 +157,9 @@ public:
 
 	[[nodiscard]] vector3d rot(char axis, double angle) const
 	{
-		double rotx[3][3] = { {1, 0, 0}, {0, cos(angle), -sin(angle)}, {0, sin(angle), cos(angle)} },
-			roty[3][3] = { {cos(angle), 0, sin(angle)}, {0, 1, 0}, {-sin(angle), 0, cos(angle)} },
-			rotz[3][3] = { {cos(angle), -sin(angle), 0}, {sin(angle), cos(angle), 0}, {0, 0, 1} };
+		double rotx[3][3] = { { 1, 0, 0 }, { 0, cos(angle), -sin(angle) }, { 0, sin(angle), cos(angle) } },
+			roty[3][3] = { { cos(angle), 0, sin(angle) }, { 0, 1, 0 }, { -sin(angle), 0, cos(angle) } },
+			rotz[3][3] = { { cos(angle), -sin(angle), 0 }, { sin(angle), cos(angle), 0 }, { 0, 0, 1 } };
 		vector3d newVec;
 		switch (axis)
 		{

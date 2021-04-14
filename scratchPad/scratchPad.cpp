@@ -1,92 +1,56 @@
 #include "scratchPad.h"
 
+#include<iostream>
+#include<math.h>
+using namespace std;
 
-template<typename sType, typename vecType>
-struct Triangle
+void inp(int& a, int& b)
 {
-	// Three points that describe the triangle:
-	vecType a, b, c;
-
-	// Current point in triangle:
-	vecType marker;
-
-	// Weight at each triangle corner:
-	sType mixA;
-	sType mixB;
-	sType mixC;
-
-	Triangle(const vecType& a, const vecType& b, const vecType& c, const vecType& marker)
+	do
 	{
-		this->a = a;
-		this->b = b;
-		this->c = c;
-		this->marker = marker;
+		cout << " Donner deux entiers a et b tel que a<b";
+		cin >> a >> b;
+	} while (a > b);
+}
 
-		calcWeights();
-	}
-
-	void calcWeights()
-	{
-		mixA = (marker.y - c.y) * (b.x - c.x) + (marker.x - c.x)
-			* (c.y - b.y) / ((a.y - c.y) * (b.x - c.x) + (a.x - c.x)
-				* (c.y - b.y));
-
-		mixB = (marker.x - mixA * a.x - c.x + mixA *
-			c.x) / (b.x - c.x);
-
-		mixC = 1.f - mixA - mixB;
-	}
-};
-
-
-template<typename sType, typename vecType>
-struct Rectangle
+void n_av(int& a, int& b, int& n, int& av)
 {
-	// Three points that describe the triangle:
-	vecType a, b, c, d;
 
-	// Current point in rectangle:
-	vecType marker;
+	n = (b - a) - 1;
+	av = a + b / 2;
 
-	// Weight at each rectangle corner:
-	sType mixA;
-	sType mixB;
-	sType mixC;
-	sType mixD;
-
-	Rectangle(const vecType& a, const vecType& b, const vecType& c, const vecType& d, const vecType& marker)
-	{
-		this->a = a;
-		this->b = b;
-		this->c = c;
-		this->d = d;
-		this->marker = marker;
-
-		calcWeights();
-	}
-
-	void calcWeights()
-	{
-		//mixA = (marker.y - c.y) * (b.x - c.x) + (marker.x - c.x)
-		//	* (c.y - b.y) / ((a.y - c.y) * (b.x - c.x) + (a.x - c.x)
-		//		* (c.y - b.y));
-
-		//mixB = (marker.x - mixA * a.x - c.x + mixA *
-		//	c.x) / (b.x - c.x);
-
-		//mixC = 1.f - mixA - mixB;
-	}
-};
-
-
-int main()
+}
+void max_min(int& a, int& b, int& n, float& max, float& min)
 {
-	vector3d a = { 1, 1, 0 };
-	vector3d b = { 4, 1, 0 };
-	vector3d c = { 3, 2, 0 };
-	vector3d marker = { 2, 2, 0 };
+	int* A = new int[n];
+	int k, counter = 0;
 
-	Triangle<double, vector3d> test(a, b, c, marker);
+	cout << "donner les valeurs" << n << "qui sont entre a et b";
+	cin >> k;
 
-	std::cout << test.mixA << ',' << test.mixB << ',' << test.mixC;
+	for (int i = 0; i < n; i++)
+	{
+		if (k >= a && k <= b)
+		{
+			A[i] = k;
+		}
+		else
+		{
+			cout << "Value not in range " << a << " to " << b << '\n';
+			i--;
+		}
+	}
+
+	delete[] A; // You have to clean up c style arrays like this.
+}
+void add(int a, int n)
+{
+
+}
+void main()
+{
+	int n;
+	float a, b, max, min;
+	
+
 }

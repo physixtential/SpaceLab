@@ -8,6 +8,7 @@
 #include <chrono>
 #include <thread>
 #include <limits>
+#include <algorithm>
 #include "../vector3d.hpp"
 
 
@@ -73,10 +74,12 @@ int fun(int n)
 unsigned long long int fib(unsigned long long x)
 {
 	//recursive
-	if ((x == 1) || (x == 0)) {
+	if ((x == 1) || (x == 0))
+	{
 		return(x);
 	}
-	else {
+	else
+	{
 		return(fib(x - 1) + fib(x - 2));
 	}
 }
@@ -89,7 +92,8 @@ unsigned long long int fib_i(int num)
 		y = 1,
 		z = 0;
 
-	for (int i = 0; i < num; i++) {
+	for (int i = 0; i < num; i++)
+	{
 		if (z > 2'147'483'640 or x > 2'147'483'640 or y > 2'147'483'640)
 		{
 			std::cout << i << ' ' << x << ' ' << y << ' ' << z << ' ';
@@ -223,12 +227,54 @@ void eclipse()
 			std::cout << (now - start).count() << '\n';
 			start = steady_clock::now();
 		}
-		else {
+		else
+		{
 			std::this_thread::sleep_for(milliseconds(1));
 		}
 	}
 }
 
+
+using namespace std;
+class Solution
+{
+public:
+	void printArrs(int arr1[], int arr2[], int n, int m)
+	{
+		for (int i = 0; i < n; i++)
+		{
+			cout << arr1[i] << ' ';
+		}
+		cout << endl;
+		for (int i = 0; i < m; i++)
+		{
+			cout << arr2[i] << ' ';
+		}
+		cout << endl;
+	}
+
+	// This takes two sorted arrays of increasing values and reorders the values within them such that they increase across both arrays. 
+	void sortAcrossTwoArraysMinimalExtraMemory(int arr1[], int arr2[], int n, int m)
+	{
+		printArrs(arr1, arr2, n, m);
+
+		int r = (n < m) ? n : m;
+
+		for (int i = 0; i < r; i++)
+		{
+			cout << "Comp: " << n - i - 1 << ',' << i << '\t' << arr1[n - i - 1] << ' ' << arr2[i] << endl;
+			if (arr1[n - i - 1] > arr2[i])
+			{
+				cout << "swapping " << arr2[i] << " with " << arr1[n - i - 1] << '\n';
+				swap(arr1[n - i - 1], arr2[i]);
+			}
+		}
+		sort(arr1 + 0, arr1 + n);
+		sort(arr2 + 0, arr2 + m);
+
+		printArrs(arr1, arr2, n, m);
+	}
+};
 
 
 
