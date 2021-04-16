@@ -433,7 +433,7 @@ void simOneStep(const unsigned int& Step)
 		////////////////////////////////////////////////////////////////////
 		// Data Export /////////////////////////////////////////////////////
 		////////////////////////////////////////////////////////////////////
-		if (time(nullptr) - lastWrite > 1800 || Step / skip % 20 == 0 || Step == steps - 1)
+		if (time(nullptr) - lastWrite > 1800 || Step / skip % 10 == 0 || Step == steps - 1)
 		{
 			std::cout << "\nData Write\n";
 

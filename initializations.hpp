@@ -28,7 +28,7 @@ inline double
 dt = -1,
 kin = -1,      // Spring constant
 kout = -1,
-vTarget = 6000,
+vTarget = 6,
 //vStepper = 1.,
 soc,				// double the radius of the initial system. Any ball outside that isn't considered for dynamic dt calibration.
 scaleBalls = 100, // base radius of balls
