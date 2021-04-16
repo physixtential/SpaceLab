@@ -276,6 +276,40 @@ public:
 	}
 };
 
+// How to time benchmark a section of code.
+void chronoTimer()
+{
+	std::chrono::steady_clock::time_point begin;
+	std::chrono::steady_clock::time_point end;
+
+	std::chrono::milliseconds best;
+	bool firstRun = true;
+	for (size_t i = 0; i < 20; i++)
+	{
+		begin = std::chrono::steady_clock::now();
+
+		// TIMED CODE HERE
+
+		end = std::chrono::steady_clock::now();
+		auto time = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin);
+
+		if (firstRun)
+		{
+			best = time;
+		}
+		else
+		{
+			if (time < best)
+			{
+				best = time;
+			}
+		}
+	}
+
+
+	std::cout << best.count() << " ms\n";
+}
+
 
 
 

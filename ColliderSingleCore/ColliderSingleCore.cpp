@@ -35,6 +35,24 @@ void safetyChecks();
 void calibrateDT(const unsigned int& Step, const double& customSpeed = -1.0);
 void updateDTK(const double& vel);
 
+void simType(char simType)
+{
+	switch (simType)
+	{
+	case 'g':
+		generateBallField();
+		break;
+	case 'c':
+		simContinue();
+		break;
+	case 't':
+		simInitTwoCluster();
+		break;
+	default:
+		std::cout << "Did not choose a simulation type.";
+		break;
+	}
+}
 
 //////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////
@@ -50,10 +68,9 @@ int main(const int argc, char const* argv[])
 		//targetName = argv[3];
 		//KEfactor = atof(argv[4]);
 	}
-	//simInitTwoCluster();
-	//simContinue();
+
+	simType('c'); // c: continue old sim | t: two cluster collision | g: generate cluster
 	//O.pushApart();
-	generateBallField();
 	simInitCondAndCenter();
 	safetyChecks();
 	O.simInitWrite(outputPrefix);
@@ -154,7 +171,7 @@ void simContinue()
 
 void simInitCondAndCenter()
 {
-	calibrateDT(0, 0);
+	calibrateDT(0, vTarget);
 
 	std::cout << "==================" << '\n';
 	std::cout << "dt: " << dt << '\n';
@@ -371,28 +388,33 @@ void simOneStep(const unsigned int& Step)
 			<< simTimeElapsed << ',' << O.PE << ',' << O.KE << ',' << O.PE + O.KE << ',' << O.mom.norm() << ',' << O.angMom.norm(); // the two zeros are bound and unbound mass
 
 		// hack temporary k increaser.
-		//if (kin < kTarget)
+		//if (vStepper > vTarget)
 		//{
-		//	for (unsigned int A = 1; A < O.cNumBalls; A++)
+		//	if (true)
 		//	{
-		//		for (unsigned int B = 0; B < A; B++)
-		//		{
-		//			const vector3d gravForceOnA = (G * O.m[A] * O.m[B] / (dist * dist)) * (rVecab / dist);
-		//		}
-		//	}
-
-		//	// todo - If sum of all elastic forces = sum of all gravitational force, increase k.
-		//	if (totalEnergy < U * 1.1 and U < bindingEnergy * 1.1)
-		//	{
-		//		kin *= 2;
-		//		printf("INCREASING K: E = %e\tU = %e\tB = %e\tK = %e\n", totalEnergy, U, bindingEnergy, kin);
-		//		kout = cor * kin;
-		//	}
-		//	else
-		//	{
-		//		printf("NOT READY: E = %e\tU = %e\tB = %e\tK = %e\n", totalEnergy, U, bindingEnergy, kin);
 
 		//	}
+		//	calibrateDT(Step,vStepper)
+			//for (unsigned int A = 1; A < O.cNumBalls; A++)
+			//{
+			//	for (unsigned int B = 0; B < A; B++)
+			//	{
+			//		const vector3d gravForceOnA = (G * O.m[A] * O.m[B] / (dist * dist)) * (rVecab / dist);
+			//	}
+			//}
+
+			//// todo - If sum of all elastic forces = sum of all gravitational force, increase k.
+			//if (totalEnergy < U * 1.1 and U < bindingEnergy * 1.1)
+			//{
+			//	kin *= 2;
+			//	printf("INCREASING K: E = %e\tU = %e\tB = %e\tK = %e\n", totalEnergy, U, bindingEnergy, kin);
+			//	kout = cor * kin;
+			//}
+			//else
+			//{
+			//	printf("NOT READY: E = %e\tU = %e\tB = %e\tK = %e\n", totalEnergy, U, bindingEnergy, kin);
+
+			//}
 
 		//}
 		//else
@@ -939,5 +961,5 @@ void updateDTK(const double& vel)
 
 	kin = kConsts * rMax * vel * vel;
 	kout = cor * kin;
-	dt = .01 * sqrt(fourThirdsPiRho / kin * rMin * rMin * rMin);
+	dt = .01 * sqrt((fourThirdsPiRho / kin) * rMin * rMin * rMin);
 }

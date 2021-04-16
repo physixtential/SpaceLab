@@ -10,7 +10,7 @@ density = 2.7, //2.7, // Typically based on some rock density
 mu = 0.9,      // Coeff of friction
 cor = 0.8,     // Coeff of restitution
 simTimeSeconds = 18000., // Seconds
-timeResolution = 20., // Seconds
+timeResolution = 1., // Seconds - This is duration between exported steps
 maxOverlap = .1,
 fourThirdsPiRho = 4. / 3. * M_PI * density; // fraction of smallest sphere radius.
 
@@ -20,7 +20,7 @@ properties = 11, // Number of columns in simData file per ball
 genBalls = 500,
 attempts = 200; // How many times to try moving every ball touching another in generator.
 
-inline unsigned int
+inline size_t
 skip = 0,     // Steps thrown away before recording a step to the buffer. 500*.04 is every 20 seconds in sim.
 steps = 0;
 
@@ -28,7 +28,8 @@ inline double
 dt = -1,
 kin = -1,      // Spring constant
 kout = -1,
-kTarget = 2.85e17,
+vTarget = 6000,
+//vStepper = 1.,
 soc,				// double the radius of the initial system. Any ball outside that isn't considered for dynamic dt calibration.
 scaleBalls = 100, // base radius of balls
 spaceRange = std::pow((1. / .74 * scaleBalls * scaleBalls * scaleBalls * genBalls), 1. / 3.), // Rough minimum space required
@@ -45,5 +46,5 @@ simTimeElapsed = 0;
 inline std::string
 path = "C:/Users/milin/Desktop/GoogleDrive/GradResearch/Development/SpaceLab/x64/Release/",
 projectileName = "",
-targetName = "10850_",
+targetName = "10850_pushed_apart_",
 outputPrefix = "Unnamed_";

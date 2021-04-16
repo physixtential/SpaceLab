@@ -1,56 +1,109 @@
 #include "scratchPad.h"
+#include <iostream>
+#include <vector>
 
-#include<iostream>
-#include<math.h>
 using namespace std;
 
-void inp(int& a, int& b)
+class movie
 {
-	do
-	{
-		cout << " Donner deux entiers a et b tel que a<b";
-		cin >> a >> b;
-	} while (a > b);
-}
+private:
+    string title;
+    int year;
+    float rating;
 
-void n_av(int& a, int& b, int& n, int& av)
+public:
+    movie()
+    {
+        title = "Forest Gump";
+        year = 1994;
+        rating = 4.4;
+    }
+    movie(string i, int j, float k)
+    {
+        title = i;
+        year = j;
+        rating = k;
+    }
+
+    void setTitle(string i)
+    {
+        title = i;
+    }
+
+    void setYear(int j)
+    {
+        year = j;
+    }
+
+    void setRating(float k)
+    {
+        rating = k;
+    }
+
+    string getTitle()
+    {
+        return title;
+    }
+
+    int getYear()
+    {
+        return year;
+    }
+
+    float getRating()
+    {
+        return rating;
+    }
+
+
+
+
+};
+
+int main()
 {
+    string title, search;
+    int year, choice;
+    float rating;
+    movie m;
+    vector<movie>list(10);
+    while (choice != 4)
+    {
+        cout << "1 to add a movie" << endl << "2 to search a movie" << endl << "3 to display all movies." << endl << "4 to quit." << endl;
+        cin >> choice;
 
-	n = (b - a) - 1;
-	av = a + b / 2;
+        if (choice == 1)
+        {
+            cout << "Enter the name of the movie" << endl;
+            cin.ignore();
+            getline(cin, title);
 
-}
-void max_min(int& a, int& b, int& n, float& max, float& min)
-{
-	int* A = new int[n];
-	int k, counter = 0;
+            cout << "Enter the year of the movie's release" << endl;
+            cin >> year;
 
-	cout << "donner les valeurs" << n << "qui sont entre a et b";
-	cin >> k;
+            cout << "Enter the rating of the movie on a scale of 1-5" << endl;
+            cin >> rating;
 
-	for (int i = 0; i < n; i++)
-	{
-		if (k >= a && k <= b)
-		{
-			A[i] = k;
-		}
-		else
-		{
-			cout << "Value not in range " << a << " to " << b << '\n';
-			i--;
-		}
-	}
+            list.push_back(movie(title, year, rating));
+        }
+        /* if(choice==2)
+        {
+          cout << "Please enter the name of the movie" << endl;
+          cin.ignore();
+          getline(cin, search);
+          if(find(list.begin(), list.end(), search) !=list.end())
+          {   */
+        if (choice == 3)
+        {
 
-	delete[] A; // You have to clean up c style arrays like this.
-}
-void add(int a, int n)
-{
+            cout << m.getTitle() << endl;
+            cout << m.getYear() << endl;
+            cout << m.getRating() << endl;
+        }
 
-}
-void main()
-{
-	int n;
-	float a, b, max, min;
-	
 
+
+    }
+    system("pause");
+    return 0;
 }
