@@ -612,7 +612,7 @@ struct ballGroup
 
 	}
 
-	// Todo - make bigger balls favor the middle, or, smaller balls favor the outside.
+	// todo - make bigger balls favor the middle, or, smaller balls favor the outside.
 	/// @brief Push balls apart until no overlaps
 	void pushApart() const
 	{
@@ -692,7 +692,7 @@ struct ballGroup
 
 	void simDataWrite(const std::string& outFilename)
 	{
-		// TODO for some reason I need checkForFile instead of just using ballWrite. Need to work out why.
+		// todo - for some reason I need checkForFile instead of just using ballWrite. Need to work out why.
 		// Check if file name already exists. If not, initialize
 		std::ifstream checkForFile;
 		checkForFile.open(outFilename + "simData.csv", std::ifstream::in);

@@ -200,6 +200,7 @@ void simOneStep(const unsigned int& Step)
 	if (Step % skip == 0)
 	{
 		writeStep = true;
+		simTimeElapsed += dt * skip;
 
 		// Progress reporting:
 		float eta = ((time(nullptr) - startProgress) / 500.f * static_cast<float>(steps - Step)) / 3600.f; // In seconds.
@@ -256,7 +257,7 @@ void simOneStep(const unsigned int& Step)
 			// Check for collision between Ball and otherBall.
 			if (overlap > 0)
 			{
-				// todo, make calibrateDT activate only after the first collision occurs, and based on the velocity of that collision.
+				// todo - Calibrate based on probe velocity ignore others.
 				double k;
 				// Apply coefficient of restitution to balls leaving collision.
 				if (dist >= oldDist)
@@ -267,7 +268,8 @@ void simOneStep(const unsigned int& Step)
 				{
 					k = kin;
 				}
-
+				
+				// todo - functionalize this shit and disable friction for the hardening of dymorphous.
 				// Calculate force and torque for a:
 				vector3d dVel = O.vel[B] - O.vel[A];
 				const vector3d relativeVelOfA = (dVel)-((dVel).dot(rVecab)) * (rVecab / (dist * dist)) - O.w[A].cross(O.R[A] / sumRaRb * rVecab) - O.w[B].cross(O.R[B] / sumRaRb * rVecab);
@@ -385,7 +387,12 @@ void simOneStep(const unsigned int& Step)
 	{
 		// Write energy to stream:
 		energyBuffer << '\n'
-			<< simTimeElapsed << ',' << O.PE << ',' << O.KE << ',' << O.PE + O.KE << ',' << O.mom.norm() << ',' << O.angMom.norm(); // the two zeros are bound and unbound mass
+			<< simTimeElapsed << ',' 
+			<< O.PE << ',' 
+			<< O.KE << ',' 
+			<< O.PE + O.KE << ',' 
+			<< O.mom.norm() << ',' 
+			<< O.angMom.norm(); // the two zeros are bound and unbound mass
 
 		// hack temporary k increaser.
 		//if (vStepper > vTarget)
@@ -453,9 +460,7 @@ void simOneStep(const unsigned int& Step)
 
 			lastWrite = time(nullptr);
 		} // Data export end
-
 		//calibrateDT(Step, false);
-		simTimeElapsed += dt * skip;
 	} // writestep end
 } // Steps end
 
