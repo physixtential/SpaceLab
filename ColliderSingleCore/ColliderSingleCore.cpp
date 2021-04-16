@@ -200,6 +200,7 @@ void simOneStep(const unsigned int& Step)
 	if (Step % skip == 0)
 	{
 		writeStep = true;
+
 		simTimeElapsed += dt * skip;
 
 		// Progress reporting:
@@ -214,7 +215,7 @@ void simOneStep(const unsigned int& Step)
 		writeStep = false;
 	}
 
-	/// FIRST PASS - Position, send to buffer, velocity half step:
+	/// FIRST PASS - Update Kinematic Parameters:
 	for (unsigned int Ball = 0; Ball < O.cNumBalls; Ball++)
 	{
 		// Update velocity half step:
