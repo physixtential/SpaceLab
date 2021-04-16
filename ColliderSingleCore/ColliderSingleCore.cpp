@@ -16,7 +16,7 @@ std::stringstream energyBuffer;
 
 // These are used within simOneStep to keep track of time.
 // They need to survive outside its scope, and I don't want to have to pass them all.
-time_t start = time(nullptr);        // For end of program analysis
+const time_t start = time(nullptr);        // For end of program analysis
 time_t startProgress; // For progress reporting (gets reset)
 time_t lastWrite;     // For write control (gets reset)
 bool writeStep;       // This prevents writing to file every step (which is slow).
@@ -435,7 +435,7 @@ void simOneStep(const unsigned int& Step)
 		////////////////////////////////////////////////////////////////////
 		if (time(nullptr) - lastWrite > 1800 || Step / skip % 10 == 0 || Step == steps - 1)
 		{
-			std::cout << "\nData Write\n";
+			std::cout << "Data Write\n\n";
 
 			// Write simData to file and clear buffer.
 			std::ofstream ballWrite;

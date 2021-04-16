@@ -11,7 +11,8 @@
 /// Recommended: Use ballGroup(int nBalls) constructor to allocate all the memory needed for your ballGroup size.
 struct ballGroup
 {
-	// todo - Consider getting rid of default, and getting rid of global O ballGroup.
+	// todo - Make generator function into a constructor.
+
 	ballGroup() = default;
 
 	/// @brief For creating a new ballGroup of size nBalls
@@ -118,6 +119,11 @@ struct ballGroup
 
 		// Keep track of now loaded ball set to start next set after it:
 		cNumBallsAdded += src.cNumBalls;
+
+		rMin = getRmin();
+		rMax = getRmax();
+		mTotal = getMass();
+		initialRadius = getRadius();
 
 		// DON'T FORGET TO FREEMEMORY
 	}
