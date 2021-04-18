@@ -59,6 +59,8 @@ void simType(char simType)
 //////////////////////////////////////////////////////////////
 int main(const int argc, char const* argv[])
 {
+	energyBuffer.precision(12); // Need more precision on momentum.
+
 	// Runtime arguments:
 	if (argc > 1)
 	{
@@ -384,7 +386,7 @@ void simOneStep(const unsigned int& Step)
 		}
 	} // THIRD PASS END
 
-	if (writeStep || Step == steps - 1)
+	if (writeStep)
 	{
 		// Write energy to stream:
 		energyBuffer << '\n'
