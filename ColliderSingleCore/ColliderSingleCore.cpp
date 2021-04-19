@@ -172,8 +172,7 @@ void simContinue()
 
 	// Name the file based on info above:
 	outputPrefix =
-		projectileName + targetName +
-		"T" + rounder(KEfactor, 4) +
+		O.cNumBalls +
 		"-rho" + rounder(density, 4);
 }
 
