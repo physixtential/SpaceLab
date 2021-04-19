@@ -97,7 +97,7 @@ void simInitTwoCluster()
 
 	// DART PROBE
 	ballGroup projectile(1);
-	projectile.pos[0] = { 8800, 0, 0 };
+	projectile.pos[0] = { 8900, 0, 0 };
 	projectile.w[0] = { 0, 0, 0 };
 	projectile.vel[0] = { 0, 0, 0 };
 	projectile.R[0] = 78.5;
@@ -151,10 +151,10 @@ void simInitTwoCluster()
 	outputPrefix =
 		projectileName + targetName +
 		"T" + rounder(KEfactor, 4) +
-		"-vBig" + scientific(vBig) +
-		"-vSmall" + scientific(vSmall) +
-		"-IP" + rounder(impactParameter * 180 / 3.14159, 2) +
-		"-rho" + rounder(density, 4);
+		"_vBig" + scientific(vBig) +
+		"_vSmall" + scientific(vSmall) +
+		"_IP" + rounder(impactParameter * 180 / 3.14159, 2) +
+		"_rho" + rounder(density, 4);
 }
 
 
@@ -173,7 +173,7 @@ void simContinue()
 	// Name the file based on info above:
 	outputPrefix =
 		O.cNumBalls +
-		"-rho" + rounder(density, 4);
+		"_rho" + rounder(density, 4);
 }
 
 
@@ -193,8 +193,8 @@ void simInitCondAndCenter()
 
 	// Name the file based on info above:
 	outputPrefix +=
-		"-k" + scientific(kin) +
-		"-dt" + scientific(dt) +
+		"_k" + scientific(kin) +
+		"_dt" + scientific(dt) +
 		"_";
 }
 
@@ -420,7 +420,7 @@ void simOneStep(const unsigned int& Step)
 		if (time(nullptr) - lastWrite > 1800 || Step / skip % 10 == 0)
 		{
 			// Report vMax:
-			std::cout << "vMax = " << O.getVelMax(false) << "Steps recorded: " << Step / skip << '\n';
+			std::cout << "vMax = " << O.getVelMax(false) << " Steps recorded: " << Step / skip << '\n';
 			std::cout << "Data Write\n\n";
 
 
