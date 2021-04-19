@@ -1,6 +1,6 @@
 #define _USE_MATH_DEFINES
-#include <iostream>
 #include <cmath>
+#include <iostream>
 #include <fstream>
 #include <ctime>
 #include <sstream>
@@ -73,8 +73,8 @@ int main(const int argc, char const* argv[])
 		//KEfactor = atof(argv[4]);
 	}
 
-	simType('c'); // c: continue old sim | t: two cluster collision | g: generate cluster
-	O.zeroAngVel();
+	simType('t'); // c: continue old sim | t: two cluster collision | g: generate cluster
+	//O.zeroAngVel();
 	//O.pushApart();
 	calibrateDT(0, vTarget);
 	simInitCondAndCenter();
@@ -125,10 +125,10 @@ void simInitTwoCluster()
 	const double mSmall = projectile.getMass();
 	const double mBig = target.getMass();
 	const double mTot = mBig + mSmall;
-	const double vSmall = -sqrt(2 * KEfactor * fabs(PEsys) * (mBig / (mSmall * mTot))); // Negative because small offsets right.
-	//vSmall = -600000; // DART probe override.
-	const double vBig = -(mSmall / mBig) * vSmall; // Negative to be opposing projectile.
-	//vBig = 0; // Dymorphous override.
+	//const double vSmall = -sqrt(2 * KEfactor * fabs(PEsys) * (mBig / (mSmall * mTot))); // Negative because small offsets right.
+	const double vSmall = -600000; // DART probe override.
+	//const double vBig = -(mSmall / mBig) * vSmall; // Negative to be opposing projectile.
+	const double vBig = 0; // Dymorphous override.
 	fprintf(stdout, "\nTarget Velocity: %.2e\nProjectile Velocity: %.2e\n", vBig, vSmall);
 
 	if (isnan(vSmall) || isnan(vBig))
@@ -255,7 +255,7 @@ void simOneStep(const unsigned int& Step)
 			double overlap = sumRaRb - dist;
 
 			// Distance array element: 1,0    2,0    2,1    3,0    3,1    3,2 ...
-			unsigned int e = static_cast<unsigned>(A * (A - 1) * .5) + B;
+			unsigned int e = static_cast<unsigned>(A * (A - 1) * .5) + B; // a^2-a is always even, so this works.
 			double oldDist = O.distances[e];
 
 			// Check for collision between Ball and otherBall.

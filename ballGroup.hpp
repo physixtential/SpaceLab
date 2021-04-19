@@ -71,12 +71,6 @@ struct ballGroup
 	/// Allocate ball property arrays.
 	void allocateGroup(const unsigned int nBalls)
 	{
-		if (nBalls % 2 != 0)
-		{
-			std::cout << "Number of spheres must be even.";
-			exit(EXIT_FAILURE);
-		}
-
 		cNumBalls = nBalls;
 
 		try
