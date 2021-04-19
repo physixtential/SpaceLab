@@ -24,6 +24,7 @@ bool writeStep;       // This prevents writing to file every step (which is slow
 /// @brief The ballGroup run by the main sim looper.
 ballGroup O;
 
+
 // Prototypes
 void simInitTwoCluster();
 void simContinue();
@@ -34,8 +35,9 @@ void generateBallField();
 void safetyChecks();
 void calibrateDT(const unsigned int& Step, const double& customSpeed = -1.0);
 void updateDTK(const double& vel);
+void simType(const char simType);
 
-void simType(char simType)
+void simType(const char simType)
 {
 	switch (simType)
 	{
@@ -73,6 +75,7 @@ int main(const int argc, char const* argv[])
 
 	simType('c'); // c: continue old sim | t: two cluster collision | g: generate cluster
 	//O.pushApart();
+	calibrateDT(0, vTarget);
 	simInitCondAndCenter();
 	safetyChecks();
 	O.simInitWrite(outputPrefix);
@@ -105,6 +108,7 @@ void simInitTwoCluster()
 	// DO YOU WANT TO STOP EVERYTHING?
 	projectile.zeroMotion();
 	target.zeroMotion();
+
 
 	// Calc info to determined cluster positioning and collisions velocity:
 	projectile.updatePE();
@@ -173,8 +177,6 @@ void simContinue()
 
 void simInitCondAndCenter()
 {
-	calibrateDT(0, vTarget);
-
 	std::cout << "==================" << '\n';
 	std::cout << "dt: " << dt << '\n';
 	std::cout << "k: " << kin << '\n';
@@ -242,16 +244,13 @@ void simOneStep(const unsigned int& Step)
 		/// DONT DO ANYTHING HERE. A STARTS AT 1.
 		for (unsigned int B = 0; B < A; B++)
 		{
-			double sumRaRb = O.R[A] + O.R[B];
-			vector3d rVecab = O.pos[B] - O.pos[A];
-			vector3d rVecba = -1 * rVecab;
-			double dist = (rVecab).norm();
+			const double sumRaRb = O.R[A] + O.R[B];
+			vector3d rVec = O.pos[B] - O.pos[A]; // Start with rVec from a to b.
+			const double dist = (rVec).norm();
+			vector3d totalForce;
 
 			// Check for collision between Ball and otherBall:
 			double overlap = sumRaRb - dist;
-			vector3d totalForce;
-			vector3d aTorque;
-			vector3d bTorque;
 
 			// Distance array element: 1,0    2,0    2,1    3,0    3,1    3,2 ...
 			unsigned int e = static_cast<unsigned>(A * (A - 1) * .5) + B;
@@ -271,34 +270,43 @@ void simOneStep(const unsigned int& Step)
 				{
 					k = kin;
 				}
-				
+
 				// todo - functionalize this shit and disable friction for the hardening of dymorphous.
-				// Calculate force and torque for a:
+				// Elastic a:
+				vector3d elasticForce = -k * overlap * .5 * (rVec / dist);
+				const double elasticMag = elasticForce.norm();
+
+				// Friction a:
 				vector3d dVel = O.vel[B] - O.vel[A];
-				const vector3d relativeVelOfA = (dVel)-((dVel).dot(rVecab)) * (rVecab / (dist * dist)) - O.w[A].cross(O.R[A] / sumRaRb * rVecab) - O.w[B].cross(O.R[B] / sumRaRb * rVecab);
-				const vector3d elasticForceOnA = -k * overlap * .5 * (rVecab / dist);
-				vector3d frictionForceOnA = { 0, 0, 0 };
-				if (relativeVelOfA.norm() > 1e-12) // When relative velocity is very low, dividing its vector components by its magnitude below is unstable.
+				vector3d frictionForce;
+				const vector3d relativeVelOfA = dVel - dVel.dot(rVec) * (rVec / (dist * dist)) - O.w[A].cross(O.R[A] / sumRaRb * rVec) - O.w[B].cross(O.R[B] / sumRaRb * rVec);
+				double relativeVelMag = relativeVelOfA.norm();
+				if (relativeVelMag > 1e-10) // When relative velocity is very low, dividing its vector components by its magnitude below is unstable.
 				{
-					frictionForceOnA = mu * elasticForceOnA.norm() * (relativeVelOfA / relativeVelOfA.norm());
+					frictionForce = mu * elasticMag * (relativeVelOfA / relativeVelMag);
 				}
-				aTorque = (O.R[A] / sumRaRb) * rVecab.cross(frictionForceOnA);
+				const vector3d aTorque = (O.R[A] / sumRaRb) * rVec.cross(frictionForce);
 
-				// Calculate force and torque for b:
-				dVel = O.vel[A] - O.vel[B];
-				const vector3d relativeVelOfB = (dVel)-((dVel).dot(rVecba)) * (rVecba / (dist * dist)) - O.w[B].cross(O.R[B] / sumRaRb * rVecba) - O.w[A].cross(O.R[A] / sumRaRb * rVecba);
-				const vector3d elasticForceOnB = -k * overlap * .5 * (rVecba / dist);
-				vector3d frictionForceOnB = { 0, 0, 0 };
-				if (relativeVelOfB.norm() > 1e-12)
+				// Elastic and Friction b:
+				// Flip direction b -> a:
+				rVec = -rVec; 
+				dVel = -dVel;
+				elasticForce = -elasticForce;
+
+				const vector3d relativeVelOfB = dVel - dVel.dot(rVec) * (rVec / (dist * dist)) - O.w[B].cross(O.R[B] / sumRaRb * rVec) - O.w[A].cross(O.R[A] / sumRaRb * rVec);
+				relativeVelMag = relativeVelOfB.norm();
+				if (relativeVelMag > 1e-10)
 				{
-					frictionForceOnB = mu * elasticForceOnB.norm() * (relativeVelOfB / relativeVelOfB.norm());
+					frictionForce = mu * elasticMag * (relativeVelOfB / relativeVelMag);
 				}
-				bTorque = (O.R[B] / sumRaRb) * rVecba.cross(frictionForceOnB);
-
-				const vector3d gravForceOnA = (G * O.m[A] * O.m[B] / (dist * dist)) * (rVecab / dist);
-				totalForce = gravForceOnA + elasticForceOnA + frictionForceOnA;
+				const vector3d bTorque = (O.R[B] / sumRaRb) * rVec.cross(frictionForce);
+				
+				
+				const vector3d gravForceOnA = (G * O.m[A] * O.m[B] / (dist * dist)) * (rVec / dist);
 				O.aacc[A] += aTorque / O.moi[A];
 				O.aacc[B] += bTorque / O.moi[B];
+
+				totalForce = gravForceOnA + elasticForce + frictionForce;
 
 				if (writeStep)
 				{
@@ -310,7 +318,7 @@ void simOneStep(const unsigned int& Step)
 			else
 			{
 				// No collision: Include gravity only:
-				vector3d gravForceOnA = (G * O.m[A] * O.m[B] / (dist * dist)) * (rVecab / dist);
+				const vector3d gravForceOnA = (G * O.m[A] * O.m[B] / (dist * dist)) * (rVec / dist);
 				totalForce = gravForceOnA;
 				if (writeStep)
 				{
@@ -390,11 +398,11 @@ void simOneStep(const unsigned int& Step)
 	{
 		// Write energy to stream:
 		energyBuffer << '\n'
-			<< simTimeElapsed << ',' 
-			<< O.PE << ',' 
-			<< O.KE << ',' 
-			<< O.PE + O.KE << ',' 
-			<< O.mom.norm() << ',' 
+			<< simTimeElapsed << ','
+			<< O.PE << ','
+			<< O.KE << ','
+			<< O.PE + O.KE << ','
+			<< O.mom.norm() << ','
 			<< O.angMom.norm(); // the two zeros are bound and unbound mass
 
 		// hack temporary k increaser.

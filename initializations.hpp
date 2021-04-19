@@ -12,6 +12,7 @@ cor = 0.8,     // Coeff of restitution
 simTimeSeconds = 18000., // Seconds
 timeResolution = 1., // Seconds - This is duration between exported steps
 maxOverlap = .1,
+vTarget = 60,
 fourThirdsPiRho = 4. / 3. * M_PI * density; // fraction of smallest sphere radius.
 
 // Simulation Structure
@@ -28,8 +29,6 @@ inline double
 dt = -1,
 kin = -1,      // Spring constant
 kout = -1,
-vTarget = 6,
-//vStepper = 1.,
 soc,				// double the radius of the initial system. Any ball outside that isn't considered for dynamic dt calibration.
 scaleBalls = 100, // base radius of balls
 spaceRange = std::pow((1. / .74 * scaleBalls * scaleBalls * scaleBalls * genBalls), 1. / 3.), // Rough minimum space required

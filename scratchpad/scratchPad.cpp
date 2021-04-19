@@ -1,109 +1,74 @@
 #include "scratchPad.h"
-#include <iostream>
-#include <vector>
 
-using namespace std;
-
-class movie
+int showSelectionMenu(double subtotal)
 {
-private:
-    string title;
-    int year;
-    float rating;
+	int choice = 0;
 
-public:
-    movie()
-    {
-        title = "Forest Gump";
-        year = 1994;
-        rating = 4.4;
-    }
-    movie(string i, int j, float k)
-    {
-        title = i;
-        year = j;
-        rating = k;
-    }
+	system("cls");
+	cout << "Welcome to Crazy Nan's Pie Truck of Paradise" << endl;
+	cout << "Enter your crazy selection below" << endl;
+	cout << "1. Apple Pie" << endl;
+	cout << "2. Cherry Pie" << endl;
+	cout << "3. Pumpkin Pie" << endl;
+	cout << "4. Pecan Pie" << endl;
+	cout << "5. Coke" << endl;
+	cout << "6. Diet Coke" << endl;
+	cout << "Subtotal: $" << subtotal << endl;
+	cout << "Enter Selection (enter 9 to exit): ";
 
-    void setTitle(string i)
-    {
-        title = i;
-    }
+	cin >> choice;
 
-    void setYear(int j)
-    {
-        year = j;
-    }
+	return choice;
+}
 
-    void setRating(float k)
-    {
-        rating = k;
-    }
+int askForQuantity()
+{
+	int quantity = 0;
 
-    string getTitle()
-    {
-        return title;
-    }
+	cout << "Enter Quantity: ";
+	cin >> quantity;
 
-    int getYear()
-    {
-        return year;
-    }
+	return quantity;
+}
 
-    float getRating()
-    {
-        return rating;
-    }
+void processSelection(ofstream& oFile, double& subtotal, int quantity, int choice)
+{
+	if (choice == 1)
+	{
+		subtotal = subtotal + (1.99 * quantity);
+		cout << "Apple Pie $1.99 each" << endl;
+		//oFile << "Apple Pie $1.99 each" << "..." << quantity << "..." << subtotal << endl;
+	}
 
+	else if (choice == 2)
+	{
+		subtotal = subtotal + (2.99 * quantity);
+		cout << "Cherry Pie $2.99 each" << endl;
+		//oFile << "Cherry Pie $2.99 each" << "..." << quantity << "..." << subtotal << endl;
+	}
+}
 
-
-
-};
 
 int main()
 {
-    string title, search;
-    int year, choice;
-    float rating;
-    movie m;
-    vector<movie>list(10);
-    while (choice != 4)
-    {
-        cout << "1 to add a movie" << endl << "2 to search a movie" << endl << "3 to display all movies." << endl << "4 to quit." << endl;
-        cin >> choice;
+	int choice = 0;
+	int quantity = 0;
+	double subtotal = 0;
 
-        if (choice == 1)
-        {
-            cout << "Enter the name of the movie" << endl;
-            cin.ignore();
-            getline(cin, title);
+	ofstream oFile;
+	oFile.open("receipt.txt");
 
-            cout << "Enter the year of the movie's release" << endl;
-            cin >> year;
+	while (choice != 9)
+	{
+		//function 1
+		choice = showSelectionMenu(subtotal);
 
-            cout << "Enter the rating of the movie on a scale of 1-5" << endl;
-            cin >> rating;
+		//function 2
+		quantity = askForQuantity();
 
-            list.push_back(movie(title, year, rating));
-        }
-        /* if(choice==2)
-        {
-          cout << "Please enter the name of the movie" << endl;
-          cin.ignore();
-          getline(cin, search);
-          if(find(list.begin(), list.end(), search) !=list.end())
-          {   */
-        if (choice == 3)
-        {
+		//function 3
+		processSelection(oFile, subtotal, quantity, choice);
 
-            cout << m.getTitle() << endl;
-            cout << m.getYear() << endl;
-            cout << m.getRating() << endl;
-        }
-
-
-
-    }
-    system("pause");
-    return 0;
+		// else if, else if so on up to 5
+	}
 }
