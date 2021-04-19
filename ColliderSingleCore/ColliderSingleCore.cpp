@@ -273,42 +273,41 @@ void simOneStep(const unsigned int& Step)
 					k = kin;
 				}
 
-				// todo - functionalize this shit and disable friction for the hardening of dymorphous.
 				// Elastic a:
 				vector3d elasticForce = -k * overlap * .5 * (rVec / dist);
 				const double elasticMag = elasticForce.norm();
 
 				// Friction a:
-				//vector3d dVel = O.vel[B] - O.vel[A];
-				//vector3d frictionForce;
-				//const vector3d relativeVelOfA = dVel - dVel.dot(rVec) * (rVec / (dist * dist)) - O.w[A].cross(O.R[A] / sumRaRb * rVec) - O.w[B].cross(O.R[B] / sumRaRb * rVec);
-				//double relativeVelMag = relativeVelOfA.norm();
-				//if (relativeVelMag > 1e-10) // When relative velocity is very low, dividing its vector components by its magnitude below is unstable.
-				//{
-				//	frictionForce = mu * elasticMag * (relativeVelOfA / relativeVelMag);
-				//}
-				//const vector3d aTorque = (O.R[A] / sumRaRb) * rVec.cross(frictionForce);
+				vector3d dVel = O.vel[B] - O.vel[A];
+				vector3d frictionForce;
+				const vector3d relativeVelOfA = dVel - dVel.dot(rVec) * (rVec / (dist * dist)) - O.w[A].cross(O.R[A] / sumRaRb * rVec) - O.w[B].cross(O.R[B] / sumRaRb * rVec);
+				double relativeVelMag = relativeVelOfA.norm();
+				if (relativeVelMag > 1e-10) // When relative velocity is very low, dividing its vector components by its magnitude below is unstable.
+				{
+					frictionForce = mu * elasticMag * (relativeVelOfA / relativeVelMag);
+				}
+				const vector3d aTorque = (O.R[A] / sumRaRb) * rVec.cross(frictionForce);
 
 				// Translational forces don't need to know about torque of b:
 				const vector3d gravForceOnA = (G * O.m[A] * O.m[B] / (dist * dist)) * (rVec / dist);
-				totalForce = gravForceOnA + elasticForce; // +frictionForce;
+				totalForce = gravForceOnA + elasticForce + frictionForce;
 
 				// Elastic and Friction b:
 				// Flip direction b -> a:
-				//rVec = -rVec; 
-				//dVel = -dVel;
-				//elasticForce = -elasticForce;
+				rVec = -rVec; 
+				dVel = -dVel;
+				elasticForce = -elasticForce;
 
-				//const vector3d relativeVelOfB = dVel - dVel.dot(rVec) * (rVec / (dist * dist)) - O.w[B].cross(O.R[B] / sumRaRb * rVec) - O.w[A].cross(O.R[A] / sumRaRb * rVec);
-				//relativeVelMag = relativeVelOfB.norm();
-				//if (relativeVelMag > 1e-10)
-				//{
-				//	frictionForce = mu * elasticMag * (relativeVelOfB / relativeVelMag);
-				//}
-				//const vector3d bTorque = (O.R[B] / sumRaRb) * rVec.cross(frictionForce);
-				//
-				//O.aacc[A] += aTorque / O.moi[A];
-				//O.aacc[B] += bTorque / O.moi[B];
+				const vector3d relativeVelOfB = dVel - dVel.dot(rVec) * (rVec / (dist * dist)) - O.w[B].cross(O.R[B] / sumRaRb * rVec) - O.w[A].cross(O.R[A] / sumRaRb * rVec);
+				relativeVelMag = relativeVelOfB.norm();
+				if (relativeVelMag > 1e-10)
+				{
+					frictionForce = mu * elasticMag * (relativeVelOfB / relativeVelMag);
+				}
+				const vector3d bTorque = (O.R[B] / sumRaRb) * rVec.cross(frictionForce);
+				
+				O.aacc[A] += aTorque / O.moi[A];
+				O.aacc[B] += bTorque / O.moi[B];
 
 
 				if (writeStep)
@@ -351,21 +350,12 @@ void simOneStep(const unsigned int& Step)
 	// THIRD PASS - Calculate velocity for next step:
 	for (unsigned int Ball = 0; Ball < O.cNumBalls; Ball++)
 	{
-		double vMax = 0;
-		// Report vMax:
-		if (O.vel[Ball].norm() > vMax)
-		{
-			vMax = O.vel[Ball].norm();
-		}
-		std::cout << "vMax = " << vMax << "Steps recorded: " << Step / skip << '\n';
-
 		// Velocity for next step:
 		O.vel[Ball] = O.velh[Ball] + .5 * O.acc[Ball] * dt;
 		O.w[Ball] = O.wh[Ball] + .5 * O.aacc[Ball] * dt;
 
 		if (writeStep)
 		{
-
 			// Send positions and rotations to buffer:
 			if (Ball == 0)
 			{
@@ -403,9 +393,10 @@ void simOneStep(const unsigned int& Step)
 			O.angMom += O.m[Ball] * O.pos[Ball].cross(O.vel[Ball]) + O.moi[Ball] * O.w[Ball];
 		}
 	} // THIRD PASS END
-
+	
 	if (writeStep)
 	{
+
 		// Write energy to stream:
 		energyBuffer << '\n'
 			<< simTimeElapsed << ','
@@ -424,11 +415,14 @@ void simOneStep(const unsigned int& Step)
 		// boundMass = massTotal;
 
 		////////////////////////////////////////////////////////////////////
-		// Data Export /////////////////////////////////////////////////////
+		/// Data Export ////////////////////////////////////////////////////
 		////////////////////////////////////////////////////////////////////
-		if (time(nullptr) - lastWrite > 1800 || Step / skip % 10 == 0 || Step == steps - 1)
+		if (time(nullptr) - lastWrite > 1800 || Step / skip % 10 == 0)
 		{
+			// Report vMax:
+			std::cout << "vMax = " << O.getVelMax(false) << "Steps recorded: " << Step / skip << '\n';
 			std::cout << "Data Write\n\n";
+
 
 			// Write simData to file and clear buffer.
 			std::ofstream ballWrite;
