@@ -205,12 +205,19 @@ struct ballGroup
 		}
 	}
 
-	void zeroMotion() const
+	void zeroVel() const
+	{
+		for (unsigned int Ball = 0; Ball < cNumBalls; Ball++)
+		{
+			vel[Ball] = { 0, 0, 0 };
+		}
+	}
+
+	void zeroAngVel() const
 	{
 		for (unsigned int Ball = 0; Ball < cNumBalls; Ball++)
 		{
 			w[Ball] = { 0, 0, 0 };
-			vel[Ball] = { 0, 0, 0 };
 		}
 	}
 

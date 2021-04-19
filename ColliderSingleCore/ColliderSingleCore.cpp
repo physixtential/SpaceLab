@@ -74,6 +74,7 @@ int main(const int argc, char const* argv[])
 	}
 
 	simType('c'); // c: continue old sim | t: two cluster collision | g: generate cluster
+	O.zeroAngVel();
 	//O.pushApart();
 	calibrateDT(0, vTarget);
 	simInitCondAndCenter();
@@ -106,8 +107,10 @@ void simInitTwoCluster()
 	ballGroup target(path + targetName);
 
 	// DO YOU WANT TO STOP EVERYTHING?
-	projectile.zeroMotion();
-	target.zeroMotion();
+	projectile.zeroAngVel();
+	projectile.zeroVel();
+	target.zeroAngVel();
+	target.zeroVel();
 
 
 	// Calc info to determined cluster positioning and collisions velocity:
@@ -277,36 +280,36 @@ void simOneStep(const unsigned int& Step)
 				const double elasticMag = elasticForce.norm();
 
 				// Friction a:
-				vector3d dVel = O.vel[B] - O.vel[A];
-				vector3d frictionForce;
-				const vector3d relativeVelOfA = dVel - dVel.dot(rVec) * (rVec / (dist * dist)) - O.w[A].cross(O.R[A] / sumRaRb * rVec) - O.w[B].cross(O.R[B] / sumRaRb * rVec);
-				double relativeVelMag = relativeVelOfA.norm();
-				if (relativeVelMag > 1e-10) // When relative velocity is very low, dividing its vector components by its magnitude below is unstable.
-				{
-					frictionForce = mu * elasticMag * (relativeVelOfA / relativeVelMag);
-				}
-				const vector3d aTorque = (O.R[A] / sumRaRb) * rVec.cross(frictionForce);
+				//vector3d dVel = O.vel[B] - O.vel[A];
+				//vector3d frictionForce;
+				//const vector3d relativeVelOfA = dVel - dVel.dot(rVec) * (rVec / (dist * dist)) - O.w[A].cross(O.R[A] / sumRaRb * rVec) - O.w[B].cross(O.R[B] / sumRaRb * rVec);
+				//double relativeVelMag = relativeVelOfA.norm();
+				//if (relativeVelMag > 1e-10) // When relative velocity is very low, dividing its vector components by its magnitude below is unstable.
+				//{
+				//	frictionForce = mu * elasticMag * (relativeVelOfA / relativeVelMag);
+				//}
+				//const vector3d aTorque = (O.R[A] / sumRaRb) * rVec.cross(frictionForce);
 
 				// Translational forces don't need to know about torque of b:
 				const vector3d gravForceOnA = (G * O.m[A] * O.m[B] / (dist * dist)) * (rVec / dist);
-				totalForce = gravForceOnA + elasticForce + frictionForce;
+				totalForce = gravForceOnA + elasticForce; // +frictionForce;
 
 				// Elastic and Friction b:
 				// Flip direction b -> a:
-				rVec = -rVec; 
-				dVel = -dVel;
-				elasticForce = -elasticForce;
+				//rVec = -rVec; 
+				//dVel = -dVel;
+				//elasticForce = -elasticForce;
 
-				const vector3d relativeVelOfB = dVel - dVel.dot(rVec) * (rVec / (dist * dist)) - O.w[B].cross(O.R[B] / sumRaRb * rVec) - O.w[A].cross(O.R[A] / sumRaRb * rVec);
-				relativeVelMag = relativeVelOfB.norm();
-				if (relativeVelMag > 1e-10)
-				{
-					frictionForce = mu * elasticMag * (relativeVelOfB / relativeVelMag);
-				}
-				const vector3d bTorque = (O.R[B] / sumRaRb) * rVec.cross(frictionForce);
-				
-				O.aacc[A] += aTorque / O.moi[A];
-				O.aacc[B] += bTorque / O.moi[B];
+				//const vector3d relativeVelOfB = dVel - dVel.dot(rVec) * (rVec / (dist * dist)) - O.w[B].cross(O.R[B] / sumRaRb * rVec) - O.w[A].cross(O.R[A] / sumRaRb * rVec);
+				//relativeVelMag = relativeVelOfB.norm();
+				//if (relativeVelMag > 1e-10)
+				//{
+				//	frictionForce = mu * elasticMag * (relativeVelOfB / relativeVelMag);
+				//}
+				//const vector3d bTorque = (O.R[B] / sumRaRb) * rVec.cross(frictionForce);
+				//
+				//O.aacc[A] += aTorque / O.moi[A];
+				//O.aacc[B] += bTorque / O.moi[B];
 
 
 				if (writeStep)
