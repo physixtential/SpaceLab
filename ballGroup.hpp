@@ -290,6 +290,7 @@ struct ballGroup
 					// Check for collision between Ball and otherBall.
 					if (overlap > 0)
 					{
+						// todo - refactor initConditions like main loop:
 						// Calculate force and torque for a:
 						vector3d dVel = vel[B] - vel[A];
 						vector3d relativeVelOfA = dVel - dVel.dot(rVecab) * (rVecab / (dist * dist)) - w[A].cross(R[A] / sumRaRb * rVecab) - w[B].cross(R[B] / sumRaRb * rVecab);

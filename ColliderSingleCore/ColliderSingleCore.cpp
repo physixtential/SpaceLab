@@ -351,6 +351,13 @@ void simOneStep(const unsigned int& Step)
 	// THIRD PASS - Calculate velocity for next step:
 	for (unsigned int Ball = 0; Ball < O.cNumBalls; Ball++)
 	{
+		double vMax = 0;
+		// Report vMax:
+		if (O.vel[Ball].norm() > vMax)
+		{
+			vMax = O.vel[Ball].norm();
+		}
+		std::cout << "vMax = " << vMax << "Steps recorded: " << Step / skip << '\n';
 
 		// Velocity for next step:
 		O.vel[Ball] = O.velh[Ball] + .5 * O.acc[Ball] * dt;
@@ -407,41 +414,6 @@ void simOneStep(const unsigned int& Step)
 			<< O.PE + O.KE << ','
 			<< O.mom.norm() << ','
 			<< O.angMom.norm(); // the two zeros are bound and unbound mass
-
-		// hack temporary k increaser.
-		//if (vStepper > vTarget)
-		//{
-		//	if (true)
-		//	{
-
-		//	}
-		//	calibrateDT(Step,vStepper)
-			//for (unsigned int A = 1; A < O.cNumBalls; A++)
-			//{
-			//	for (unsigned int B = 0; B < A; B++)
-			//	{
-			//		const vector3d gravForceOnA = (G * O.m[A] * O.m[B] / (dist * dist)) * (rVecab / dist);
-			//	}
-			//}
-
-			//// todo - If sum of all elastic forces = sum of all gravitational force, increase k.
-			//if (totalEnergy < U * 1.1 and U < bindingEnergy * 1.1)
-			//{
-			//	kin *= 2;
-			//	printf("INCREASING K: E = %e\tU = %e\tB = %e\tK = %e\n", totalEnergy, U, bindingEnergy, kin);
-			//	kout = cor * kin;
-			//}
-			//else
-			//{
-			//	printf("NOT READY: E = %e\tU = %e\tB = %e\tK = %e\n", totalEnergy, U, bindingEnergy, kin);
-
-			//}
-
-		//}
-		//else
-		//{
-		//	std::cout << "\nREACHED DESIRED K\n";
-		//}
 
 		// Reinitialize energies for next step:
 		O.KE = 0;
