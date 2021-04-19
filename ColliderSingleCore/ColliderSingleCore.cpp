@@ -287,6 +287,10 @@ void simOneStep(const unsigned int& Step)
 				}
 				const vector3d aTorque = (O.R[A] / sumRaRb) * rVec.cross(frictionForce);
 
+				// Translational forces don't need to know about torque of b:
+				const vector3d gravForceOnA = (G * O.m[A] * O.m[B] / (dist * dist)) * (rVec / dist);
+				totalForce = gravForceOnA + elasticForce + frictionForce;
+
 				// Elastic and Friction b:
 				// Flip direction b -> a:
 				rVec = -rVec; 
@@ -301,12 +305,9 @@ void simOneStep(const unsigned int& Step)
 				}
 				const vector3d bTorque = (O.R[B] / sumRaRb) * rVec.cross(frictionForce);
 				
-				
-				const vector3d gravForceOnA = (G * O.m[A] * O.m[B] / (dist * dist)) * (rVec / dist);
 				O.aacc[A] += aTorque / O.moi[A];
 				O.aacc[B] += bTorque / O.moi[B];
 
-				totalForce = gravForceOnA + elasticForce + frictionForce;
 
 				if (writeStep)
 				{
