@@ -22,39 +22,16 @@ time_t lastWrite;     // For write control (gets reset)
 bool writeStep;       // This prevents writing to file every step (which is slow).
 
 /// @brief The ballGroup run by the main sim looper.
-ballGroup O;
+ballGroup O(100,true);
 
 
 // Prototypes
-void simInitTwoCluster();
-void simContinue();
-void simInitCondAndCenter();
 void simOneStep(const unsigned int& Step);
 [[noreturn]] void simLooper();
-void generateBallField();
 void safetyChecks();
 void calibrateDT(const unsigned int& Step, const double& customSpeed = -1.0);
 void updateDTK(const double& vel);
-void simType(const char simType);
 
-void simType(const char simType)
-{
-	switch (simType)
-	{
-	case 'g':
-		generateBallField();
-		break;
-	case 'c':
-		simContinue();
-		break;
-	case 't':
-		simInitTwoCluster();
-		break;
-	default:
-		std::cout << "Did not choose a simulation type.";
-		break;
-	}
-}
 
 //////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////
@@ -73,11 +50,9 @@ int main(const int argc, char const* argv[])
 		//KEfactor = atof(argv[4]);
 	}
 
-	simType('c'); // c: continue old sim | t: two cluster collision | g: generate cluster
 	//O.zeroAngVel();
 	//O.pushApart();
 	calibrateDT(0, 0);
-	simInitCondAndCenter();
 	safetyChecks();
 	O.simInitWrite(outputPrefix);
 	simLooper();
@@ -87,114 +62,6 @@ int main(const int argc, char const* argv[])
 //////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////
 
-
-// Set's up a two cluster collision.
-void simInitTwoCluster()
-{
-	// Load file data:
-	std::cerr << "TWO CLUSTER SIM\nFile 1: " << projectileName << '\t' << "File 2: " << targetName << '\n';
-	//ballGroup projectile(path + targetName);
-
-	// DART PROBE
-	ballGroup projectile(1);
-	projectile.pos[0] = { 8814, 0, 0 };
-	projectile.w[0] = { 0, 0, 0 };
-	projectile.vel[0] = { 0, 0, 0 };
-	projectile.R[0] = 78.5;
-	projectile.m[0] = 560000;
-	projectile.moi[0] = .4 * projectile.m[0] * projectile.R[0] * projectile.R[0];
-
-	ballGroup target(path + targetName);
-
-	// DO YOU WANT TO STOP EVERYTHING?
-	projectile.zeroAngVel();
-	projectile.zeroVel();
-	target.zeroAngVel();
-	target.zeroVel();
-
-
-	// Calc info to determined cluster positioning and collisions velocity:
-	projectile.updatePE();
-	target.updatePE();
-
-	//projectile.offset(projectile.radius, target.radius + (projectile.R[0]), impactParameter);
-
-	const double PEsys = projectile.PE + target.PE + (-G * projectile.getMass() * target.getMass() / (projectile.getCOM() - target.getCOM()).norm());
-
-	// Collision velocity calculation:
-	const double mSmall = projectile.getMass();
-	const double mBig = target.getMass();
-	const double mTot = mBig + mSmall;
-	//const double vSmall = -sqrt(2 * KEfactor * fabs(PEsys) * (mBig / (mSmall * mTot))); // Negative because small offsets right.
-	const double vSmall = -600000; // DART probe override.
-	//const double vBig = -(mSmall / mBig) * vSmall; // Negative to be opposing projectile.
-	const double vBig = 0; // Dymorphous override.
-	fprintf(stdout, "\nTarget Velocity: %.2e\nProjectile Velocity: %.2e\n", vBig, vSmall);
-
-	if (isnan(vSmall) || isnan(vBig))
-	{
-		fprintf(stderr, "A VELOCITY WAS NAN!!!!!!!!!!!!!!!!!!!!!!\n\n");
-		exit(EXIT_FAILURE);
-	}
-	projectile.kick(vSmall, 0, 0);
-	target.kick(vBig, 0, 0);
-
-	std::cout << '\n';
-	projectile.checkMomentum("Projectile");
-	target.checkMomentum("Target");
-
-	O.allocateGroup(projectile.cNumBalls + target.cNumBalls);
-
-	O.addBallGroup(target);
-	O.addBallGroup(projectile); // projectile second so smallest ball at end and largest ball at front for dt/k calcs.
-
-	outputPrefix =
-		projectileName + targetName +
-		"T" + rounder(KEfactor, 4) +
-		"_vBig" + scientific(vBig) +
-		"_vSmall" + scientific(vSmall) +
-		"_IP" + rounder(impactParameter * 180 / 3.14159, 2) +
-		"_rho" + rounder(density, 4);
-}
-
-
-void simContinue()
-{
-	// Load file data:
-	std::cerr << "Continuing Sim...\nFile: " << targetName << '\n';
-
-	O.loadSim(path + targetName);
-
-	std::cout << '\n';
-	O.checkMomentum("O");
-
-	// Name the file based on info above:
-	outputPrefix =
-		std::to_string(O.cNumBalls) +
-		"_rho" + rounder(density, 4);
-}
-
-
-void simInitCondAndCenter()
-{
-	std::cout << "==================" << '\n';
-	std::cout << "dt: " << dt << '\n';
-	std::cout << "k: " << kin << '\n';
-	std::cout << "Skip: " << skip << '\n';
-	std::cout << "Steps: " << steps << '\n';
-	std::cout << "==================" << '\n';
-
-	O.checkMomentum("After Zeroing"); // Is total mom zero like it should be?
-
-	// Compute physics between all balls. Distances, collision forces, energy totals, total mass:
-	O.initConditions();
-
-	// Name the file based on info above:
-	outputPrefix +=
-		"_k" + scientific(kin) +
-		"_dt" + scientific(dt) +
-		"_";
-}
 
 
 
@@ -468,305 +335,7 @@ void simOneStep(const unsigned int& Step)
 
 
 
-void twoSizeSphereShell5000()
-{
-	double radius = O.getRadius();
 
-	for (unsigned int Ball = 0; Ball < 1000; Ball++)
-	{
-		O.R[Ball] = 700;
-		O.m[Ball] = density * 4. / 3. * 3.14159 * std::pow(O.R[Ball], 3);
-		O.moi[Ball] = .4 * O.m[Ball] * O.R[Ball] * O.R[Ball];
-		O.w[Ball] = { 0, 0, 0 };
-		O.pos[Ball] = randShellVec(spaceRange, radius);
-	}
-
-	for (unsigned int Ball = 1000; Ball < 2000; Ball++)
-	{
-		O.R[Ball] = 400;
-		O.m[Ball] = density * 4. / 3. * 3.14159 * std::pow(O.R[Ball], 3);
-		O.moi[Ball] = .4 * O.m[Ball] * O.R[Ball] * O.R[Ball];
-		O.w[Ball] = { 0, 0, 0 };
-		O.pos[Ball] = randShellVec(spaceRange, radius);
-	}
-
-	const unsigned int ballsInPhase1 = 2000;
-	std::cout << "Balls in phase: " << ballsInPhase1 << "\n";
-
-	// Generate non-overlapping spherical particle field:
-	// Note that int can only handle 46340 spheres before potential int overflow.
-	int collisionDetected = 0;
-	int oldCollisions = INT_MAX;
-
-	for (unsigned int failed = 0; failed < attempts; failed++)
-	{
-		for (unsigned int A = 0; A < ballsInPhase1; A++)
-		{
-			for (unsigned int B = A + 1; B < ballsInPhase1; B++)
-			{
-				// Check for Ball overlap.
-				const double dist = (O.pos[A] - O.pos[B]).norm();
-				const double sumRaRb = O.R[A] + O.R[B];
-				const double overlap = dist - sumRaRb;
-				if (overlap < 0)
-				{
-					collisionDetected += 1;
-					// Move the other ball:
-					O.pos[B] = randShellVec(spaceRange, radius);
-				}
-			}
-		}
-		if (collisionDetected < oldCollisions)
-		{
-			oldCollisions = collisionDetected;
-			std::cout << "Collisions: " << collisionDetected << "                        \r";
-		}
-		if (collisionDetected == 0)
-		{
-			std::cout << "\nSuccess!\n";
-			break;
-		}
-		if (failed == attempts - 1 || collisionDetected > static_cast<int>(1.5 * static_cast<double>(ballsInPhase1))) // Added the second part to speed up spatial constraint increase when there are clearly too many collisions for the space to be feasible.
-		{
-			std::cout << "Failed " << spaceRange << ". Increasing range " << spaceRangeIncrement << "cm^3.\n";
-			spaceRange += spaceRangeIncrement;
-			failed = 0;
-			for (unsigned int Ball = 0; Ball < ballsInPhase1; Ball++)
-			{
-				O.pos[Ball] = randShellVec(spaceRange, radius); // Each time we fail and increase range, redistribute all balls randomly so we don't end up with big balls near mid and small balls outside.
-			}
-		}
-		collisionDetected = 0;
-	}
-
-	spaceRange += 2. * O.R[0] + 4. * 250.;
-	radius += O.R[0] + 250.;
-	std::cout << "Making shell between " << radius << " and " << spaceRange * .5 << '\n';
-
-	// PHASE 2
-
-	for (unsigned int Ball = 2000; Ball < 3500; Ball++)
-	{
-		O.R[Ball] = 250;
-		O.m[Ball] = density * 4. / 3. * 3.14159 * std::pow(O.R[Ball], 3);
-		O.moi[Ball] = .4 * O.m[Ball] * O.R[Ball] * O.R[Ball];
-		O.w[Ball] = { 0, 0, 0 };
-		O.pos[Ball] = randShellVec(spaceRange, radius);
-	}
-
-	for (unsigned int Ball = 3500; Ball < 5000; Ball++)
-	{
-		O.R[Ball] = 150;
-		O.m[Ball] = density * 4. / 3. * 3.14159 * std::pow(O.R[Ball], 3);
-		O.moi[Ball] = .4 * O.m[Ball] * O.R[Ball] * O.R[Ball];
-		O.w[Ball] = { 0, 0, 0 };
-		O.pos[Ball] = randShellVec(spaceRange, radius);
-	}
-
-	const unsigned int ballsInPhase2 = 3000;
-	std::cout << "Balls in phase: " << ballsInPhase2 << "\n";
-
-	// Generate non-overlapping spherical particle field:
-	collisionDetected = 0;
-	oldCollisions = 100000000;
-
-	for (unsigned int failed = 0; failed < attempts; failed++)
-	{
-		for (unsigned int A = ballsInPhase1; A < ballsInPhase1 + ballsInPhase2; A++)
-		{
-			for (unsigned int B = A + 1; B < ballsInPhase1 + ballsInPhase2; B++)
-			{
-				// Check for Ball overlap.
-				const double dist = (O.pos[A] - O.pos[B]).norm();
-				const double sumRaRb = O.R[A] + O.R[B];
-				const double overlap = dist - sumRaRb;
-				if (overlap < 0)
-				{
-					collisionDetected += 1;
-					// Move the other ball:
-					O.pos[B] = randShellVec(spaceRange, radius);
-				}
-			}
-		}
-		if (collisionDetected < oldCollisions)
-		{
-			oldCollisions = collisionDetected;
-			std::cout << "Collisions: " << collisionDetected << "                        \r";
-		}
-		if (collisionDetected == 0)
-		{
-			std::cout << "\nSuccess!\n";
-			break;
-		}
-		if (failed == attempts - 1 || collisionDetected > static_cast<int>(1.5 * static_cast<double>(ballsInPhase2))) // Added the second part to speed up spatial constraint increase when there are clearly too many collisions for the space to be feasible.
-		{
-			std::cout << "Failed " << spaceRange << ". Increasing range " << spaceRangeIncrement << "cm^3.\n";
-			spaceRange += spaceRangeIncrement;
-			failed = 0;
-			for (unsigned int Ball = ballsInPhase1; Ball < ballsInPhase1 + ballsInPhase2; Ball++)
-			{
-				O.pos[Ball] = randShellVec(spaceRange, radius); // Each time we fail and increase range, redistribute all balls randomly so we don't end up with big balls near mid and small balls outside.
-			}
-		}
-		collisionDetected = 0;
-	}
-
-	std::cout << "Initial Radius: " << radius << '\n';
-	std::cout << "Mass: " << O.getMass() << '\n';
-
-}
-
-
-
-void threeSizeSphere()
-{
-	// Make genBalls of 3 sizes in CGS with ratios such that the mass is distributed evenly among the 3 sizes (less large genBalls than small genBalls).
-	const unsigned int smalls = static_cast<unsigned>(std::round(static_cast<double>(genBalls) * 27. / 31.375)); // Just here for reference. Whatever genBalls are left will be smalls.
-	const unsigned int mediums = static_cast<unsigned>(std::round(static_cast<double>(genBalls) * 27. / (8 * 31.375)));
-	const unsigned int larges = static_cast<unsigned>(std::round(static_cast<double>(genBalls) * 1. / 31.375));
-
-
-	for (unsigned int Ball = 0; Ball < larges; Ball++)
-	{
-		O.R[Ball] = 3. * scaleBalls;//std::pow(1. / (double)genBalls, 1. / 3.) * 3. * scaleBalls;
-		O.m[Ball] = density * 4. / 3. * 3.14159 * std::pow(O.R[Ball], 3);
-		O.moi[Ball] = .4 * O.m[Ball] * O.R[Ball] * O.R[Ball];
-		O.w[Ball] = { 0, 0, 0 };
-		O.pos[Ball] = randSphericalVec(spaceRange, spaceRange, spaceRange);
-	}
-
-	for (unsigned int Ball = larges; Ball < (larges + mediums); Ball++)
-	{
-		O.R[Ball] = 2. * scaleBalls;//std::pow(1. / (double)genBalls, 1. / 3.) * 2. * scaleBalls;
-		O.m[Ball] = density * 4. / 3. * 3.14159 * std::pow(O.R[Ball], 3);
-		O.moi[Ball] = .4 * O.m[Ball] * O.R[Ball] * O.R[Ball];
-		O.w[Ball] = { 0, 0, 0 };
-		O.pos[Ball] = randSphericalVec(spaceRange, spaceRange, spaceRange);
-	}
-	for (unsigned int Ball = (larges + mediums); Ball < genBalls; Ball++)
-	{
-		O.R[Ball] = 1. * scaleBalls;//std::pow(1. / (double)genBalls, 1. / 3.) * 1. * scaleBalls;
-		O.m[Ball] = density * 4. / 3. * 3.14159 * std::pow(O.R[Ball], 3);
-		O.moi[Ball] = .4 * O.m[Ball] * O.R[Ball] * O.R[Ball];
-		O.w[Ball] = { 0, 0, 0 };
-		O.pos[Ball] = randSphericalVec(spaceRange, spaceRange, spaceRange);
-	}
-
-	std::cout << "Smalls: " << smalls << " Mediums: " << mediums << " Larges: " << larges << '\n';
-
-	// Generate non-overlapping spherical particle field:
-	int collisionDetected = 0;
-	int oldCollisions = genBalls;
-
-	for (unsigned int failed = 0; failed < attempts; failed++)
-	{
-		for (unsigned int A = 0; A < genBalls; A++)
-		{
-			for (unsigned int B = A + 1; B < genBalls; B++)
-			{
-				// Check for Ball overlap.
-				const double dist = (O.pos[A] - O.pos[B]).norm();
-				const double sumRaRb = O.R[A] + O.R[B];
-				const double overlap = dist - sumRaRb;
-				if (overlap < 0)
-				{
-					collisionDetected += 1;
-					// Move the other ball:
-					O.pos[B] = randSphericalVec(spaceRange, spaceRange, spaceRange);
-				}
-			}
-		}
-		if (collisionDetected < oldCollisions)
-		{
-			oldCollisions = collisionDetected;
-			std::cout << "Collisions: " << collisionDetected << "                        \r";
-		}
-		if (collisionDetected == 0)
-		{
-			std::cout << "\nSuccess!\n";
-			break;
-		}
-		if (failed == attempts - 1 || collisionDetected > static_cast<int>(1.5 * static_cast<double>(genBalls))) // Added the second part to speed up spatial constraint increase when there are clearly too many collisions for the space to be feasible.
-		{
-			std::cout << "Failed " << spaceRange << ". Increasing range " << spaceRangeIncrement << "cm^3.\n";
-			spaceRange += spaceRangeIncrement;
-			failed = 0;
-			for (unsigned int Ball = 0; Ball < genBalls; Ball++)
-			{
-				O.pos[Ball] = randSphericalVec(spaceRange, spaceRange, spaceRange); // Each time we fail and increase range, redistribute all balls randomly so we don't end up with big balls near mid and small balls outside.
-			}
-		}
-		collisionDetected = 0;
-	}
-
-	std::cout << "Final spacerange: " << spaceRange << '\n';
-	std::cout << "Initial Radius: " << O.getRadius() << '\n';
-	std::cout << "Mass: " << O.getMass() << '\n';
-}
-
-
-
-void oneSizeSphere()
-{
-
-	for (unsigned int Ball = 0; Ball < genBalls; Ball++)
-	{
-		O.R[Ball] = scaleBalls;
-		O.m[Ball] = density * 4. / 3. * 3.14159 * std::pow(O.R[Ball], 3);
-		O.moi[Ball] = .4 * O.m[Ball] * O.R[Ball] * O.R[Ball];
-		O.w[Ball] = { 0, 0, 0 };
-		O.pos[Ball] = randSphericalVec(spaceRange, spaceRange, spaceRange);
-	}
-
-	// Generate non-overlapping spherical particle field:
-	int collisionDetected = 0;
-	int oldCollisions = genBalls;
-
-	for (unsigned int failed = 0; failed < attempts; failed++)
-	{
-		for (unsigned int A = 0; A < genBalls; A++)
-		{
-			for (unsigned int B = A + 1; B < genBalls; B++)
-			{
-				// Check for Ball overlap.
-				const double dist = (O.pos[A] - O.pos[B]).norm();
-				const double sumRaRb = O.R[A] + O.R[B];
-				const double overlap = dist - sumRaRb;
-				if (overlap < 0)
-				{
-					collisionDetected += 1;
-					// Move the other ball:
-					O.pos[B] = randSphericalVec(spaceRange, spaceRange, spaceRange);
-				}
-			}
-		}
-		if (collisionDetected < oldCollisions)
-		{
-			oldCollisions = collisionDetected;
-			std::cout << "Collisions: " << collisionDetected << "                        \r";
-		}
-		if (collisionDetected == 0)
-		{
-			std::cout << "\nSuccess!\n";
-			break;
-		}
-		if (failed == attempts - 1 || collisionDetected > static_cast<int>(1.5 * static_cast<double>(genBalls))) // Added the second part to speed up spatial constraint increase when there are clearly too many collisions for the space to be feasible.
-		{
-			std::cout << "Failed " << spaceRange << ". Increasing range " << spaceRangeIncrement << "cm^3.\n";
-			spaceRange += spaceRangeIncrement;
-			failed = 0;
-			for (unsigned int Ball = 0; Ball < genBalls; Ball++)
-			{
-				O.pos[Ball] = randSphericalVec(spaceRange, spaceRange, spaceRange); // Each time we fail and increase range, redistribute all balls randomly so we don't end up with big balls near mid and small balls outside.
-			}
-		}
-		collisionDetected = 0;
-	}
-
-	std::cout << "Final spacerange: " << spaceRange << '\n';
-	std::cout << "Initial Radius: " << O.getRadius() << '\n';
-	std::cout << "Mass: " << O.getMass() << '\n';
-}
 
 
 
@@ -924,8 +493,8 @@ void calibrateDT(const unsigned int& Step, const double& customSpeed)
 void updateDTK(const double& vel)
 {
 	constexpr double kConsts = fourThirdsPiRho / (maxOverlap * maxOverlap);
-	const double rMin = O.getRmin();
-	const double rMax = O.getRmax();
+	const double rMin = O.rMin;
+	const double rMax = O.rMax;
 
 	kin = kConsts * rMax * vel * vel;
 	kout = cor * kin;

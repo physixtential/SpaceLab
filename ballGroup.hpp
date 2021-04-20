@@ -8,33 +8,43 @@
 #include "vector3d.hpp"
 
 /// @brief Facilitates the concept of a group of balls with physical properties.
-/// Recommended: Use ballGroup(int nBalls) constructor to allocate all the memory needed for your ballGroup size.
-struct ballGroup
+class ballGroup
 {
+public:
 	ballGroup() = default;
 
 	/// @brief For creating a new ballGroup of size nBalls
 	/// @param nBalls Number of balls to allocate.
-	/// @param generate Optional for generating random field (default = false)
-	explicit ballGroup(const int nBalls, const bool generate = false)
+	explicit ballGroup(const int nBalls)
 	{
 		allocateGroup(nBalls);
-		if (generate)
-		{
-			generateBallField();
-		}
+	}
+
+	/// @brief For creating a new ballGroup of size nBalls
+	/// @param nBalls Number of balls to allocate.
+	/// @param generate Optional for generating random field.
+	ballGroup(const int nBalls, const bool generate)
+	{
+		generateBallField(nBalls);
+		simInitCondAndCenter();
+	}
+
+
+	/// @brief for importing a ballGroup from file.
+	/// @param fullpath is the filename and path excluding the suffix _simData.csv, _constants.csv, etc.
+	explicit ballGroup(const std::string& fullpath)
+	{
+		simContinue(fullpath);
+		simInitCondAndCenter();
 	}
 
 	/// @brief for importing a ballGroup from file.
-	/// @param fileTag is the filename excluding the suffix _simData.csv, _constants.csv, etc.
-	explicit ballGroup(const std::string& fileTag)
+	/// @param fullpath1 is the filename and path excluding the suffix _simData.csv, _constants.csv, etc.
+	explicit ballGroup(const std::string& projectileName, const std::string& targetName)
 	{
-		loadSim(fileTag);
+		simInitTwoCluster(projectileName, targetName);
+		simInitCondAndCenter();
 	}
-
-	// String buffers to hold data in memory until worth writing to file:
-	std::stringstream ballBuffer;
-	std::stringstream energyBuffer;
 
 	unsigned int cNumBalls = 0;
 	unsigned int cNumBallsAdded = 0;
@@ -65,8 +75,353 @@ struct ballGroup
 	double* m = nullptr; ///< Mass
 	double* moi = nullptr; ///< Moment of inertia
 
+	// get max velocity
+	[[nodiscard]] double getVelMax(bool useSoc)
+	{
+		vMax = 0;
 
-	/// Allocate ball property arrays.
+		if (useSoc)
+		{
+			for (unsigned int Ball = 0; Ball < cNumBalls; Ball++)
+			{
+				if ((pos[Ball] - getCOM()).norm() < soc && vel[Ball].norm() > vMax)
+				{
+					vMax = vel[Ball].norm();
+				}
+			}
+		}
+		else
+		{
+			for (unsigned int Ball = 0; Ball < cNumBalls; Ball++)
+			{
+				if (vel[Ball].norm() > vMax)
+				{
+					vMax = vel[Ball].norm();
+				}
+			}
+		}
+
+		// Is vMax for some reason unreasonably small? Don't proceed. Probably a finished sim.
+		if (vMax < 1e-10)
+		{
+			printf("\nMax velocity in system is less than 1e-10.\n");
+			system("pause");
+		}
+
+		return vMax;
+	}
+
+	// Kick ballGroup (give the whole thing a velocity)
+	void kick(const double& vx, const double& vy, const double& vz) const
+	{
+		for (unsigned int Ball = 0; Ball < cNumBalls; Ball++)
+		{
+			vel[Ball] += {vx, vy, vz};
+		}
+	}
+
+
+	void checkMomentum(const std::string& of) const
+	{
+		vector3d pTotal = { 0, 0, 0 };
+		for (unsigned int Ball = 0; Ball < cNumBalls; Ball++)
+		{
+			pTotal += m[Ball] * vel[Ball];
+		}
+		printf("%s Momentum Check: %.2e, %.2e, %.2e\n", of.c_str(), pTotal.x, pTotal.y, pTotal.z);
+	}
+
+	// offset cluster
+	void offset(const double& rad1, const double& rad2, const double& impactParam) const
+	{
+		for (unsigned int Ball = 0; Ball < cNumBalls; Ball++)
+		{
+			pos[Ball].x += (rad1 + rad2) * cos(impactParam);
+			pos[Ball].y += (rad1 + rad2) * sin(impactParam);
+		}
+	}
+
+	/// Approximate the radius of the ballGroup.
+	[[nodiscard]] double getRadius() const
+	{
+		double radius = 0;
+
+		if (cNumBalls > 1)
+		{
+			for (unsigned int A = 0; A < cNumBalls; A++)
+			{
+				for (unsigned int B = A + 1; B < cNumBalls; B++)
+				{
+					// Identify two farthest balls from each other. That is diameter of cluster.
+					const double diameter = (pos[A] - pos[B]).norm();
+					if (diameter * .5 > radius)
+					{
+						radius = diameter * .5;
+					}
+				}
+			}
+		}
+		else
+		{
+			radius = R[0];
+		}
+
+		return radius;
+	}
+
+	// Update Potential Energy:
+	void updatePE()
+	{
+		PE = 0;
+
+		if (cNumBalls > 1) // Code below only necessary for effects between balls.
+		{
+			for (unsigned int A = 1; A < cNumBalls; A++)
+			{
+				for (unsigned int B = 0; B < A; B++)
+				{
+					const double sumRaRb = R[A] + R[B];
+					const double dist = (pos[A] - pos[B]).norm();
+					const double overlap = sumRaRb - dist;
+
+					// Check for collision between Ball and otherBall.
+					if (overlap > 0)
+					{
+						PE += -G * m[A] * m[B] / dist + kin * ((sumRaRb - dist) * .5) * ((sumRaRb - dist) * .5);
+					}
+					else
+					{
+						PE += -G * m[A] * m[B] / dist;
+					}
+				}
+			}
+		}
+		else // For the case of just one ball:
+		{
+			PE = 0;
+		}
+	}
+
+	void simInitWrite(const std::string& filename)
+	{
+		// Create string for file name identifying spin combination negative is 2, positive is 1 on each axis.
+		//std::string spinCombo = "";
+		//for (unsigned int i = 0; i < 3; i++)
+		//{
+		//	if (spins[i] < 0) { spinCombo += "2"; }
+		//	else if (spins[i] > 0) { spinCombo += "1"; }
+		//	else { spinCombo += "0"; }
+		//}
+
+		// Append for the three files:
+		std::string simDataFilename = filename + "simData.csv";
+		std::string energyFilename = filename + "energy.csv";
+		std::string constantsFilename = filename + "constants.csv";
+
+		// Check if file name already exists.
+		std::ifstream checkForFile;
+		checkForFile.open(simDataFilename, std::ifstream::in);
+		// Add a counter to the file name until it isn't overwriting anything:
+		if (checkForFile.is_open())
+		{
+			int counter = 0;
+			while (true)
+			{
+				if (checkForFile.is_open())
+				{
+					counter++;
+					checkForFile.close();
+					checkForFile.open(std::to_string(counter) + '_' + simDataFilename, std::ifstream::in);
+				}
+				else
+				{
+					simDataFilename.insert(0, std::to_string(counter) + '_');
+					constantsFilename.insert(0, std::to_string(counter) + '_');
+					energyFilename.insert(0, std::to_string(counter) + '_');
+					break;
+				}
+			}
+		}
+		checkForFile.close();
+
+		std::cout << "New file tag: " << simDataFilename;
+
+		// Open all file streams:
+		std::ofstream energyWrite, ballWrite, constWrite;
+		energyWrite.open(energyFilename, std::ofstream::app);
+		ballWrite.open(simDataFilename, std::ofstream::app);
+		constWrite.open(constantsFilename, std::ofstream::app);
+
+		// Make column headers:
+		energyWrite << "Time,PE,KE,E,p,L";
+		ballWrite << "x0,y0,z0,wx0,wy0,wz0,wmag0,vx0,vy0,vz0,bound0";
+
+		for (unsigned int Ball = 1; Ball < cNumBalls; Ball++) // Start at 2nd ball because first one was just written^.
+		{
+			std::string thisBall = std::to_string(Ball);
+			ballWrite
+				<< ",x" + thisBall
+				<< ",y" + thisBall
+				<< ",z" + thisBall
+				<< ",wx" + thisBall
+				<< ",wy" + thisBall
+				<< ",wz" + thisBall
+				<< ",wmag" + thisBall
+				<< ",vx" + thisBall
+				<< ",vy" + thisBall
+				<< ",vz" + thisBall
+				<< ",bound" + thisBall;
+		}
+
+		std::cout << "\nSim data, energy, and constants file streams and headers created.";
+
+		// Write constant data:
+		for (unsigned int Ball = 0; Ball < cNumBalls; Ball++)
+		{
+
+			constWrite
+				<< R[Ball] << ','
+				<< m[Ball] << ','
+				<< moi[Ball]
+				<< '\n';
+		}
+
+		// Write energy data to buffer:
+		energyBuffer
+			<< '\n'
+			<< simTimeElapsed << ','
+			<< PE << ','
+			<< KE << ','
+			<< PE + KE << ','
+			<< mom.norm() << ','
+			<< angMom.norm();
+		energyWrite << energyBuffer.rdbuf();
+		energyBuffer.str("");
+
+		// Reinitialize energies for next step:
+		KE = 0;
+		PE = 0;
+		mom = { 0, 0, 0 };
+		angMom = { 0, 0, 0 };
+
+		// Send position and rotation to buffer:
+		ballBuffer << '\n'; // Necessary new line after header.
+		ballBuffer
+			<< pos[0].x << ','
+			<< pos[0].y << ','
+			<< pos[0].z << ','
+			<< w[0].x << ','
+			<< w[0].y << ','
+			<< w[0].z << ','
+			<< w[0].norm() << ','
+			<< vel[0].x << ','
+			<< vel[0].y << ','
+			<< vel[0].z << ','
+			<< 0; //bound[0];
+		for (unsigned int Ball = 1; Ball < cNumBalls; Ball++)
+		{
+			ballBuffer
+				<< ',' << pos[Ball].x << ',' // Needs comma start so the last bound doesn't have a dangling comma.
+				<< pos[Ball].y << ','
+				<< pos[Ball].z << ','
+				<< w[Ball].x << ','
+				<< w[Ball].y << ','
+				<< w[Ball].z << ','
+				<< w[Ball].norm() << ','
+				<< vel[Ball].x << ','
+				<< vel[Ball].y << ','
+				<< vel[Ball].z << ','
+				<< 0; //bound[Ball];
+		}
+		// Write position and rotation data to file:
+		ballWrite << ballBuffer.rdbuf();
+		ballBuffer.str(""); // Resets the stream buffer to blank.
+
+		// Close Streams for user viewing:
+		energyWrite.close();
+		ballWrite.close();
+		constWrite.close();
+
+		std::cout << "\nInitial conditions exported and file streams closed.\nSimulating " << steps * dt / 60 / 60 << " hours.\n";
+		std::cout << "Total mass: " << getMass() << '\n';
+		std::cout << "\n===============================================================\n";
+	}
+
+
+	[[nodiscard]] vector3d getCOM() const
+	{
+		if (mTotal > 0)
+		{
+			vector3d comNumerator;
+			for (unsigned int Ball = 0; Ball < cNumBalls; Ball++)
+			{
+				comNumerator += m[Ball] * pos[Ball];
+			}
+			vector3d com = comNumerator / mTotal;
+			return com;
+		}
+		else
+		{
+			std::cout << "Mass of cluster is zer.\n";
+			return { NULL, NULL, NULL };
+		}
+	}
+
+	void zeroVel() const
+	{
+		for (unsigned int Ball = 0; Ball < cNumBalls; Ball++)
+		{
+			vel[Ball] = { 0, 0, 0 };
+		}
+	}
+
+	void zeroAngVel() const
+	{
+		for (unsigned int Ball = 0; Ball < cNumBalls; Ball++)
+		{
+			w[Ball] = { 0, 0, 0 };
+		}
+	}
+
+	void toOrigin() const
+	{
+		const vector3d com = getCOM();
+
+		for (unsigned int Ball = 0; Ball < cNumBalls; Ball++)
+		{
+			pos[Ball] -= com;
+		}
+	}
+
+	// Set velocity of all balls such that the cluster spins:
+	void comSpinner(const double& spinX, const double& spinY, const double& spinZ) const
+	{
+		const vector3d comRot = { spinX, spinY, spinZ }; // Rotation axis and magnitude
+		for (unsigned int Ball = 0; Ball < cNumBalls; Ball++)
+		{
+			vel[Ball] += comRot.cross(pos[Ball] - getCOM());
+			w[Ball] += comRot;
+		}
+	}
+
+	void rotAll(const char axis, const double angle) const
+	{
+		for (unsigned int Ball = 0; Ball < cNumBalls; Ball++)
+		{
+			pos[Ball] = pos[Ball].rot(axis, angle);
+			vel[Ball] = vel[Ball].rot(axis, angle);
+			w[Ball] = w[Ball].rot(axis, angle);
+		}
+	}
+
+private:
+	// String buffers to hold data in memory until worth writing to file:
+	std::stringstream ballBuffer;
+	std::stringstream energyBuffer;
+
+
+
+	/// Allocate balls - MUST RUN updateUsefuls() after you have filled with data by whatever means.
 	void allocateGroup(const unsigned int nBalls)
 	{
 		cNumBalls = nBalls;
@@ -137,99 +492,9 @@ struct ballGroup
 		delete[] moi;
 	}
 
-	/// Approximate the radius of the ballGroup.
-	[[nodiscard]] double getRadius() const
-	{
-		double radius = 0;
 
-		if (cNumBalls > 1)
-		{
-			for (unsigned int A = 0; A < cNumBalls; A++)
-			{
-				for (unsigned int B = A + 1; B < cNumBalls; B++)
-				{
-					// Identify two farthest balls from each other. That is diameter of cluster.
-					const double diameter = (pos[A] - pos[B]).norm();
-					if (diameter * .5 > radius)
-					{
-						radius = diameter * .5;
-					}
-				}
-			}
-		}
-		else
-		{
-			radius = R[0];
-		}
 
-		return radius;
-	}
 
-	[[nodiscard]] vector3d getCOM() const
-	{
-		if (mTotal > 0)
-		{
-			vector3d comNumerator;
-			for (unsigned int Ball = 0; Ball < cNumBalls; Ball++)
-			{
-				comNumerator += m[Ball] * pos[Ball];
-			}
-			vector3d com = comNumerator / mTotal;
-			return com;
-		}
-		else
-		{
-			std::cout << "Mass of cluster is zero..\n";
-			return { NULL, NULL, NULL };
-		}
-	}
-
-	void zeroVel() const
-	{
-		for (unsigned int Ball = 0; Ball < cNumBalls; Ball++)
-		{
-			vel[Ball] = { 0, 0, 0 };
-		}
-	}
-
-	void zeroAngVel() const
-	{
-		for (unsigned int Ball = 0; Ball < cNumBalls; Ball++)
-		{
-			w[Ball] = { 0, 0, 0 };
-		}
-	}
-
-	void toOrigin() const
-	{
-		const vector3d com = getCOM();
-
-		for (unsigned int Ball = 0; Ball < cNumBalls; Ball++)
-		{
-			pos[Ball] -= com;
-		}
-	}
-
-	// Set velocity of all balls such that the cluster spins:
-	void comSpinner(const double& spinX, const double& spinY, const double& spinZ) const
-	{
-		const vector3d comRot = { spinX, spinY, spinZ }; // Rotation axis and magnitude
-		for (unsigned int Ball = 0; Ball < cNumBalls; Ball++)
-		{
-			vel[Ball] += comRot.cross(pos[Ball] - getCOM());
-			w[Ball] += comRot;
-		}
-	}
-
-	void rotAll(const char axis, const double angle) const
-	{
-		for (unsigned int Ball = 0; Ball < cNumBalls; Ball++)
-		{
-			pos[Ball] = pos[Ball].rot(axis, angle);
-			vel[Ball] = vel[Ball].rot(axis, angle);
-			w[Ball] = w[Ball].rot(axis, angle);
-		}
-	}
 
 
 
@@ -325,111 +590,10 @@ struct ballGroup
 		}
 	}
 
-	// Update Potential Energy:
-	void updatePE()
+
+	[[nodiscard]] double getRmin()
 	{
-		PE = 0;
-
-		if (cNumBalls > 1) // Code below only necessary for effects between balls.
-		{
-			for (unsigned int A = 1; A < cNumBalls; A++)
-			{
-				for (unsigned int B = 0; B < A; B++)
-				{
-					const double sumRaRb = R[A] + R[B];
-					const double dist = (pos[A] - pos[B]).norm();
-					const double overlap = sumRaRb - dist;
-
-					// Check for collision between Ball and otherBall.
-					if (overlap > 0)
-					{
-						PE += -G * m[A] * m[B] / dist + kin * ((sumRaRb - dist) * .5) * ((sumRaRb - dist) * .5);
-					}
-					else
-					{
-						PE += -G * m[A] * m[B] / dist;
-					}
-				}
-			}
-		}
-		else // For the case of just one ball:
-		{
-			PE = 0;
-		}
-	}
-
-
-	// Kick ballGroup (give the whole thing a velocity)
-	void kick(const double& vx, const double& vy, const double& vz) const
-	{
-		for (unsigned int Ball = 0; Ball < cNumBalls; Ball++)
-		{
-			vel[Ball] += {vx, vy, vz};
-		}
-	}
-
-
-	void checkMomentum(const std::string& of) const
-	{
-		vector3d pTotal = { 0, 0, 0 };
-		for (unsigned int Ball = 0; Ball < cNumBalls; Ball++)
-		{
-			pTotal += m[Ball] * vel[Ball];
-		}
-		printf("%s Momentum Check: %.2e, %.2e, %.2e\n", of.c_str(), pTotal.x, pTotal.y, pTotal.z);
-	}
-
-	// offset cluster
-	void offset(const double& rad1, const double& rad2, const double& impactParam) const
-	{
-		for (unsigned int Ball = 0; Ball < cNumBalls; Ball++)
-		{
-			pos[Ball].x += (rad1 + rad2) * cos(impactParam);
-			pos[Ball].y += (rad1 + rad2) * sin(impactParam);
-		}
-	}
-
-
-	// get max velocity
-	[[nodiscard]] double getVelMax(bool useSoc)
-	{
-		vMax = 0;
-
-		if (useSoc)
-		{
-			for (unsigned int Ball = 0; Ball < cNumBalls; Ball++)
-			{
-				if ((pos[Ball] - getCOM()).norm() < soc && vel[Ball].norm() > vMax)
-				{
-					vMax = vel[Ball].norm();
-				}
-			}
-		}
-		else
-		{
-			for (unsigned int Ball = 0; Ball < cNumBalls; Ball++)
-			{
-				if (vel[Ball].norm() > vMax)
-				{
-					vMax = vel[Ball].norm();
-				}
-			}
-		}
-
-		// Is vMax for some reason unreasonably small? Don't proceed. Probably a finished sim.
-		if (vMax < 1e-10)
-		{
-			printf("\nMax velocity in system is less than 1e-10.\n");
-			system("pause");
-		}
-
-		return vMax;
-	}
-
-
-	[[nodiscard]] double getRmin() const
-	{
-		double rMin = R[0];
+		rMin = R[0];
 		for (unsigned int Ball = 0; Ball < cNumBalls; Ball++)
 		{
 			if (R[Ball] < rMin)
@@ -440,9 +604,9 @@ struct ballGroup
 		return rMin;
 	}
 
-	[[nodiscard]] double getRmax() const
+	[[nodiscard]] double getRmax()
 	{
-		double rMax = R[0];
+		rMax = R[0];
 		for (unsigned int Ball = 0; Ball < cNumBalls; Ball++)
 		{
 			if (R[Ball] > rMax)
@@ -468,23 +632,6 @@ struct ballGroup
 	}
 
 
-
-	/// Make ballGroup from file data.
-	void loadSim(const std::string& fileTag)
-	{
-		parseSimData(getLastLine(fileTag));
-
-		loadConsts(fileTag);
-
-		rMin = getRmin();
-		rMax = getRmax();
-		mTotal = getMass();
-		initialRadius = getRadius();
-
-		std::cout << "Balls: " << cNumBalls << '\n';
-		std::cout << "Mass: " << getMass() << '\n';
-		std::cout << "Approximate radius: " << getRadius() << " cm.\n";
-	}
 
 
 
@@ -528,10 +675,10 @@ struct ballGroup
 
 
 	/// Get previous sim constants by filename.
-	void loadConsts(const std::string& fileTag)
+	void loadConsts(const std::string& fullpath)
 	{
 		// Get radius, mass, moi:
-		std::string constantsFilename = fileTag + "constants.csv";
+		std::string constantsFilename = fullpath + "constants.csv";
 		if (auto ConstStream = std::ifstream(constantsFilename, std::ifstream::in))
 		{
 			std::string line, lineElement;
@@ -557,7 +704,7 @@ struct ballGroup
 
 
 	/// Get last line of previous simData by filename.
-	[[nodiscard]] std::string getLastLine(const std::string& filename)
+	[[nodiscard]] static std::string getLastLine(const std::string& filename)
 	{
 		std::string simDataFilename = filename + "simData.csv";
 
@@ -738,153 +885,8 @@ struct ballGroup
 		checkForFile.close();
 	}
 
-	void simInitWrite(const std::string& filename)
-	{
-		// Create string for file name identifying spin combination negative is 2, positive is 1 on each axis.
-		//std::string spinCombo = "";
-		//for (unsigned int i = 0; i < 3; i++)
-		//{
-		//	if (spins[i] < 0) { spinCombo += "2"; }
-		//	else if (spins[i] > 0) { spinCombo += "1"; }
-		//	else { spinCombo += "0"; }
-		//}
-
-		// Append for the three files:
-		std::string simDataFilename = filename + "simData.csv";
-		std::string energyFilename = filename + "energy.csv";
-		std::string constantsFilename = filename + "constants.csv";
-
-		// Check if file name already exists.
-		std::ifstream checkForFile;
-		checkForFile.open(simDataFilename, std::ifstream::in);
-		// Add a counter to the file name until it isn't overwriting anything:
-		if (checkForFile.is_open())
-		{
-			int counter = 0;
-			while (true)
-			{
-				if (checkForFile.is_open())
-				{
-					counter++;
-					checkForFile.close();
-					checkForFile.open(std::to_string(counter) + '_' + simDataFilename, std::ifstream::in);
-				}
-				else
-				{
-					simDataFilename.insert(0, std::to_string(counter) + '_');
-					constantsFilename.insert(0, std::to_string(counter) + '_');
-					energyFilename.insert(0, std::to_string(counter) + '_');
-					break;
-				}
-			}
-		}
-		checkForFile.close();
-
-		std::cout << "New file tag: " << simDataFilename;
-
-		// Open all file streams:
-		std::ofstream energyWrite, ballWrite, constWrite;
-		energyWrite.open(energyFilename, std::ofstream::app);
-		ballWrite.open(simDataFilename, std::ofstream::app);
-		constWrite.open(constantsFilename, std::ofstream::app);
-
-		// Make column headers:
-		energyWrite << "Time,PE,KE,E,p,L";
-		ballWrite << "x0,y0,z0,wx0,wy0,wz0,wmag0,vx0,vy0,vz0,bound0";
-
-		for (unsigned int Ball = 1; Ball < cNumBalls; Ball++) // Start at 2nd ball because first one was just written^.
-		{
-			std::string thisBall = std::to_string(Ball);
-			ballWrite
-				<< ",x" + thisBall
-				<< ",y" + thisBall
-				<< ",z" + thisBall
-				<< ",wx" + thisBall
-				<< ",wy" + thisBall
-				<< ",wz" + thisBall
-				<< ",wmag" + thisBall
-				<< ",vx" + thisBall
-				<< ",vy" + thisBall
-				<< ",vz" + thisBall
-				<< ",bound" + thisBall;
-		}
-
-		std::cout << "\nSim data, energy, and constants file streams and headers created.";
-
-		// Write constant data:
-		for (unsigned int Ball = 0; Ball < cNumBalls; Ball++)
-		{
-
-			constWrite
-				<< R[Ball] << ','
-				<< m[Ball] << ','
-				<< moi[Ball]
-				<< '\n';
-		}
-
-		// Write energy data to buffer:
-		energyBuffer
-			<< '\n'
-			<< simTimeElapsed << ','
-			<< PE << ','
-			<< KE << ','
-			<< PE + KE << ','
-			<< mom.norm() << ','
-			<< angMom.norm();
-		energyWrite << energyBuffer.rdbuf();
-		energyBuffer.str("");
-
-		// Reinitialize energies for next step:
-		KE = 0;
-		PE = 0;
-		mom = { 0, 0, 0 };
-		angMom = { 0, 0, 0 };
-
-		// Send position and rotation to buffer:
-		ballBuffer << '\n'; // Necessary new line after header.
-		ballBuffer
-			<< pos[0].x << ','
-			<< pos[0].y << ','
-			<< pos[0].z << ','
-			<< w[0].x << ','
-			<< w[0].y << ','
-			<< w[0].z << ','
-			<< w[0].norm() << ','
-			<< vel[0].x << ','
-			<< vel[0].y << ','
-			<< vel[0].z << ','
-			<< 0; //bound[0];
-		for (unsigned int Ball = 1; Ball < cNumBalls; Ball++)
-		{
-			ballBuffer
-				<< ',' << pos[Ball].x << ',' // Needs comma start so the last bound doesn't have a dangling comma.
-				<< pos[Ball].y << ','
-				<< pos[Ball].z << ','
-				<< w[Ball].x << ','
-				<< w[Ball].y << ','
-				<< w[Ball].z << ','
-				<< w[Ball].norm() << ','
-				<< vel[Ball].x << ','
-				<< vel[Ball].y << ','
-				<< vel[Ball].z << ','
-				<< 0; //bound[Ball];
-		}
-		// Write position and rotation data to file:
-		ballWrite << ballBuffer.rdbuf();
-		ballBuffer.str(""); // Resets the stream buffer to blank.
-
-		// Close Streams for user viewing:
-		energyWrite.close();
-		ballWrite.close();
-		constWrite.close();
-
-		std::cout << "\nInitial conditions exported and file streams closed.\nSimulating " << steps * dt / 60 / 60 << " hours.\n";
-		std::cout << "Total mass: " << getMass() << '\n';
-		std::cout << "\n===============================================================\n";
-	}
 
 
-private:
 	[[nodiscard]] double getMass()
 	{
 		mTotal = 0;
@@ -897,23 +899,448 @@ private:
 		return mTotal;
 	}
 
-	void generateBallField()
+	void threeSizeSphere(const unsigned int nBalls)
+	{
+		// Make nBalls of 3 sizes in CGS with ratios such that the mass is distributed evenly among the 3 sizes (less large nBalls than small nBalls).
+		const unsigned int smalls = static_cast<unsigned>(std::round(static_cast<double>(nBalls) * 27. / 31.375)); // Just here for reference. Whatever nBalls are left will be smalls.
+		const unsigned int mediums = static_cast<unsigned>(std::round(static_cast<double>(nBalls) * 27. / (8 * 31.375)));
+		const unsigned int larges = static_cast<unsigned>(std::round(static_cast<double>(nBalls) * 1. / 31.375));
+
+
+		for (unsigned int Ball = 0; Ball < larges; Ball++)
+		{
+			R[Ball] = 3. * scaleBalls;//std::pow(1. / (double)nBalls, 1. / 3.) * 3. * scaleBalls;
+			m[Ball] = density * 4. / 3. * 3.14159 * std::pow(R[Ball], 3);
+			moi[Ball] = .4 * m[Ball] * R[Ball] * R[Ball];
+			w[Ball] = { 0, 0, 0 };
+			pos[Ball] = randSphericalVec(spaceRange, spaceRange, spaceRange);
+		}
+
+		for (unsigned int Ball = larges; Ball < (larges + mediums); Ball++)
+		{
+			R[Ball] = 2. * scaleBalls;//std::pow(1. / (double)nBalls, 1. / 3.) * 2. * scaleBalls;
+			m[Ball] = density * 4. / 3. * 3.14159 * std::pow(R[Ball], 3);
+			moi[Ball] = .4 * m[Ball] * R[Ball] * R[Ball];
+			w[Ball] = { 0, 0, 0 };
+			pos[Ball] = randSphericalVec(spaceRange, spaceRange, spaceRange);
+		}
+		for (unsigned int Ball = (larges + mediums); Ball < nBalls; Ball++)
+		{
+			R[Ball] = 1. * scaleBalls;//std::pow(1. / (double)nBalls, 1. / 3.) * 1. * scaleBalls;
+			m[Ball] = density * 4. / 3. * 3.14159 * std::pow(R[Ball], 3);
+			moi[Ball] = .4 * m[Ball] * R[Ball] * R[Ball];
+			w[Ball] = { 0, 0, 0 };
+			pos[Ball] = randSphericalVec(spaceRange, spaceRange, spaceRange);
+		}
+
+		std::cout << "Smalls: " << smalls << " Mediums: " << mediums << " Larges: " << larges << '\n';
+
+		// Generate non-overlapping spherical particle field:
+		int collisionDetected = 0;
+		int oldCollisions = nBalls;
+
+		for (unsigned int failed = 0; failed < attempts; failed++)
+		{
+			for (unsigned int A = 0; A < nBalls; A++)
+			{
+				for (unsigned int B = A + 1; B < nBalls; B++)
+				{
+					// Check for Ball overlap.
+					const double dist = (pos[A] - pos[B]).norm();
+					const double sumRaRb = R[A] + R[B];
+					const double overlap = dist - sumRaRb;
+					if (overlap < 0)
+					{
+						collisionDetected += 1;
+						// Move the other ball:
+						pos[B] = randSphericalVec(spaceRange, spaceRange, spaceRange);
+					}
+				}
+			}
+			if (collisionDetected < oldCollisions)
+			{
+				oldCollisions = collisionDetected;
+				std::cout << "Collisions: " << collisionDetected << "                        \r";
+			}
+			if (collisionDetected == 0)
+			{
+				std::cout << "\nSuccess!\n";
+				break;
+			}
+			if (failed == attempts - 1 || collisionDetected > static_cast<int>(1.5 * static_cast<double>(nBalls))) // Added the second part to speed up spatial constraint increase when there are clearly too many collisions for the space to be feasible.
+			{
+				std::cout << "Failed " << spaceRange << ". Increasing range " << spaceRangeIncrement << "cm^3.\n";
+				spaceRange += spaceRangeIncrement;
+				failed = 0;
+				for (unsigned int Ball = 0; Ball < nBalls; Ball++)
+				{
+					pos[Ball] = randSphericalVec(spaceRange, spaceRange, spaceRange); // Each time we fail and increase range, redistribute all balls randomly so we don't end up with big balls near mid and small balls outside.
+				}
+			}
+			collisionDetected = 0;
+		}
+
+		std::cout << "Final spacerange: " << spaceRange << '\n';
+		std::cout << "Initial Radius: " << getRadius() << '\n';
+		std::cout << "Mass: " << mTotal << '\n';
+	}
+
+	void generateBallField(const unsigned int nBalls)
 	{
 		std::cout << "CLUSTER FORMATION\n";
+		allocateGroup(nBalls);
 
 		// Create new random number set.
 		const unsigned int seedSave = static_cast<unsigned>(time(nullptr));
 		srand(seedSave);
 
-		threeSizeSphere();
-		initialRadius = getRadius();
+		threeSizeSphere(nBalls);
+
+		rMin = getRmin();
+		rMax = getRmax();
 		mTotal = getMass();
+		initialRadius = getRadius();
 
 		outputPrefix =
-			std::to_string(genBalls) +
-			"-R" + scientific(O.getRadius()) +
+			std::to_string(nBalls) +
+			"-R" + scientific(getRadius()) +
 			"-cor" + rounder(std::pow(cor, 2), 4) +
 			"-mu" + rounder(mu, 3) +
 			"-rho" + rounder(density, 4);
+	}
+
+	/// Make ballGroup from file data.
+	void loadSim(const std::string& fullpath)
+	{
+		parseSimData(getLastLine(fullpath));
+
+		loadConsts(fullpath);
+
+		rMin = getRmin();
+		rMax = getRmax();
+		mTotal = getMass();
+		initialRadius = getRadius();
+
+		std::cout << "Balls: " << cNumBalls << '\n';
+		std::cout << "Mass: " << mTotal << '\n';
+		std::cout << "Approximate radius: " << initialRadius << " cm.\n";
+	}
+
+	void twoSizeSphereShell5000()
+	{
+		double radius = getRadius();
+
+		for (unsigned int Ball = 0; Ball < 1000; Ball++)
+		{
+			R[Ball] = 700;
+			m[Ball] = density * 4. / 3. * 3.14159 * std::pow(R[Ball], 3);
+			moi[Ball] = .4 * m[Ball] * R[Ball] * R[Ball];
+			w[Ball] = { 0, 0, 0 };
+			pos[Ball] = randShellVec(spaceRange, radius);
+		}
+
+		for (unsigned int Ball = 1000; Ball < 2000; Ball++)
+		{
+			R[Ball] = 400;
+			m[Ball] = density * 4. / 3. * 3.14159 * std::pow(R[Ball], 3);
+			moi[Ball] = .4 * m[Ball] * R[Ball] * R[Ball];
+			w[Ball] = { 0, 0, 0 };
+			pos[Ball] = randShellVec(spaceRange, radius);
+		}
+
+		const unsigned int ballsInPhase1 = 2000;
+		std::cout << "Balls in phase: " << ballsInPhase1 << "\n";
+
+		// Generate non-overlapping spherical particle field:
+		// Note that int can only handle 46340 spheres before potential int overflow.
+		int collisionDetected = 0;
+		int oldCollisions = INT_MAX;
+
+		for (unsigned int failed = 0; failed < attempts; failed++)
+		{
+			for (unsigned int A = 0; A < ballsInPhase1; A++)
+			{
+				for (unsigned int B = A + 1; B < ballsInPhase1; B++)
+				{
+					// Check for Ball overlap.
+					const double dist = (pos[A] - pos[B]).norm();
+					const double sumRaRb = R[A] + R[B];
+					const double overlap = dist - sumRaRb;
+					if (overlap < 0)
+					{
+						collisionDetected += 1;
+						// Move the other ball:
+						pos[B] = randShellVec(spaceRange, radius);
+					}
+				}
+			}
+			if (collisionDetected < oldCollisions)
+			{
+				oldCollisions = collisionDetected;
+				std::cout << "Collisions: " << collisionDetected << "                        \r";
+			}
+			if (collisionDetected == 0)
+			{
+				std::cout << "\nSuccess!\n";
+				break;
+			}
+			if (failed == attempts - 1 || collisionDetected > static_cast<int>(1.5 * static_cast<double>(ballsInPhase1))) // Added the second part to speed up spatial constraint increase when there are clearly too many collisions for the space to be feasible.
+			{
+				std::cout << "Failed " << spaceRange << ". Increasing range " << spaceRangeIncrement << "cm^3.\n";
+				spaceRange += spaceRangeIncrement;
+				failed = 0;
+				for (unsigned int Ball = 0; Ball < ballsInPhase1; Ball++)
+				{
+					pos[Ball] = randShellVec(spaceRange, radius); // Each time we fail and increase range, redistribute all balls randomly so we don't end up with big balls near mid and small balls outside.
+				}
+			}
+			collisionDetected = 0;
+		}
+
+		spaceRange += 2. * R[0] + 4. * 250.;
+		radius += R[0] + 250.;
+		std::cout << "Making shell between " << radius << " and " << spaceRange * .5 << '\n';
+
+		// PHASE 2
+
+		for (unsigned int Ball = 2000; Ball < 3500; Ball++)
+		{
+			R[Ball] = 250;
+			m[Ball] = density * 4. / 3. * 3.14159 * std::pow(R[Ball], 3);
+			moi[Ball] = .4 * m[Ball] * R[Ball] * R[Ball];
+			w[Ball] = { 0, 0, 0 };
+			pos[Ball] = randShellVec(spaceRange, radius);
+		}
+
+		for (unsigned int Ball = 3500; Ball < 5000; Ball++)
+		{
+			R[Ball] = 150;
+			m[Ball] = density * 4. / 3. * 3.14159 * std::pow(R[Ball], 3);
+			moi[Ball] = .4 * m[Ball] * R[Ball] * R[Ball];
+			w[Ball] = { 0, 0, 0 };
+			pos[Ball] = randShellVec(spaceRange, radius);
+		}
+
+		const unsigned int ballsInPhase2 = 3000;
+		std::cout << "Balls in phase: " << ballsInPhase2 << "\n";
+
+		// Generate non-overlapping spherical particle field:
+		collisionDetected = 0;
+		oldCollisions = 100000000;
+
+		for (unsigned int failed = 0; failed < attempts; failed++)
+		{
+			for (unsigned int A = ballsInPhase1; A < ballsInPhase1 + ballsInPhase2; A++)
+			{
+				for (unsigned int B = A + 1; B < ballsInPhase1 + ballsInPhase2; B++)
+				{
+					// Check for Ball overlap.
+					const double dist = (pos[A] - pos[B]).norm();
+					const double sumRaRb = R[A] + R[B];
+					const double overlap = dist - sumRaRb;
+					if (overlap < 0)
+					{
+						collisionDetected += 1;
+						// Move the other ball:
+						pos[B] = randShellVec(spaceRange, radius);
+					}
+				}
+			}
+			if (collisionDetected < oldCollisions)
+			{
+				oldCollisions = collisionDetected;
+				std::cout << "Collisions: " << collisionDetected << "                        \r";
+			}
+			if (collisionDetected == 0)
+			{
+				std::cout << "\nSuccess!\n";
+				break;
+			}
+			if (failed == attempts - 1 || collisionDetected > static_cast<int>(1.5 * static_cast<double>(ballsInPhase2))) // Added the second part to speed up spatial constraint increase when there are clearly too many collisions for the space to be feasible.
+			{
+				std::cout << "Failed " << spaceRange << ". Increasing range " << spaceRangeIncrement << "cm^3.\n";
+				spaceRange += spaceRangeIncrement;
+				failed = 0;
+				for (unsigned int Ball = ballsInPhase1; Ball < ballsInPhase1 + ballsInPhase2; Ball++)
+				{
+					pos[Ball] = randShellVec(spaceRange, radius); // Each time we fail and increase range, redistribute all balls randomly so we don't end up with big balls near mid and small balls outside.
+				}
+			}
+			collisionDetected = 0;
+		}
+
+		std::cout << "Initial Radius: " << radius << '\n';
+		std::cout << "Mass: " << mTotal << '\n';
+
+	}
+
+
+	void oneSizeSphere(const unsigned int nBalls)
+	{
+
+		for (unsigned int Ball = 0; Ball < nBalls; Ball++)
+		{
+			R[Ball] = scaleBalls;
+			m[Ball] = density * 4. / 3. * 3.14159 * std::pow(R[Ball], 3);
+			moi[Ball] = .4 * m[Ball] * R[Ball] * R[Ball];
+			w[Ball] = { 0, 0, 0 };
+			pos[Ball] = randSphericalVec(spaceRange, spaceRange, spaceRange);
+		}
+
+		// Generate non-overlapping spherical particle field:
+		int collisionDetected = 0;
+		int oldCollisions = nBalls;
+
+		for (unsigned int failed = 0; failed < attempts; failed++)
+		{
+			for (unsigned int A = 0; A < nBalls; A++)
+			{
+				for (unsigned int B = A + 1; B < nBalls; B++)
+				{
+					// Check for Ball overlap.
+					const double dist = (pos[A] - pos[B]).norm();
+					const double sumRaRb = R[A] + R[B];
+					const double overlap = dist - sumRaRb;
+					if (overlap < 0)
+					{
+						collisionDetected += 1;
+						// Move the other ball:
+						pos[B] = randSphericalVec(spaceRange, spaceRange, spaceRange);
+					}
+				}
+			}
+			if (collisionDetected < oldCollisions)
+			{
+				oldCollisions = collisionDetected;
+				std::cout << "Collisions: " << collisionDetected << "                        \r";
+			}
+			if (collisionDetected == 0)
+			{
+				std::cout << "\nSuccess!\n";
+				break;
+			}
+			if (failed == attempts - 1 || collisionDetected > static_cast<int>(1.5 * static_cast<double>(nBalls))) // Added the second part to speed up spatial constraint increase when there are clearly too many collisions for the space to be feasible.
+			{
+				std::cout << "Failed " << spaceRange << ". Increasing range " << spaceRangeIncrement << "cm^3.\n";
+				spaceRange += spaceRangeIncrement;
+				failed = 0;
+				for (unsigned int Ball = 0; Ball < nBalls; Ball++)
+				{
+					pos[Ball] = randSphericalVec(spaceRange, spaceRange, spaceRange); // Each time we fail and increase range, redistribute all balls randomly so we don't end up with big balls near mid and small balls outside.
+				}
+			}
+			collisionDetected = 0;
+		}
+
+		std::cout << "Final spacerange: " << spaceRange << '\n';
+		std::cout << "Initial Radius: " << getRadius() << '\n';
+		std::cout << "Mass: " << mTotal << '\n';
+	}
+
+	void simInitCondAndCenter()
+	{
+		std::cout << "==================" << '\n';
+		std::cout << "dt: " << dt << '\n';
+		std::cout << "k: " << kin << '\n';
+		std::cout << "Skip: " << skip << '\n';
+		std::cout << "Steps: " << steps << '\n';
+		std::cout << "==================" << '\n';
+
+		checkMomentum("After Zeroing"); // Is total mom zero like it should be?
+
+		// Compute physics between all balls. Distances, collision forces, energy totals, total mass:
+		initConditions();
+
+		// Name the file based on info above:
+		outputPrefix +=
+			"_k" + scientific(kin) +
+			"_dt" + scientific(dt) +
+			"_";
+	}
+
+
+	void simContinue(const std::string& fullpath)
+	{
+		// Load file data:
+		std::cerr << "Continuing Sim...\nFile: " << fullpath << '\n';
+
+		loadSim(fullpath);
+
+		std::cout << '\n';
+		checkMomentum("O");
+
+		// Name the file based on info above:
+		outputPrefix =
+			std::to_string(cNumBalls) +
+			"_rho" + rounder(density, 4);
+	}
+
+	// Set's up a two cluster collision.
+	void simInitTwoCluster(const std::string& projectileName, const std::string& targetName)
+	{
+		// Load file data:
+		std::cerr << "TWO CLUSTER SIM\nFile 1: " << projectileName << '\t' << "File 2: " << targetName << '\n';
+		//ballGroup projectile(path + targetName);
+
+		// DART PROBE
+		ballGroup projectile(1);
+		projectile.pos[0] = { 8814, 0, 0 };
+		projectile.w[0] = { 0, 0, 0 };
+		projectile.vel[0] = { 0, 0, 0 };
+		projectile.R[0] = 78.5;
+		projectile.m[0] = 560000;
+		projectile.moi[0] = .4 * projectile.m[0] * projectile.R[0] * projectile.R[0];
+
+		ballGroup target(path + targetName);
+
+		// DO YOU WANT TO STOP EVERYTHING?
+		projectile.zeroAngVel();
+		projectile.zeroVel();
+		target.zeroAngVel();
+		target.zeroVel();
+
+
+		// Calc info to determined cluster positioning and collisions velocity:
+		projectile.updatePE();
+		target.updatePE();
+
+		//projectile.offset(projectile.radius, target.radius + (projectile.R[0]), impactParameter);
+
+		const double PEsys = projectile.PE + target.PE + (-G * projectile.mTotal * target.mTotal / (projectile.getCOM() - target.getCOM()).norm());
+
+		// Collision velocity calculation:
+		const double mSmall = projectile.mTotal;
+		const double mBig = target.mTotal;
+		const double mTot = mBig + mSmall;
+		//const double vSmall = -sqrt(2 * KEfactor * fabs(PEsys) * (mBig / (mSmall * mTot))); // Negative because small offsets right.
+		const double vSmall = -600000; // DART probe override.
+		//const double vBig = -(mSmall / mBig) * vSmall; // Negative to be opposing projectile.
+		const double vBig = 0; // Dymorphous override.
+		fprintf(stdout, "\nTarget Velocity: %.2e\nProjectile Velocity: %.2e\n", vBig, vSmall);
+
+		if (isnan(vSmall) || isnan(vBig))
+		{
+			fprintf(stderr, "A VELOCITY WAS NAN!!!!!!!!!!!!!!!!!!!!!!\n\n");
+			exit(EXIT_FAILURE);
+		}
+		projectile.kick(vSmall, 0, 0);
+		target.kick(vBig, 0, 0);
+
+		std::cout << '\n';
+		projectile.checkMomentum("Projectile");
+		target.checkMomentum("Target");
+
+		allocateGroup(projectile.cNumBalls + target.cNumBalls);
+
+		addBallGroup(target);
+		addBallGroup(projectile); // projectile second so smallest ball at end and largest ball at front for dt/k calcs.
+
+		outputPrefix =
+			projectileName + targetName +
+			"T" + rounder(KEfactor, 4) +
+			"_vBig" + scientific(vBig) +
+			"_vSmall" + scientific(vSmall) +
+			"_IP" + rounder(impactParameter * 180 / 3.14159, 2) +
+			"_rho" + rounder(density, 4);
 	}
 };
