@@ -22,17 +22,15 @@ time_t lastWrite;     // For write control (gets reset)
 bool writeStep;       // This prevents writing to file every step (which is slow).
 
 /// @brief The ballGroup run by the main sim looper.
-ballGroup O(100,true);
 
 
 // Prototypes
 void simOneStep(const unsigned int& Step);
 [[noreturn]] void simLooper();
 void safetyChecks();
-void calibrateDT(const unsigned int& Step, const double& customSpeed = -1.0);
-void updateDTK(const double& vel);
 
 
+ballGroup O(path + projectileName, path + targetName, 0);
 //////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////
@@ -52,7 +50,6 @@ int main(const int argc, char const* argv[])
 
 	//O.zeroAngVel();
 	//O.pushApart();
-	calibrateDT(0, 0);
 	safetyChecks();
 	O.simInitWrite(outputPrefix);
 	simLooper();
@@ -305,7 +302,7 @@ void simOneStep(const unsigned int& Step)
 
 			lastWrite = time(nullptr);
 		} // Data export end
-		calibrateDT(Step, false);
+		O.calibrateDT(Step, false);
 	} // writestep end
 } // Steps end
 
@@ -401,82 +398,7 @@ void safetyChecks()
 }
 
 
-void calibrateDT(const unsigned int& Step, const double& customSpeed)
-{
-	const double dtOld = dt;
 
-	if (customSpeed > 0.)
-	{
-		updateDTK(customSpeed);
-		std::cout << "CUSTOM SPEED: " << customSpeed;
-	}
-	else
-	{
-		// Sim fall velocity onto cluster:
-		// vCollapse shrinks if a ball escapes but velMax should take over at that point, unless it is ignoring far balls.
-		double position = 0;
-		double vCollapse = 0;
-		while (position < O.initialRadius)
-		{
-			vCollapse += G * O.mTotal / (O.initialRadius * O.initialRadius) * 0.1;
-			position += vCollapse * 0.1;
-		}
-		vCollapse = fabs(vCollapse);
-
-		//std::cout << vCollapse << " <- vCollapse | Lazz Calc -> " << M_PI * M_PI * G * pow(density, 4. / 3.) * pow(O.mTotal, 2. / 3.) * O.rMax;
-
-		//soc = 2 * O.initialRadius; // sphere of consideration for max velocity, to avoid very unbound high vel balls.
-		//double vMax = O.getVelMax(false);
-		
-		// hack - temporarily base dtk on velocity of probe only:
-		double vMax = O.vel[O.cNumBalls - 1].norm(); // The probe is the last ball.
-
-		std::cout << '\n';
-
-		// Take whichever velocity is greatest:
-		if (vMax > fabs(vCollapse))
-		{
-			std::cout << "vMax > binding: " << vCollapse << " = vCollapse | vMax = " << vMax;
-		}
-		else
-		{
-			std::cout << "Binding > vMax: " << vCollapse << " = vCollapse | vMax = " << vMax;
-			vMax = vCollapse;
-		}
-
-		if (vMax > O.vMaxPrev)
-		{
-			std::cout << "\nvMax increased since last calibration. Skipping update.\n";
-		}
-		else
-		{
-			updateDTK(vMax);
-			O.vMaxPrev = vMax;
-			std::cout << " New k: " << kin << " New dt: " << dt << '\n';
-		}
-	}
-
-	if (Step == 0 or dtOld < 0)
-	{
-		steps = static_cast<unsigned>(simTimeSeconds / dt);
-		std::cout << " Step count: " << steps << '\n';
-	}
-	else
-	{
-		steps = static_cast<unsigned>(dt / dtOld * (steps - Step) + Step);
-		std::cout << " New step count: " << steps << '\n';
-	}
-
-	if (timeResolution / dt > 1.)
-	{
-		skip = static_cast<unsigned>(floor(timeResolution / dt));
-	}
-	else
-	{
-		std::cout << "Desired time resolution is lower than dt.\n";
-		system("pause");
-	}
-}
 
 //void setGuidDT(const double& vel)
 //{
@@ -490,13 +412,4 @@ void calibrateDT(const unsigned int& Step, const double& customSpeed)
 //	kout = cor * kin;
 //}
 
-void updateDTK(const double& vel)
-{
-	constexpr double kConsts = fourThirdsPiRho / (maxOverlap * maxOverlap);
-	const double rMin = O.rMin;
-	const double rMax = O.rMax;
 
-	kin = kConsts * rMax * vel * vel;
-	kout = cor * kin;
-	dt = .01 * sqrt((fourThirdsPiRho / kin) * rMin * rMin * rMin);
-}

@@ -20,29 +20,36 @@ public:
 		allocateGroup(nBalls);
 	}
 
-	/// @brief For creating a new ballGroup of size nBalls
+	/// @brief For generating a new ballGroup of size nBalls
 	/// @param nBalls Number of balls to allocate.
-	/// @param generate Optional for generating random field.
-	ballGroup(const int nBalls, const bool generate)
+	/// @param generate Just here to get you to the right constructor. This is definitely wrong.
+	/// @param customVel To condition for specific vMax.
+	ballGroup(const int nBalls, const bool generate, const double& customVel)
 	{
 		generateBallField(nBalls);
+		calibrateDT(0, customVel);
 		simInitCondAndCenter();
 	}
 
 
-	/// @brief for importing a ballGroup from file.
+	/// @brief For continuing a sim.
 	/// @param fullpath is the filename and path excluding the suffix _simData.csv, _constants.csv, etc.
-	explicit ballGroup(const std::string& fullpath)
+	/// @param customVel To condition for specific vMax.
+	explicit ballGroup(const std::string& fullpath, const double& customVel)
 	{
 		simContinue(fullpath);
+		calibrateDT(0, customVel);
 		simInitCondAndCenter();
 	}
 
-	/// @brief for importing a ballGroup from file.
-	/// @param fullpath1 is the filename and path excluding the suffix _simData.csv, _constants.csv, etc.
-	explicit ballGroup(const std::string& projectileName, const std::string& targetName)
+	/// @brief For two cluster sim.
+	/// @param projectileName 
+	/// @param targetName 
+	/// @param customVel To condition for specific vMax.
+	explicit ballGroup(const std::string& projectileName, const std::string& targetName, const double& customVel)
 	{
 		simInitTwoCluster(projectileName, targetName);
+		calibrateDT(0, customVel);
 		simInitCondAndCenter();
 	}
 
@@ -74,6 +81,84 @@ public:
 	double* R = nullptr; ///< Radius
 	double* m = nullptr; ///< Mass
 	double* moi = nullptr; ///< Moment of inertia
+
+	void calibrateDT(const unsigned int& Step, const double& customSpeed = 0)
+	{
+		const double dtOld = dt;
+
+		if (customSpeed > 0.)
+		{
+			updateDTK(customSpeed);
+			std::cout << "CUSTOM SPEED: " << customSpeed;
+		}
+		else
+		{
+			// Sim fall velocity onto cluster:
+			// vCollapse shrinks if a ball escapes but velMax should take over at that point, unless it is ignoring far balls.
+			double position = 0;
+			double vCollapse = 0;
+			while (position < initialRadius)
+			{
+				vCollapse += G * mTotal / (initialRadius * initialRadius) * 0.1;
+				position += vCollapse * 0.1;
+			}
+			vCollapse = fabs(vCollapse);
+
+			//std::cout << vCollapse << " <- vCollapse | Lazz Calc -> " << M_PI * M_PI * G * pow(density, 4. / 3.) * pow(mTotal, 2. / 3.) * rMax;
+
+			//soc = 2 * initialRadius; // sphere of consideration for max velocity, to avoid very unbound high vel balls.
+			//double vMax = getVelMax(false);
+
+			// hack - temporarily base dtk on velocity of probe only:
+			double vMax = vel[cNumBalls - 1].norm(); // The probe is the last ball.
+
+			std::cout << '\n';
+
+			// Take whichever velocity is greatest:
+			if (vMax > fabs(vCollapse))
+			{
+				std::cout << "vMax > binding: " << vCollapse << " = vCollapse | vMax = " << vMax;
+			}
+			else
+			{
+				std::cout << "Binding > vMax: " << vCollapse << " = vCollapse | vMax = " << vMax;
+				vMax = vCollapse;
+			}
+
+			if (vMax > vMaxPrev)
+			{
+				std::cout << "\nvMax increased since last calibration. Skipping update.\n";
+			}
+			else
+			{
+				updateDTK(vMax);
+				vMaxPrev = vMax;
+				std::cout << " New k: " << kin << " New dt: " << dt << '\n';
+			}
+		}
+
+		if (Step == 0 or dtOld < 0)
+		{
+			steps = static_cast<unsigned>(simTimeSeconds / dt);
+			std::cout << " Step count: " << steps << '\n';
+		}
+		else
+		{
+			steps = static_cast<unsigned>(dt / dtOld * (steps - Step) + Step);
+			std::cout << " New step count: " << steps << '\n';
+		}
+
+		if (timeResolution / dt > 1.)
+		{
+			skip = static_cast<unsigned>(floor(timeResolution / dt));
+		}
+		else
+		{
+			std::cout << "Desired time resolution is lower than dt. Setting to 1 second\n";
+			skip = static_cast<unsigned>(floor(1. / dt));
+			system("pause");
+		}
+	}
 
 	// get max velocity
 	[[nodiscard]] double getVelMax(bool useSoc)
@@ -762,7 +847,7 @@ private:
 		}
 
 		double overlapMax = -1;
-		const double pseudoDT = getRmin() * .1;
+		const double pseudoDT = rMin * .1;
 		int step = 0;
 
 		while (true)
@@ -1237,6 +1322,17 @@ private:
 		std::cout << "Mass: " << mTotal << '\n';
 	}
 
+
+
+	void updateDTK(const double& vel)
+	{
+		constexpr double kConsts = fourThirdsPiRho / (maxOverlap * maxOverlap);
+
+		kin = kConsts * rMax * vel * vel;
+		kout = cor * kin;
+		dt = .01 * sqrt((fourThirdsPiRho / kin) * rMin * rMin * rMin);
+	}
+
 	void simInitCondAndCenter()
 	{
 		std::cout << "==================" << '\n';
@@ -1280,7 +1376,6 @@ private:
 	{
 		// Load file data:
 		std::cerr << "TWO CLUSTER SIM\nFile 1: " << projectileName << '\t' << "File 2: " << targetName << '\n';
-		//ballGroup projectile(path + targetName);
 
 		// DART PROBE
 		ballGroup projectile(1);
@@ -1291,7 +1386,9 @@ private:
 		projectile.m[0] = 560000;
 		projectile.moi[0] = .4 * projectile.m[0] * projectile.R[0] * projectile.R[0];
 
-		ballGroup target(path + targetName);
+		//ballGroup projectile(path + targetName);
+		ballGroup target;
+		target.loadSim(targetName);
 
 		// DO YOU WANT TO STOP EVERYTHING?
 		projectile.zeroAngVel();
