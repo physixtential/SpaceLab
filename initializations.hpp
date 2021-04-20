@@ -12,7 +12,7 @@ density = 2.7, //2.7, // Typically based on some rock density
 mu = 0.9,      // Coeff of friction
 cor = 0.8,     // Coeff of restitution
 simTimeSeconds = 18000., // Seconds
-timeResolution = 0.00001, // Seconds - This is duration between exported steps
+timeResolution = 20,//0.00001, // Seconds - This is duration between exported steps
 maxOverlap = .1,
 vTarget = 600000,
 fourThirdsPiRho = 4. / 3. * M_PI * density; // fraction of smallest sphere radius.
@@ -20,7 +20,7 @@ fourThirdsPiRho = 4. / 3. * M_PI * density; // fraction of smallest sphere radiu
 // Simulation Structure
 inline const unsigned int
 properties = 11, // Number of columns in simData file per ball
-genBalls = 4000,
+genBalls = 50,
 attempts = 200; // How many times to try moving every ball touching another in generator.
 
 inline size_t
