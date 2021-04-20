@@ -165,8 +165,6 @@ void simContinue()
 
 	O.loadSim(path + targetName);
 
-	O.toOrigin();
-
 	std::cout << '\n';
 	O.checkMomentum("O");
 
@@ -880,8 +878,11 @@ void calibrateDT(const unsigned int& Step, const double& customSpeed)
 
 		//std::cout << vCollapse << " <- vCollapse | Lazz Calc -> " << M_PI * M_PI * G * pow(density, 4. / 3.) * pow(O.mTotal, 2. / 3.) * O.rMax;
 
-		soc = 2 * O.initialRadius; // sphere of consideration for max velocity, to avoid very unbound high vel balls.
-		double vMax = O.getVelMax(false);
+		//soc = 2 * O.initialRadius; // sphere of consideration for max velocity, to avoid very unbound high vel balls.
+		//double vMax = O.getVelMax(false);
+		
+		// hack - temporarily base dtk on velocity of probe only:
+		double vMax = O.vel[O.cNumBalls - 1].norm(); // The probe is the last ball.
 
 		std::cout << '\n';
 
@@ -904,6 +905,7 @@ void calibrateDT(const unsigned int& Step, const double& customSpeed)
 		{
 			updateDTK(vMax);
 			O.vMaxPrev = vMax;
+			std::cout << " New k: " << kin << " New dt: " << dt << '\n';
 		}
 	}
 

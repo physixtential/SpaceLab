@@ -27,12 +27,6 @@ struct ballGroup
 	explicit ballGroup(const std::string& fileTag)
 	{
 		loadSim(fileTag);
-
-		// Initialized some useful constants:
-		rMin = getRmin();
-		rMax = getRmax();
-		mTotal = getMass();
-		initialRadius = getRadius();
 	}
 
 	// String buffers to hold data in memory until worth writing to file:
@@ -493,8 +487,10 @@ struct ballGroup
 
 		loadConsts(fileTag);
 
-		// Bring cluster to origin:
-		toOrigin();
+		rMin = getRmin();
+		rMax = getRmax();
+		mTotal = getMass();
+		initialRadius = getRadius();
 
 		std::cout << "Balls: " << cNumBalls << '\n';
 		std::cout << "Mass: " << getMass() << '\n';
