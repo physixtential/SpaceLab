@@ -11,15 +11,18 @@
 /// Recommended: Use ballGroup(int nBalls) constructor to allocate all the memory needed for your ballGroup size.
 struct ballGroup
 {
-	// todo - Make generator function into a constructor.
-
 	ballGroup() = default;
 
 	/// @brief For creating a new ballGroup of size nBalls
 	/// @param nBalls Number of balls to allocate.
-	explicit ballGroup(const int nBalls)
+	/// @param generate Optional for generating random field (default = false)
+	explicit ballGroup(const int nBalls, const bool generate = false)
 	{
 		allocateGroup(nBalls);
+		if (generate)
+		{
+			generateBallField();
+		}
 	}
 
 	/// @brief for importing a ballGroup from file.
@@ -162,22 +165,8 @@ struct ballGroup
 		return radius;
 	}
 
-	[[nodiscard]] double getMass() const
-	{
-		double mTotal = 0;
-		{
-			for (unsigned int Ball = 0; Ball < cNumBalls; Ball++)
-			{
-				mTotal += m[Ball];
-			}
-		}
-		return mTotal;
-	}
-
 	[[nodiscard]] vector3d getCOM() const
 	{
-		const double mTotal = getMass();
-
 		if (mTotal > 0)
 		{
 			vector3d comNumerator;
@@ -894,4 +883,37 @@ struct ballGroup
 		std::cout << "\n===============================================================\n";
 	}
 
+
+private:
+	[[nodiscard]] double getMass()
+	{
+		mTotal = 0;
+		{
+			for (unsigned int Ball = 0; Ball < cNumBalls; Ball++)
+			{
+				mTotal += m[Ball];
+			}
+		}
+		return mTotal;
+	}
+
+	void generateBallField()
+	{
+		std::cout << "CLUSTER FORMATION\n";
+
+		// Create new random number set.
+		const unsigned int seedSave = static_cast<unsigned>(time(nullptr));
+		srand(seedSave);
+
+		threeSizeSphere();
+		initialRadius = getRadius();
+		mTotal = getMass();
+
+		outputPrefix =
+			std::to_string(genBalls) +
+			"-R" + scientific(O.getRadius()) +
+			"-cor" + rounder(std::pow(cor, 2), 4) +
+			"-mu" + rounder(mu, 3) +
+			"-rho" + rounder(density, 4);
+	}
 };

@@ -770,29 +770,7 @@ void oneSizeSphere()
 
 
 
-void generateBallField()
-{
-	std::cout << "CLUSTER FORMATION\n";
-	O.allocateGroup(genBalls);
 
-
-	// Create new random number set.
-	const unsigned int seedSave = static_cast<unsigned>(time(nullptr));
-	srand(seedSave);
-
-	//twoSizeSphereShell5000();
-	//oneSizeSphere();
-	threeSizeSphere();
-	O.initialRadius = O.getRadius();
-	O.mTotal = O.getMass();
-
-	outputPrefix =
-		std::to_string(genBalls) +
-		"-R" + scientific(O.getRadius()) +
-		"-cor" + rounder(std::pow(cor, 2), 4) +
-		"-mu" + rounder(mu, 3) +
-		"-rho" + rounder(density, 4);
-}
 
 
 
