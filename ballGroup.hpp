@@ -48,6 +48,7 @@ struct ballGroup
 	double mTotal = -1;
 	double initialRadius = -1;
 	double vMax = -1;
+	double vMaxPrev = HUGE_VAL;
 
 	vector3d mom = { 0, 0, 0 };
 	vector3d angMom = { 0, 0, 0 }; // Can be vector3d because they only matter for writing out to file. Can process on host.

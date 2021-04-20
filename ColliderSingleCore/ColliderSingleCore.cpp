@@ -73,10 +73,10 @@ int main(const int argc, char const* argv[])
 		//KEfactor = atof(argv[4]);
 	}
 
-	simType('t'); // c: continue old sim | t: two cluster collision | g: generate cluster
+	simType('c'); // c: continue old sim | t: two cluster collision | g: generate cluster
 	//O.zeroAngVel();
 	//O.pushApart();
-	calibrateDT(0, vTarget);
+	calibrateDT(0, 0);
 	simInitCondAndCenter();
 	safetyChecks();
 	O.simInitWrite(outputPrefix);
@@ -97,7 +97,7 @@ void simInitTwoCluster()
 
 	// DART PROBE
 	ballGroup projectile(1);
-	projectile.pos[0] = { 8900, 0, 0 };
+	projectile.pos[0] = { 8814, 0, 0 };
 	projectile.w[0] = { 0, 0, 0 };
 	projectile.vel[0] = { 0, 0, 0 };
 	projectile.R[0] = 78.5;
@@ -172,7 +172,7 @@ void simContinue()
 
 	// Name the file based on info above:
 	outputPrefix =
-		O.cNumBalls +
+		std::to_string(O.cNumBalls) +
 		"_rho" + rounder(density, 4);
 }
 
@@ -294,7 +294,7 @@ void simOneStep(const unsigned int& Step)
 
 				// Elastic and Friction b:
 				// Flip direction b -> a:
-				rVec = -rVec; 
+				rVec = -rVec;
 				dVel = -dVel;
 				elasticForce = -elasticForce;
 
@@ -305,7 +305,7 @@ void simOneStep(const unsigned int& Step)
 					frictionForce = mu * elasticMag * (relativeVelOfB / relativeVelMag);
 				}
 				const vector3d bTorque = (O.R[B] / sumRaRb) * rVec.cross(frictionForce);
-				
+
 				O.aacc[A] += aTorque / O.moi[A];
 				O.aacc[B] += bTorque / O.moi[B];
 
@@ -393,7 +393,7 @@ void simOneStep(const unsigned int& Step)
 			O.angMom += O.m[Ball] * O.pos[Ball].cross(O.vel[Ball]) + O.moi[Ball] * O.w[Ball];
 		}
 	} // THIRD PASS END
-	
+
 	if (writeStep)
 	{
 
@@ -440,7 +440,7 @@ void simOneStep(const unsigned int& Step)
 
 			lastWrite = time(nullptr);
 		} // Data export end
-		//calibrateDT(Step, false);
+		calibrateDT(Step, false);
 	} // writestep end
 } // Steps end
 
@@ -878,11 +878,9 @@ void calibrateDT(const unsigned int& Step, const double& customSpeed)
 		}
 		vCollapse = fabs(vCollapse);
 
-		std::cout << vCollapse << " <- vCollapse | Lazz Calc -> " << M_PI * M_PI * G * pow(density, 4. / 3.) * pow(O.mTotal, 2. / 3.) * O.rMax;
-		system("pause");
+		//std::cout << vCollapse << " <- vCollapse | Lazz Calc -> " << M_PI * M_PI * G * pow(density, 4. / 3.) * pow(O.mTotal, 2. / 3.) * O.rMax;
 
 		soc = 2 * O.initialRadius; // sphere of consideration for max velocity, to avoid very unbound high vel balls.
-
 		double vMax = O.getVelMax(false);
 
 		std::cout << '\n';
@@ -898,11 +896,16 @@ void calibrateDT(const unsigned int& Step, const double& customSpeed)
 			vMax = vCollapse;
 		}
 
-		updateDTK(vMax);
+		if (vMax > O.vMaxPrev)
+		{
+			std::cout << "\nvMax increased since last calibration. Skipping update.\n";
+		}
+		else
+		{
+			updateDTK(vMax);
+			O.vMaxPrev = vMax;
+		}
 	}
-
-	// todo - If current vMax greater than original, send warning and pause simulation.
-
 
 	if (Step == 0 or dtOld < 0)
 	{

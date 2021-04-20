@@ -47,5 +47,5 @@ simTimeElapsed = 0;
 inline std::string
 path = "C:/Users/milin/Desktop/GoogleDrive/GradResearch/Development/SpaceLab/x64/Release/",
 projectileName = "",
-targetName = "10850_pushed_apart_",
+targetName = "10850_pushed_apart_T0.00_vBig0_vSmall-600000_IP0._rho2.70_k2.85005e+17_dt2.78397e-09_",
 outputPrefix = "Unnamed_";
