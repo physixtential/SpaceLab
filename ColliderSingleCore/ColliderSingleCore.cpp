@@ -30,7 +30,9 @@ void simOneStep(const unsigned int& Step);
 void safetyChecks();
 
 
-ballGroup O(path + projectileName, path + targetName, 0);
+//ballGroup O(path + projectileName, path + targetName, 0);
+ballGroup O(path + targetName, 0);
+
 //////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////
@@ -282,7 +284,7 @@ void simOneStep(const unsigned int& Step)
 		if (time(nullptr) - lastWrite > 1800 || Step / skip % 10 == 0)
 		{
 			// Report vMax:
-			std::cout << "vMax = " << O.getVelMax(false) << " Steps recorded: " << Step / skip << '\n';
+			std::cout << "vMax = " << O.vMax << " Steps recorded: " << Step / skip << '\n';
 			std::cout << "Data Write\n\n";
 
 

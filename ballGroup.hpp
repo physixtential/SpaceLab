@@ -110,18 +110,18 @@ public:
 			//double vMax = getVelMax(false);
 
 			// hack - temporarily base dtk on velocity of probe only:
-			double vMax = vel[cNumBalls - 1].norm(); // The probe is the last ball.
+			vMax = vel[cNumBalls - 1].norm(); // The probe is the last ball.
 
 			std::cout << '\n';
 
 			// Take whichever velocity is greatest:
 			if (vMax > fabs(vCollapse))
 			{
-				std::cout << "vMax > binding: " << vCollapse << " = vCollapse | vMax = " << vMax;
+				std::cout << vCollapse << " = vCollapse | vMax = " << vMax;
 			}
 			else
 			{
-				std::cout << "Binding > vMax: " << vCollapse << " = vCollapse | vMax = " << vMax;
+				std::cout << vCollapse << " = vCollapse | vMax = " << vMax;
 				vMax = vCollapse;
 			}
 
@@ -133,19 +133,19 @@ public:
 			{
 				updateDTK(vMax);
 				vMaxPrev = vMax;
-				std::cout << " New k: " << kin << " New dt: " << dt << '\n';
+				std::cout << "\nk: " << kin << "\tdt: " << dt;
 			}
 		}
 
 		if (Step == 0 or dtOld < 0)
 		{
 			steps = static_cast<unsigned>(simTimeSeconds / dt);
-			std::cout << " Step count: " << steps << '\n';
+			std::cout << "\tSteps: " << steps << '\n';
 		}
 		else
 		{
 			steps = static_cast<unsigned>(dt / dtOld * (steps - Step) + Step);
-			std::cout << " New step count: " << steps << '\n';
+			std::cout << "\tSteps: " << steps << '\n';
 		}
 
 		if (timeResolution / dt > 1.)
@@ -358,8 +358,6 @@ public:
 				<< ",bound" + thisBall;
 		}
 
-		std::cout << "\nSim data, energy, and constants file streams and headers created.";
-
 		// Write constant data:
 		for (unsigned int Ball = 0; Ball < cNumBalls; Ball++)
 		{
@@ -427,8 +425,8 @@ public:
 		ballWrite.close();
 		constWrite.close();
 
-		std::cout << "\nInitial conditions exported and file streams closed.\nSimulating " << steps * dt / 60 / 60 << " hours.\n";
-		std::cout << "Total mass: " << getMass() << '\n';
+		std::cout << "\nSimulating " << steps * dt / 60 / 60 << " hours.\n";
+		std::cout << "Total mass: " << mTotal << '\n';
 		std::cout << "\n===============================================================\n";
 	}
 
