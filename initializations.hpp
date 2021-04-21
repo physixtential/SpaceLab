@@ -12,7 +12,7 @@ density = 2.7, //2.7, // Typically based on some rock density
 mu = 0.9,      // Coeff of friction
 cor = 0.8,     // Coeff of restitution
 simTimeSeconds = 18000., // Seconds
-timeResolution = 20,//0.00001, // Seconds - This is duration between exported steps
+timeResolution = .0001,//0.00001, // Seconds - This is duration between exported steps
 maxOverlap = .1,
 vTarget = 600000,
 kTarget = 2.85005e+17,
@@ -32,7 +32,6 @@ inline double
 dt = -1,
 kin = -1,      // Spring constant
 kout = -1,
-soc,				// double the radius of the initial system. Any ball outside that isn't considered for dynamic dt calibration.
 scaleBalls = 100, // base radius of balls
 spaceRange = std::pow((1. / .74 * scaleBalls * scaleBalls * scaleBalls * genBalls), 1. / 3.), // Rough minimum space required
 spaceRangeIncrement = scaleBalls * 3,
@@ -48,5 +47,5 @@ simTimeElapsed = 0;
 inline std::string
 path = "C:/Users/milin/Desktop/GoogleDrive/GradResearch/Development/SpaceLab/x64/Release/",
 projectileName = "",
-targetName = "10850_pushed_apart_",
+targetName = "10851_rho2.70_k1.51894e+16_dt1.20593e-08_",
 outputPrefix = "Unnamed_";

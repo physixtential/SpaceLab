@@ -4,6 +4,9 @@
 #include <sstream>
 #include <fstream>
 #include <iomanip>
+#include <algorithm>
+#include <limits.h>
+#include <cstring>
 #include "initializations.hpp"
 #include "vector3d.hpp"
 
@@ -82,7 +85,7 @@ public:
 	double* m = nullptr; ///< Mass
 	double* moi = nullptr; ///< Moment of inertia
 
-	void calibrateDT(const unsigned int& Step, const double& customSpeed = 0)
+	void calibrateDT(const unsigned int& Step, const double& customSpeed = -1.)
 	{
 		const double dtOld = dt;
 
@@ -106,11 +109,8 @@ public:
 
 			//std::cout << vCollapse << " <- vCollapse | Lazz Calc -> " << M_PI * M_PI * G * pow(density, 4. / 3.) * pow(mTotal, 2. / 3.) * rMax;
 
-			//soc = 2 * initialRadius; // sphere of consideration for max velocity, to avoid very unbound high vel balls.
-			//double vMax = getVelMax(false);
-
-			// hack - temporarily base dtk on velocity of probe only:
-			vMax = vel[cNumBalls - 1].norm(); // The probe is the last ball.
+			const double soc = rMax + initialRadius; // sphere of consideration for max velocity, to avoid very unbound high vel balls.
+			double vMax = getVelMax(soc);
 
 			std::cout << '\n';
 
@@ -161,19 +161,30 @@ public:
 	}
 
 	// get max velocity
-	[[nodiscard]] double getVelMax(bool useSoc)
+	[[nodiscard]] double getVelMax(const double soc = -1.)
 	{
 		vMax = 0;
+		int counter = 0;
 
-		if (useSoc)
+		if (soc > 0)
 		{
 			for (unsigned int Ball = 0; Ball < cNumBalls; Ball++)
 			{
-				if ((pos[Ball] - getCOM()).norm() < soc && vel[Ball].norm() > vMax)
+				// Only consider balls moving toward origin and near cluster. Technically better if com, but computations.
+				const vector3d fromCOM = pos[Ball] - getCOM();
+				if (acos(vel[Ball].normalized().dot(fromCOM.normalized())) > M_PI_2 && fromCOM.norm() < soc)
 				{
-					vMax = vel[Ball].norm();
+					if (vel[Ball].norm() > vMax)
+					{
+						vMax = vel[Ball].norm();
+					}
+				}
+				else
+				{
+					counter++;
 				}
 			}
+			std::cout << counter << " spheres ignored.\n";
 		}
 		else
 		{
@@ -445,8 +456,8 @@ public:
 		}
 		else
 		{
-			std::cout << "Mass of cluster is zer.\n";
-			return { NULL, NULL, NULL };
+			std::cout << "Mass of cluster is zero.\n";
+			exit(EXIT_FAILURE);
 		}
 	}
 
@@ -536,17 +547,17 @@ private:
 	void addBallGroup(const ballGroup& src)
 	{
 		// Copy incoming data to the end of the currently loaded data.
-		memcpy(&distances[cNumBallsAdded], src.distances, sizeof(src.distances[0]) * src.cNumBalls);
-		memcpy(&pos[cNumBallsAdded], src.pos, sizeof(src.pos[0]) * src.cNumBalls);
-		memcpy(&vel[cNumBallsAdded], src.vel, sizeof(src.vel[0]) * src.cNumBalls);
-		memcpy(&velh[cNumBallsAdded], src.velh, sizeof(src.velh[0]) * src.cNumBalls);
-		memcpy(&acc[cNumBallsAdded], src.acc, sizeof(src.acc[0]) * src.cNumBalls);
-		memcpy(&w[cNumBallsAdded], src.w, sizeof(src.w[0]) * src.cNumBalls);
-		memcpy(&wh[cNumBallsAdded], src.wh, sizeof(src.wh[0]) * src.cNumBalls);
-		memcpy(&aacc[cNumBallsAdded], src.aacc, sizeof(src.aacc[0]) * src.cNumBalls);
-		memcpy(&R[cNumBallsAdded], src.R, sizeof(src.R[0]) * src.cNumBalls);
-		memcpy(&m[cNumBallsAdded], src.m, sizeof(src.m[0]) * src.cNumBalls);
-		memcpy(&moi[cNumBallsAdded], src.moi, sizeof(src.moi[0]) * src.cNumBalls);
+		std::memcpy(&distances[cNumBallsAdded], src.distances, sizeof(src.distances[0]) * src.cNumBalls);
+		std::memcpy(&pos[cNumBallsAdded], src.pos, sizeof(src.pos[0]) * src.cNumBalls);
+		std::memcpy(&vel[cNumBallsAdded], src.vel, sizeof(src.vel[0]) * src.cNumBalls);
+		std::memcpy(&velh[cNumBallsAdded], src.velh, sizeof(src.velh[0]) * src.cNumBalls);
+		std::memcpy(&acc[cNumBallsAdded], src.acc, sizeof(src.acc[0]) * src.cNumBalls);
+		std::memcpy(&w[cNumBallsAdded], src.w, sizeof(src.w[0]) * src.cNumBalls);
+		std::memcpy(&wh[cNumBallsAdded], src.wh, sizeof(src.wh[0]) * src.cNumBalls);
+		std::memcpy(&aacc[cNumBallsAdded], src.aacc, sizeof(src.aacc[0]) * src.cNumBalls);
+		std::memcpy(&R[cNumBallsAdded], src.R, sizeof(src.R[0]) * src.cNumBalls);
+		std::memcpy(&m[cNumBallsAdded], src.m, sizeof(src.m[0]) * src.cNumBalls);
+		std::memcpy(&moi[cNumBallsAdded], src.moi, sizeof(src.moi[0]) * src.cNumBalls);
 
 		// Keep track of now loaded ball set to start next set after it:
 		cNumBallsAdded += src.cNumBalls;
