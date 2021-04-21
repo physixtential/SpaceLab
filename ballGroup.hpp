@@ -1355,6 +1355,7 @@ private:
 
 	void simContinue(const std::string& fullpath)
 	{
+		// todo - make time start not at zero but at the previous time from energy file. Also make blender use time from energy file for frame position. Also add option to append existing file for continued sims.
 		// Load file data:
 		std::cerr << "Continuing Sim...\nFile: " << fullpath << '\n';
 

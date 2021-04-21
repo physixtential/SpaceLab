@@ -31,7 +31,7 @@ void safetyChecks();
 
 
 //ballGroup O(path + projectileName, path + targetName, 0); // Collision
-ballGroup O(path + targetName, 0); // Continue
+ballGroup O(path + targetName, 60.); // Continue
 //ballGroup O(genBalls, true, 0); // Generate
 
 //////////////////////////////////////////////////////////////
@@ -126,7 +126,16 @@ void simOneStep(const unsigned int& Step)
 			// Check for collision between Ball and otherBall.
 			if (overlap > 0)
 			{
-				// todo - Calibrate based on probe velocity ignore others.
+				// hack - temporary code for dymorphous collapse.
+				const double rho = 4 / 3 * M_PI * O.initialRadius * O.initialRadius * O.initialRadius;
+				const double dMax = M_PI * G * rho * O.initialRadius * O.mTotal / kTarget / 5.;
+				if (overlap > dMax)
+				{
+					std::cout << dMax << "####### dMax Reached #######\n";
+					writeStep = true;
+					system("pause");
+				}
+
 				double k;
 				// Apply coefficient of restitution to balls leaving collision.
 				if (dist >= oldDist)

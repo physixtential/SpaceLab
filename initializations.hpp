@@ -15,6 +15,7 @@ simTimeSeconds = 18000., // Seconds
 timeResolution = 20,//0.00001, // Seconds - This is duration between exported steps
 maxOverlap = .1,
 vTarget = 600000,
+kTarget = 2.85005e+17,
 fourThirdsPiRho = 4. / 3. * M_PI * density; // fraction of smallest sphere radius.
 
 // Simulation Structure
@@ -47,5 +48,5 @@ simTimeElapsed = 0;
 inline std::string
 path = "C:/Users/milin/Desktop/GoogleDrive/GradResearch/Development/SpaceLab/x64/Release/",
 projectileName = "",
-targetName = "10850_pushed_apart_T0.00_vBig0_vSmall-600000_IP0._rho2.70_k2.85005e+17_dt2.78397e-09_",
+targetName = "10850_pushed_apart_",
 outputPrefix = "Unnamed_";
