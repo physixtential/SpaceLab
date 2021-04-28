@@ -126,7 +126,7 @@ void simOneStep(const unsigned int& Step)
 			// Check for collision between Ball and otherBall.
 			if (overlap > 0)
 			{
-				// hack - temprorary code for dymorphous collapse.
+				// hack - temporary code for dymorphous collapse.
 				/*const double rho = 4 / 3 * M_PI * O.initialRadius * O.initialRadius * O.initialRadius;
 				const double dMax = M_PI * G * rho * O.initialRadius * O.mTotal / kTarget / 5.;
 				if (overlap > dMax)
@@ -356,6 +356,12 @@ void safetyChecks()
 {
 	titleBar("SAFETY CHECKS");
 
+	if (O.vCollapse <= 0)
+	{
+		printf("\nvCollapse NOT SET\n");
+		exit(EXIT_FAILURE);
+	}
+
 	if (skip == 0)
 	{
 		printf("\nSKIP NOT SET\n");
@@ -380,9 +386,9 @@ void safetyChecks()
 		exit(EXIT_FAILURE);
 	}
 
-	if (O.getRadius() <= 0)
+	if (O.initialRadius <= 0)
 	{
-		printf("\nCluster radius <= 0\n");
+		printf("\nCluster initialRadius not set\n");
 		exit(EXIT_FAILURE);
 	}
 

@@ -30,6 +30,7 @@ public:
 	ballGroup(const int nBalls, const bool generate, const double& customVel)
 	{
 		generateBallField(nBalls);
+		calc_v_collapse();
 		calibrateDT(0, customVel);
 		simInitCondAndCenter();
 	}
@@ -41,6 +42,7 @@ public:
 	explicit ballGroup(const std::string& fullpath, const double& customVel)
 	{
 		simContinue(fullpath);
+		calc_v_collapse();
 		calibrateDT(0, customVel);
 		simInitCondAndCenter();
 	}
@@ -52,6 +54,17 @@ public:
 	explicit ballGroup(const std::string& projectileName, const std::string& targetName, const double& customVel)
 	{
 		simInitTwoCluster(projectileName, targetName);
+
+		// Sim fall velocity onto cluster:
+		// vCollapse shrinks if a ball escapes but velMax should take over at that point, unless it is ignoring far balls.
+		double position = 0;
+		while (position < initialRadius)
+		{
+			vCollapse += G * mTotal / (initialRadius * initialRadius) * 0.1;
+			position += vCollapse * 0.1;
+		}
+		vCollapse = fabs(vCollapse);
+
 		calibrateDT(0, customVel);
 		simInitCondAndCenter();
 	}
@@ -59,11 +72,12 @@ public:
 	unsigned int cNumBalls = 0;
 	unsigned int cNumBallsAdded = 0;
 
-	// Useful constants:
+	// Useful values:
 	double rMin = -1;
 	double rMax = -1;
 	double mTotal = -1;
 	double initialRadius = -1;
+	double vCollapse = 0;
 	double vMax = -1;
 	double vMaxPrev = HUGE_VAL;
 
@@ -96,38 +110,25 @@ public:
 		}
 		else
 		{
-			// Sim fall velocity onto cluster:
-			// vCollapse shrinks if a ball escapes but velMax should take over at that point, unless it is ignoring far balls.
-			double position = 0;
-			double vCollapse = 0;
-			while (position < initialRadius)
-			{
-				vCollapse += G * mTotal / (initialRadius * initialRadius) * 0.1;
-				position += vCollapse * 0.1;
-			}
-			vCollapse = fabs(vCollapse);
-
 			//std::cout << vCollapse << " <- vCollapse | Lazz Calc -> " << M_PI * M_PI * G * pow(density, 4. / 3.) * pow(mTotal, 2. / 3.) * rMax;
 
+			// todo - put this in useful values and constructor it:
 			const double soc = rMax + initialRadius; // sphere of consideration for max velocity, to avoid very unbound high vel balls.
+
 			double vMax = getVelMax(soc);
 
 			std::cout << '\n';
 
 			// Take whichever velocity is greatest:
-			if (vMax > fabs(vCollapse))
+			std::cout << vCollapse << " = vCollapse | vMax = " << vMax;
+			if (vMax < vCollapse)
 			{
-				std::cout << vCollapse << " = vCollapse | vMax = " << vMax;
-			}
-			else
-			{
-				std::cout << vCollapse << " = vCollapse | vMax = " << vMax;
 				vMax = vCollapse;
 			}
 
 			if (vMax > vMaxPrev)
 			{
-				std::cout << "\nvMax increased since last calibration. Skipping update.\n";
+				std::cout << "\nvMax hasn't decreased. No update.\n";
 			}
 			else
 			{
@@ -140,17 +141,18 @@ public:
 		if (Step == 0 or dtOld < 0)
 		{
 			steps = static_cast<unsigned>(simTimeSeconds / dt);
-			std::cout << "\tSteps: " << steps << '\n';
+			std::cout << "\tInitial Steps: " << steps << '\n';
 		}
 		else
 		{
-			steps = static_cast<unsigned>(dt / dtOld * (steps - Step) + Step);
+			steps = static_cast<unsigned>(dtOld / dt * (steps - Step) + Step);
 			std::cout << "\tSteps: " << steps << '\n';
 		}
 
 		if (timeResolution / dt > 1.)
 		{
 			skip = static_cast<unsigned>(floor(timeResolution / dt));
+			std::cout << "\tSkip: " << skip << '\n';
 		}
 		else
 		{
@@ -158,6 +160,19 @@ public:
 			skip = static_cast<unsigned>(floor(1. / dt));
 			system("pause");
 		}
+	}
+
+	void calc_v_collapse()
+	{
+		// Sim fall velocity onto cluster:
+		// vCollapse shrinks if a ball escapes but velMax should take over at that point, unless it is ignoring far balls.
+		double position = 0;
+		while (position < initialRadius)
+		{
+			vCollapse += G * mTotal / (initialRadius * initialRadius) * 0.1;
+			position += vCollapse * 0.1;
+		}
+		vCollapse = fabs(vCollapse);
 	}
 
 	// get max velocity

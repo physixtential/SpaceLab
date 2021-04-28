@@ -339,3 +339,6 @@ ASALocalRun/
 # BeatPulse healthcheck temp database
 healthchecksdb
 *.csv
+/ColliderSingleCore/My Advisor Results - ColliderSingleCore
+/ColliderSingleCore/VTune Profiler Results/ColliderSingleCore
+/scratchpad/VTune Profiler Results/scratchpad
