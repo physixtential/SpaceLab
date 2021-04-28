@@ -126,11 +126,7 @@ public:
 				vMax = vCollapse;
 			}
 
-			if (vMax > vMaxPrev)
-			{
-				std::cout << "\nvMax hasn't decreased. No update.\n";
-			}
-			else
+			if (vMax < vMaxPrev)
 			{
 				updateDTK(vMax);
 				vMaxPrev = vMax;
@@ -141,12 +137,12 @@ public:
 		if (Step == 0 or dtOld < 0)
 		{
 			steps = static_cast<unsigned>(simTimeSeconds / dt);
-			std::cout << "\tInitial Steps: " << steps << '\n';
+			std::cout << "\tInitial Steps: " << steps;
 		}
 		else
 		{
 			steps = static_cast<unsigned>(dtOld / dt * (steps - Step) + Step);
-			std::cout << "\tSteps: " << steps << '\n';
+			std::cout << "\tSteps: " << steps;
 		}
 
 		if (timeResolution / dt > 1.)
@@ -156,7 +152,7 @@ public:
 		}
 		else
 		{
-			std::cout << "Desired time resolution is lower than dt. Setting to 1 second\n";
+			std::cout << "Desired time resolution is lower than dt. Setting to 1 second per skip.\n";
 			skip = static_cast<unsigned>(floor(1. / dt));
 			system("pause");
 		}
@@ -199,7 +195,7 @@ public:
 					counter++;
 				}
 			}
-			std::cout << counter << " spheres ignored.\n";
+			std::cout << counter << " spheres ignored.";
 		}
 		else
 		{
