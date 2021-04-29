@@ -9,33 +9,23 @@
 #include <unordered_map>
 #include <windows.h>
 
-
+void unique_rand_numbers(int& x, int& y, int& z)
+{
+	srand(time(0));
+	while (x == y or x == z or z == y)
+	{
+		y = 1 + rand() % 10;
+		z = 1 + rand() % 10;
+	}
+}
 
 int main()
 {
-	std::vector<int> a(1'000'000);
-	std::vector<int> b(1'000'000);
-	int total = 0;
+	int a = 1;
+	int b = 1;
+	int c = 3;
 
-	for (size_t i = 0; i < a.size(); i++)
-	{
-		a[i] = i ;
-	}
+	unique_rand_numbers(a, b, c);
 
-	for (size_t i = 0; i < a.size(); i++)
-	{
-		total += a[i];
-	}
-
-	std::cout << total << '\n';
-
-	concurrency::parallel_transform(a.begin(), a.end(), b.begin(), calcThing);
-
-	total = 0;
-	for (size_t i = 0; i < b.size(); i++)
-	{
-		total += b[i];
-	}
-
-	std::cout << total << '\n';
+	cout << a << '\t' << b << '\t' << c;
 }

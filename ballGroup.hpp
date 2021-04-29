@@ -182,8 +182,9 @@ public:
 			for (unsigned int Ball = 0; Ball < cNumBalls; Ball++)
 			{
 				// Only consider balls moving toward origin and near cluster. Technically better if com, but computations.
+				constexpr double cone = M_PI_2 + (.5 * M_PI_2);
 				const vector3d fromCOM = pos[Ball] - getCOM();
-				if (acos(vel[Ball].normalized().dot(fromCOM.normalized())) > M_PI_2 && fromCOM.norm() < soc)
+				if (acos(vel[Ball].normalized().dot(fromCOM.normalized())) > cone && fromCOM.norm() < soc)
 				{
 					if (vel[Ball].norm() > vMax)
 					{
