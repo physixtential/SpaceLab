@@ -106,21 +106,21 @@ public:
 		if (customSpeed > 0.)
 		{
 			updateDTK(customSpeed);
-			std::cout << "CUSTOM SPEED: " << customSpeed;
+			std::cerr << "CUSTOM SPEED: " << customSpeed;
 		}
 		else
 		{
-			//std::cout << vCollapse << " <- vCollapse | Lazz Calc -> " << M_PI * M_PI * G * pow(density, 4. / 3.) * pow(mTotal, 2. / 3.) * rMax;
+			//std::cerr << vCollapse << " <- vCollapse | Lazz Calc -> " << M_PI * M_PI * G * pow(density, 4. / 3.) * pow(mTotal, 2. / 3.) * rMax;
 
 			// todo - put this in useful values and constructor it:
 			const double soc = rMax + initialRadius; // sphere of consideration for max velocity, to avoid very unbound high vel balls.
 
 			double vMax = getVelMax(soc);
 
-			std::cout << '\n';
+			std::cerr << '\n';
 
 			// Take whichever velocity is greatest:
-			std::cout << vCollapse << " = vCollapse | vMax = " << vMax;
+			std::cerr << vCollapse << " = vCollapse | vMax = " << vMax;
 			if (vMax < vCollapse)
 			{
 				vMax = vCollapse;
@@ -130,31 +130,30 @@ public:
 			{
 				updateDTK(vMax);
 				vMaxPrev = vMax;
-				std::cout << "\nk: " << kin << "\tdt: " << dt;
+				std::cerr << "\nk: " << kin << "\tdt: " << dt;
 			}
 		}
 
 		if (Step == 0 or dtOld < 0)
 		{
 			steps = static_cast<unsigned>(simTimeSeconds / dt);
-			std::cout << "\tInitial Steps: " << steps;
+			std::cerr << "\tInitial Steps: " << steps;
 		}
 		else
 		{
 			steps = static_cast<unsigned>(dtOld / dt * (steps - Step) + Step);
-			std::cout << "\tSteps: " << steps;
+			std::cerr << "\tSteps: " << steps;
 		}
 
 		if (timeResolution / dt > 1.)
 		{
 			skip = static_cast<unsigned>(floor(timeResolution / dt));
-			std::cout << "\tSkip: " << skip << '\n';
+			std::cerr << "\tSkip: " << skip << '\n';
 		}
 		else
 		{
-			std::cout << "Desired time resolution is lower than dt. Setting to 1 second per skip.\n";
+			std::cerr << "Desired time resolution is lower than dt. Setting to 1 second per skip.\n";
 			skip = static_cast<unsigned>(floor(1. / dt));
-			system("pause");
 		}
 	}
 
@@ -196,7 +195,7 @@ public:
 					counter++;
 				}
 			}
-			std::cout << counter << " spheres ignored.";
+			std::cerr << counter << " spheres ignored.";
 		}
 		else
 		{
@@ -352,7 +351,7 @@ public:
 		}
 		checkForFile.close();
 
-		std::cout << "New file tag: " << simDataFilename;
+		std::cerr << "New file tag: " << simDataFilename;
 
 		// Open all file streams:
 		std::ofstream energyWrite, ballWrite, constWrite;
@@ -448,9 +447,9 @@ public:
 		ballWrite.close();
 		constWrite.close();
 
-		std::cout << "\nSimulating " << steps * dt / 60 / 60 << " hours.\n";
-		std::cout << "Total mass: " << mTotal << '\n';
-		std::cout << "\n===============================================================\n";
+		std::cerr << "\nSimulating " << steps * dt / 60 / 60 << " hours.\n";
+		std::cerr << "Total mass: " << mTotal << '\n';
+		std::cerr << "\n===============================================================\n";
 	}
 
 
@@ -468,7 +467,7 @@ public:
 		}
 		else
 		{
-			std::cout << "Mass of cluster is zero.\n";
+			std::cerr << "Mass of cluster is zero.\n";
 			exit(EXIT_FAILURE);
 		}
 	}
@@ -549,7 +548,7 @@ private:
 		}
 		catch (const std::exception& e)
 		{
-			std::cout << "Failed trying to allocated group. " << e.what() << '\n';
+			std::cerr << "Failed trying to allocated group. " << e.what() << '\n';
 		}
 	}
 
@@ -759,7 +758,7 @@ private:
 			{
 				std::getline(chosenLine, lineElement, ',');
 				pos[A][i] = std::stod(lineElement);
-				//std::cout << tclus.pos[A][i]<<',';
+				//std::cerr << tclus.pos[A][i]<<',';
 			}
 			for (unsigned int i = 0; i < 3; i++) // Angular Velocity
 			{
@@ -817,7 +816,7 @@ private:
 		if (auto simDataStream = std::ifstream(simDataFilename, std::ifstream::in))
 		{
 
-			std::cout << "\nParsing last line of data.\n";
+			std::cerr << "\nParsing last line of data.\n";
 
 			simDataStream.seekg(-1, std::ios_base::end); // go to one spot before the EOF
 
@@ -858,7 +857,7 @@ private:
 	/// @brief Push balls apart until no overlaps
 	void pushApart() const
 	{
-		std::cout << "Separating spheres - Current max overlap:\n";
+		std::cerr << "Separating spheres - Current max overlap:\n";
 		/// Using acc array as storage for accumulated position change.
 		int* counter = new int[cNumBalls];
 		for (size_t Ball = 0; Ball < cNumBalls; Ball++)
@@ -916,11 +915,11 @@ private:
 
 			if (overlapMax > 0)
 			{
-				std::cout << overlapMax << "                        \r";
+				std::cerr << overlapMax << "                        \r";
 			}
 			else
 			{
-				std::cout << "\nSuccess!\n";
+				std::cerr << "\nSuccess!\n";
 				break;
 			}
 			overlapMax = -1;
@@ -1039,7 +1038,7 @@ private:
 			pos[Ball] = randSphericalVec(spaceRange, spaceRange, spaceRange);
 		}
 
-		std::cout << "Smalls: " << smalls << " Mediums: " << mediums << " Larges: " << larges << '\n';
+		std::cerr << "Smalls: " << smalls << " Mediums: " << mediums << " Larges: " << larges << '\n';
 
 		// Generate non-overlapping spherical particle field:
 		int collisionDetected = 0;
@@ -1066,16 +1065,16 @@ private:
 			if (collisionDetected < oldCollisions)
 			{
 				oldCollisions = collisionDetected;
-				std::cout << "Collisions: " << collisionDetected << "                        \r";
+				std::cerr << "Collisions: " << collisionDetected << "                        \r";
 			}
 			if (collisionDetected == 0)
 			{
-				std::cout << "\nSuccess!\n";
+				std::cerr << "\nSuccess!\n";
 				break;
 			}
 			if (failed == attempts - 1 || collisionDetected > static_cast<int>(1.5 * static_cast<double>(nBalls))) // Added the second part to speed up spatial constraint increase when there are clearly too many collisions for the space to be feasible.
 			{
-				std::cout << "Failed " << spaceRange << ". Increasing range " << spaceRangeIncrement << "cm^3.\n";
+				std::cerr << "Failed " << spaceRange << ". Increasing range " << spaceRangeIncrement << "cm^3.\n";
 				spaceRange += spaceRangeIncrement;
 				failed = 0;
 				for (unsigned int Ball = 0; Ball < nBalls; Ball++)
@@ -1086,14 +1085,14 @@ private:
 			collisionDetected = 0;
 		}
 
-		std::cout << "Final spacerange: " << spaceRange << '\n';
-		std::cout << "Initial Radius: " << getRadius() << '\n';
-		std::cout << "Mass: " << mTotal << '\n';
+		std::cerr << "Final spacerange: " << spaceRange << '\n';
+		std::cerr << "Initial Radius: " << getRadius() << '\n';
+		std::cerr << "Mass: " << mTotal << '\n';
 	}
 
 	void generateBallField(const unsigned int nBalls)
 	{
-		std::cout << "CLUSTER FORMATION\n";
+		std::cerr << "CLUSTER FORMATION\n";
 		allocateGroup(nBalls);
 
 		// Create new random number set.
@@ -1127,9 +1126,9 @@ private:
 		mTotal = getMass();
 		initialRadius = getRadius();
 
-		std::cout << "Balls: " << cNumBalls << '\n';
-		std::cout << "Mass: " << mTotal << '\n';
-		std::cout << "Approximate radius: " << initialRadius << " cm.\n";
+		std::cerr << "Balls: " << cNumBalls << '\n';
+		std::cerr << "Mass: " << mTotal << '\n';
+		std::cerr << "Approximate radius: " << initialRadius << " cm.\n";
 	}
 
 	void twoSizeSphereShell5000()
@@ -1155,7 +1154,7 @@ private:
 		}
 
 		const unsigned int ballsInPhase1 = 2000;
-		std::cout << "Balls in phase: " << ballsInPhase1 << "\n";
+		std::cerr << "Balls in phase: " << ballsInPhase1 << "\n";
 
 		// Generate non-overlapping spherical particle field:
 		// Note that int can only handle 46340 spheres before potential int overflow.
@@ -1183,16 +1182,16 @@ private:
 			if (collisionDetected < oldCollisions)
 			{
 				oldCollisions = collisionDetected;
-				std::cout << "Collisions: " << collisionDetected << "                        \r";
+				std::cerr << "Collisions: " << collisionDetected << "                        \r";
 			}
 			if (collisionDetected == 0)
 			{
-				std::cout << "\nSuccess!\n";
+				std::cerr << "\nSuccess!\n";
 				break;
 			}
 			if (failed == attempts - 1 || collisionDetected > static_cast<int>(1.5 * static_cast<double>(ballsInPhase1))) // Added the second part to speed up spatial constraint increase when there are clearly too many collisions for the space to be feasible.
 			{
-				std::cout << "Failed " << spaceRange << ". Increasing range " << spaceRangeIncrement << "cm^3.\n";
+				std::cerr << "Failed " << spaceRange << ". Increasing range " << spaceRangeIncrement << "cm^3.\n";
 				spaceRange += spaceRangeIncrement;
 				failed = 0;
 				for (unsigned int Ball = 0; Ball < ballsInPhase1; Ball++)
@@ -1205,7 +1204,7 @@ private:
 
 		spaceRange += 2. * R[0] + 4. * 250.;
 		radius += R[0] + 250.;
-		std::cout << "Making shell between " << radius << " and " << spaceRange * .5 << '\n';
+		std::cerr << "Making shell between " << radius << " and " << spaceRange * .5 << '\n';
 
 		// PHASE 2
 
@@ -1228,7 +1227,7 @@ private:
 		}
 
 		const unsigned int ballsInPhase2 = 3000;
-		std::cout << "Balls in phase: " << ballsInPhase2 << "\n";
+		std::cerr << "Balls in phase: " << ballsInPhase2 << "\n";
 
 		// Generate non-overlapping spherical particle field:
 		collisionDetected = 0;
@@ -1255,16 +1254,16 @@ private:
 			if (collisionDetected < oldCollisions)
 			{
 				oldCollisions = collisionDetected;
-				std::cout << "Collisions: " << collisionDetected << "                        \r";
+				std::cerr << "Collisions: " << collisionDetected << "                        \r";
 			}
 			if (collisionDetected == 0)
 			{
-				std::cout << "\nSuccess!\n";
+				std::cerr << "\nSuccess!\n";
 				break;
 			}
 			if (failed == attempts - 1 || collisionDetected > static_cast<int>(1.5 * static_cast<double>(ballsInPhase2))) // Added the second part to speed up spatial constraint increase when there are clearly too many collisions for the space to be feasible.
 			{
-				std::cout << "Failed " << spaceRange << ". Increasing range " << spaceRangeIncrement << "cm^3.\n";
+				std::cerr << "Failed " << spaceRange << ". Increasing range " << spaceRangeIncrement << "cm^3.\n";
 				spaceRange += spaceRangeIncrement;
 				failed = 0;
 				for (unsigned int Ball = ballsInPhase1; Ball < ballsInPhase1 + ballsInPhase2; Ball++)
@@ -1275,8 +1274,8 @@ private:
 			collisionDetected = 0;
 		}
 
-		std::cout << "Initial Radius: " << radius << '\n';
-		std::cout << "Mass: " << mTotal << '\n';
+		std::cerr << "Initial Radius: " << radius << '\n';
+		std::cerr << "Mass: " << mTotal << '\n';
 
 	}
 
@@ -1318,16 +1317,16 @@ private:
 			if (collisionDetected < oldCollisions)
 			{
 				oldCollisions = collisionDetected;
-				std::cout << "Collisions: " << collisionDetected << "                        \r";
+				std::cerr << "Collisions: " << collisionDetected << "                        \r";
 			}
 			if (collisionDetected == 0)
 			{
-				std::cout << "\nSuccess!\n";
+				std::cerr << "\nSuccess!\n";
 				break;
 			}
 			if (failed == attempts - 1 || collisionDetected > static_cast<int>(1.5 * static_cast<double>(nBalls))) // Added the second part to speed up spatial constraint increase when there are clearly too many collisions for the space to be feasible.
 			{
-				std::cout << "Failed " << spaceRange << ". Increasing range " << spaceRangeIncrement << "cm^3.\n";
+				std::cerr << "Failed " << spaceRange << ". Increasing range " << spaceRangeIncrement << "cm^3.\n";
 				spaceRange += spaceRangeIncrement;
 				failed = 0;
 				for (unsigned int Ball = 0; Ball < nBalls; Ball++)
@@ -1338,9 +1337,9 @@ private:
 			collisionDetected = 0;
 		}
 
-		std::cout << "Final spacerange: " << spaceRange << '\n';
-		std::cout << "Initial Radius: " << getRadius() << '\n';
-		std::cout << "Mass: " << mTotal << '\n';
+		std::cerr << "Final spacerange: " << spaceRange << '\n';
+		std::cerr << "Initial Radius: " << getRadius() << '\n';
+		std::cerr << "Mass: " << mTotal << '\n';
 	}
 
 
@@ -1356,12 +1355,12 @@ private:
 
 	void simInitCondAndCenter()
 	{
-		std::cout << "==================" << '\n';
-		std::cout << "dt: " << dt << '\n';
-		std::cout << "k: " << kin << '\n';
-		std::cout << "Skip: " << skip << '\n';
-		std::cout << "Steps: " << steps << '\n';
-		std::cout << "==================" << '\n';
+		std::cerr << "==================" << '\n';
+		std::cerr << "dt: " << dt << '\n';
+		std::cerr << "k: " << kin << '\n';
+		std::cerr << "Skip: " << skip << '\n';
+		std::cerr << "Steps: " << steps << '\n';
+		std::cerr << "==================" << '\n';
 
 		checkMomentum("After Zeroing"); // Is total mom zero like it should be?
 
@@ -1384,7 +1383,7 @@ private:
 
 		loadSim(fullpath);
 
-		std::cout << '\n';
+		std::cerr << '\n';
 		checkMomentum("O");
 
 		// Name the file based on info above:
@@ -1445,7 +1444,7 @@ private:
 		projectile.kick(vSmall, 0, 0);
 		target.kick(vBig, 0, 0);
 
-		std::cout << '\n';
+		std::cerr << '\n';
 		projectile.checkMomentum("Projectile");
 		target.checkMomentum("Target");
 

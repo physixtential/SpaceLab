@@ -131,7 +131,7 @@ void simOneStep(const unsigned int& Step)
 				const double dMax = M_PI * G * rho * O.initialRadius * O.mTotal / kTarget / 5.;
 				if (overlap > dMax)
 				{
-					std::cout << dMax << "####### dMax Reached #######\n";
+					std::cerr << dMax << "####### dMax Reached #######\n";
 					writeStep = true;
 					system("pause");
 				}*/
@@ -294,8 +294,8 @@ void simOneStep(const unsigned int& Step)
 		if (time(nullptr) - lastWrite > 1800 || Step / skip % 10 == 0)
 		{
 			// Report vMax:
-			std::cout << "vMax = " << O.vMax << " Steps recorded: " << Step / skip << '\n';
-			std::cout << "Data Write\n\n";
+			std::cerr << "vMax = " << O.vMax << " Steps recorded: " << Step / skip << '\n';
+			std::cerr << "Data Write\n\n";
 
 
 			// Write simData to file and clear buffer.
@@ -321,7 +321,7 @@ void simOneStep(const unsigned int& Step)
 
 [[noreturn]] void simLooper()
 {
-	std::cout << "Beginning simulation...\n";
+	std::cerr << "Beginning simulation...\n";
 
 	for (unsigned int Step = 1; Step < steps; Step++) // Steps start at 1 because the 0 step is initial conditions.
 	{
@@ -329,11 +329,11 @@ void simOneStep(const unsigned int& Step)
 	}
 	const time_t end = time(nullptr);
 
-	std::cout << "Simulation complete!\n"
+	std::cerr << "Simulation complete!\n"
 		<< O.cNumBalls << " Particles and " << steps << " Steps.\n"
 		<< "Simulated time: " << steps * dt << " seconds\n"
 		<< "Computation time: " << end - start << " seconds\n";
-	std::cout << "\n===============================================================\n";
+	std::cerr << "\n===============================================================\n";
 	// I know the number of balls in each file and the order they were brought in, so I can effect individual clusters.
 	//
 	// Implement calculation of total mom vector and make it 0 mag

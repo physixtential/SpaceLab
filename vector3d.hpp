@@ -152,7 +152,7 @@ public:
 
 	void print() const
 	{
-		std::cout << "[" << x << ", " << y << ", " << z << "]";
+		std::cerr << "[" << x << ", " << y << ", " << z << "]";
 	}
 
 	[[nodiscard]] vector3d rot(char axis, double angle) const
@@ -179,7 +179,7 @@ public:
 			newVec[2] = rotz[2][0] * x + rotz[2][1] * y + rotz[2][2] * z;
 			break;
 		default:
-			std::cout << "Must choose x, y, or z rotation axis.";
+			std::cerr << "Must choose x, y, or z rotation axis.";
 			break;
 		}
 		return newVec;
@@ -324,31 +324,31 @@ inline std::string scientific(double value)
 // Output a nice title bar in terminal:
 inline void titleBar(std::string title)
 {
-	std::cout << '\n';
+	std::cerr << '\n';
 	for (size_t i = 0; i < ((62 - title.size()) / 2); i++)
 	{
-		std::cout << '=';
+		std::cerr << '=';
 	}
-	std::cout << ' ' << title << ' ';
+	std::cerr << ' ' << title << ' ';
 	for (size_t i = 0; i < ((62 - title.size()) / 2); i++)
 	{
-		std::cout << '=';
+		std::cerr << '=';
 	}
-	std::cout << "\n\n";
+	std::cerr << "\n\n";
 }
 
 // // Print anything:
 // template <typename theType>
 // void print(theType value)
 // {
-// 	std::cout << value;
+// 	std::cerr << value;
 // }
 
 // Ask a yes or no question:
 inline bool input(const std::string& question)
 {
 	char answer;
-	std::cout << question;
+	std::cerr << question;
 	std::cin >> answer;
 	if (answer == 'y')
 	{
@@ -385,7 +385,7 @@ inline vector3d randShellVec(double lim, double innerRadius)
 	const double halfLim = lim * .5;
 	if (halfLim < innerRadius)
 	{
-		std::cout << "Inner radius is larger than boundary. Impossible.\n";
+		std::cerr << "Inner radius is larger than boundary. Impossible.\n";
 		exit(EXIT_FAILURE);
 	}
 	while (vec.norm() > halfLim || vec.norm() < innerRadius)
