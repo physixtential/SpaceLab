@@ -309,7 +309,7 @@ public:
 		}
 	}
 
-	void simInitWrite(const std::string& filename)
+	void simInitWrite(std::string& filename)
 	{
 		// Create string for file name identifying spin combination negative is 2, positive is 1 on each axis.
 		//std::string spinCombo = "";
@@ -320,38 +320,27 @@ public:
 		//	else { spinCombo += "0"; }
 		//}
 
-		// Append for the three files:
+
+		// Check if file name already exists.
+		std::ifstream checkForFile;
+		checkForFile.open(filename + "simData.csv", std::ifstream::in);
+		// Add a counter to the file name until it isn't overwriting anything:
+		int counter = 0;
+		while (checkForFile.is_open())
+		{
+			counter++;
+			checkForFile.close();
+			checkForFile.open(std::to_string(counter) + '_' + filename + "simData.csv", std::ifstream::in);
+		}
+		
+		filename.insert(0, std::to_string(counter) + '_');
+
+		// Complete file names:
 		std::string simDataFilename = filename + "simData.csv";
 		std::string energyFilename = filename + "energy.csv";
 		std::string constantsFilename = filename + "constants.csv";
 
-		// Check if file name already exists.
-		std::ifstream checkForFile;
-		checkForFile.open(simDataFilename, std::ifstream::in);
-		// Add a counter to the file name until it isn't overwriting anything:
-		if (checkForFile.is_open())
-		{
-			int counter = 0;
-			while (true)
-			{
-				if (checkForFile.is_open())
-				{
-					counter++;
-					checkForFile.close();
-					checkForFile.open(std::to_string(counter) + '_' + simDataFilename, std::ifstream::in);
-				}
-				else
-				{
-					simDataFilename.insert(0, std::to_string(counter) + '_');
-					constantsFilename.insert(0, std::to_string(counter) + '_');
-					energyFilename.insert(0, std::to_string(counter) + '_');
-					break;
-				}
-			}
-		}
-		checkForFile.close();
-
-		std::cerr << "New file tag: " << simDataFilename;
+		std::cerr << "New file tag: " << filename;
 
 		// Open all file streams:
 		std::ofstream energyWrite, ballWrite, constWrite;
@@ -931,7 +920,7 @@ private:
 
 
 
-	void simDataWrite(const std::string& outFilename)
+	void simDataWrite(std::string& outFilename)
 	{
 		// todo - for some reason I need checkForFile instead of just using ballWrite. Need to work out why.
 		// Check if file name already exists. If not, initialize
