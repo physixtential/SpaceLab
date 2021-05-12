@@ -9,23 +9,21 @@
 #include <unordered_map>
 #include <windows.h>
 
-void unique_rand_numbers(int& x, int& y, int& z)
+void changeArr(float* arr)
 {
-	srand(time(0));
-	while (x == y or x == z or z == y)
-	{
-		y = 1 + rand() % 10;
-		z = 1 + rand() % 10;
-	}
+	arr[0] = 1;
+	arr[1] = 2;
+	arr[2] = 3;
 }
+
 
 int main()
 {
-	int a = 1;
-	int b = 1;
-	int c = 3;
+	float arr[3];
+	changeArr(arr);
 
-	unique_rand_numbers(a, b, c);
-
-	cout << a << '\t' << b << '\t' << c;
+	for (size_t i = 0; i < 3; i++)
+	{
+		cout << arr[i] << '\n';
+	}
 }

@@ -63,8 +63,6 @@ int main(const int argc, char const* argv[])
 //////////////////////////////////////////////////////////////
 
 
-
-
 void simOneStep(const unsigned int& Step)
 {
 	// Check if this is a write step:
@@ -355,6 +353,12 @@ void simOneStep(const unsigned int& Step)
 void safetyChecks()
 {
 	titleBar("SAFETY CHECKS");
+
+	if (O.soc <= 0)
+	{
+		printf("\nvSOC NOT SET\n");
+		exit(EXIT_FAILURE);
+	}
 
 	if (O.vCollapse <= 0)
 	{

@@ -14,6 +14,7 @@
 class ballGroup
 {
 public:
+
 	ballGroup() = default;
 
 	/// @brief For creating a new ballGroup of size nBalls
@@ -80,6 +81,7 @@ public:
 	double vCollapse = 0;
 	double vMax = -1;
 	double vMaxPrev = HUGE_VAL;
+	double soc = -1;
 
 	vector3d mom = { 0, 0, 0 };
 	vector3d angMom = { 0, 0, 0 }; // Can be vector3d because they only matter for writing out to file. Can process on host.
@@ -112,10 +114,7 @@ public:
 		{
 			//std::cerr << vCollapse << " <- vCollapse | Lazz Calc -> " << M_PI * M_PI * G * pow(density, 4. / 3.) * pow(mTotal, 2. / 3.) * rMax;
 
-			// todo - put this in useful values and constructor it:
-			const double soc = rMax + initialRadius; // sphere of consideration for max velocity, to avoid very unbound high vel balls.
-
-			double vMax = getVelMax(soc);
+			double vMax = getVelMax();
 
 			std::cerr << '\n';
 
@@ -171,7 +170,7 @@ public:
 	}
 
 	// get max velocity
-	[[nodiscard]] double getVelMax(const double soc = -1.)
+	[[nodiscard]] double getVelMax()
 	{
 		vMax = 0;
 		int counter = 0;
@@ -181,6 +180,7 @@ public:
 			for (unsigned int Ball = 0; Ball < cNumBalls; Ball++)
 			{
 				// Only consider balls moving toward origin and near cluster. Technically better if com, but computations.
+				// todo - this cone may be too aggressive:
 				constexpr double cone = M_PI_2 + (.5 * M_PI_2);
 				const vector3d fromCOM = pos[Ball] - getCOM();
 				if (acos(vel[Ball].normalized().dot(fromCOM.normalized())) > cone && fromCOM.norm() < soc)
@@ -566,6 +566,7 @@ private:
 		rMax = getRmax();
 		mTotal = getMass();
 		initialRadius = getRadius();
+		soc = rMax + initialRadius;
 
 		// DON'T FORGET TO FREEMEMORY
 	}
@@ -1094,6 +1095,7 @@ private:
 		rMax = getRmax();
 		mTotal = getMass();
 		initialRadius = getRadius();
+		soc = rMax + initialRadius;
 
 		outputPrefix =
 			std::to_string(nBalls) +
@@ -1114,6 +1116,7 @@ private:
 		rMax = getRmax();
 		mTotal = getMass();
 		initialRadius = getRadius();
+		soc = rMax + initialRadius;
 
 		std::cerr << "Balls: " << cNumBalls << '\n';
 		std::cerr << "Mass: " << mTotal << '\n';

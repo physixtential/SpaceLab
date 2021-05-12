@@ -11,6 +11,15 @@
 #include <algorithm>
 #include "../vector3d.hpp"
 
+void unique_rand_numbers(int& x, int& y, int& z)
+{
+	srand(time(0));
+	while (x == y or x == z or z == y)
+	{
+		y = 1 + rand() % 10;
+		z = 1 + rand() % 10;
+	}
+}
 
 void matrixMaker(std::vector<std::vector<std::vector<int>>>& matList)
 {
