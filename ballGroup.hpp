@@ -1104,6 +1104,7 @@ private:
 		outputPrefix =
 			std::to_string(nBalls) +
 			"-R" + scientific(getRadius()) +
+			"-v" + std::to_string(vCustom) +
 			"-cor" + rounder(std::pow(cor, 2), 4) +
 			"-mu" + rounder(mu, 3) +
 			"-rho" + rounder(density, 4);
