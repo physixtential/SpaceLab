@@ -174,6 +174,7 @@ public:
 	{
 		vMax = 0;
 
+		// todo - make this a manual set true or false to use soc so we know if it is being used or not.
 		if (soc > 0)
 		{
 			int counter = 0;

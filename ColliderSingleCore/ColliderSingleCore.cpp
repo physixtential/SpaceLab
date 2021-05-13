@@ -292,7 +292,7 @@ void simOneStep(const unsigned int& Step)
 		if (time(nullptr) - lastWrite > 1800 || Step / skip % 10 == 0)
 		{
 			// Report vMax:
-			std::cerr << "vMax = " << O.vMax << " Steps recorded: " << Step / skip << '\n';
+			std::cerr << "vMax = " << O.getVelMax() << " Steps recorded: " << Step / skip << '\n';
 			std::cerr << "Data Write\n\n";
 
 
