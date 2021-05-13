@@ -312,7 +312,10 @@ void simOneStep(const unsigned int& Step)
 
 			lastWrite = time(nullptr);
 		} // Data export end
-		O.calibrateDT(Step, false);
+		if (dynamicTime)
+		{
+			O.calibrateDT(Step, false);
+		}
 	} // writestep end
 } // Steps end
 

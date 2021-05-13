@@ -19,11 +19,5 @@ void changeArr(float* arr)
 
 int main()
 {
-	float arr[3];
-	changeArr(arr);
-
-	for (size_t i = 0; i < 3; i++)
-	{
-		cout << arr[i] << '\n';
-	}
+	cout << !true;
 }

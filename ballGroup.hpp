@@ -114,7 +114,7 @@ public:
 		{
 			//std::cerr << vCollapse << " <- vCollapse | Lazz Calc -> " << M_PI * M_PI * G * pow(density, 4. / 3.) * pow(mTotal, 2. / 3.) * rMax;
 
-			double vMax = getVelMax();
+			vMax = getVelMax();
 
 			std::cerr << '\n';
 
@@ -173,10 +173,10 @@ public:
 	[[nodiscard]] double getVelMax()
 	{
 		vMax = 0;
-		int counter = 0;
 
 		if (soc > 0)
 		{
+			int counter = 0;
 			for (unsigned int Ball = 0; Ball < cNumBalls; Ball++)
 			{
 				// Only consider balls moving toward origin and near cluster. Technically better if com, but computations.
@@ -332,7 +332,7 @@ public:
 			checkForFile.close();
 			checkForFile.open(std::to_string(counter) + '_' + filename + "simData.csv", std::ifstream::in);
 		}
-		
+
 		filename.insert(0, std::to_string(counter) + '_');
 
 		// Complete file names:
@@ -629,7 +629,7 @@ private:
 					// Check for collision between Ball and otherBall.
 					if (overlap > 0)
 					{
-						// todo - refactor initConditions like main loop:
+						// todo - refactor initConditions like main loop (verify this gives same values as other):
 						// Calculate force and torque for a:
 						vector3d dVel = vel[B] - vel[A];
 						vector3d relativeVelOfA = dVel - dVel.dot(rVecab) * (rVecab / (dist * dist)) - w[A].cross(R[A] / sumRaRb * rVecab) - w[B].cross(R[B] / sumRaRb * rVecab);
@@ -1369,7 +1369,6 @@ private:
 
 	void simContinue(const std::string& fullpath)
 	{
-		// todo - make time start not at zero but at the previous time from energy file. Also make blender use time from energy file for frame position. Also add option to append existing file for continued sims.
 		// Load file data:
 		std::cerr << "Continuing Sim...\nFile: " << fullpath << '\n';
 
@@ -1391,15 +1390,16 @@ private:
 		std::cerr << "TWO CLUSTER SIM\nFile 1: " << projectileName << '\t' << "File 2: " << targetName << '\n';
 
 		// DART PROBE
-		ballGroup projectile(1);
-		projectile.pos[0] = { 8814, 0, 0 };
-		projectile.w[0] = { 0, 0, 0 };
-		projectile.vel[0] = { 0, 0, 0 };
-		projectile.R[0] = 78.5;
-		projectile.m[0] = 560000;
-		projectile.moi[0] = .4 * projectile.m[0] * projectile.R[0] * projectile.R[0];
+		//ballGroup projectile(1);
+		//projectile.pos[0] = { 8814, 0, 0 };
+		//projectile.w[0] = { 0, 0, 0 };
+		//projectile.vel[0] = { 0, 0, 0 };
+		//projectile.R[0] = 78.5;
+		//projectile.m[0] = 560000;
+		//projectile.moi[0] = .4 * projectile.m[0] * projectile.R[0] * projectile.R[0];
 
-		//ballGroup projectile(path + targetName);
+		ballGroup projectile;
+		projectile.loadSim(projectileName);
 		ballGroup target;
 		target.loadSim(targetName);
 
@@ -1422,10 +1422,10 @@ private:
 		const double mSmall = projectile.mTotal;
 		const double mBig = target.mTotal;
 		const double mTot = mBig + mSmall;
-		//const double vSmall = -sqrt(2 * KEfactor * fabs(PEsys) * (mBig / (mSmall * mTot))); // Negative because small offsets right.
-		const double vSmall = -600000; // DART probe override.
-		//const double vBig = -(mSmall / mBig) * vSmall; // Negative to be opposing projectile.
-		const double vBig = 0; // Dymorphous override.
+		const double vSmall = -sqrt(2 * KEfactor * fabs(PEsys) * (mBig / (mSmall * mTot))); // Negative because small offsets right.
+		//const double vSmall = -600000; // DART probe override.
+		const double vBig = -(mSmall / mBig) * vSmall; // Negative to be opposing projectile.
+		//const double vBig = 0; // Dymorphous override.
 		fprintf(stdout, "\nTarget Velocity: %.2e\nProjectile Velocity: %.2e\n", vBig, vSmall);
 
 		if (isnan(vSmall) || isnan(vBig))
