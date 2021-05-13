@@ -272,13 +272,14 @@ public:
 					vMax = vel[Ball].norm();
 				}
 			}
-		}
 
-		// Is vMax for some reason unreasonably small? Don't proceed. Probably a finished sim.
-		if (vMax < 1e-10)
-		{
-			printf("\nMax velocity in system is less than 1e-10.\n");
-			system("pause");
+			// Is vMax for some reason unreasonably small? Don't proceed. Probably a finished sim.
+			// This shouldn't apply to extremely destructive collisions because it is possible that no particles are considered, so it will keep pausing.
+			if (vMax < 1e-10)
+			{
+				printf("\nMax velocity in system is less than 1e-10.\n");
+				system("pause");
+			}
 		}
 
 		return vMax;

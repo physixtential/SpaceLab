@@ -29,7 +29,7 @@ void simOneStep(const unsigned int& Step);
 [[noreturn]] void simLooper();
 void safetyChecks();
 
-ballGroup O(path, projectileName, targetName, 0); // Collision
+ballGroup O(path, projectileName, targetName, vCustom); // Collision
 //ballGroup O(path, targetName, 0); // Continue
 //ballGroup O(genBalls, true, vCustom); // Generate
 
@@ -72,7 +72,7 @@ void simOneStep(const unsigned int& Step)
 		simTimeElapsed += dt * skip;
 
 		// Progress reporting:
-		float eta = ((time(nullptr) - startProgress) / 500.f * static_cast<float>(steps - Step)) / 3600.f; // In seconds.
+		float eta = ((time(nullptr) - startProgress) / static_cast<float>(skip) * static_cast<float>(steps - Step)) / 3600.f; // Hours.
 		float real = (time(nullptr) - start) / 3600.f;
 		float progress = (static_cast<float>(Step) / static_cast<float>(steps) * 100.f);
 		printf("Step: %u\tProgress: %2.0f%%\tETA: %5.2lf hr\tReal: %5.2f hr\tSim: %5.2f hr\n", Step, progress, eta, real, simTimeElapsed);
