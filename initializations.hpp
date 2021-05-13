@@ -14,7 +14,7 @@ density = 2.7, //2.7, // Typically based on some rock density
 mu = 0.9,      // Coeff of friction
 cor = 0.8,     // Coeff of restitution
 simTimeSeconds = 18000., // Seconds
-timeResolution = 200., // Seconds - This is duration between exported steps
+timeResolution = 20., // Seconds - This is duration between exported steps
 maxOverlap = .1,
 fourThirdsPiRho = 4. / 3. * M_PI * density, // for fraction of smallest sphere radius.
 scaleBalls = 100, // base radius of balls
@@ -35,7 +35,7 @@ inline double
 dt = -1,
 kin = -1,      // Spring constant
 kout = -1,
-vCustom = 1,
+vCustom = 16,
 spaceRange = std::pow((1. / .74 * scaleBalls * scaleBalls * scaleBalls * genBalls), 1. / 3.), // Rough minimum space required
 spaceRangeIncrement = scaleBalls * 3,
 z0Rot = 0,           // Cluster one z axis rotation

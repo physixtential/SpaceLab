@@ -42,7 +42,7 @@ public:
 	/// @param customVel To condition for specific vMax.
 	explicit ballGroup(const std::string& fullpath, const double& customVel)
 	{
-		simContinue(fullpath);
+		simContinue(path, fullpath);
 		calc_v_collapse();
 		calibrateDT(0, customVel);
 		simInitCondAndCenter();
@@ -52,11 +52,9 @@ public:
 	/// @param projectileName 
 	/// @param targetName 
 	/// @param customVel To condition for specific vMax.
-	explicit ballGroup(const std::string& projectileName, const std::string& targetName, const double& customVel)
+	explicit ballGroup(const std::string& path, const std::string& projectileName, const std::string& targetName, const double& customVel)
 	{
-		simInitTwoCluster(projectileName, targetName);
-
-		// Sim fall velocity onto cluster:
+		simInitTwoCluster(path, projectileName, targetName);
 		calc_v_collapse();
 		calibrateDT(0, customVel);
 		simInitCondAndCenter();
@@ -149,7 +147,7 @@ public:
 	}
 
 	// todo - make bigger balls favor the middle, or, smaller balls favor the outside.
-/// @brief Push balls apart until no overlaps
+	/// @brief Push balls apart until no overlaps
 	void pushApart() const
 	{
 		std::cerr << "Separating spheres - Current max overlap:\n";
@@ -263,7 +261,7 @@ public:
 					counter++;
 				}
 			}
-			std::cerr << '(' << counter << " spheres ignored." << ") ";
+			std::cerr << '(' << counter << " spheres ignored" << ") ";
 		}
 		else
 		{
@@ -725,6 +723,10 @@ private:
 
 						vector3d gravForceOnA = (G * m[A] * m[B] / (dist * dist)) * (rVecab / dist);
 						totalForce = gravForceOnA + elasticForceOnA + frictionForceOnA;
+						if (isnan(totalForce.x) or isnan(totalForce.y) or isnan(totalForce.z))
+						{
+							std::cerr << "NAN";
+						}
 						aacc[A] += aTorque / moi[A];
 						aacc[B] += bTorque / moi[B];
 						PE += -G * m[A] * m[B] / dist + kin * ((sumRaRb - dist) * .5) * ((sumRaRb - dist) * .5);
@@ -734,11 +736,16 @@ private:
 						// No collision: Include gravity only:
 						const vector3d gravForceOnA = (G * m[A] * m[B] / (dist * dist)) * (rVecab / dist);
 						totalForce = gravForceOnA;
+						if (isnan(totalForce.x) or isnan(totalForce.y) or isnan(totalForce.z))
+						{
+							std::cerr << "NAN";
+						}
 						PE += -G * m[A] * m[B] / dist;
 					}
 					// Newton's equal and opposite forces applied to acceleration of each ball:
 					acc[A] += totalForce / m[A];
 					acc[B] -= totalForce / m[B];
+
 					const unsigned int e = static_cast<unsigned>(A * (A - 1) * .5) + B; // Complex storage of n square over 2 distances.
 					distances[e] = dist;
 				}
@@ -841,10 +848,10 @@ private:
 
 
 	/// Get previous sim constants by filename.
-	void loadConsts(const std::string& fullpath)
+	void loadConsts(const std::string& path, const std::string& filename)
 	{
 		// Get radius, mass, moi:
-		std::string constantsFilename = fullpath + "constants.csv";
+		std::string constantsFilename = path + filename + "constants.csv";
 		if (auto ConstStream = std::ifstream(constantsFilename, std::ifstream::in))
 		{
 			std::string line, lineElement;
@@ -870,11 +877,11 @@ private:
 
 
 	/// Get last line of previous simData by filename.
-	[[nodiscard]] static std::string getLastLine(const std::string& filename)
+	[[nodiscard]] static std::string getLastLine(const std::string& path, const std::string& filename)
 	{
-		std::string simDataFilename = filename + "simData.csv";
+		std::string simDataFilepath = path + filename + "simData.csv";
 
-		if (auto simDataStream = std::ifstream(simDataFilename, std::ifstream::in))
+		if (auto simDataStream = std::ifstream(simDataFilepath, std::ifstream::in))
 		{
 
 			std::cerr << "\nParsing last line of data.\n";
@@ -908,7 +915,7 @@ private:
 		}
 		else
 		{
-			std::cerr << "Could not open simData file: " << simDataFilename << "... Existing program." << '\n';
+			std::cerr << "Could not open simData file: " << simDataFilepath << "... Existing program." << '\n';
 			exit(EXIT_FAILURE);
 		}
 
@@ -1103,11 +1110,11 @@ private:
 	}
 
 	/// Make ballGroup from file data.
-	void loadSim(const std::string& fullpath)
+	void loadSim(const std::string& path, const std::string& filename)
 	{
-		parseSimData(getLastLine(fullpath));
+		parseSimData(getLastLine(path, filename));
 
-		loadConsts(fullpath);
+		loadConsts(path, filename);
 
 		rMin = getRmin();
 		rMax = getRmax();
@@ -1351,6 +1358,8 @@ private:
 		std::cerr << "Steps: " << steps << '\n';
 		std::cerr << "==================" << '\n';
 
+		toOrigin();
+
 		checkMomentum("After Zeroing"); // Is total mom zero like it should be?
 
 		// Compute physics between all balls. Distances, collision forces, energy totals, total mass:
@@ -1364,12 +1373,12 @@ private:
 	}
 
 
-	void simContinue(const std::string& fullpath)
+	void simContinue(const std::string& path, const std::string& filename)
 	{
 		// Load file data:
-		std::cerr << "Continuing Sim...\nFile: " << fullpath << '\n';
+		std::cerr << "Continuing Sim...\nFile: " << filename << '\n';
 
-		loadSim(fullpath);
+		loadSim(path, filename);
 
 		std::cerr << '\n';
 		checkMomentum("O");
@@ -1381,7 +1390,7 @@ private:
 	}
 
 	// Set's up a two cluster collision.
-	void simInitTwoCluster(const std::string& projectileName, const std::string& targetName)
+	void simInitTwoCluster(const std::string& path, const std::string& projectileName, const std::string& targetName)
 	{
 		// Load file data:
 		std::cerr << "TWO CLUSTER SIM\nFile 1: " << projectileName << '\t' << "File 2: " << targetName << '\n';
@@ -1396,9 +1405,9 @@ private:
 		//projectile.moi[0] = .4 * projectile.m[0] * projectile.R[0] * projectile.R[0];
 
 		ballGroup projectile;
-		projectile.loadSim(projectileName);
+		projectile.loadSim(path, projectileName);
 		ballGroup target;
-		target.loadSim(targetName);
+		target.loadSim(path, targetName);
 
 		// DO YOU WANT TO STOP EVERYTHING?
 		projectile.zeroAngVel();
@@ -1411,7 +1420,7 @@ private:
 		projectile.updatePE();
 		target.updatePE();
 
-		//projectile.offset(projectile.radius, target.radius + (projectile.R[0]), impactParameter);
+		projectile.offset(projectile.initialRadius, target.initialRadius + target.getRmax() * 2, impactParameter);
 
 		const double PEsys = projectile.PE + target.PE + (-G * projectile.mTotal * target.mTotal / (projectile.getCOM() - target.getCOM()).norm());
 
@@ -1429,7 +1438,7 @@ private:
 			fprintf(stderr, "A VELOCITY WAS NAN!!!!!!!!!!!!!!!!!!!!!!\n\n");
 			exit(EXIT_FAILURE);
 		}
-		
+
 		projectile.kick(vSmall, 0, 0);
 		target.kick(vBig, 0, 0);
 
