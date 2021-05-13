@@ -333,7 +333,10 @@ public:
 			checkForFile.open(std::to_string(counter) + '_' + filename + "simData.csv", std::ifstream::in);
 		}
 
-		filename.insert(0, std::to_string(counter) + '_');
+		if (counter > 0)
+		{
+			filename.insert(0, std::to_string(counter) + '_');
+		}
 
 		// Complete file names:
 		std::string simDataFilename = filename + "simData.csv";
