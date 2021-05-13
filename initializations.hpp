@@ -47,6 +47,6 @@ simTimeElapsed = 0;
 // File from which to proceed with further simulations
 inline std::string
 path = "C:/Users/milin/Desktop/GoogleDrive/GradResearch/Development/SpaceLab/x64/Release/",
-projectileName = "",
-targetName = "10850_pushed_apart_",
+projectileName = "1_",
+targetName = "100_",
 outputPrefix = "Unnamed_";

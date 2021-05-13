@@ -57,15 +57,7 @@ public:
 		simInitTwoCluster(projectileName, targetName);
 
 		// Sim fall velocity onto cluster:
-		// vCollapse shrinks if a ball escapes but velMax should take over at that point, unless it is ignoring far balls.
-		double position = 0;
-		while (position < initialRadius)
-		{
-			vCollapse += G * mTotal / (initialRadius * initialRadius) * 0.1;
-			position += vCollapse * 0.1;
-		}
-		vCollapse = fabs(vCollapse);
-
+		calc_v_collapse();
 		calibrateDT(0, customVel);
 		simInitCondAndCenter();
 	}
@@ -154,6 +146,81 @@ public:
 			std::cerr << "Desired time resolution is lower than dt. Setting to 1 second per skip.\n";
 			skip = static_cast<unsigned>(floor(1. / dt));
 		}
+	}
+
+	// todo - make bigger balls favor the middle, or, smaller balls favor the outside.
+/// @brief Push balls apart until no overlaps
+	void pushApart() const
+	{
+		std::cerr << "Separating spheres - Current max overlap:\n";
+		/// Using acc array as storage for accumulated position change.
+		int* counter = new int[cNumBalls];
+		for (size_t Ball = 0; Ball < cNumBalls; Ball++)
+		{
+			acc[Ball] = { 0, 0, 0 };
+			counter[Ball] = 0;
+		}
+
+		double overlapMax = -1;
+		const double pseudoDT = rMin * .1;
+		int step = 0;
+
+		while (true)
+		{
+			//if (step % 10 == 0)
+			//{
+			//	simDataWrite("pushApart_");
+			//}
+
+			for (unsigned int A = 0; A < cNumBalls; A++)
+			{
+				for (unsigned int B = A + 1; B < cNumBalls; B++)
+				{
+					// Check for Ball overlap.
+					vector3d rVecab = pos[B] - pos[A];
+					vector3d rVecba = -1 * rVecab;
+					const double dist = (rVecab).norm();
+					const double sumRaRb = R[A] + R[B];
+					const double overlap = sumRaRb - dist;
+
+					if (overlapMax < overlap)
+					{
+						overlapMax = overlap;
+					}
+
+					if (overlap > 0)
+					{
+						acc[A] += overlap * (rVecba / dist);
+						acc[B] += overlap * (rVecab / dist);
+						counter[A] += 1;
+						counter[B] += 1;
+					}
+				}
+			}
+
+			for (size_t Ball = 0; Ball < cNumBalls; Ball++)
+			{
+				if (counter[Ball] > 0)
+				{
+					pos[Ball] += acc[Ball].normalized() * pseudoDT;
+					acc[Ball] = { 0, 0, 0 };
+					counter[Ball] = 0;
+				}
+			}
+
+			if (overlapMax > 0)
+			{
+				std::cerr << overlapMax << "                        \r";
+			}
+			else
+			{
+				std::cerr << "\nSuccess!\n";
+				break;
+			}
+			overlapMax = -1;
+			step++;
+		}
+		delete[] counter;
 	}
 
 	void calc_v_collapse()
@@ -847,81 +914,6 @@ private:
 
 	}
 
-	// todo - make bigger balls favor the middle, or, smaller balls favor the outside.
-	/// @brief Push balls apart until no overlaps
-	void pushApart() const
-	{
-		std::cerr << "Separating spheres - Current max overlap:\n";
-		/// Using acc array as storage for accumulated position change.
-		int* counter = new int[cNumBalls];
-		for (size_t Ball = 0; Ball < cNumBalls; Ball++)
-		{
-			acc[Ball] = { 0, 0, 0 };
-			counter[Ball] = 0;
-		}
-
-		double overlapMax = -1;
-		const double pseudoDT = rMin * .1;
-		int step = 0;
-
-		while (true)
-		{
-			//if (step % 10 == 0)
-			//{
-			//	simDataWrite("pushApart_");
-			//}
-
-			for (unsigned int A = 0; A < cNumBalls; A++)
-			{
-				for (unsigned int B = A + 1; B < cNumBalls; B++)
-				{
-					// Check for Ball overlap.
-					vector3d rVecab = pos[B] - pos[A];
-					vector3d rVecba = -1 * rVecab;
-					const double dist = (rVecab).norm();
-					const double sumRaRb = R[A] + R[B];
-					const double overlap = sumRaRb - dist;
-
-					if (overlapMax < overlap)
-					{
-						overlapMax = overlap;
-					}
-
-					if (overlap > 0)
-					{
-						acc[A] += overlap * (rVecba / dist);
-						acc[B] += overlap * (rVecab / dist);
-						counter[A] += 1;
-						counter[B] += 1;
-					}
-				}
-			}
-
-			for (size_t Ball = 0; Ball < cNumBalls; Ball++)
-			{
-				if (counter[Ball] > 0)
-				{
-					pos[Ball] += acc[Ball].normalized() * pseudoDT;
-					acc[Ball] = { 0, 0, 0 };
-					counter[Ball] = 0;
-				}
-			}
-
-			if (overlapMax > 0)
-			{
-				std::cerr << overlapMax << "                        \r";
-			}
-			else
-			{
-				std::cerr << "\nSuccess!\n";
-				break;
-			}
-			overlapMax = -1;
-			step++;
-		}
-		delete[] counter;
-	}
-
 
 
 
@@ -1104,7 +1096,7 @@ private:
 		outputPrefix =
 			std::to_string(nBalls) +
 			"-R" + scientific(getRadius()) +
-			"-v" + std::to_string(vCustom) +
+			"-v" + scientific(vCustom) +
 			"-cor" + rounder(std::pow(cor, 2), 4) +
 			"-mu" + rounder(mu, 3) +
 			"-rho" + rounder(density, 4);
@@ -1427,19 +1419,21 @@ private:
 		const double mSmall = projectile.mTotal;
 		const double mBig = target.mTotal;
 		const double mTot = mBig + mSmall;
-		const double vSmall = -sqrt(2 * KEfactor * fabs(PEsys) * (mBig / (mSmall * mTot))); // Negative because small offsets right.
-		//const double vSmall = -600000; // DART probe override.
-		const double vBig = -(mSmall / mBig) * vSmall; // Negative to be opposing projectile.
+		//const double vSmall = -sqrt(2 * KEfactor * fabs(PEsys) * (mBig / (mSmall * mTot))); // Negative because small offsets right.
+		const double vSmall = -vCustom; // DART probe override.
+		const double vBig = -(mSmall / mBig) * vSmall; // Negative to oppose projectile.
 		//const double vBig = 0; // Dymorphous override.
-		fprintf(stdout, "\nTarget Velocity: %.2e\nProjectile Velocity: %.2e\n", vBig, vSmall);
 
 		if (isnan(vSmall) || isnan(vBig))
 		{
 			fprintf(stderr, "A VELOCITY WAS NAN!!!!!!!!!!!!!!!!!!!!!!\n\n");
 			exit(EXIT_FAILURE);
 		}
+		
 		projectile.kick(vSmall, 0, 0);
 		target.kick(vBig, 0, 0);
+
+		fprintf(stdout, "\nTarget Velocity: %.2e\nProjectile Velocity: %.2e\n", vBig, vSmall);
 
 		std::cerr << '\n';
 		projectile.checkMomentum("Projectile");

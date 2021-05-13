@@ -29,9 +29,9 @@ void simOneStep(const unsigned int& Step);
 [[noreturn]] void simLooper();
 void safetyChecks();
 
-//ballGroup O(path + projectileName, path + targetName, 0); // Collision
+ballGroup O(path + projectileName, path + targetName, 0); // Collision
 //ballGroup O(path + targetName, 0); // Continue
-ballGroup O(genBalls, true, vCustom); // Generate
+//ballGroup O(genBalls, true, vCustom); // Generate
 
 //////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////
