@@ -196,7 +196,7 @@ public:
 					counter++;
 				}
 			}
-			std::cerr << counter << " spheres ignored.";
+			std::cerr << '(' << counter << " spheres ignored." << ") ";
 		}
 		else
 		{
