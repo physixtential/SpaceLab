@@ -636,7 +636,7 @@ private:
 		rMax = getRmax();
 		mTotal = getMass();
 		initialRadius = getRadius();
-		soc = rMax + initialRadius;
+		soc = 4 * rMax + initialRadius;
 
 		// DON'T FORGET TO FREEMEMORY
 	}
@@ -1099,7 +1099,7 @@ private:
 		rMax = getRmax();
 		mTotal = getMass();
 		initialRadius = getRadius();
-		soc = rMax + initialRadius;
+		soc = 4 * rMax + initialRadius;
 
 		outputPrefix =
 			std::to_string(nBalls) +
@@ -1121,7 +1121,7 @@ private:
 		rMax = getRmax();
 		mTotal = getMass();
 		initialRadius = getRadius();
-		soc = rMax + initialRadius;
+		soc = 4 * rMax + initialRadius;
 
 		std::cerr << "Balls: " << cNumBalls << '\n';
 		std::cerr << "Mass: " << mTotal << '\n';
