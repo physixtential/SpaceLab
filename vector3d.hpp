@@ -270,7 +270,7 @@ public:
 	//void tostr(char str[]) const {
 	//	const double theta = 2 * acos(w);
 	//	const double fac = 1.0 / sin(theta / 2.0);
-	//	sprintf(str, "[%6.2f, (%6.2f, %6.2f, %6.2f)]", theta, x*fac, y*fac, z*fac);
+	//	sfprintf(stderr,str, "[%6.2f, (%6.2f, %6.2f, %6.2f)]", theta, x*fac, y*fac, z*fac);
 	//}
 
 private:

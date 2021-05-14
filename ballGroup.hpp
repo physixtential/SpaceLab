@@ -234,7 +234,7 @@ public:
 		vCollapse = fabs(vCollapse);
 	}
 
-	// get max velocity
+	/// get max velocity
 	[[nodiscard]] double getVelMax()
 	{
 		vMax = 0;
@@ -245,7 +245,7 @@ public:
 			int counter = 0;
 			for (unsigned int Ball = 0; Ball < cNumBalls; Ball++)
 			{
-				// Only consider balls moving toward origin and near cluster. Technically better if com, but computations.
+				// Only consider balls moving toward com and within 4x initial radius around it.
 				// todo - this cone may be too aggressive:
 				constexpr double cone = M_PI_2 + (.5 * M_PI_2);
 				const vector3d fromCOM = pos[Ball] - getCOM();
@@ -277,7 +277,7 @@ public:
 			// This shouldn't apply to extremely destructive collisions because it is possible that no particles are considered, so it will keep pausing.
 			if (vMax < 1e-10)
 			{
-				printf("\nMax velocity in system is less than 1e-10.\n");
+				std::cerr << "\nMax velocity in system is less than 1e-10.\n";
 				system("pause");
 			}
 		}
@@ -302,7 +302,7 @@ public:
 		{
 			pTotal += m[Ball] * vel[Ball];
 		}
-		printf("%s Momentum Check: %.2e, %.2e, %.2e\n", of.c_str(), pTotal.x, pTotal.y, pTotal.z);
+		fprintf(stderr, "%s Momentum Check: %.2e, %.2e, %.2e\n", of.c_str(), pTotal.x, pTotal.y, pTotal.z);
 	}
 
 	// offset cluster
@@ -1436,14 +1436,14 @@ private:
 
 		if (isnan(vSmall) || isnan(vBig))
 		{
-			fprintf(stderr, "A VELOCITY WAS NAN!!!!!!!!!!!!!!!!!!!!!!\n\n");
+			std::cerr << "A VELOCITY WAS NAN!!!!!!!!!!!!!!!!!!!!!!\n\n";
 			exit(EXIT_FAILURE);
 		}
 
 		projectile.kick(vSmall, 0, 0);
 		target.kick(vBig, 0, 0);
 
-		fprintf(stdout, "\nTarget Velocity: %.2e\nProjectile Velocity: %.2e\n", vBig, vSmall);
+		fprintf(stderr, "\nTarget Velocity: %.2e\nProjectile Velocity: %.2e\n", vBig, vSmall);
 
 		std::cerr << '\n';
 		projectile.checkMomentum("Projectile");

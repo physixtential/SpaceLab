@@ -44,7 +44,7 @@ int main(const int argc, char const* argv[])
 	if (argc > 1)
 	{
 		//numThreads = atoi(argv[1]);
-		//printf("\nThread count set to %i.\n", numThreads);
+		//fprintf(stderr,"\nThread count set to %i.\n", numThreads);
 		//projectileName = argv[2];
 		//targetName = argv[3];
 		//KEfactor = atof(argv[4]);
@@ -75,7 +75,7 @@ void simOneStep(const unsigned int& Step)
 		float eta = ((time(nullptr) - startProgress) / static_cast<float>(skip) * static_cast<float>(steps - Step)) / 3600.f; // Hours.
 		float real = (time(nullptr) - start) / 3600.f;
 		float progress = (static_cast<float>(Step) / static_cast<float>(steps) * 100.f);
-		printf("Step: %u\tProgress: %2.0f%%\tETA: %5.2lf hr\tReal: %5.2f hr\tSim: %5.2f hr\n", Step, progress, eta, real, simTimeElapsed);
+		fprintf(stderr, "Step: %u\tProgress: %2.0f%%\tETA: %5.2lf hr\tReal: %5.2f hr\tSim: %5.2f hr\n", Step, progress, eta, real, simTimeElapsed);
 		startProgress = time(nullptr);
 	}
 	else
@@ -359,43 +359,43 @@ void safetyChecks()
 
 	if (O.soc <= 0)
 	{
-		printf("\nvSOC NOT SET\n");
+		fprintf(stderr, "\nvSOC NOT SET\n");
 		exit(EXIT_FAILURE);
 	}
 
 	if (O.vCollapse <= 0)
 	{
-		printf("\nvCollapse NOT SET\n");
+		fprintf(stderr, "\nvCollapse NOT SET\n");
 		exit(EXIT_FAILURE);
 	}
 
 	if (skip == 0)
 	{
-		printf("\nSKIP NOT SET\n");
+		fprintf(stderr, "\nSKIP NOT SET\n");
 		exit(EXIT_FAILURE);
 	}
 
 	if (kin < 0)
 	{
-		printf("\nSPRING CONSTANT NOT SET\n");
+		fprintf(stderr, "\nSPRING CONSTANT NOT SET\n");
 		exit(EXIT_FAILURE);
 	}
 
 	if (dt <= 0)
 	{
-		printf("\nDT NOT SET\n");
+		fprintf(stderr, "\nDT NOT SET\n");
 		exit(EXIT_FAILURE);
 	}
 
 	if (steps == 0)
 	{
-		printf("\nSTEPS NOT SET\n");
+		fprintf(stderr, "\nSTEPS NOT SET\n");
 		exit(EXIT_FAILURE);
 	}
 
 	if (O.initialRadius <= 0)
 	{
-		printf("\nCluster initialRadius not set\n");
+		fprintf(stderr, "\nCluster initialRadius not set\n");
 		exit(EXIT_FAILURE);
 	}
 
@@ -403,19 +403,19 @@ void safetyChecks()
 	{
 		if (O.pos[Ball].norm() < vector3d(1e-10, 1e-10, 1e-10).norm())
 		{
-			printf("\nA ball position is [0,0,0]. Possibly didn't initialize balls properly.\n");
+			fprintf(stderr, "\nA ball position is [0,0,0]. Possibly didn't initialize balls properly.\n");
 			exit(EXIT_FAILURE);
 		}
 
 		if (O.R[Ball] <= 0)
 		{
-			printf("\nA balls radius <= 0.\n");
+			fprintf(stderr, "\nA balls radius <= 0.\n");
 			exit(EXIT_FAILURE);
 		}
 
 		if (O.m[Ball] <= 0)
 		{
-			printf("\nA balls mass <= 0.\n");
+			fprintf(stderr, "\nA balls mass <= 0.\n");
 			exit(EXIT_FAILURE);
 		}
 	}
