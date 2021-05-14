@@ -6,7 +6,7 @@
 // Initialization (Units are CGS) //
 ////////////////////////////////////
 
-constexpr bool dynamicTime = true;
+constexpr bool dynamicTime = false;
 
 constexpr double
 G = 6.67e-8,   // Gravitational constant
