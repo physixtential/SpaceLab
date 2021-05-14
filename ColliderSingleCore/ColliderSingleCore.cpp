@@ -75,7 +75,8 @@ void simOneStep(const unsigned int& Step)
 		float eta = ((time(nullptr) - startProgress) / static_cast<float>(skip) * static_cast<float>(steps - Step)) / 3600.f; // Hours.
 		float real = (time(nullptr) - start) / 3600.f;
 		float progress = (static_cast<float>(Step) / static_cast<float>(steps) * 100.f);
-		fprintf(stderr, "Step: %u\tProgress: %2.0f%%\tETA: %5.2lf hr\tReal: %5.2f hr\tSim: %5.2f hr\n", Step, progress, eta, real, simTimeElapsed);
+		fprintf(stderr, "Step: %u\tProgress: %2.0f%%\tETA: %5.2lf hr\tReal: %5.2f hr\tSim: %5.2f hr\n", Step, progress, eta, real, simTimeElapsed / 3600.f);
+		fprintf(stdout, "Step: %u\tProgress: %2.0f%%\tETA: %5.2lf hr\tReal: %5.2f hr\tSim: %5.2f hr\t\t\r", Step, progress, eta, real, simTimeElapsed / 3600.f);
 		startProgress = time(nullptr);
 	}
 	else

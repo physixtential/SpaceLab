@@ -6,7 +6,7 @@
 // Initialization (Units are CGS) //
 ////////////////////////////////////
 
-constexpr bool dynamicTime = false;
+constexpr bool dynamicTime = true;
 
 constexpr double
 G = 6.67e-8,   // Gravitational constant
@@ -35,7 +35,7 @@ inline double
 dt = -1,
 kin = -1,      // Spring constant
 kout = -1,
-vCustom = 500,
+vCustom = 1000,
 spaceRange = std::pow((1. / .74 * scaleBalls * scaleBalls * scaleBalls * genBalls), 1. / 3.), // Rough minimum space required
 spaceRangeIncrement = scaleBalls * 3,
 z0Rot = 0,           // Cluster one z axis rotation
