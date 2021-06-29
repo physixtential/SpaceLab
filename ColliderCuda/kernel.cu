@@ -1,17 +1,17 @@
 ﻿#define _USE_MATH_DEFINES
 #include <iostream>
-#include <fstream>
-#include <time.h>
-#include <sstream>
-#include <stdio.h>
-#include "math.h"
-
+//#include <fstream>
+//#include <time.h>
+//#include <sstream>
+//#include <stdio.h>
+//#include "math.h"
+//
 #include "cuda_runtime.h"
 #include "device_launch_parameters.h"
-
+//
 #include "../cuVectorMath.h"
-#include "../initializations.hpp"
-#include "../ballGroup.hpp"
+//#include "../initializations.hpp"
+//#include "../ballGroup.hpp"
 
 
 cudaError_t double3Math(double3* pos, const double3* vel, const double3* acc, unsigned int size);
@@ -98,7 +98,7 @@ cudaError_t double3Math(double3* ans, const double3* a, const double3* b, unsign
 
 	for (size_t i = 0; i < 10; i++)
 	{
-		addKernel << <numBlocks, tpb >> > (dev_ans, dev_a, dev_b);
+		addKernel <<< numBlocks, tpb >>> (dev_ans, dev_a, dev_b);
 	}
 
 	// Check for any errors launching the kernel
