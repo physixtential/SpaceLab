@@ -160,11 +160,31 @@ void simOneStep(const unsigned int& Step)
 				{
 					frictionForce = mu * elasticMag * (relativeVelOfA / relativeVelMag);
 				}
+
+				// Torque a:
 				const vector3d aTorque = (O.R[A] / sumRaRb) * rVec.cross(frictionForce);
 
-				// Translational forces don't need to know about torque of b:
+				// Gravity on a:
 				const vector3d gravForceOnA = (G * O.m[A] * O.m[B] / (dist * dist)) * (rVec / dist);
-				totalForce = gravForceOnA + elasticForce + frictionForce;
+
+				// Cohesion force:
+				// h is the "separation" of the particles at particle radius - maxOverlap.
+				// This allows particles to be touching while under vdwForce.
+				const double h = maxOverlap * 1.01 - overlap;
+				const vector3d vdwForce =
+					Ha / 6 *
+					64 * O.R[A] * O.R[A] * O.R[A] * O.R[B] * O.R[B] * O.R[B] *
+					(h + O.R[A] + O.R[B]) /
+					(
+						(h * h + 2 * O.R[A] * h + 2 * O.R[B] * h) *
+						(h * h + 2 * O.R[A] * h + 2 * O.R[B] * h) *
+						(h * h + 2 * O.R[A] * h + 2 * O.R[B] * h + 4 * O.R[A] * O.R[B]) *
+						(h * h + 2 * O.R[A] * h + 2 * O.R[B] * h + 4 * O.R[A] * O.R[B])
+						) *
+					rVec.normalized();
+
+				// Total forces on a:
+				totalForce = gravForceOnA + elasticForce + frictionForce + vdwForce;
 
 				// Elastic and Friction b:
 				// Flip direction b -> a:

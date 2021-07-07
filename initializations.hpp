@@ -19,7 +19,8 @@ maxOverlap = .1,
 fourThirdsPiRho = 4. / 3. * M_PI * density, // for fraction of smallest sphere radius.
 scaleBalls = 100, // base radius of balls
 KEfactor = 0,       // Determines collision velocity based on KE/PE
-impactParameter = 0; // Impact angle radians
+impactParameter = 0, // Impact angle radians
+Ha = 21.1e-20; // Hamaker constant for vdw force
 
 // Simulation Structure
 inline const unsigned int
