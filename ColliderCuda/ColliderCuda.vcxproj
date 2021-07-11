@@ -78,7 +78,6 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <CudaCompile Include="File.cu" />
-    <CudaCompile Include="kernel.cu" />
     <CudaCompile Include="workingKernel.cu" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
