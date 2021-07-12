@@ -171,15 +171,20 @@ void simOneStep(const unsigned int& Step)
 				// h is the "separation" of the particles at particle radius - maxOverlap.
 				// This allows particles to be touching while under vdwForce.
 				const double h = maxOverlap * 1.01 - overlap;
+				const double Ra = O.R[A];
+				const double Rb = O.R[B];
+				const double h2 = h * h;
+				const double twoRah = 2*Ra*h;
+				const double twoRbh = 2*Rb*h;
 				const vector3d vdwForce =
 					Ha / 6 *
-					64 * O.R[A] * O.R[A] * O.R[A] * O.R[B] * O.R[B] * O.R[B] *
-					(h + O.R[A] + O.R[B]) /
+					64 * Ra * Ra * Ra * Rb * Rb * Rb *
+					(h + Ra + Rb) /
 					(
-						(h * h + 2 * O.R[A] * h + 2 * O.R[B] * h) *
-						(h * h + 2 * O.R[A] * h + 2 * O.R[B] * h) *
-						(h * h + 2 * O.R[A] * h + 2 * O.R[B] * h + 4 * O.R[A] * O.R[B]) *
-						(h * h + 2 * O.R[A] * h + 2 * O.R[B] * h + 4 * O.R[A] * O.R[B])
+						(h2 + twoRah + twoRbh) *
+						(h2 + twoRah + twoRbh) *
+						(h2 + twoRah + twoRbh + 4 * Ra * Rb) *
+						(h2 + twoRah + twoRbh + 4 * Ra * Rb)
 						) *
 					rVec.normalized();
 
