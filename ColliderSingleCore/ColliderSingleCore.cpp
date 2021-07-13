@@ -211,8 +211,7 @@ void simOneStep(const unsigned int& Step)
 				if (writeStep)
 				{
 					// Calculate potential energy. Important to recognize that the factor of 1/2 is not in front of K because this is for the spring potential in each ball and they are the same potential.
-					const double x = (O.R[A] + O.R[B] - dist);
-					O.PE += -G * O.m[A] * O.m[B] / dist + 0.5 * k * x * x;
+					O.PE += -G * O.m[A] * O.m[B] / dist + 0.5 * k * overlap * overlap;
 				}
 			}
 			else
