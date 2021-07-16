@@ -18,5 +18,16 @@
     <ClCompile Include="ColliderParallel.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="ColliderPar.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="ballGroup.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="initializations.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

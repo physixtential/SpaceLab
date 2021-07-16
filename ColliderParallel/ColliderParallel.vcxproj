@@ -19,7 +19,12 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="ColliderPar.cpp" />
     <ClCompile Include="ColliderParallel.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="ballGroup.hpp" />
+    <ClInclude Include="initializations.hpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
