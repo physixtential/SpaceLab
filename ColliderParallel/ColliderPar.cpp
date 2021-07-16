@@ -6,9 +6,8 @@
 #include <sstream>
 #include <iomanip>
 #include "../vector3d.hpp"
-#include "../initializations.hpp"
-#include "../ballGroup.hpp"
-
+#include "constants.hpp"
+#include "structures.hpp"
 
 // String buffers to hold data in memory until worth writing to file:
 std::stringstream ballBuffer;
@@ -28,8 +27,9 @@ bool writeStep;       // This prevents writing to file every step (which is slow
 void simOneStep(const unsigned int& Step);
 [[noreturn]] void simLooper();
 void safetyChecks();
+void update_kinematics(P& P);
 
-ballGroup O(path, projectileName, targetName, vCustom); // Collision
+Group O(path, projectileName, targetName, vCustom); // Collision
 //ballGroup O(path, targetName, 0); // Continue
 //ballGroup O(genBalls, true, vCustom); // Generate
 
@@ -87,7 +87,7 @@ void simOneStep(const unsigned int& Step)
 	}
 
 	/// FIRST PASS - Update Kinematic Parameters:
-	for (unsigned int Ball = 0; Ball < O.cNumBalls; Ball++)
+	for (unsigned int Ball = 0; Ball < O.n; Ball++)
 	{
 		// Update velocity half step:
 		O.velh[Ball] = O.vel[Ball] + .5 * O.acc[Ball] * dt;
@@ -106,7 +106,7 @@ void simOneStep(const unsigned int& Step)
 	}
 
 	/// SECOND PASS - Check for collisions, apply forces and torques:
-	for (unsigned int A = 1; A < O.cNumBalls; A++) //cuda
+	for (unsigned int A = 1; A < O.n; A++) //cuda
 	{
 		/// DONT DO ANYTHING HERE. A STARTS AT 1.
 		for (unsigned int B = 0; B < A; B++)
@@ -211,7 +211,7 @@ void simOneStep(const unsigned int& Step)
 				if (writeStep)
 				{
 					// Calculate potential energy. Important to recognize that the factor of 1/2 is not in front of K because this is for the spring potential in each ball and they are the same potential.
-					O.PE += -G * O.m[A] * O.m[B] / dist + 0.5 * k * overlap * overlap;
+					O.U += -G * O.m[A] * O.m[B] / dist + 0.5 * k * overlap * overlap;
 				}
 			}
 			else
@@ -221,7 +221,7 @@ void simOneStep(const unsigned int& Step)
 				totalForce = gravForceOnA;
 				if (writeStep)
 				{
-					O.PE += -G * O.m[A] * O.m[B] / dist;
+					O.U += -G * O.m[A] * O.m[B] / dist;
 				}
 
 				// For expanding overlappers:
@@ -245,7 +245,7 @@ void simOneStep(const unsigned int& Step)
 	}
 
 	// THIRD PASS - Calculate velocity for next step:
-	for (unsigned int Ball = 0; Ball < O.cNumBalls; Ball++)
+	for (unsigned int Ball = 0; Ball < O.n; Ball++)
 	{
 		// Velocity for next step:
 		O.vel[Ball] = O.velh[Ball] + .5 * O.acc[Ball] * dt;
@@ -285,9 +285,9 @@ void simOneStep(const unsigned int& Step)
 					<< 0;
 			}
 
-			O.KE += .5 * O.m[Ball] * O.vel[Ball].normsquared() + .5 * O.moi[Ball] * O.w[Ball].normsquared(); // Now includes rotational kinetic energy.
+			O.T += .5 * O.m[Ball] * O.vel[Ball].normsquared() + .5 * O.moi[Ball] * O.w[Ball].normsquared(); // Now includes rotational kinetic energy.
 			O.mom += O.m[Ball] * O.vel[Ball];
-			O.angMom += O.m[Ball] * O.pos[Ball].cross(O.vel[Ball]) + O.moi[Ball] * O.w[Ball];
+			O.ang_mom += O.m[Ball] * O.pos[Ball].cross(O.vel[Ball]) + O.moi[Ball] * O.w[Ball];
 		}
 	} // THIRD PASS END
 
@@ -297,17 +297,17 @@ void simOneStep(const unsigned int& Step)
 		// Write energy to stream:
 		energyBuffer << '\n'
 			<< simTimeElapsed << ','
-			<< O.PE << ','
-			<< O.KE << ','
-			<< O.PE + O.KE << ','
+			<< O.U << ','
+			<< O.T << ','
+			<< O.U + O.T << ','
 			<< O.mom.norm() << ','
-			<< O.angMom.norm(); // the two zeros are bound and unbound mass
+			<< O.ang_mom.norm(); // the two zeros are bound and unbound mass
 
 		// Reinitialize energies for next step:
-		O.KE = 0;
-		O.PE = 0;
+		O.T = 0;
+		O.U = 0;
 		O.mom = { 0, 0, 0 };
-		O.angMom = { 0, 0, 0 };
+		O.ang_mom = { 0, 0, 0 };
 		// unboundMass = 0;
 		// boundMass = massTotal;
 
@@ -357,7 +357,7 @@ void simOneStep(const unsigned int& Step)
 	const time_t end = time(nullptr);
 
 	std::cerr << "Simulation complete!\n"
-		<< O.cNumBalls << " Particles and " << steps << " Steps.\n"
+		<< O.n << " Particles and " << steps << " Steps.\n"
 		<< "Simulated time: " << steps * dt << " seconds\n"
 		<< "Computation time: " << end - start << " seconds\n";
 	std::cerr << "\n===============================================================\n";
@@ -389,7 +389,7 @@ void safetyChecks()
 		exit(EXIT_FAILURE);
 	}
 
-	if (O.vCollapse <= 0)
+	if (O.v_collapse <= 0)
 	{
 		fprintf(stderr, "\nvCollapse NOT SET\n");
 		exit(EXIT_FAILURE);
@@ -419,13 +419,13 @@ void safetyChecks()
 		exit(EXIT_FAILURE);
 	}
 
-	if (O.initialRadius <= 0)
+	if (O.initial_radius <= 0)
 	{
 		fprintf(stderr, "\nCluster initialRadius not set\n");
 		exit(EXIT_FAILURE);
 	}
 
-	for (unsigned int Ball = 0; Ball < O.cNumBalls; Ball++)
+	for (unsigned int Ball = 0; Ball < O.n; Ball++)
 	{
 		if (O.pos[Ball].norm() < vector3d(1e-10, 1e-10, 1e-10).norm())
 		{
