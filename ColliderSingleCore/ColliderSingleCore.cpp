@@ -178,7 +178,7 @@ void simOneStep(const unsigned int& Step)
 				double relativeVelMag = relativeVelOfA.norm();
 				if (relativeVelMag > 1e-10) // When relative velocity is very low, dividing its vector components by its magnitude below is unstable.
 				{
-					frictionForce = mu * (elasticForce.norm() + vdwForce.norm()) * (relativeVelOfA / relativeVelMag);
+					frictionForce = mu * elasticForce.norm() * (relativeVelOfA / relativeVelMag);
 				}
 
 				// Torque a:

@@ -1040,6 +1040,8 @@ private:
 		return m_total;
 	}
 
+
+
 	void three_radii_cluster(std::vector<Sphere>& spheres)
 	{
 		const int n = spheres.size();
@@ -1088,11 +1090,6 @@ private:
 
 		for (int failed = 0; failed < attempts; failed++)
 		{
-			// todo - turn this into a for_each:
-			for (int A = 0; A < n; A++)
-			{
-				for (int B = A + 1; B < n; B++)
-				{
 					// Check for Ball overlap.
 					const double dist = (g[A].pos - g[B].pos).norm();
 					const double sumRaRb = g[A].R + g[B].R;
@@ -1102,8 +1099,6 @@ private:
 						collisionDetected += 1;
 						// Move the other ball:
 						g[B].pos = rand_spherical_vec(spaceRange, spaceRange, spaceRange);
-					}
-				}
 			}
 			if (collisionDetected < oldCollisions)
 			{
