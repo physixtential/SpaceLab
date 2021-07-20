@@ -9,9 +9,11 @@
 #include <cstring>
 #include <vector>
 #include <mutex>
+#include <thread>
+#include <execution>
 #include "../vector3d.hpp"
 
-struct P
+struct Sphere
 {
 	vector3d
 		pos,
@@ -28,22 +30,21 @@ struct P
 		moi = 0;
 };
 
-struct P_pair
+struct Sphere_pair
 {
-	P* A;
-	P* B;
+	Sphere* A;
+	Sphere* B;
 	double dist;
-	P_pair() = default;
-	P_pair(P* a, P* b, double d) : A(a), B(b), dist(d) {} // Init all
-	P_pair(P* a, P* b) : A(a), B(b), dist(-1.0) {} // init pairs and set D to illogical distance
+	Sphere_pair() = default;
+	Sphere_pair(Sphere* a, Sphere* b, double d) : A(a), B(b), dist(d) {} // Init all
+	Sphere_pair(Sphere* a, Sphere* b) : A(a), B(b), dist(-1.0) {} // init pairs and set D to illogical distance
 	//p_pair(const p_pair& in_pair) : A(in_pair.A), B(in_pair.B), dist(in_pair.dist) {} // Copy constructor
 };
 
-/// @brief Facilitates the concept of a group of balls with physical properties.
-class Group
+
+class Cosmos
 {
 public:
-	std::mutex g_mutex;
 	int n; // Particle count.
 
 	// Useful values:
@@ -54,25 +55,24 @@ public:
 	double v_collapse = 0;
 	double v_max = -1;
 	double v_max_prev = HUGE_VAL;
-	double soc = -1;
 
 	vector3d mom = { 0, 0, 0 };
 	vector3d ang_mom = { 0, 0, 0 }; // Can be vector3d because they only matter for writing out to file. Can process on host.
 
 	double U = 0, T = 0;
 
-	std::vector<P> g;
-	std::vector<P_pair> pairs;
+	std::vector<Sphere> g;
+	std::vector<Sphere_pair> pairs;
 
-	Group() = default;
+	Cosmos() = default;
 
-	/// @brief For creating a new ballGroup of size nBalls
+	/// @brief For creating a new ballGroup of size n
 	/// @param nBalls Number of balls to allocate.
-	explicit Group(const int n)
+	explicit Cosmos(const int n)
 		:
 		n(n),
-		g(std::vector<P>(n)),
-		pairs(std::vector<P_pair>(n* (n - 1) / 2))
+		g(std::vector<Sphere>(n)),
+		pairs(std::vector<Sphere_pair>(n* (n - 1) / 2))
 	{
 		make_pairs();
 	}
@@ -81,14 +81,14 @@ public:
 	/// @param nBalls Number of balls to allocate.
 	/// @param generate Just here to get you to the right constructor. This is definitely wrong.
 	/// @param customVel To condition for specific vMax.
-	Group(const int n, const bool generate, const double& customVel)
+	Cosmos(const int n, const bool generate, const double& customVel)
 		:
 		n(n),
-		g(std::vector<P>(n)),
-		pairs(std::vector<P_pair>(n* (n - 1) / 2))
+		g(std::vector<Sphere>(n)),
+		pairs(std::vector<Sphere_pair>(n* (n - 1) / 2))
 	{
 
-		generateBallField(n);
+		form_cluster(n);
 		calc_v_collapse();
 		calibrateDT(0, customVel);
 		simInitCondAndCenter();
@@ -98,7 +98,7 @@ public:
 	/// @brief For continuing a sim.
 	/// @param fullpath is the filename and path excluding the suffix _simData.csv, _constants.csv, etc.
 	/// @param customVel To condition for specific vMax.
-	explicit Group(const std::string& fullpath, const double& customVel)
+	explicit Cosmos(const std::string& fullpath, const double& customVel)
 	{
 		simContinue(path, fullpath);
 		calc_v_collapse();
@@ -110,7 +110,7 @@ public:
 	/// @param projectileName 
 	/// @param targetName 
 	/// @param customVel To condition for specific vMax.
-	explicit Group(const std::string& path, const std::string& projectileName, const std::string& targetName, const double& customVel)
+	explicit Cosmos(const std::string& path, const std::string& projectileName, const std::string& targetName, const double& customVel)
 	{
 		simInitTwoCluster(path, projectileName, targetName);
 		calc_v_collapse();
@@ -118,7 +118,7 @@ public:
 		simInitCondAndCenter();
 	}
 
-	
+
 
 
 	void calibrateDT(const unsigned int& Step, const double& customSpeed = -1.)
@@ -276,7 +276,7 @@ public:
 			for (unsigned int Ball = 0; Ball < n; Ball++)
 			{
 				// Only consider balls moving toward com and within 4x initial radius around it.
-				// todo - this cone may be too aggressive:
+				// todo - this cone may be too aggressive (larger cone ignores more):
 				constexpr double cone = M_PI_2 + (.5 * M_PI_2);
 				const vector3d fromCOM = g[Ball].pos - getCOM();
 				if (acos(g[Ball].vel.normalized().dot(fromCOM.normalized())) > cone && fromCOM.norm() < soc)
@@ -408,16 +408,6 @@ public:
 
 	void simInitWrite(std::string& filename)
 	{
-		// Create string for file name identifying spin combination negative is 2, positive is 1 on each axis.
-		//std::string spinCombo = "";
-		//for (unsigned int i = 0; i < 3; i++)
-		//{
-		//	if (spins[i] < 0) { spinCombo += "2"; }
-		//	else if (spins[i] > 0) { spinCombo += "1"; }
-		//	else { spinCombo += "0"; }
-		//}
-
-
 		// Check if file name already exists.
 		std::ifstream checkForFile;
 		checkForFile.open(filename + "simData.csv", std::ifstream::in);
@@ -627,22 +617,22 @@ private:
 		}
 	}
 
-	void update_kinematics(P& P)
+	void update_kinematics(Sphere& Sphere)
 	{
 		// Update velocity half step:
-		P.velh = P.vel + .5 * P.acc * dt;
+		Sphere.velh = Sphere.vel + .5 * Sphere.acc * dt;
 
 		// Update angular velocity half step:
-		P.wh = P.w + .5 * P.aacc * dt;
+		Sphere.wh = Sphere.w + .5 * Sphere.aacc * dt;
 
 		// Update position:
-		P.pos += P.velh * dt;
+		Sphere.pos += Sphere.velh * dt;
 
 		// Reinitialize acceleration to be recalculated:
-		P.acc = { 0, 0, 0 };
+		Sphere.acc = { 0, 0, 0 };
 
 		// Reinitialize angular acceleration to be recalculated:
-		P.aacc = { 0, 0, 0 };
+		Sphere.aacc = { 0, 0, 0 };
 	}
 
 
@@ -688,7 +678,7 @@ private:
 		}
 	}
 
-	void compute_acceleration(P_pair& p_pair)
+	void compute_acceleration(Sphere_pair& p_pair)
 	{
 		const double Ra = p_pair.A->R;
 		const double Rb = p_pair.B->R;
@@ -815,12 +805,7 @@ private:
 		}
 	}
 
-	void compute_velocity(P& P)
-	{
-		// Velocity for next step:
-		P.vel = P.velh + .5 * P.acc * dt;
-		P.w = P.wh + .5 * P.aacc * dt;
-	}
+
 
 	[[nodiscard]] double getRmin()
 	{
@@ -1055,51 +1040,58 @@ private:
 		return m_total;
 	}
 
-	void threeSizeSphere(const unsigned int nBalls)
+	void three_radii_cluster(std::vector<Sphere>& spheres)
 	{
-		// Make nBalls of 3 sizes in CGS with ratios such that the mass is distributed evenly among the 3 sizes (less large nBalls than small nBalls).
-		const unsigned int smalls = static_cast<unsigned>(std::round(static_cast<double>(nBalls) * 27. / 31.375)); // Just here for reference. Whatever nBalls are left will be smalls.
-		const unsigned int mediums = static_cast<unsigned>(std::round(static_cast<double>(nBalls) * 27. / (8 * 31.375)));
-		const unsigned int larges = static_cast<unsigned>(std::round(static_cast<double>(nBalls) * 1. / 31.375));
+		const int n = spheres.size();
 
+		const int smalls = std::round(static_cast<double>(n) * 27. / 31.375);
+		const int mediums = std::round(static_cast<double>(n) * 27. / (8 * 31.375));
+		const int larges = std::round(static_cast<double>(n) * 1. / 31.375);
 
-		for (unsigned int Ball = 0; Ball < larges; Ball++)
+		struct Sphere_init
 		{
-			g[Ball].R = 3. * scaleBalls;//std::pow(1. / (double)nBalls, 1. / 3.) * 3. * scaleBalls;
-			g[Ball].m = density * 4. / 3. * 3.14159 * std::pow(g[Ball].R, 3);
-			g[Ball].moi = .4 * g[Ball].m * g[Ball].R * g[Ball].R;
-			g[Ball].w = { 0, 0, 0 };
-			g[Ball].pos = randSphericalVec(spaceRange, spaceRange, spaceRange);
-		}
+			const double factor;
+			const double scale;
 
-		for (unsigned int Ball = larges; Ball < (larges + mediums); Ball++)
-		{
-			g[Ball].R = 2. * scaleBalls;//std::pow(1. / (double)nBalls, 1. / 3.) * 2. * scaleBalls;
-			g[Ball].m = density * 4. / 3. * 3.14159 * std::pow(g[Ball].R, 3);
-			g[Ball].moi = .4 * g[Ball].m * g[Ball].R * g[Ball].R;
-			g[Ball].w = { 0, 0, 0 };
-			g[Ball].pos = randSphericalVec(spaceRange, spaceRange, spaceRange);
-		}
-		for (unsigned int Ball = (larges + mediums); Ball < nBalls; Ball++)
-		{
-			g[Ball].R = 1. * scaleBalls;//std::pow(1. / (double)nBalls, 1. / 3.) * 1. * scaleBalls;
-			g[Ball].m = density * 4. / 3. * 3.14159 * std::pow(g[Ball].R, 3);
-			g[Ball].moi = .4 * g[Ball].m * g[Ball].R * g[Ball].R;
-			g[Ball].w = { 0, 0, 0 };
-			g[Ball].pos = randSphericalVec(spaceRange, spaceRange, spaceRange);
-		}
+			Sphere_init(const double& factor, const double& scale) : factor(factor), scale(scale) {}
 
-		std::cerr << "Smalls: " << smalls << " Mediums: " << mediums << " Larges: " << larges << '\n';
-
-		// Generate non-overlapping spherical particle field:
-		int collisionDetected = 0;
-		int oldCollisions = nBalls;
-
-		for (unsigned int failed = 0; failed < attempts; failed++)
-		{
-			for (unsigned int A = 0; A < nBalls; A++)
+			void operator()(Sphere sphere, const double& range)
 			{
-				for (unsigned int B = A + 1; B < nBalls; B++)
+				sphere.R = factor * scale;
+				sphere.m = density * 4. / 3. * 3.14159 * std::pow(sphere.R, 3);
+				sphere.moi = .4 * sphere.m * sphere.R * sphere.R;
+				sphere.w = { 0, 0, 0 };
+				sphere.pos = rand_spherical_vec(range, range, range);
+			}
+		};
+
+		std::for_each(
+			std::execution::par_unseq,
+			spheres.begin(),
+			spheres.begin() + larges, 
+			Sphere_init(3, scaleBalls));
+
+		std::for_each(
+			std::execution::par_unseq,
+			spheres.begin() + larges,
+			spheres.begin() + larges + mediums, 
+			Sphere_init(2, scaleBalls));
+
+		std::for_each(
+			std::execution::par_unseq,
+			spheres.begin() + larges + mediums,
+			spheres.end(), 
+			Sphere_init(1, scaleBalls));
+
+		int collisionDetected = 0;
+		int oldCollisions = n;
+
+		for (int failed = 0; failed < attempts; failed++)
+		{
+			// todo - turn this into a for_each:
+			for (int A = 0; A < n; A++)
+			{
+				for (int B = A + 1; B < n; B++)
 				{
 					// Check for Ball overlap.
 					const double dist = (g[A].pos - g[B].pos).norm();
@@ -1109,7 +1101,7 @@ private:
 					{
 						collisionDetected += 1;
 						// Move the other ball:
-						g[B].pos = randSphericalVec(spaceRange, spaceRange, spaceRange);
+						g[B].pos = rand_spherical_vec(spaceRange, spaceRange, spaceRange);
 					}
 				}
 			}
@@ -1123,47 +1115,27 @@ private:
 				std::cerr << "\nSuccess!\n";
 				break;
 			}
-			if (failed == attempts - 1 || collisionDetected > static_cast<int>(1.5 * static_cast<double>(nBalls))) // Added the second part to speed up spatial constraint increase when there are clearly too many collisions for the space to be feasible.
+			if (failed == attempts - 1 || collisionDetected > static_cast<int>(1.5 * static_cast<double>(n))) // Added the second part to speed up spatial constraint increase when there are clearly too many collisions for the space to be feasible.
 			{
 				std::cerr << "Failed " << spaceRange << ". Increasing range " << spaceRangeIncrement << "cm^3.\n";
 				spaceRange += spaceRangeIncrement;
 				failed = 0;
-				for (unsigned int Ball = 0; Ball < nBalls; Ball++)
+				for (unsigned int Ball = 0; Ball < n; Ball++)
 				{
-					g[Ball].pos = randSphericalVec(spaceRange, spaceRange, spaceRange); // Each time we fail and increase range, redistribute all balls randomly so we don't end up with big balls near mid and small balls outside.
+					g[Ball].pos = rand_spherical_vec(spaceRange, spaceRange, spaceRange); // Each time we fail and increase range, redistribute all balls randomly so we don't end up with big balls near mid and small balls outside.
 				}
 			}
 			collisionDetected = 0;
 		}
-
-		std::cerr << "Final spacerange: " << spaceRange << '\n';
-		std::cerr << "Initial Radius: " << getRadius() << '\n';
-		std::cerr << "Mass: " << m_total << '\n';
 	}
 
-	void generateBallField(const unsigned int n)
+	Cosmos form_cluster(const int n)
 	{
-		std::cerr << "CLUSTER FORMATION\n";
+		// Seed for random cluster.
+		const int seed = time(nullptr);
+		srand(seed);
 
-		// Create new random number set.
-		const unsigned int seedSave = static_cast<unsigned>(time(nullptr));
-		srand(seedSave);
-
-		threeSizeSphere(n);
-
-		r_min = getRmin();
-		r_max = getRmax();
-		m_total = getMass();
-		initial_radius = getRadius();
-		soc = 4 * r_max + initial_radius;
-
-		outputPrefix =
-			std::to_string(n) +
-			"-R" + scientific(getRadius()) +
-			"-v" + scientific(vCustom) +
-			"-cor" + rounder(std::pow(cor, 2), 4) +
-			"-mu" + rounder(mu, 3) +
-			"-rho" + rounder(density, 4);
+		three_radii_cluster(n);
 	}
 
 	/// Make ballGroup from file data.
@@ -1195,7 +1167,7 @@ private:
 			g[Ball].m = density * 4. / 3. * 3.14159 * std::pow(g[Ball].R, 3);
 			g[Ball].moi = .4 * g[Ball].m * g[Ball].R * g[Ball].R;
 			g[Ball].w = { 0, 0, 0 };
-			g[Ball].pos = randSphericalVec(spaceRange, spaceRange, spaceRange);
+			g[Ball].pos = rand_spherical_vec(spaceRange, spaceRange, spaceRange);
 		}
 
 		// Generate non-overlapping spherical particle field:
@@ -1216,7 +1188,7 @@ private:
 					{
 						collisionDetected += 1;
 						// Move the other ball:
-						g[B].pos = randSphericalVec(spaceRange, spaceRange, spaceRange);
+						g[B].pos = rand_spherical_vec(spaceRange, spaceRange, spaceRange);
 					}
 				}
 			}
@@ -1237,7 +1209,7 @@ private:
 				failed = 0;
 				for (unsigned int Ball = 0; Ball < nBalls; Ball++)
 				{
-					g[Ball].pos = randSphericalVec(spaceRange, spaceRange, spaceRange); // Each time we fail and increase range, redistribute all balls randomly so we don't end up with big balls near mid and small balls outside.
+					g[Ball].pos = rand_spherical_vec(spaceRange, spaceRange, spaceRange); // Each time we fail and increase range, redistribute all balls randomly so we don't end up with big balls near mid and small balls outside.
 				}
 			}
 			collisionDetected = 0;
@@ -1314,9 +1286,9 @@ private:
 		//projectile.g[0].m = 560000;
 		//projectile.moi[0] = .4 * projectile.g[0].m * projectile.g[0].R * projectile.g[0].R;
 
-		Group projectile;
+		Cosmos projectile;
 		projectile.loadSim(path, projectileName);
-		Group target;
+		Cosmos target;
 		target.loadSim(path, targetName);
 
 		// DO YOU WANT TO STOP EVERYTHING?

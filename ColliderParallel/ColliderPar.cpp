@@ -5,6 +5,7 @@
 #include <ctime>
 #include <sstream>
 #include <iomanip>
+#include <algorithm>
 #include "../vector3d.hpp"
 #include "constants.hpp"
 #include "structures.hpp"
@@ -27,9 +28,8 @@ bool writeStep;       // This prevents writing to file every step (which is slow
 void simOneStep(const unsigned int& Step);
 [[noreturn]] void simLooper();
 void safetyChecks();
-void update_kinematics(P& P);
 
-Group O(path, projectileName, targetName, vCustom); // Collision
+Cosmos O(path, projectileName, targetName, vCustom); // Collision
 //ballGroup O(path, targetName, 0); // Continue
 //ballGroup O(genBalls, true, vCustom); // Generate
 
@@ -40,18 +40,6 @@ int main(const int argc, char const* argv[])
 {
 	energyBuffer.precision(12); // Need more precision on momentum.
 
-	// Runtime arguments:
-	if (argc > 1)
-	{
-		//numThreads = atoi(argv[1]);
-		//fprintf(stderr,"\nThread count set to %i.\n", numThreads);
-		//projectileName = argv[2];
-		//targetName = argv[3];
-		//KEfactor = atof(argv[4]);
-	}
-
-	//O.zeroAngVel();
-	//O.pushApart();
 	safetyChecks();
 	O.simInitWrite(outputPrefix);
 	simLooper();
@@ -86,23 +74,24 @@ void simOneStep(const unsigned int& Step)
 		writeStep = false;
 	}
 
+	
 	/// FIRST PASS - Update Kinematic Parameters:
 	for (unsigned int Ball = 0; Ball < O.n; Ball++)
 	{
 		// Update velocity half step:
-		O.velh[Ball] = O.vel[Ball] + .5 * O.acc[Ball] * dt;
+		O.g[Ball].velh = O.g[Ball].vel + .5 * O.g[Ball].acc * dt;
 
 		// Update angular velocity half step:
-		O.wh[Ball] = O.w[Ball] + .5 * O.aacc[Ball] * dt;
+		O.g[Ball].wh = O.g[Ball].w + .5 * O.g[Ball].aacc * dt;
 
 		// Update position:
-		O.pos[Ball] += O.velh[Ball] * dt;
+		O.g[Ball].pos += O.g[Ball].velh * dt;
 
 		// Reinitialize acceleration to be recalculated:
-		O.acc[Ball] = { 0, 0, 0 };
+		O.g[Ball].acc = { 0, 0, 0 };
 
 		// Reinitialize angular acceleration to be recalculated:
-		O.aacc[Ball] = { 0, 0, 0 };
+		O.g[Ball].aacc = { 0, 0, 0 };
 	}
 
 	/// SECOND PASS - Check for collisions, apply forces and torques:
@@ -111,8 +100,8 @@ void simOneStep(const unsigned int& Step)
 		/// DONT DO ANYTHING HERE. A STARTS AT 1.
 		for (unsigned int B = 0; B < A; B++)
 		{
-			const double sumRaRb = O.R[A] + O.R[B];
-			vector3d rVec = O.pos[B] - O.pos[A]; // Start with rVec from a to b.
+			const double sumRaRb = O.g[A].R + O.g[B].R;
+			vector3d rVec = O.g[B].pos - O.g[A].pos; // Start with rVec from a to b.
 			const double dist = (rVec).norm();
 			vector3d totalForce;
 
@@ -126,16 +115,6 @@ void simOneStep(const unsigned int& Step)
 			// Check for collision between Ball and otherBall.
 			if (overlap > 0)
 			{
-				// hack - temporary code for dymorphous collapse.
-				/*const double rho = 4 / 3 * M_PI * O.initialRadius * O.initialRadius * O.initialRadius;
-				const double dMax = M_PI * G * rho * O.initialRadius * O.mTotal / kTarget / 5.;
-				if (overlap > dMax)
-				{
-					std::cerr << dMax << "####### dMax Reached #######\n";
-					writeStep = true;
-					system("pause");
-				}*/
-
 				double k;
 				// Apply coefficient of restitution to balls leaving collision.
 				if (dist >= oldDist)
@@ -151,8 +130,8 @@ void simOneStep(const unsigned int& Step)
 				// h is the "separation" of the particles at particle radius - maxOverlap.
 				// This allows particles to be touching while under vdwForce.
 				const double h = maxOverlap * 1.01 - overlap;
-				const double Ra = O.R[A];
-				const double Rb = O.R[B];
+				const double Ra = O.g[A].R;
+				const double Rb = O.g[B].R;
 				const double h2 = h * h;
 				const double twoRah = 2 * Ra * h;
 				const double twoRbh = 2 * Rb * h;
@@ -172,9 +151,9 @@ void simOneStep(const unsigned int& Step)
 				vector3d elasticForce = -k * overlap * .5 * (rVec / dist);
 
 				// Friction a:
-				vector3d dVel = O.vel[B] - O.vel[A];
+				vector3d dVel = O.g[B].vel - O.g[A].vel;
 				vector3d frictionForce = { 0, 0, 0 };
-				const vector3d relativeVelOfA = dVel - dVel.dot(rVec) * (rVec / (dist * dist)) - O.w[A].cross(O.R[A] / sumRaRb * rVec) - O.w[B].cross(O.R[B] / sumRaRb * rVec);
+				const vector3d relativeVelOfA = dVel - dVel.dot(rVec) * (rVec / (dist * dist)) - O.g[A].w.cross(O.g[A].R / sumRaRb * rVec) - O.g[B].w.cross(O.g[B].R / sumRaRb * rVec);
 				double relativeVelMag = relativeVelOfA.norm();
 				if (relativeVelMag > 1e-10) // When relative velocity is very low, dividing its vector components by its magnitude below is unstable.
 				{
@@ -182,10 +161,10 @@ void simOneStep(const unsigned int& Step)
 				}
 
 				// Torque a:
-				const vector3d aTorque = (O.R[A] / sumRaRb) * rVec.cross(frictionForce);
+				const vector3d aTorque = (O.g[A].R / sumRaRb) * rVec.cross(frictionForce);
 
 				// Gravity on a:
-				const vector3d gravForceOnA = (G * O.m[A] * O.m[B] / (dist * dist)) * (rVec / dist);
+				const vector3d gravForceOnA = (G * O.g[A].m * O.g[B].m / (dist * dist)) * (rVec / dist);
 
 				// Total forces on a:
 				totalForce = gravForceOnA + elasticForce + frictionForce + vdwForce;
@@ -196,42 +175,42 @@ void simOneStep(const unsigned int& Step)
 				dVel = -dVel;
 				elasticForce = -elasticForce;
 
-				const vector3d relativeVelOfB = dVel - dVel.dot(rVec) * (rVec / (dist * dist)) - O.w[B].cross(O.R[B] / sumRaRb * rVec) - O.w[A].cross(O.R[A] / sumRaRb * rVec);
+				const vector3d relativeVelOfB = dVel - dVel.dot(rVec) * (rVec / (dist * dist)) - O.g[B].w.cross(O.g[B].R / sumRaRb * rVec) - O.g[A].w.cross(O.g[A].R / sumRaRb * rVec);
 				relativeVelMag = relativeVelOfB.norm(); // todo - This should be the same as mag for A. Same speed different direction.
 				if (relativeVelMag > 1e-10)
 				{
 					frictionForce = mu * (elasticForce.norm() + vdwForce.norm()) * (relativeVelOfB / relativeVelMag);
 				}
-				const vector3d bTorque = (O.R[B] / sumRaRb) * rVec.cross(frictionForce);
+				const vector3d bTorque = (O.g[B].R / sumRaRb) * rVec.cross(frictionForce);
 
-				O.aacc[A] += aTorque / O.moi[A];
-				O.aacc[B] += bTorque / O.moi[B];
+				O.g[A].aacc += aTorque / O.g[A].moi;
+				O.g[B].aacc += bTorque / O.g[B].moi;
 
 
 				if (writeStep)
 				{
 					// Calculate potential energy. Important to recognize that the factor of 1/2 is not in front of K because this is for the spring potential in each ball and they are the same potential.
-					O.U += -G * O.m[A] * O.m[B] / dist + 0.5 * k * overlap * overlap;
+					O.U += -G * O.g[A].m * O.g[B].m / dist + 0.5 * k * overlap * overlap;
 				}
 			}
 			else
 			{
 				// No collision: Include gravity only:
-				const vector3d gravForceOnA = (G * O.m[A] * O.m[B] / (dist * dist)) * (rVec / dist);
+				const vector3d gravForceOnA = (G * O.g[A].m * O.g[B].m / (dist * dist)) * (rVec / dist);
 				totalForce = gravForceOnA;
 				if (writeStep)
 				{
-					O.U += -G * O.m[A] * O.m[B] / dist;
+					O.U += -G * O.g[A].m * O.g[B].m / dist;
 				}
 
 				// For expanding overlappers:
-				//O.vel[A] = { 0,0,0 };
-				//O.vel[B] = { 0,0,0 };
+				//O.g[A].vel = { 0,0,0 };
+				//O.g[B].vel = { 0,0,0 };
 			}
 
 			// Newton's equal and opposite forces applied to acceleration of each ball:
-			O.acc[A] += totalForce / O.m[A];
-			O.acc[B] -= totalForce / O.m[B];
+			O.g[A].acc += totalForce / O.g[A].m;
+			O.g[B].acc -= totalForce / O.g[B].m;
 
 			// So last distance can be known for COR:
 			O.distances[e] = dist;
@@ -248,8 +227,8 @@ void simOneStep(const unsigned int& Step)
 	for (unsigned int Ball = 0; Ball < O.n; Ball++)
 	{
 		// Velocity for next step:
-		O.vel[Ball] = O.velh[Ball] + .5 * O.acc[Ball] * dt;
-		O.w[Ball] = O.wh[Ball] + .5 * O.aacc[Ball] * dt;
+		O.g[Ball].vel = O.g[Ball].velh + .5 * O.g[Ball].acc * dt;
+		O.g[Ball].w = O.g[Ball].wh + .5 * O.g[Ball].aacc * dt;
 
 		if (writeStep)
 		{
@@ -257,37 +236,37 @@ void simOneStep(const unsigned int& Step)
 			if (Ball == 0)
 			{
 				ballBuffer
-					<< O.pos[Ball][0] << ','
-					<< O.pos[Ball][1] << ','
-					<< O.pos[Ball][2] << ','
-					<< O.w[Ball][0] << ','
-					<< O.w[Ball][1] << ','
-					<< O.w[Ball][2] << ','
-					<< O.w[Ball].norm() << ','
-					<< O.vel[Ball].x << ','
-					<< O.vel[Ball].y << ','
-					<< O.vel[Ball].z << ','
+					<< O.g[Ball].pos[0] << ','
+					<< O.g[Ball].pos[1] << ','
+					<< O.g[Ball].pos[2] << ','
+					<< O.g[Ball].w[0] << ','
+					<< O.g[Ball].w[1] << ','
+					<< O.g[Ball].w[2] << ','
+					<< O.g[Ball].w.norm() << ','
+					<< O.g[Ball].vel.x << ','
+					<< O.g[Ball].vel.y << ','
+					<< O.g[Ball].vel.z << ','
 					<< 0;
 			}
 			else
 			{
 				ballBuffer
-					<< ',' << O.pos[Ball][0] << ','
-					<< O.pos[Ball][1] << ','
-					<< O.pos[Ball][2] << ','
-					<< O.w[Ball][0] << ','
-					<< O.w[Ball][1] << ','
-					<< O.w[Ball][2] << ','
-					<< O.w[Ball].norm() << ','
-					<< O.vel[Ball].x << ',' <<
-					O.vel[Ball].y << ','
-					<< O.vel[Ball].z << ','
+					<< ',' << O.g[Ball].pos[0] << ','
+					<< O.g[Ball].pos[1] << ','
+					<< O.g[Ball].pos[2] << ','
+					<< O.g[Ball].w[0] << ','
+					<< O.g[Ball].w[1] << ','
+					<< O.g[Ball].w[2] << ','
+					<< O.g[Ball].w.norm() << ','
+					<< O.g[Ball].vel.x << ',' <<
+					O.g[Ball].vel.y << ','
+					<< O.g[Ball].vel.z << ','
 					<< 0;
 			}
 
-			O.T += .5 * O.m[Ball] * O.vel[Ball].normsquared() + .5 * O.moi[Ball] * O.w[Ball].normsquared(); // Now includes rotational kinetic energy.
-			O.mom += O.m[Ball] * O.vel[Ball];
-			O.ang_mom += O.m[Ball] * O.pos[Ball].cross(O.vel[Ball]) + O.moi[Ball] * O.w[Ball];
+			O.T += .5 * O.g[Ball].m * O.g[Ball].vel.normsquared() + .5 * O.g[Ball].moi * O.g[Ball].w.normsquared(); // Now includes rotational kinetic energy.
+			O.mom += O.g[Ball].m * O.g[Ball].vel;
+			O.ang_mom += O.g[Ball].m * O.g[Ball].pos.cross(O.g[Ball].vel) + O.g[Ball].moi * O.g[Ball].w;
 		}
 	} // THIRD PASS END
 
@@ -369,16 +348,6 @@ void simOneStep(const unsigned int& Step)
 } // end simLooper
 
 
-
-
-
-
-
-
-
-
-
-
 void safetyChecks()
 {
 	titleBar("SAFETY CHECKS");
@@ -427,19 +396,19 @@ void safetyChecks()
 
 	for (unsigned int Ball = 0; Ball < O.n; Ball++)
 	{
-		if (O.pos[Ball].norm() < vector3d(1e-10, 1e-10, 1e-10).norm())
+		if (O.g[Ball].pos.norm() < vector3d(1e-10, 1e-10, 1e-10).norm())
 		{
 			fprintf(stderr, "\nA ball position is [0,0,0]. Possibly didn't initialize balls properly.\n");
 			exit(EXIT_FAILURE);
 		}
 
-		if (O.R[Ball] <= 0)
+		if (O.g[Ball].R <= 0)
 		{
 			fprintf(stderr, "\nA balls radius <= 0.\n");
 			exit(EXIT_FAILURE);
 		}
 
-		if (O.m[Ball] <= 0)
+		if (O.g[Ball].m <= 0)
 		{
 			fprintf(stderr, "\nA balls mass <= 0.\n");
 			exit(EXIT_FAILURE);
@@ -459,7 +428,7 @@ void safetyChecks()
 //
 //void setGuidK(const double& vel)
 //{
-//	kin = O.getMassMax() * vel * vel / (.1 * O.R[0] * .1 * O.R[0]);
+//	kin = O.getMassMax() * vel * vel / (.1 * O.g[0].R * .1 * O.g[0].R);
 //	kout = cor * kin;
 //}
 
