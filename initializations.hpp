@@ -47,7 +47,7 @@ simTimeElapsed = 0;
 
 // File from which to proceed with further simulations
 inline std::string
-path = "C:/Users/milin/Desktop/GoogleDrive/GradResearch/Development/SpaceLab/x64/Release/",
-projectileName = "1_",
-targetName = "100_",
+path = "C:/Users/milin/Desktop/GoogleDrive/GradResearch/Development/SpaceLab/ColliderSingleCore",
+projectileName = "100-R847.93-v50-cor0.64-mu0.9-rho2.70_k8.4823e+08_dt0.0011547_",
+targetName = "100-R847.93-v50-cor0.64-mu0.9-rho2.70_k8.4823e+08_dt0.0011547_",
 outputPrefix = "Unnamed_";
