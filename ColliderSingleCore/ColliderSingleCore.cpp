@@ -29,9 +29,9 @@ void simOneStep(const unsigned int& Step);
 [[noreturn]] void simLooper();
 void safetyChecks();
 
-ballGroup O(path, projectileName, targetName, vCustom); // Collision
+//ballGroup O(path, projectileName, targetName, vCustom); // Collision
 //ballGroup O(path, targetName, 0); // Continue
-//ballGroup O(genBalls, true, vCustom); // Generate
+ballGroup O(genBalls, true, vCustom); // Generate
 
 //////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////
@@ -147,24 +147,48 @@ void simOneStep(const unsigned int& Step)
 					k = kin;
 				}
 
+				// Cohesion:
+				// h is the "separation" of the particles at particle radius - maxOverlap.
+				// This allows particles to be touching while under vdwForce.
+				const double h = maxOverlap * 1.01 - overlap;
+				const double Ra = O.R[A];
+				const double Rb = O.R[B];
+				const double h2 = h * h;
+				const double twoRah = 2 * Ra * h;
+				const double twoRbh = 2 * Rb * h;
+				const vector3d vdwForce =
+					Ha / 6 *
+					64 * Ra * Ra * Ra * Rb * Rb * Rb *
+					(h + Ra + Rb) /
+					(
+						(h2 + twoRah + twoRbh) *
+						(h2 + twoRah + twoRbh) *
+						(h2 + twoRah + twoRbh + 4 * Ra * Rb) *
+						(h2 + twoRah + twoRbh + 4 * Ra * Rb)
+						) *
+					rVec.normalized();
+
 				// Elastic a:
 				vector3d elasticForce = -k * overlap * .5 * (rVec / dist);
-				const double elasticMag = elasticForce.norm();
 
 				// Friction a:
 				vector3d dVel = O.vel[B] - O.vel[A];
-				vector3d frictionForce;
+				vector3d frictionForce = { 0, 0, 0 };
 				const vector3d relativeVelOfA = dVel - dVel.dot(rVec) * (rVec / (dist * dist)) - O.w[A].cross(O.R[A] / sumRaRb * rVec) - O.w[B].cross(O.R[B] / sumRaRb * rVec);
 				double relativeVelMag = relativeVelOfA.norm();
 				if (relativeVelMag > 1e-10) // When relative velocity is very low, dividing its vector components by its magnitude below is unstable.
 				{
-					frictionForce = mu * elasticMag * (relativeVelOfA / relativeVelMag);
+					frictionForce = mu * elasticForce.norm() * (relativeVelOfA / relativeVelMag);
 				}
+
+				// Torque a:
 				const vector3d aTorque = (O.R[A] / sumRaRb) * rVec.cross(frictionForce);
 
-				// Translational forces don't need to know about torque of b:
+				// Gravity on a:
 				const vector3d gravForceOnA = (G * O.m[A] * O.m[B] / (dist * dist)) * (rVec / dist);
-				totalForce = gravForceOnA + elasticForce + frictionForce;
+
+				// Total forces on a:
+				totalForce = gravForceOnA + elasticForce + frictionForce + vdwForce;
 
 				// Elastic and Friction b:
 				// Flip direction b -> a:
@@ -173,10 +197,10 @@ void simOneStep(const unsigned int& Step)
 				elasticForce = -elasticForce;
 
 				const vector3d relativeVelOfB = dVel - dVel.dot(rVec) * (rVec / (dist * dist)) - O.w[B].cross(O.R[B] / sumRaRb * rVec) - O.w[A].cross(O.R[A] / sumRaRb * rVec);
-				relativeVelMag = relativeVelOfB.norm();
+				relativeVelMag = relativeVelOfB.norm(); // todo - This should be the same as mag for A. Same speed different direction.
 				if (relativeVelMag > 1e-10)
 				{
-					frictionForce = mu * elasticMag * (relativeVelOfB / relativeVelMag);
+					frictionForce = mu * (elasticForce.norm() + vdwForce.norm()) * (relativeVelOfB / relativeVelMag);
 				}
 				const vector3d bTorque = (O.R[B] / sumRaRb) * rVec.cross(frictionForce);
 
@@ -187,8 +211,7 @@ void simOneStep(const unsigned int& Step)
 				if (writeStep)
 				{
 					// Calculate potential energy. Important to recognize that the factor of 1/2 is not in front of K because this is for the spring potential in each ball and they are the same potential.
-					const double x = (O.R[A] + O.R[B] - dist);
-					O.PE += -G * O.m[A] * O.m[B] / dist + 0.5 * k * x * x;
+					O.PE += -G * O.m[A] * O.m[B] / dist + 0.5 * k * overlap * overlap;
 				}
 			}
 			else
