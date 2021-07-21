@@ -200,7 +200,7 @@ void simOneStep(const unsigned int& Step)
 				relativeVelMag = relativeVelOfB.norm(); // todo - This should be the same as mag for A. Same speed different direction.
 				if (relativeVelMag > 1e-10)
 				{
-					frictionForce = mu * (elasticForce.norm() + vdwForce.norm()) * (relativeVelOfB / relativeVelMag);
+					frictionForce = mu * elasticForce.norm() * (relativeVelOfB / relativeVelMag);
 				}
 				const vector3d bTorque = (O.R[B] / sumRaRb) * rVec.cross(frictionForce);
 
