@@ -1009,7 +1009,7 @@ private:
 			m[Ball] = density * 4. / 3. * 3.14159 * std::pow(R[Ball], 3);
 			moi[Ball] = .4 * m[Ball] * R[Ball] * R[Ball];
 			w[Ball] = { 0, 0, 0 };
-			pos[Ball] = rand_spherical_vec(spaceRange, spaceRange, spaceRange);
+			pos[Ball] = randSphericalVec(spaceRange, spaceRange, spaceRange);
 		}
 
 		for (unsigned int Ball = larges; Ball < (larges + mediums); Ball++)
@@ -1018,7 +1018,7 @@ private:
 			m[Ball] = density * 4. / 3. * 3.14159 * std::pow(R[Ball], 3);
 			moi[Ball] = .4 * m[Ball] * R[Ball] * R[Ball];
 			w[Ball] = { 0, 0, 0 };
-			pos[Ball] = rand_spherical_vec(spaceRange, spaceRange, spaceRange);
+			pos[Ball] = randSphericalVec(spaceRange, spaceRange, spaceRange);
 		}
 		for (unsigned int Ball = (larges + mediums); Ball < nBalls; Ball++)
 		{
@@ -1026,7 +1026,7 @@ private:
 			m[Ball] = density * 4. / 3. * 3.14159 * std::pow(R[Ball], 3);
 			moi[Ball] = .4 * m[Ball] * R[Ball] * R[Ball];
 			w[Ball] = { 0, 0, 0 };
-			pos[Ball] = rand_spherical_vec(spaceRange, spaceRange, spaceRange);
+			pos[Ball] = randSphericalVec(spaceRange, spaceRange, spaceRange);
 		}
 
 		std::cerr << "Smalls: " << smalls << " Mediums: " << mediums << " Larges: " << larges << '\n';
@@ -1049,7 +1049,7 @@ private:
 					{
 						collisionDetected += 1;
 						// Move the other ball:
-						pos[B] = rand_spherical_vec(spaceRange, spaceRange, spaceRange);
+						pos[B] = randSphericalVec(spaceRange, spaceRange, spaceRange);
 					}
 				}
 			}
@@ -1070,7 +1070,7 @@ private:
 				failed = 0;
 				for (unsigned int Ball = 0; Ball < nBalls; Ball++)
 				{
-					pos[Ball] = rand_spherical_vec(spaceRange, spaceRange, spaceRange); // Each time we fail and increase range, redistribute all balls randomly so we don't end up with big balls near mid and small balls outside.
+					pos[Ball] = randSphericalVec(spaceRange, spaceRange, spaceRange); // Each time we fail and increase range, redistribute all balls randomly so we don't end up with big balls near mid and small balls outside.
 				}
 			}
 			collisionDetected = 0;
@@ -1136,7 +1136,7 @@ private:
 			m[Ball] = density * 4. / 3. * 3.14159 * std::pow(R[Ball], 3);
 			moi[Ball] = .4 * m[Ball] * R[Ball] * R[Ball];
 			w[Ball] = { 0, 0, 0 };
-			pos[Ball] = rand_spherical_vec(spaceRange, spaceRange, spaceRange);
+			pos[Ball] = randSphericalVec(spaceRange, spaceRange, spaceRange);
 		}
 
 		// Generate non-overlapping spherical particle field:
@@ -1157,7 +1157,7 @@ private:
 					{
 						collisionDetected += 1;
 						// Move the other ball:
-						pos[B] = rand_spherical_vec(spaceRange, spaceRange, spaceRange);
+						pos[B] = randSphericalVec(spaceRange, spaceRange, spaceRange);
 					}
 				}
 			}
@@ -1178,7 +1178,7 @@ private:
 				failed = 0;
 				for (unsigned int Ball = 0; Ball < nBalls; Ball++)
 				{
-					pos[Ball] = rand_spherical_vec(spaceRange, spaceRange, spaceRange); // Each time we fail and increase range, redistribute all balls randomly so we don't end up with big balls near mid and small balls outside.
+					pos[Ball] = randSphericalVec(spaceRange, spaceRange, spaceRange); // Each time we fail and increase range, redistribute all balls randomly so we don't end up with big balls near mid and small balls outside.
 				}
 			}
 			collisionDetected = 0;
