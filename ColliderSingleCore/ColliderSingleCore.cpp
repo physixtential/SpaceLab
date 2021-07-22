@@ -126,16 +126,6 @@ void simOneStep(const unsigned int& Step)
 			// Check for collision between Ball and otherBall.
 			if (overlap > 0)
 			{
-				// hack - temporary code for dymorphous collapse.
-				/*const double rho = 4 / 3 * M_PI * O.initialRadius * O.initialRadius * O.initialRadius;
-				const double dMax = M_PI * G * rho * O.initialRadius * O.mTotal / kTarget / 5.;
-				if (overlap > dMax)
-				{
-					std::cerr << dMax << "####### dMax Reached #######\n";
-					writeStep = true;
-					system("pause");
-				}*/
-
 				double k;
 				// Apply coefficient of restitution to balls leaving collision.
 				if (dist >= oldDist)

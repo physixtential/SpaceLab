@@ -245,7 +245,6 @@ public:
 			for (unsigned int Ball = 0; Ball < cNumBalls; Ball++)
 			{
 				// Only consider balls moving toward com and within 4x initial radius around it.
-				// todo - this cone may be too aggressive:
 				const vector3d fromCOM = pos[Ball] - getCOM();
 				if (acos(vel[Ball].normalized().dot(fromCOM.normalized())) > cone && fromCOM.norm() < soc)
 				{
@@ -263,7 +262,7 @@ public:
 		}
 		else
 		{
-			for (unsigned int Ball = 0; Ball < cNumBalls; Ball++)
+			for (int Ball = 0; Ball < cNumBalls; Ball++)
 			{
 				if (vel[Ball].norm() > vMax)
 				{
@@ -677,9 +676,6 @@ private:
 
 				for (unsigned int B = 0; B < A; B++)
 				{
-					// todo - profile this section. Look for slow parts to improve.
-					// Break this up into standalone functions at least for profiling, or figure out how to profile line by line.
-
 					const double sumRaRb = R[A] + R[B];
 					const double dist = (pos[A] - pos[B]).norm();
 					vector3d rVecab = pos[B] - pos[A];

@@ -1044,6 +1044,10 @@ private:
 
 	void three_radii_cluster(std::vector<Sphere>& spheres)
 	{
+		// Seed for random cluster.
+		const int seed = time(nullptr);
+		srand(seed);
+
 		const int n = spheres.size();
 
 		const int smalls = std::round(static_cast<double>(n) * 27. / 31.375);
@@ -1122,15 +1126,6 @@ private:
 			}
 			collisionDetected = 0;
 		}
-	}
-
-	Cosmos form_cluster(const int n)
-	{
-		// Seed for random cluster.
-		const int seed = time(nullptr);
-		srand(seed);
-
-		three_radii_cluster(n);
 	}
 
 	/// Make ballGroup from file data.

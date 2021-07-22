@@ -329,7 +329,7 @@ void simOneStep(const unsigned int& Step)
 
 	startProgress = time(nullptr);
 
-	for (unsigned int Step = 1; Step < steps; Step++) // Steps start at 1 because the 0 step is initial conditions.
+	for (int Step = 1; Step < steps; Step++) // Steps start at 1 because the 0 step is initial conditions.
 	{
 		simOneStep(Step);
 	}
