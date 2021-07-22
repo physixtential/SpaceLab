@@ -97,7 +97,7 @@ public:
 	//	return !(*this == v);
 	//}
 
-	double& operator[](const unsigned int i)
+	double& operator[](const int i)
 	{
 		switch (i)
 		{
@@ -110,7 +110,7 @@ public:
 		}
 		assert(0);
 	}
-	double operator[](const unsigned int i) const
+	double operator[](const int i) const
 	{
 		switch (i)
 		{
@@ -361,27 +361,27 @@ inline bool input(const std::string& question)
 }
 
 // Generate a random double from -.5lim to .5lim so that numbers are distributed evenly around 0:
-inline double randDouble(double lim)
+inline double rand_double(double lim)
 {
 	return lim * (static_cast<double>(rand()) / static_cast<double>(RAND_MAX) - .5);
 }
 
 // Returns a vector within the desired radius, resulting in spherical random distribution
-inline vector3d randSphericalVec(double lim1, double lim2, double lim3)
+inline vector3d rand_spherical_vec(double lim1, double lim2, double lim3)
 {
-	vector3d vec = { randDouble(lim1), randDouble(lim2), randDouble(lim3) };
+	vector3d vec = { rand_double(lim1), rand_double(lim2), rand_double(lim3) };
 	const double halfLim = lim1 * .5;
 	while (vec.norm() > halfLim)
 	{
-		vec = { randDouble(lim1), randDouble(lim2), randDouble(lim3) };
+		vec = { rand_double(lim1), rand_double(lim2), rand_double(lim3) };
 	}
 	return vec;
 }
 
 // Returns a vector within the desired radius, resulting in spherical random distribution
-inline vector3d randShellVec(double lim, double innerRadius)
+inline vector3d rand_shell_sec(double lim, double innerRadius)
 {
-	vector3d vec = { randDouble(lim), randDouble(lim), randDouble(lim) };
+	vector3d vec = { rand_double(lim), rand_double(lim), rand_double(lim) };
 	const double halfLim = lim * .5;
 	if (halfLim < innerRadius)
 	{
@@ -390,7 +390,7 @@ inline vector3d randShellVec(double lim, double innerRadius)
 	}
 	while (vec.norm() > halfLim || vec.norm() < innerRadius)
 	{
-		vec = { randDouble(lim), randDouble(lim), randDouble(lim) };
+		vec = { rand_double(lim), rand_double(lim), rand_double(lim) };
 	}
 	return vec;
 }
