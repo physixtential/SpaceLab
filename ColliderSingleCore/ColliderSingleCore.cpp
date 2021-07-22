@@ -150,7 +150,9 @@ void simOneStep(const unsigned int& Step)
 				// Cohesion:
 				// h is the "separation" of the particles at particle radius - maxOverlap.
 				// This allows particles to be touching while under vdwForce.
-				const double h = maxOverlap * 1.01 - overlap;
+				double h = maxOverlap - overlap;
+				const double hmin = maxOverlap * .1;
+				h = (h > maxOverlap * .1) ? h : hmin;
 				const double Ra = O.R[A];
 				const double Rb = O.R[B];
 				const double h2 = h * h;

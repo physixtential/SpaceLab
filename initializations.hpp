@@ -19,8 +19,10 @@ maxOverlap = .1,
 fourThirdsPiRho = 4. / 3. * M_PI * density, // for fraction of smallest sphere radius.
 scaleBalls = 100, // base radius of balls
 KEfactor = 0,       // Determines collision velocity based on KE/PE
+vCustom = 1,
 impactParameter = 0, // Impact angle radians
-Ha = 21.1e-20; // Hamaker constant for vdw force
+Ha = 1, // Hamaker constant for vdw force
+cone = M_PI_2; // Cone of paritlces ignored moving away from center of mass. Larger angle ignores more.
 
 // Simulation Structure
 inline const unsigned int
@@ -36,7 +38,6 @@ inline double
 dt = -1,
 kin = -1,      // Spring constant
 kout = -1,
-vCustom = 50,
 spaceRange = std::pow((1. / .74 * scaleBalls * scaleBalls * scaleBalls * genBalls), 1. / 3.), // Rough minimum space required
 spaceRangeIncrement = scaleBalls * 3,
 z0Rot = 0,           // Cluster one z axis rotation
@@ -47,7 +48,7 @@ simTimeElapsed = 0;
 
 // File from which to proceed with further simulations
 inline std::string
-path = "C:/Users/milin/Desktop/GoogleDrive/GradResearch/Development/SpaceLab/ColliderSingleCore",
-projectileName = "100-R847.93-v50-cor0.64-mu0.9-rho2.70_k8.4823e+08_dt0.0011547_",
-targetName = "100-R847.93-v50-cor0.64-mu0.9-rho2.70_k8.4823e+08_dt0.0011547_",
+path = "C:/Users/milin/Desktop/GoogleDrive/GradResearch/Development/SpaceLab/ColliderSingleCore/",
+projectileName = "cohTest_",
+targetName = "cohTest_",
 outputPrefix = "Unnamed_";

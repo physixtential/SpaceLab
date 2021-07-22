@@ -36,7 +36,6 @@ public:
 		simInitCondAndCenter();
 	}
 
-
 	/// @brief For continuing a sim.
 	/// @param fullpath is the filename and path excluding the suffix _simData.csv, _constants.csv, etc.
 	/// @param customVel To condition for specific vMax.
@@ -247,7 +246,6 @@ public:
 			{
 				// Only consider balls moving toward com and within 4x initial radius around it.
 				// todo - this cone may be too aggressive:
-				constexpr double cone = M_PI_2 + (.5 * M_PI_2);
 				const vector3d fromCOM = pos[Ball] - getCOM();
 				if (acos(vel[Ball].normalized().dot(fromCOM.normalized())) > cone && fromCOM.norm() < soc)
 				{
