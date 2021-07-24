@@ -1,4 +1,6 @@
 #pragma once
+#define _USE_MATH_DEFINES
+#include <cmath>
 #include <vector>
 #include <algorithm>
 #include "../vector3d.hpp"
@@ -22,7 +24,12 @@ struct Sphere
 		m,
 		moi;
 
-	Sphere(const double R, const double m, const double moi) : R(R), m(m), moi(moi) {}
+	Sphere(const double R, const double density)
+		:
+		R(R),
+		m(density * 4. / 3. * M_PI * R * R * R),
+		moi(.4 * m * R * R)
+	{}
 };
 
 struct Sphere_pair

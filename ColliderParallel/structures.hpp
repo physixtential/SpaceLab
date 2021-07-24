@@ -1042,6 +1042,21 @@ private:
 
 
 
+	struct Rand_vec_in_sphere
+	{
+		double radius;
+
+		Rand_vec_in_sphere(const double& radius) : radius(radius) {}
+
+		void operator()(vector3d& vec)
+		{
+			do
+			{
+				vec = { rand_double(radius), rand_double(radius), rand_double(radius) };
+			} while (vec.norm() > radius);
+		}
+	};
+
 	void three_radii_cluster(std::vector<Sphere>& spheres)
 	{
 		// Seed for random cluster.
@@ -1054,55 +1069,47 @@ private:
 		const int mediums = std::round(static_cast<double>(n) * 27. / (8 * 31.375));
 		const int larges = std::round(static_cast<double>(n) * 1. / 31.375);
 
-		struct Sphere_init
-		{
-			const double factor;
-			const double scale;
+		std::thread t1{ [&spheres, radius = 3 * scaleBalls] {
+			std::for_each(
+				std::execution::par_unseq,
+				spheres.begin(),
+				spheres.end(),
+				Rand_vec_in_sphere(radius));
+		} };
 
-			Sphere_init(const double& factor, const double& scale) : factor(factor), scale(scale) {}
+		std::thread t2{ [&spheres, radius = 2 * scaleBalls, larges, mediums] {
+			std::for_each(
+				std::execution::par_unseq,
+				spheres.begin() + larges,
+				spheres.begin() + larges + mediums,
+				Rand_vec_in_sphere(radius));
+		} };
 
-			void operator()(Sphere sphere, const double& range)
-			{
-				sphere.R = factor * scale;
-				sphere.m = density * 4. / 3. * 3.14159 * std::pow(sphere.R, 3);
-				sphere.moi = .4 * sphere.m * sphere.R * sphere.R;
-				sphere.w = { 0, 0, 0 };
-				sphere.pos = rand_spherical_vec(range, range, range);
-			}
-		};
+		std::thread t3{ [&spheres, radius = scaleBalls, larges, mediums] {
+			std::for_each(
+				std::execution::par_unseq,
+				spheres.begin() + larges + mediums,
+				spheres.end(),
+				Rand_vec_in_sphere(radius));
+		} };
 
-		std::for_each(
-			std::execution::par_unseq,
-			spheres.begin(),
-			spheres.begin() + larges, 
-			Sphere_init(3, scaleBalls));
+		t1.join(); t2.join(); t3.join();
 
-		std::for_each(
-			std::execution::par_unseq,
-			spheres.begin() + larges,
-			spheres.begin() + larges + mediums, 
-			Sphere_init(2, scaleBalls));
-
-		std::for_each(
-			std::execution::par_unseq,
-			spheres.begin() + larges + mediums,
-			spheres.end(), 
-			Sphere_init(1, scaleBalls));
-
+		//todo move this into a collision detection function
 		int collisionDetected = 0;
 		int oldCollisions = n;
 
 		for (int failed = 0; failed < attempts; failed++)
 		{
-					// Check for Ball overlap.
-					const double dist = (g[A].pos - g[B].pos).norm();
-					const double sumRaRb = g[A].R + g[B].R;
-					const double overlap = dist - sumRaRb;
-					if (overlap < 0)
-					{
-						collisionDetected += 1;
-						// Move the other ball:
-						g[B].pos = rand_spherical_vec(spaceRange, spaceRange, spaceRange);
+			// Check for Ball overlap.
+			const double dist = (g[A].pos - g[B].pos).norm();
+			const double sumRaRb = g[A].R + g[B].R;
+			const double overlap = dist - sumRaRb;
+			if (overlap < 0)
+			{
+				collisionDetected += 1;
+				// Move the other ball:
+				g[B].pos = rand_spherical_vec(spaceRange, spaceRange, spaceRange);
 			}
 			if (collisionDetected < oldCollisions)
 			{
