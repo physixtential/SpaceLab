@@ -137,12 +137,8 @@ void simOneStep(const unsigned int& Step)
 					k = kin;
 				}
 
-				// Cohesion:
-				// h is the "separation" of the particles at particle radius - maxOverlap.
-				// This allows particles to be touching while under vdwForce.
-				double h = maxOverlap - overlap;
-				const double hmin = maxOverlap * .1;
-				h = (h > maxOverlap * .1) ? h : hmin;
+				// Cohesion (in contact) h must always be hmin:
+				constexpr double h = 1e6 * std::numeric_limits<double>::epsilon(); // 2.22045e-10 (epsilon is 2.22045e-16)
 				const double Ra = O.R[A];
 				const double Rb = O.R[B];
 				const double h2 = h * h;
@@ -206,10 +202,31 @@ void simOneStep(const unsigned int& Step)
 					O.PE += -G * O.m[A] * O.m[B] / dist + 0.5 * k * overlap * overlap;
 				}
 			}
-			else
+			else // Non-contact forces:
 			{
-				// No collision: Include gravity only:
+				// No collision: Include gravity and vdw:
 				const vector3d gravForceOnA = (G * O.m[A] * O.m[B] / (dist * dist)) * (rVec / dist);
+
+				// Cohesion (non-contact):
+				constexpr double hmin = -1e6 * std::numeric_limits<double>::epsilon(); // -2.22045e-10 (epsilon is 2.22045e-16)
+				double h = (h < hmin) ? h : hmin;
+				const double Ra = O.R[A];
+				const double Rb = O.R[B];
+				const double h2 = h * h;
+				const double twoRah = 2 * Ra * h;
+				const double twoRbh = 2 * Rb * h;
+				const vector3d vdwForce =
+					Ha / 6 *
+					64 * Ra * Ra * Ra * Rb * Rb * Rb *
+					(h + Ra + Rb) /
+					(
+						(h2 + twoRah + twoRbh) *
+						(h2 + twoRah + twoRbh) *
+						(h2 + twoRah + twoRbh + 4 * Ra * Rb) *
+						(h2 + twoRah + twoRbh + 4 * Ra * Rb)
+						) *
+					rVec.normalized();
+
 				totalForce = gravForceOnA;
 				if (writeStep)
 				{
