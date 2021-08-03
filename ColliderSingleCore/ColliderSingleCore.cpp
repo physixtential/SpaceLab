@@ -6,7 +6,7 @@
 #include <sstream>
 #include <iomanip>
 #include "../vector3d.hpp"
-#include "../initializations.hpp"
+#include "../dust_const.hpp"
 #include "../ballGroup.hpp"
 
 
@@ -29,9 +29,9 @@ void simOneStep(const unsigned int& Step);
 [[noreturn]] void simLooper();
 void safetyChecks();
 
-ballGroup O(path, projectileName, targetName, vCustom); // Collision
+//ballGroup O(path, projectileName, targetName, vCustom); // Collision
 //ballGroup O(path, targetName, 0); // Continue
-//ballGroup O(genBalls, true, vCustom); // Generate
+ballGroup O(genBalls, true, vCustom); // Generate
 
 //////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////
@@ -138,7 +138,7 @@ void simOneStep(const unsigned int& Step)
 				}
 
 				// Cohesion (in contact) h must always be hmin:
-				constexpr double h = 1e6 * std::numeric_limits<double>::epsilon(); // 2.22045e-10 (epsilon is 2.22045e-16)
+				const double h = hmin;
 				const double Ra = O.R[A];
 				const double Rb = O.R[B];
 				const double h2 = h * h;
@@ -207,9 +207,14 @@ void simOneStep(const unsigned int& Step)
 				// No collision: Include gravity and vdw:
 				const vector3d gravForceOnA = (G * O.m[A] * O.m[B] / (dist * dist)) * (rVec / dist);
 
-				// Cohesion (non-contact):
+				// Cohesion (non-contact) large negative overlap means large space between spheres:
 				constexpr double hmin = -1e6 * std::numeric_limits<double>::epsilon(); // -2.22045e-10 (epsilon is 2.22045e-16)
-				double h = (h < hmin) ? h : hmin;
+
+				double h = overlap;
+				if (h > hmin) // If h is closer to 0 (almost touching), use hmin.
+				{
+					h = hmin;
+				}
 				const double Ra = O.R[A];
 				const double Rb = O.R[B];
 				const double h2 = h * h;
@@ -233,6 +238,7 @@ void simOneStep(const unsigned int& Step)
 					O.PE += -G * O.m[A] * O.m[B] / dist;
 				}
 
+				// todo this is part of push_apart. Not great like this.
 				// For expanding overlappers:
 				//O.vel[A] = { 0,0,0 };
 				//O.vel[B] = { 0,0,0 };
