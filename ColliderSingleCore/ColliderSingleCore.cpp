@@ -114,10 +114,11 @@ void simOneStep(const unsigned int& Step)
 			const double sumRaRb = O.R[A] + O.R[B];
 			vector3d rVec = O.pos[B] - O.pos[A]; // Start with rVec from a to b.
 			const double dist = (rVec).norm();
-			vector3d totalForce;
 
 			// Check for collision between Ball and otherBall:
 			double overlap = sumRaRb - dist;
+
+			vector3d totalForceOnA{ 0, 0, 0 };
 
 			// Distance array element: 1,0    2,0    2,1    3,0    3,1    3,2 ...
 			unsigned int e = static_cast<unsigned>(A * (A - 1) * .5) + B; // a^2-a is always even, so this works.
@@ -144,7 +145,7 @@ void simOneStep(const unsigned int& Step)
 				const double h2 = h * h;
 				const double twoRah = 2 * Ra * h;
 				const double twoRbh = 2 * Rb * h;
-				const vector3d vdwForce =
+				const vector3d vdwForceOnA =
 					Ha / 6 *
 					64 * Ra * Ra * Ra * Rb * Rb * Rb *
 					(h + Ra + Rb) /
@@ -156,27 +157,36 @@ void simOneStep(const unsigned int& Step)
 						) *
 					rVec.normalized();
 
-				// Elastic a:
-				vector3d elasticForce = -k * overlap * .5 * (rVec / dist);
+				// Elastic force:
+				const vector3d elasticForceOnA = -k * overlap * .5 * (rVec / dist);
 
-				// Sliding Friction a:
-				vector3d dVel = O.vel[B] - O.vel[A];
-				vector3d slideForce = { 0, 0, 0 };
-				const vector3d relativeVelOfA = dVel - dVel.dot(rVec) * (rVec / (dist * dist)) - O.w[A].cross(O.R[A] / sumRaRb * rVec) - O.w[B].cross(O.R[B] / sumRaRb * rVec);
-				double relativeVelMag = relativeVelOfA.norm();
-				if (relativeVelMag > 1e-10) // When relative velocity is very low, dividing its vector components by its magnitude below is unstable.
-				{
-					slideForce = u_s * elasticForce.norm() * (relativeVelOfA / relativeVelMag);
-				}
-
-				// Torque a:
-				const vector3d aSlideTorque = (O.R[A] / sumRaRb) * rVec.cross(slideForce);
-
-				// Gravity on a:
+				// Gravity force:
 				const vector3d gravForceOnA = (G * O.m[A] * O.m[B] / (dist * dist)) * (rVec / dist);
 
+				// Sliding and Rolling Friction:
+				vector3d torqueA{ 0, 0, 0 };
+				vector3d torqueB{ 0, 0, 0 };
+
+				vector3d slideForceOnA{ 0, 0, 0 };
+
+				vector3d slideTorqueA{ 0, 0, 0 };
+				vector3d slideTorqueB{ 0, 0, 0 };
+				vector3d rollTorqueA{ 0, 0, 0 };
+				vector3d rollTorqueB{ 0, 0, 0 };
+
+				vector3d dVel = O.vel[B] - O.vel[A];
+				const vector3d relativeVelOfA = dVel - dVel.dot(rVec) * (rVec / (dist * dist)) - O.w[A].cross(O.R[A] / sumRaRb * rVec) - O.w[B].cross(O.R[B] / sumRaRb * rVec);
+				double relativeVelMag = relativeVelOfA.norm();
+				if (relativeVelMag > 1e-10) // Prevent divide by zero.
+				{
+					slideForceOnA = u_s * elasticForceOnA.norm() * (relativeVelOfA / relativeVelMag);
+				}
+
+				// Torque due to sliding for a:
+				slideTorqueA = (O.R[A] / sumRaRb) * rVec.cross(slideForceOnA);
+				slideTorqueB = (O.R[B] / sumRaRb) * rVec.cross(slideForceOnA); // If you don't change rVec or slideforce direction, I think it cancels out.
+
 				// Rolling Friction a (determined by t, relative velocity is opposite for b) If relative velocity is 0, such as in a 2 particle collapse,:
-				vector3d aRollTorque{ 0, 0, 0 };
 				const vector3d w_rel = O.w[A] - O.w[B]; // difference in angular velocity
 				if (w_rel.norm() > 1e-10)
 				{
@@ -184,33 +194,22 @@ void simOneStep(const unsigned int& Step)
 					const double G_eff = 1 / ((4 * (2 - sigma) * (1 + sigma)) / Y); // big magic
 					const double K_n = 8 * G_eff * sqrt(R_ * overlap); // magic
 					vector3d t = relativeVelOfA.normalized(); // direction of relative velocity
-					aRollTorque = u_r * R_ * K_n * overlap * w_rel.dot(t) / w_rel.norm() * t;
+					rollTorqueA = u_r * R_ * K_n * overlap * w_rel.dot(t) / w_rel.norm() * t;
+					t = -t;
+					rollTorqueB = u_r * R_ * K_n * overlap * w_rel.dot(t) / w_rel.norm() * t;
 				}
 
 				// Total forces on a:
-				totalForce = gravForceOnA + elasticForce + slideForce + vdwForce;
+				totalForceOnA = gravForceOnA + elasticForceOnA + slideForceOnA + vdwForceOnA;
 
-				// Elastic and Sliding Friction b:
-				// Flip direction b -> a:
-				rVec = -rVec;
-				dVel = -dVel;
-				elasticForce = -elasticForce;
+				// Total torque a and b:
+				torqueA = rollTorqueA + slideTorqueA;
+				torqueB = rollTorqueB + slideTorqueB;
 
-				const vector3d relativeVelOfB = dVel - dVel.dot(rVec) * (rVec / (dist * dist)) - O.w[B].cross(O.R[B] / sumRaRb * rVec) - O.w[A].cross(O.R[A] / sumRaRb * rVec);
-				relativeVelMag = relativeVelOfB.norm(); // todo - This should be the same as mag for A. Same speed different direction.
-				if (relativeVelMag > 1e-10)
-				{
-					slideForce = u_s * elasticForce.norm() * (relativeVelOfB / relativeVelMag);
-				}
-				const vector3d bSlideTorque = (O.R[B] / sumRaRb) * rVec.cross(slideForce);
-
-				// Rolling friction b
-				t = relativeVelOfB.normalized(); // direction of relative velocity
-				vector3d bRollTorque = u_r * R_ * K_n * overlap * w_rel.dot(t) / w_rel.norm() * t;
-
-				O.aacc[A] += (aSlideTorque + aRollTorque) / O.moi[A];
-				O.aacc[B] += (bSlideTorque + bRollTorque) / O.moi[B];
-
+				O.acc[A] += totalForceOnA / O.m[A];
+				O.acc[B] -= totalForceOnA / O.m[B];
+				O.aacc[A] += torqueA / O.moi[A];
+				O.aacc[B] += torqueB / O.moi[B];
 
 				if (writeStep)
 				{
@@ -234,7 +233,7 @@ void simOneStep(const unsigned int& Step)
 				const double h2 = h * h;
 				const double twoRah = 2 * Ra * h;
 				const double twoRbh = 2 * Rb * h;
-				const vector3d vdwForce =
+				const vector3d vdwForceOnA =
 					Ha / 6 *
 					64 * Ra * Ra * Ra * Rb * Rb * Rb *
 					(h + Ra + Rb) /
@@ -246,7 +245,7 @@ void simOneStep(const unsigned int& Step)
 						) *
 					rVec.normalized();
 
-				totalForce = gravForceOnA;
+				totalForceOnA = gravForceOnA + vdwForceOnA;
 				if (writeStep)
 				{
 					O.PE += -G * O.m[A] * O.m[B] / dist;
@@ -259,8 +258,8 @@ void simOneStep(const unsigned int& Step)
 			}
 
 			// Newton's equal and opposite forces applied to acceleration of each ball:
-			O.acc[A] += totalForce / O.m[A];
-			O.acc[B] -= totalForce / O.m[B];
+			O.acc[A] += totalForceOnA / O.m[A];
+			O.acc[B] -= totalForceOnA / O.m[B];
 
 			// So last distance can be known for COR:
 			O.distances[e] = dist;
