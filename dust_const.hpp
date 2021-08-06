@@ -9,20 +9,23 @@
 constexpr bool dynamicTime = true;
 
 constexpr double
-G = 6.67e-8,   // Gravitational constant
+G = 6.67e-8, // Gravitational constant
 density = 2.7,
-mu = 0.9,      // Coeff of friction
-cor = 0.8,     // Coeff of restitution
+u_s = 0.9, // Coeff of sliding friction
+u_r = 0.9, // Coeff of rolling friction
+sigma = .29, // Poisson ratio for rolling friction.
+Y = 2.0e12, // Young's modulus in erg/cm3
+cor = 0.8, // Coeff of restitution
 simTimeSeconds = 18000., // Seconds
 timeResolution = 20., // Seconds - This is duration between exported steps
-maxOverlap = .1,
 fourThirdsPiRho = 4. / 3. * M_PI * density, // for fraction of smallest sphere radius.
 scaleBalls = 1e-4, // base radius of ball.
-KEfactor = 0,       // Determines collision velocity based on KE/PE
-vCustom = 1,
+maxOverlap = .1, // of scaleBalls
+KEfactor = 0, // Determines collision velocity based on KE/PE
+vCustom = 1.0e-4,
 impactParameter = 0, // Impact angle radians
-Ha = 21.1e-20, // Hamaker constant for vdw force
-hmin = 1e6 * std::numeric_limits<double>::epsilon(), // 2.22045e-10 (epsilon is 2.22045e-16)
+Ha = 21.1e-13, // Hamaker constant for vdw force
+hmin = 1e8 * std::numeric_limits<double>::epsilon(), // 2.22045e-10 (epsilon is 2.22045e-16)
 cone = M_PI_2; // Cone of paritlces ignored moving away from center of mass. Larger angle ignores more.
 
 // Simulation Structure

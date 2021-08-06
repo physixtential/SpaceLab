@@ -227,6 +227,7 @@ public:
 		double position = 0;
 		while (position < initialRadius)
 		{
+			// todo - include vdw!!!
 			vCollapse += G * mTotal / (initialRadius * initialRadius) * 0.1;
 			position += vCollapse * 0.1;
 		}
@@ -698,7 +699,7 @@ private:
 						vector3d frictionForceOnA = { 0, 0, 0 };
 						if (relativeVelOfA.norm() > 1e-10) // When relative velocity is very low, dividing its vector components by its magnitude below is unstable.
 						{
-							frictionForceOnA = mu * elasticForceOnA.norm() * (relativeVelOfA / relativeVelOfA.norm());
+							frictionForceOnA = u_s * elasticForceOnA.norm() * (relativeVelOfA / relativeVelOfA.norm());
 						}
 						aTorque = (R[A] / sumRaRb) * rVecab.cross(frictionForceOnA);
 
@@ -709,7 +710,7 @@ private:
 						vector3d frictionForceOnB = { 0, 0, 0 };
 						if (relativeVelOfB.norm() > 1e-10)
 						{
-							frictionForceOnB = mu * elasticForceOnB.norm() * (relativeVelOfB / relativeVelOfB.norm());
+							frictionForceOnB = u_s * elasticForceOnB.norm() * (relativeVelOfB / relativeVelOfB.norm());
 						}
 						bTorque = (R[B] / sumRaRb) * rVecba.cross(frictionForceOnB);
 
@@ -981,7 +982,7 @@ private:
 	{
 		mTotal = 0;
 		{
-			for (unsigned int Ball = 0; Ball < cNumBalls; Ball++)
+			for (int Ball = 0; Ball < cNumBalls; Ball++)
 			{
 				mTotal += m[Ball];
 			}
@@ -989,7 +990,7 @@ private:
 		return mTotal;
 	}
 
-	void threeSizeSphere(const unsigned int nBalls)
+	void threeSizeSphere(const int nBalls)
 	{
 		// Make nBalls of 3 sizes in CGS with ratios such that the mass is distributed evenly among the 3 sizes (less large nBalls than small nBalls).
 		const unsigned int smalls = static_cast<unsigned>(std::round(static_cast<double>(nBalls) * 27. / 31.375)); // Just here for reference. Whatever nBalls are left will be smalls.
@@ -997,16 +998,19 @@ private:
 		const unsigned int larges = static_cast<unsigned>(std::round(static_cast<double>(nBalls) * 1. / 31.375));
 
 
-		for (unsigned int Ball = 0; Ball < larges; Ball++)
+		for (int Ball = 0; Ball < larges; Ball++)
 		{
-			R[Ball] = 3. * scaleBalls;//std::pow(1. / (double)nBalls, 1. / 3.) * 3. * scaleBalls;
+			// Below comment maintains asteroid radius while increasing particle count.
+			//std::pow(1. / (double)nBalls, 1. / 3.) * 3. * scaleBalls;
+
+			R[Ball] = 3. * scaleBalls;
 			m[Ball] = density * 4. / 3. * 3.14159 * std::pow(R[Ball], 3);
 			moi[Ball] = .4 * m[Ball] * R[Ball] * R[Ball];
 			w[Ball] = { 0, 0, 0 };
 			pos[Ball] = rand_spherical_vec(spaceRange, spaceRange, spaceRange);
 		}
 
-		for (unsigned int Ball = larges; Ball < (larges + mediums); Ball++)
+		for (int Ball = larges; Ball < (larges + mediums); Ball++)
 		{
 			R[Ball] = 2. * scaleBalls;//std::pow(1. / (double)nBalls, 1. / 3.) * 2. * scaleBalls;
 			m[Ball] = density * 4. / 3. * 3.14159 * std::pow(R[Ball], 3);
@@ -1014,7 +1018,7 @@ private:
 			w[Ball] = { 0, 0, 0 };
 			pos[Ball] = rand_spherical_vec(spaceRange, spaceRange, spaceRange);
 		}
-		for (unsigned int Ball = (larges + mediums); Ball < nBalls; Ball++)
+		for (int Ball = (larges + mediums); Ball < nBalls; Ball++)
 		{
 			R[Ball] = 1. * scaleBalls;//std::pow(1. / (double)nBalls, 1. / 3.) * 1. * scaleBalls;
 			m[Ball] = density * 4. / 3. * 3.14159 * std::pow(R[Ball], 3);
@@ -1072,7 +1076,7 @@ private:
 
 		std::cerr << "Final spacerange: " << spaceRange << '\n';
 		std::cerr << "Initial Radius: " << getRadius() << '\n';
-		std::cerr << "Mass: " << mTotal << '\n';
+		std::cerr << "Mass: " << getMass() << '\n';
 	}
 
 	void generateBallField(const unsigned int nBalls)
@@ -1081,8 +1085,8 @@ private:
 		allocateGroup(nBalls);
 
 		// Create new random number set.
-		const unsigned int seedSave = static_cast<unsigned>(time(nullptr));
-		srand(seedSave);
+		const int seedSave = static_cast<unsigned>(time(nullptr));
+		srand(0);//srand(seedSave);
 
 		threeSizeSphere(nBalls);
 
@@ -1097,7 +1101,7 @@ private:
 			"-R" + scientific(getRadius()) +
 			"-v" + scientific(vCustom) +
 			"-cor" + rounder(std::pow(cor, 2), 4) +
-			"-mu" + rounder(mu, 3) +
+			"-mu" + rounder(u_s, 3) +
 			"-rho" + rounder(density, 4);
 	}
 

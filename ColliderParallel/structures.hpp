@@ -166,13 +166,13 @@ public:
 
 		if (timeResolution / dt > 1.)
 		{
-			skip = static_cast<unsigned>(floor(timeResolution / dt));
+			skip = static_cast<size_t>(floor(timeResolution / dt));
 			std::cerr << "\tSkip: " << skip << '\n';
 		}
 		else
 		{
 			std::cerr << "Desired time resolution is lower than dt. Setting to 1 second per skip.\n";
-			skip = static_cast<unsigned>(floor(1. / dt));
+			skip = static_cast<size_t>(floor(1. / dt));
 		}
 	}
 

@@ -76,8 +76,8 @@ void simOneStep(const unsigned int& Step)
 		float real = (time(nullptr) - start) / 3600.f;
 		float simmed = simTimeElapsed / 3600.f;
 		float progress = (static_cast<float>(Step) / static_cast<float>(steps) * 100.f);
-		fprintf(stderr, "Step: %u\tProgress: %2.0f%%\tETA: %5.2lf hr\tReal: %5.2f hr\tSim: %5.2f hr\tReal/Sim: %5.2\n", Step, progress, eta, real, simmed, real / simmed);
-		fprintf(stdout, "Step: %u\tProgress: %2.0f%%\tETA: %5.2lf hr\tReal: %5.2f hr\tSim: %5.2f hr\tReal/Sim: %5.2\t\r", Step, progress, eta, real, simmed, real / simmed);
+		fprintf(stderr, "%u\t%2.0f%%\tETA: %5.2lf\tReal: %5.2f\tSim: %5.2f hrs\tR/S: %5.2f\n", Step, progress, eta, real, simmed, real / simmed);
+		fprintf(stdout, "%u\t%2.0f%%\tETA: %5.2lf\tReal: %5.2f\tSim: %5.2f hrs\tR/S: %5.2f\n", Step, progress, eta, real, simmed, real / simmed);
 		fflush(stdout);
 		startProgress = time(nullptr);
 	}
@@ -159,26 +159,34 @@ void simOneStep(const unsigned int& Step)
 				// Elastic a:
 				vector3d elasticForce = -k * overlap * .5 * (rVec / dist);
 
-				// Friction a:
+				// Sliding Friction a:
 				vector3d dVel = O.vel[B] - O.vel[A];
-				vector3d frictionForce = { 0, 0, 0 };
+				vector3d slideForce = { 0, 0, 0 };
 				const vector3d relativeVelOfA = dVel - dVel.dot(rVec) * (rVec / (dist * dist)) - O.w[A].cross(O.R[A] / sumRaRb * rVec) - O.w[B].cross(O.R[B] / sumRaRb * rVec);
 				double relativeVelMag = relativeVelOfA.norm();
 				if (relativeVelMag > 1e-10) // When relative velocity is very low, dividing its vector components by its magnitude below is unstable.
 				{
-					frictionForce = mu * elasticForce.norm() * (relativeVelOfA / relativeVelMag);
+					slideForce = u_s * elasticForce.norm() * (relativeVelOfA / relativeVelMag);
 				}
 
 				// Torque a:
-				const vector3d aTorque = (O.R[A] / sumRaRb) * rVec.cross(frictionForce);
+				const vector3d aSlideTorque = (O.R[A] / sumRaRb) * rVec.cross(slideForce);
+
+				// Rolling Friction a (determined by t, relative velocity is opposite for b):
+				const double R_ = O.R[A] * O.R[B] / (O.R[A] + O.R[B]); // Reduced radius?
+				const double G_eff = 1 / ((4 * (2 - sigma) * (1 + sigma)) / Y); // big magic
+				const double K_n = 8 * G_eff * sqrt(R_ * overlap); // magic
+				const vector3d w_rel = O.w[A] - O.w[B]; // difference in angular velocity
+				const vector3d t = relativeVelOfA.normalized(); // direction of relative velocity
+				vector3d aRollTorque = u_r * R_ * K_n * overlap * w_rel.dot(t) / w_rel.norm() * t;
 
 				// Gravity on a:
 				const vector3d gravForceOnA = (G * O.m[A] * O.m[B] / (dist * dist)) * (rVec / dist);
 
 				// Total forces on a:
-				totalForce = gravForceOnA + elasticForce + frictionForce + vdwForce;
+				totalForce = gravForceOnA + elasticForce + slideForce + vdwForce;
 
-				// Elastic and Friction b:
+				// Elastic and Sliding Friction b:
 				// Flip direction b -> a:
 				rVec = -rVec;
 				dVel = -dVel;
@@ -188,12 +196,16 @@ void simOneStep(const unsigned int& Step)
 				relativeVelMag = relativeVelOfB.norm(); // todo - This should be the same as mag for A. Same speed different direction.
 				if (relativeVelMag > 1e-10)
 				{
-					frictionForce = mu * elasticForce.norm() * (relativeVelOfB / relativeVelMag);
+					slideForce = u_s * elasticForce.norm() * (relativeVelOfB / relativeVelMag);
 				}
-				const vector3d bTorque = (O.R[B] / sumRaRb) * rVec.cross(frictionForce);
+				const vector3d bSlideTorque = (O.R[B] / sumRaRb) * rVec.cross(slideForce);
 
-				O.aacc[A] += aTorque / O.moi[A];
-				O.aacc[B] += bTorque / O.moi[B];
+				// Rolling friction b
+				const vector3d t = relativeVelOfB.normalized(); // direction of relative velocity
+				vector3d bRollTorque = u_r * R_ * K_n * overlap * w_rel.dot(t) / w_rel.norm() * t;
+
+				O.aacc[A] += (aSlideTorque + aRollTorque) / O.moi[A];
+				O.aacc[B] += (bSlideTorque + bRollTorque) / O.moi[B];
 
 
 				if (writeStep)
@@ -208,10 +220,8 @@ void simOneStep(const unsigned int& Step)
 				const vector3d gravForceOnA = (G * O.m[A] * O.m[B] / (dist * dist)) * (rVec / dist);
 
 				// Cohesion (non-contact) large negative overlap means large space between spheres:
-				constexpr double hmin = -1e6 * std::numeric_limits<double>::epsilon(); // -2.22045e-10 (epsilon is 2.22045e-16)
-
 				double h = overlap;
-				if (h > hmin) // If h is closer to 0 (almost touching), use hmin.
+				if (h > -hmin) // If h is closer to 0 (almost touching), use hmin.
 				{
 					h = hmin;
 				}
