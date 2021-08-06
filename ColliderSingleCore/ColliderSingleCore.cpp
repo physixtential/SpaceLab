@@ -77,7 +77,7 @@ void simOneStep(const unsigned int& Step)
 		float simmed = simTimeElapsed / 3600.f;
 		float progress = (static_cast<float>(Step) / static_cast<float>(steps) * 100.f);
 		fprintf(stderr, "%u\t%2.0f%%\tETA: %5.2lf\tReal: %5.2f\tSim: %5.2f hrs\tR/S: %5.2f\n", Step, progress, eta, real, simmed, real / simmed);
-		fprintf(stdout, "%u\t%2.0f%%\tETA: %5.2lf\tReal: %5.2f\tSim: %5.2f hrs\tR/S: %5.2f\n", Step, progress, eta, real, simmed, real / simmed);
+		//fprintf(stdout, "%u\t%2.0f%%\tETA: %5.2lf\tReal: %5.2f\tSim: %5.2f hrs\tR/S: %5.2f\n", Step, progress, eta, real, simmed, real / simmed);
 		fflush(stdout);
 		startProgress = time(nullptr);
 	}
@@ -172,16 +172,20 @@ void simOneStep(const unsigned int& Step)
 				// Torque a:
 				const vector3d aSlideTorque = (O.R[A] / sumRaRb) * rVec.cross(slideForce);
 
-				// Rolling Friction a (determined by t, relative velocity is opposite for b):
-				const double R_ = O.R[A] * O.R[B] / (O.R[A] + O.R[B]); // Reduced radius?
-				const double G_eff = 1 / ((4 * (2 - sigma) * (1 + sigma)) / Y); // big magic
-				const double K_n = 8 * G_eff * sqrt(R_ * overlap); // magic
-				const vector3d w_rel = O.w[A] - O.w[B]; // difference in angular velocity
-				const vector3d t = relativeVelOfA.normalized(); // direction of relative velocity
-				vector3d aRollTorque = u_r * R_ * K_n * overlap * w_rel.dot(t) / w_rel.norm() * t;
-
 				// Gravity on a:
 				const vector3d gravForceOnA = (G * O.m[A] * O.m[B] / (dist * dist)) * (rVec / dist);
+
+				// Rolling Friction a (determined by t, relative velocity is opposite for b) If relative velocity is 0, such as in a 2 particle collapse,:
+				vector3d aRollTorque{ 0, 0, 0 };
+				const vector3d w_rel = O.w[A] - O.w[B]; // difference in angular velocity
+				if (w_rel.norm() > 1e-10)
+				{
+					const double R_ = O.R[A] * O.R[B] / (O.R[A] + O.R[B]); // Reduced radius?
+					const double G_eff = 1 / ((4 * (2 - sigma) * (1 + sigma)) / Y); // big magic
+					const double K_n = 8 * G_eff * sqrt(R_ * overlap); // magic
+					vector3d t = relativeVelOfA.normalized(); // direction of relative velocity
+					aRollTorque = u_r * R_ * K_n * overlap * w_rel.dot(t) / w_rel.norm() * t;
+				}
 
 				// Total forces on a:
 				totalForce = gravForceOnA + elasticForce + slideForce + vdwForce;
@@ -201,7 +205,7 @@ void simOneStep(const unsigned int& Step)
 				const vector3d bSlideTorque = (O.R[B] / sumRaRb) * rVec.cross(slideForce);
 
 				// Rolling friction b
-				const vector3d t = relativeVelOfB.normalized(); // direction of relative velocity
+				t = relativeVelOfB.normalized(); // direction of relative velocity
 				vector3d bRollTorque = u_r * R_ * K_n * overlap * w_rel.dot(t) / w_rel.norm() * t;
 
 				O.aacc[A] += (aSlideTorque + aRollTorque) / O.moi[A];

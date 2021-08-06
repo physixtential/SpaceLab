@@ -1191,8 +1191,6 @@ private:
 
 	void updateDTK(const double& vel)
 	{
-		constexpr double kConsts = fourThirdsPiRho / (maxOverlap * maxOverlap);
-
 		kin = kConsts * rMax * vel * vel;
 		kout = cor * kin;
 		dt = .01 * sqrt((fourThirdsPiRho / kin) * rMin * rMin * rMin);
