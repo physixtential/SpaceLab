@@ -22,17 +22,17 @@ fourThirdsPiRho = 4. / 3. * M_PI * density, // for fraction of smallest sphere r
 scaleBalls = 1e-4, // base radius of ball.
 maxOverlap = .1, // of scaleBalls
 KEfactor = 0, // Determines collision velocity based on KE/PE
-vCustom = 1e-4,
+vCustom = 1e-6,
 kConsts = fourThirdsPiRho / (maxOverlap * maxOverlap),
 impactParameter = 0, // Impact angle radians
-Ha = 21.1e-30, // Hamaker constant for vdw force
+Ha = 21.1e-40, // Hamaker constant for vdw force
 hmin = 1e8 * std::numeric_limits<double>::epsilon(), // 2.22045e-10 (epsilon is 2.22045e-16)
 cone = M_PI_2; // Cone of paritlces ignored moving away from center of mass. Larger angle ignores more.
 
 // Simulation Structure
 constexpr int
 properties = 11, // Number of columns in simData file per ball
-genBalls = 2,
+genBalls = 6,
 attempts = 200; // How many times to try moving every ball touching another in generator.
 
 size_t

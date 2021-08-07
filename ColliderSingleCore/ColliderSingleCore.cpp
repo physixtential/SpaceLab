@@ -177,7 +177,7 @@ void simOneStep(const unsigned int& Step)
 				vector3d dVel = O.vel[B] - O.vel[A];
 				const vector3d relativeVelOfA = dVel - dVel.dot(rVec) * (rVec / (dist * dist)) - O.w[A].cross(O.R[A] / sumRaRb * rVec) - O.w[B].cross(O.R[B] / sumRaRb * rVec);
 				double relativeVelMag = relativeVelOfA.norm();
-				if (relativeVelMag > 1e-10) // Prevent divide by zero.
+				if (relativeVelMag > 1e-13) // Prevent divide by zero.
 				{
 					slideForceOnA = u_s * elasticForceOnA.norm() * (relativeVelOfA / relativeVelMag);
 				}
@@ -188,7 +188,7 @@ void simOneStep(const unsigned int& Step)
 
 				// Rolling Friction a (determined by t, relative velocity is opposite for b) If relative velocity is 0, such as in a 2 particle collapse,:
 				const vector3d w_rel = O.w[A] - O.w[B]; // difference in angular velocity
-				if (w_rel.norm() > 1e-10)
+				if (w_rel.norm() > 1e-13)
 				{
 					const double R_ = O.R[A] * O.R[B] / (O.R[A] + O.R[B]); // Reduced radius?
 					const double G_eff = 1 / ((4 * (2 - sigma) * (1 + sigma)) / Y); // big magic
@@ -200,14 +200,13 @@ void simOneStep(const unsigned int& Step)
 				}
 
 				// Total forces on a:
-				totalForceOnA = gravForceOnA + elasticForceOnA + slideForceOnA + vdwForceOnA;
+				totalForceOnA = gravForceOnA + elasticForceOnA + slideForceOnA;// +vdwForceOnA;
 
 				// Total torque a and b:
-				torqueA = rollTorqueA + slideTorqueA;
-				torqueB = rollTorqueB + slideTorqueB;
+				torqueA = slideTorqueA;
+				torqueB = slideTorqueB;
 
-				O.acc[A] += totalForceOnA / O.m[A];
-				O.acc[B] -= totalForceOnA / O.m[B];
+				// somehow this is not changing angular velocity
 				O.aacc[A] += torqueA / O.moi[A];
 				O.aacc[B] += torqueB / O.moi[B];
 
@@ -245,7 +244,7 @@ void simOneStep(const unsigned int& Step)
 						) *
 					rVec.normalized();
 
-				totalForceOnA = gravForceOnA + vdwForceOnA;
+				totalForceOnA = gravForceOnA;// + vdwForceOnA;
 				if (writeStep)
 				{
 					O.PE += -G * O.m[A] * O.m[B] / dist;
@@ -273,7 +272,7 @@ void simOneStep(const unsigned int& Step)
 	}
 
 	// THIRD PASS - Calculate velocity for next step:
-	for (unsigned int Ball = 0; Ball < O.cNumBalls; Ball++)
+	for (int Ball = 0; Ball < O.cNumBalls; Ball++)
 	{
 		// Velocity for next step:
 		O.vel[Ball] = O.velh[Ball] + .5 * O.acc[Ball] * dt;
@@ -307,8 +306,8 @@ void simOneStep(const unsigned int& Step)
 					<< O.w[Ball][1] << ','
 					<< O.w[Ball][2] << ','
 					<< O.w[Ball].norm() << ','
-					<< O.vel[Ball].x << ',' <<
-					O.vel[Ball].y << ','
+					<< O.vel[Ball].x << ',' 
+					<< O.vel[Ball].y << ','
 					<< O.vel[Ball].z << ','
 					<< 0;
 			}
@@ -321,7 +320,6 @@ void simOneStep(const unsigned int& Step)
 
 	if (writeStep)
 	{
-
 		// Write energy to stream:
 		energyBuffer << '\n'
 			<< simTimeElapsed << ','
