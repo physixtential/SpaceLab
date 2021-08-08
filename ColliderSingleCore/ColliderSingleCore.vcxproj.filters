@@ -23,7 +23,7 @@
     <ClInclude Include="..\ballGroup.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\initializations.hpp">
+    <ClInclude Include="..\asteroid_const.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\vector3d.hpp">

@@ -32,7 +32,7 @@
   <ItemGroup>
     <ClInclude Include="..\ballGroup.hpp" />
     <ClInclude Include="..\dust_const.hpp" />
-    <ClInclude Include="..\initializations.hpp" />
+    <ClInclude Include="..\asteroid_const.hpp" />
     <ClInclude Include="..\vector3d.hpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">

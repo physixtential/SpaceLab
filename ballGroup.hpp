@@ -7,7 +7,7 @@
 #include <algorithm>
 #include <limits.h>
 #include <cstring>
-#include "dust_const.hpp"
+#include "asteroid_const.hpp"
 #include "vector3d.hpp"
 
 /// @brief Facilitates the concept of a group of balls with physical properties.

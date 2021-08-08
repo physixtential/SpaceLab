@@ -6,7 +6,6 @@
 #include <sstream>
 #include <iomanip>
 #include "../vector3d.hpp"
-#include "../dust_const.hpp"
 #include "../ballGroup.hpp"
 
 
