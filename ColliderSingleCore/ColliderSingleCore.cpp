@@ -201,7 +201,7 @@ void simOneStep(const unsigned int& Step)
 				}
 
 				// Total forces on a:
-				totalForceOnA = gravForceOnA + elasticForceOnA + slideForceOnA;// + vdwForceOnA;
+				totalForceOnA = gravForceOnA + elasticForceOnA + slideForceOnA + vdwForceOnA;
 
 				// Total torque a and b:
 				torqueA = slideTorqueA;// + rollTorqueA;
@@ -245,7 +245,7 @@ void simOneStep(const unsigned int& Step)
 						) *
 					rVec.normalized();
 
-				totalForceOnA = gravForceOnA;// + vdwForceOnA;
+				totalForceOnA = gravForceOnA + vdwForceOnA;
 				if (writeStep)
 				{
 					O.PE += -G * O.m[A] * O.m[B] / dist;
