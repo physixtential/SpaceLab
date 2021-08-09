@@ -7,7 +7,7 @@
 #include <algorithm>
 #include <limits.h>
 #include <cstring>
-#include "asteroid_const.hpp"
+#include "dust_const.hpp"
 #include "vector3d.hpp"
 
 /// @brief Facilitates the concept of a group of balls with physical properties.
@@ -31,6 +31,13 @@ public:
 	ballGroup(const int nBalls, const bool generate, const double& customVel)
 	{
 		generateBallField(nBalls);
+		this->pos[0] = { 1.5e-4, 0, 1.5e-4 };
+		this->pos[1] = { -1.5e-4, 0, 0 };
+		this->vel[0] = { -.001e-4, 0, 0 };
+		this->vel[1] = { 0, 0, 0 };
+		this->m[1] = 10 * density * 4. / 3. * 3.14159 * std::pow(R[1], 3);
+		this->moi[1] = .4 * m[1] * R[1] * R[1];
+		mTotal = getMass();
 		calc_v_collapse();
 		calibrateDT(0, customVel);
 		simInitCondAndCenter();
@@ -629,7 +636,6 @@ private:
 
 		// Keep track of now loaded ball set to start next set after it:
 		cNumBallsAdded += src.cNumBalls;
-
 		rMin = getRmin();
 		rMax = getRmax();
 		mTotal = getMass();

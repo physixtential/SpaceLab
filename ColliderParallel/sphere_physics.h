@@ -154,3 +154,5 @@ std::vector<Sphere_pair> return_pairs(std::vector<Sphere> spheres)
 	return pairs;
 }
 
+// todo code an energy minimization for generating clusters. Instead of randomly moving particles around and checking for collisions, move them along x,y,z and check total system energy. Go until system energy does not decrease.
+

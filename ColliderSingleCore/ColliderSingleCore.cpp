@@ -187,23 +187,25 @@ void simOneStep(const unsigned int& Step)
 
 				// Rolling Friction a (determined by t, relative velocity is opposite for b) If relative velocity is 0, such as in a 2 particle collapse,:
 				const vector3d w_rel = O.w[A] - O.w[B]; // difference in angular velocity
+				const double test = w_rel.norm();
 				if (w_rel.norm() > 1e-13)
 				{
+					// Using modified Gran-Hertz K_n
 					const double R_ = O.R[A] * O.R[B] / (O.R[A] + O.R[B]); // Reduced radius?
-					const double G_eff = 1 / ((4 * (2 - sigma) * (1 + sigma)) / Y); // big magic
-					const double K_n = 8 * G_eff * sqrt(R_ * overlap); // magic
 					vector3d t = relativeVelOfA.normalized(); // direction of relative velocity
-					rollTorqueA = u_r * R_ * K_n * overlap * w_rel.dot(t) / w_rel.norm() * t;
+					const double rollConst = 2 * R_ * Y * u_r * overlap * sqrt(R_ * overlap) /
+						(3 * (1 - (sigma * sigma)) * w_rel.norm());
+					rollTorqueA = rollConst * t * w_rel.dot(t);
 					t = -t;
-					rollTorqueB = u_r * R_ * K_n * overlap * w_rel.dot(t) / w_rel.norm() * t;
+					rollTorqueB = rollConst * t * w_rel.dot(t);
 				}
 
 				// Total forces on a:
-				totalForceOnA = gravForceOnA + elasticForceOnA + slideForceOnA;// +vdwForceOnA;
+				totalForceOnA = gravForceOnA + elasticForceOnA + slideForceOnA;// + vdwForceOnA;
 
 				// Total torque a and b:
-				torqueA = slideTorqueA;
-				torqueB = slideTorqueB;
+				torqueA = slideTorqueA + rollTorqueA;
+				torqueB = slideTorqueB + rollTorqueB;
 
 				// somehow this is not changing angular velocity
 				O.aacc[A] += torqueA / O.moi[A];
@@ -305,7 +307,7 @@ void simOneStep(const unsigned int& Step)
 					<< O.w[Ball][1] << ','
 					<< O.w[Ball][2] << ','
 					<< O.w[Ball].norm() << ','
-					<< O.vel[Ball].x << ',' 
+					<< O.vel[Ball].x << ','
 					<< O.vel[Ball].y << ','
 					<< O.vel[Ball].z << ','
 					<< 0;

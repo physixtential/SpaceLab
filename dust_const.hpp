@@ -12,17 +12,17 @@ constexpr double
 G = 6.67e-8, // Gravitational constant
 density = 2.7,
 u_s = 0.9, // Coeff of sliding friction
-u_r = 0.9, // Coeff of rolling friction
+u_r = 0.3, // Coeff of rolling friction
 sigma = .29, // Poisson ratio for rolling friction.
 Y = 2.0e12, // Young's modulus in erg/cm3
-cor = 0.8, // Coeff of restitution
+cor = 0.1, // Coeff of restitution
 simTimeSeconds = 18000., // Seconds
-timeResolution = 20., // Seconds - This is duration between exported steps
+timeResolution = 10., // Seconds - This is duration between exported steps
 fourThirdsPiRho = 4. / 3. * M_PI * density, // for fraction of smallest sphere radius.
 scaleBalls = 1e-4, // base radius of ball.
 maxOverlap = .1, // of scaleBalls
 KEfactor = 0, // Determines collision velocity based on KE/PE
-vCustom = 1e-4,
+vCustom = 3*.001e-4,
 kConsts = fourThirdsPiRho / (maxOverlap * maxOverlap),
 impactParameter = 0, // Impact angle radians
 Ha = 21.1e-40, // Hamaker constant for vdw force
@@ -32,7 +32,7 @@ cone = M_PI_2; // Cone of paritlces ignored moving away from center of mass. Lar
 // Simulation Structure
 constexpr int
 properties = 11, // Number of columns in simData file per ball
-genBalls = 6,
+genBalls = 2,
 attempts = 200; // How many times to try moving every ball touching another in generator.
 
 size_t
