@@ -204,8 +204,8 @@ void simOneStep(const unsigned int& Step)
 				totalForceOnA = gravForceOnA + elasticForceOnA + slideForceOnA;// + vdwForceOnA;
 
 				// Total torque a and b:
-				torqueA = slideTorqueA + rollTorqueA;
-				torqueB = slideTorqueB + rollTorqueB;
+				torqueA = slideTorqueA;// + rollTorqueA;
+				torqueB = slideTorqueB;// +rollTorqueB;
 
 				// somehow this is not changing angular velocity
 				O.aacc[A] += torqueA / O.moi[A];
