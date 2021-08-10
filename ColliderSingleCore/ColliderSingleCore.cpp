@@ -183,7 +183,8 @@ void simOneStep(const unsigned int& Step)
 
 				// Torque due to sliding for a:
 				slideTorqueA = (O.R[A] / sumRaRb) * rVec.cross(slideForceOnA);
-				slideTorqueB = (O.R[B] / sumRaRb) * rVec.cross(slideForceOnA); // If you don't change rVec or slideforce direction, I think it cancels out.
+				rVec = -rVec; // Flip vector between particles
+				slideTorqueB = (O.R[B] / sumRaRb) * rVec.cross(-slideForceOnA); // If you don't change rVec or slideforce direction, I think it cancels out.
 
 				// Rolling Friction a (determined by t, relative velocity is opposite for b) If relative velocity is 0, such as in a 2 particle collapse,:
 				const vector3d w_rel = O.w[A] - O.w[B]; // difference in angular velocity

@@ -16,18 +16,18 @@ u_r = 0.3, // Coeff of rolling friction
 sigma = .29, // Poisson ratio for rolling friction.
 Y = 2.0e12, // Young's modulus in erg/cm3
 cor = 0.1, // Coeff of restitution
-simTimeSeconds = 18000., // Seconds
-timeResolution = 10., // Seconds - This is duration between exported steps
+simTimeSeconds = 180., // Seconds
+timeResolution = 1 / 60., // Seconds - This is duration between exported steps. Must be greater than dt
 fourThirdsPiRho = 4. / 3. * M_PI * density, // for fraction of smallest sphere radius.
 scaleBalls = 1e-4, // base radius of ball.
 maxOverlap = .1, // of scaleBalls
 KEfactor = 0, // Determines collision velocity based on KE/PE
-vCustom = 3*.001e-4,
+vCustom = 1,
 kConsts = fourThirdsPiRho / (maxOverlap * maxOverlap),
 impactParameter = 0, // Impact angle radians
-Ha = 21.1e-40, // Hamaker constant for vdw force
-hmin = 1e8 * std::numeric_limits<double>::epsilon(), // 2.22045e-10 (epsilon is 2.22045e-16)
-cone = M_PI_2; // Cone of paritlces ignored moving away from center of mass. Larger angle ignores more.
+Ha = 21.1e-13, // Hamaker constant for vdw force
+hmin = scaleBalls * 4,//1e8 * std::numeric_limits<double>::epsilon(), // 2.22045e-10 (epsilon is 2.22045e-16)
+cone = M_PI_2; // Cone of particles ignored moving away from center of mass. Larger angle ignores more.
 
 // Simulation Structure
 constexpr int
