@@ -147,13 +147,13 @@ void simOneStep(const unsigned int& Step)
 				const vector3d vdwForceOnA =
 					Ha / 6 *
 					64 * Ra * Ra * Ra * Rb * Rb * Rb *
-					(h + Ra + Rb) /
-					(
-						(h2 + twoRah + twoRbh) *
-						(h2 + twoRah + twoRbh) *
-						(h2 + twoRah + twoRbh + 4 * Ra * Rb) *
-						(h2 + twoRah + twoRbh + 4 * Ra * Rb)
-						) *
+					((h + Ra + Rb) /
+						(
+							(h2 + twoRah + twoRbh) *
+							(h2 + twoRah + twoRbh) *
+							(h2 + twoRah + twoRbh + 4 * Ra * Rb) *
+							(h2 + twoRah + twoRbh + 4 * Ra * Rb)
+							)) *
 					rVec.normalized();
 
 				// Elastic force:
@@ -201,7 +201,7 @@ void simOneStep(const unsigned int& Step)
 					rollTorqueB = rollConst * t * w_rel.dot(t);
 				}
 
-				 
+
 
 				// Total forces on a:
 				totalForceOnA = gravForceOnA + elasticForceOnA + slideForceOnA + vdwForceOnA;
@@ -225,9 +225,9 @@ void simOneStep(const unsigned int& Step)
 				// No collision: Include gravity and vdw:
 				const vector3d gravForceOnA = (G * O.m[A] * O.m[B] / (dist * dist)) * (rVec / dist);
 
-				// Cohesion (non-contact) large negative overlap means large space between spheres:
-				double h = overlap;
-				if (h > -hmin) // If h is closer to 0 (almost touching), use hmin.
+				// Cohesion (non-contact) h must be positive or h + Ra + Rb becomes catastrophic cancellation:
+				double h = std::fabs(overlap);
+				if (h < hmin) // If h is closer to 0 (almost touching), use hmin.
 				{
 					h = hmin;
 				}
@@ -239,13 +239,13 @@ void simOneStep(const unsigned int& Step)
 				const vector3d vdwForceOnA =
 					Ha / 6 *
 					64 * Ra * Ra * Ra * Rb * Rb * Rb *
-					(h + Ra + Rb) /
-					(
-						(h2 + twoRah + twoRbh) *
-						(h2 + twoRah + twoRbh) *
-						(h2 + twoRah + twoRbh + 4 * Ra * Rb) *
-						(h2 + twoRah + twoRbh + 4 * Ra * Rb)
-						) *
+					((h + Ra + Rb) /
+						(
+							(h2 + twoRah + twoRbh) *
+							(h2 + twoRah + twoRbh) *
+							(h2 + twoRah + twoRbh + 4 * Ra * Rb) *
+							(h2 + twoRah + twoRbh + 4 * Ra * Rb)
+							)) *
 					rVec.normalized();
 
 				totalForceOnA = gravForceOnA + vdwForceOnA;
