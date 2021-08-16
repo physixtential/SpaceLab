@@ -186,21 +186,9 @@ void simOneStep(const unsigned int& Step)
 				rVec = -rVec; // Flip vector between particles
 				slideTorqueB = (O.R[B] / sumRaRb) * rVec.cross(-slideForceOnA);
 
-				// Rolling Friction a (determined by t, relative velocity is opposite for b) If relative velocity is 0, such as in a 2 particle collapse,:
-				const vector3d w_rel = O.w[A] - O.w[B]; // difference in angular velocity
-				const double test = w_rel.norm();
-				if (w_rel.norm() > 1e-13)
-				{
-					// Using modified Gran-Hertz K_n
-					const double R_ = O.R[A] * O.R[B] / (O.R[A] + O.R[B]); // Reduced radius?
-					vector3d t = relativeVelOfA.normalized(); // direction of relative velocity
-					const double rollConst = 2 * R_ * Y * u_r * overlap * sqrt(R_ * overlap) /
-						(3 * (1 - (sigma * sigma)) * w_rel.norm());
-					rollTorqueA = rollConst * t * w_rel.dot(t);
-					t = -t;
-					rollTorqueB = rollConst * t * w_rel.dot(t);
-				}
-
+				// Rolling Friction a:
+				rollTorqueA = -u_r * elasticForceOnA.norm() * O.w[A].normalized();
+				rollTorqueB = -u_r * elasticForceOnA.norm() * O.w[B].normalized();
 
 
 				// Total forces on a:
