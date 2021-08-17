@@ -186,10 +186,7 @@ void simOneStep(const unsigned int& Step)
 					// Rolling Friction a:
 					if (O.w[A].norm() > 1e-13 or O.w[B].norm() > 1e-13)
 					{
-						//if (O.w[A] - O.w[B] > 1e-13)
-						//{
 
-						//}
 						const double w_compare_scaler = 0.5 * (1 + O.w[A].normalized().dot(O.w[B].normalized()));
 						rollTorqueA += -u_r * elasticForceOnA.norm() * O.w[A].normalized() * w_compare_scaler;
 						rollTorqueB += -u_r * elasticForceOnA.norm() * O.w[B].normalized() * w_compare_scaler;
