@@ -172,13 +172,36 @@ void simOneStep(const unsigned int& Step)
 				vector3d slideTorqueB{ 0, 0, 0 };
 				vector3d rollTorqueA{ 0, 0, 0 };
 				vector3d rollTorqueB{ 0, 0, 0 };
+				vector3d rollForceA{ 0, 0, 0 };
+				vector3d rollForceB{ 0, 0, 0 };
 
 				vector3d dVel = O.vel[B] - O.vel[A];
-				const vector3d relativeVelOfA = dVel - dVel.dot(rVec) * (rVec / (dist * dist)) - O.w[A].cross(O.R[A] / sumRaRb * rVec) - O.w[B].cross(O.R[B] / sumRaRb * rVec);
-				double relativeVelMag = relativeVelOfA.norm();
-				if (relativeVelMag > 1e-13) // Prevent divide by zero.
+				const vector3d rel_vel_of_A = dVel - dVel.dot(rVec) * (rVec / (dist * dist)) - O.w[A].cross(O.R[A] / sumRaRb * rVec) - O.w[B].cross(O.R[B] / sumRaRb * rVec);
+				double rel_vel_mag = rel_vel_of_A.norm();
+				if (rel_vel_mag > 1e-13) // Prevent divide by zero.
 				{
-					slideForceOnA = u_s * elasticForceOnA.norm() * (relativeVelOfA / relativeVelMag);
+					const vector3d rel_vel_of_A_unit = rel_vel_of_A / rel_vel_mag;
+					slideForceOnA = u_s * elasticForceOnA.norm() * (rel_vel_of_A_unit);
+
+					// Rolling Friction a:
+					if (O.w[A].norm() > 1e-13 or O.w[B].norm() > 1e-13)
+					{
+						//if (O.w[A] - O.w[B] > 1e-13)
+						//{
+
+						//}
+						const double w_compare_scaler = 0.5 * (1 + O.w[A].normalized().dot(O.w[B].normalized()));
+						rollTorqueA += -u_r * elasticForceOnA.norm() * O.w[A].normalized() * w_compare_scaler;
+						rollTorqueB += -u_r * elasticForceOnA.norm() * O.w[B].normalized() * w_compare_scaler;
+
+						rollForceA = -rollTorqueA.norm() / O.R[A] * rel_vel_of_A_unit;
+						rollForceB = -rollTorqueB.norm() / O.R[B] * -rel_vel_of_A_unit;
+
+						rollTorqueA += -(O.R[A] / sumRaRb) * rVec.cross(rollForceA);
+						rVec = -rVec; // Flip vector between particles
+						rollTorqueB += -(O.R[B] / sumRaRb) * rVec.cross(rollForceB);
+						rVec = -rVec; // Flip vector between particles
+					}
 				}
 
 				// Torque due to sliding for a:
@@ -186,17 +209,16 @@ void simOneStep(const unsigned int& Step)
 				rVec = -rVec; // Flip vector between particles
 				slideTorqueB = (O.R[B] / sumRaRb) * rVec.cross(-slideForceOnA);
 
-				// Rolling Friction a:
-				rollTorqueA = -u_r * elasticForceOnA.norm() * O.w[A].normalized();
-				rollTorqueB = -u_r * elasticForceOnA.norm() * O.w[B].normalized();
+
+
 
 
 				// Total forces on a:
 				totalForceOnA = gravForceOnA + elasticForceOnA + slideForceOnA + vdwForceOnA;
 
 				// Total torque a and b:
-				torqueA = slideTorqueA;// + rollTorqueA;
-				torqueB = slideTorqueB;// +rollTorqueB;
+				torqueA = slideTorqueA + rollTorqueA;
+				torqueB = slideTorqueB + rollTorqueB;
 
 				// somehow this is not changing angular velocity
 				O.aacc[A] += torqueA / O.moi[A];
