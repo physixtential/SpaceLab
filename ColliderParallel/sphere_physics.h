@@ -3,8 +3,10 @@
 #include <cmath>
 #include <vector>
 #include <algorithm>
+#include <execution>
+#include <thread>
+#include "../dust_const.hpp"
 #include "../vector3d.hpp"
-#include "constants.hpp"
 
 /// @brief Contains everything needed to describe the physical state of a sphere.
 /// Radius, mass, and moment of inertia must be defined upon creation.
@@ -29,31 +31,40 @@ struct Sphere
 		R(R),
 		m(density * 4. / 3. * M_PI * R * R * R),
 		moi(.4 * m * R * R)
-	{}
+	{
+	}
 };
 
+/// @brief Creates a reference to a pair of spheres.
 struct Sphere_pair
 {
 private:
 	Sphere& a_;
 	Sphere& b_;
-	double overlap_; // Positive in contact. Negative otherwise. Negative indicates distance between nearest surfaces.
+	double prev_overlap_;
+	const double sum_Ra_Rb;
 
 public:
 	// Getters
 	Sphere& a() const { return a_; }
 	Sphere& b() const { return b_; }
-	double get_overlap() const { return overlap_; }
+	double get_prev_overlap() const { return prev_overlap_; }
 
 	// Setters
 	void a_add_force(const vector3d& force) { a_.force += force; }
 	void b_add_force(const vector3d& force) { b_.force += force; }
-	void set_overlap() { overlap_ = (a_.R + b_.R) - distance(Sphere_pair(a_, b_)); }
+	void refresh_overlap()
+	{
+		prev_overlap_ = sum_Ra_Rb - (a_.pos - b_.pos).norm();
+	}
 
 	// Constructors
-	Sphere_pair() = default;
-	Sphere_pair(Sphere& a, Sphere& b, double overlap) : a_(a), b_(b), overlap_(overlap) {} // Init all
-	Sphere_pair(Sphere& a, Sphere& b) : a_(a), b_(b) {}
+	Sphere_pair(Sphere& a, Sphere& b) :
+		a_(a),
+		b_(b),
+		sum_Ra_Rb(a.R + b.R) {}
+
+
 
 };
 
@@ -89,6 +100,32 @@ public:
 	}
 };
 
+struct Rand_vec_in_sphere
+{
+	double radius;
+
+	Rand_vec_in_sphere(const double& radius) : radius(radius) {}
+
+	void operator()(vector3d& vec)
+	{
+		do
+		{
+			vec = { rand_double(radius), rand_double(radius), rand_double(radius) };
+		} while (vec.norm() > radius);
+	}
+};
+
+struct Collision_displacer
+{
+	void operator()(Sphere_pair& pair)
+	{
+		if (pair.get_prev_overlap()>0)
+		{
+
+		}
+	}
+};
+
 vector3d vec_atob(const Sphere_pair& pair)
 {
 	return pair.a().pos - pair.b().pos;
@@ -109,7 +146,10 @@ void apply_grav_force(Sphere_pair& pair, double& dist)
 
 void apply_elastic_force(Sphere_pair& pair, double& k)
 {
-	a.force -= k * pair.get_overlap() * .5 * (vec_atob(pair) / dist);
+	//todo -this get_overlap is bad. I need all the force functions to be able to use overlap without recalcing for each. Maybe they need to be moved into the Sphere_pair
+	const vector3d force = k * pair.get_overlap() * .5 * (vec_atob(pair).normalized());
+	pair.a_add_force(-force);
+	pair.b_add_force(force);
 }
 
 void apply_friction_sliding(Sphere& a, Sphere& b)
@@ -127,7 +167,7 @@ void apply_cohesion_force(Sphere& a, Sphere& b)
 
 }
 
-void update_sphere(Sphere& sphere)
+void update_sphere_kinematics(Sphere& sphere)
 {
 	sphere.velh = sphere.vel + .5 * sphere.force / sphere.m * dt;
 	sphere.wh = sphere.w + .5 * sphere.torque / sphere.moi * dt;
@@ -136,11 +176,20 @@ void update_sphere(Sphere& sphere)
 	sphere.torque = { 0, 0, 0 };
 }
 
-std::vector<Sphere_pair> return_pairs(std::vector<Sphere> spheres)
+std::vector<Sphere_pair> make_pairs(std::vector<Sphere> spheres)
 {
 	int n = spheres.size();
+	if (n % 2 != 0)
+	{
+		std::cerr << "Sphere count not even.";
+		std::exit(EXIT_FAILURE);
+	}
+
 	int combinations = n * (n - 1) / 2;
+
 	std::vector<Sphere_pair> pairs;
+	pairs.reserve(combinations);
+
 	for (size_t i = 0; i < combinations; i++)
 	{
 		// Pair Combinations [A,B] [B,C] [C,D]... [A,C] [B,D] [C,E]... ...
@@ -148,11 +197,88 @@ std::vector<Sphere_pair> return_pairs(std::vector<Sphere> spheres)
 		int stride = 1 + i / n; // Stride increases by 1 after each full set of pairs
 		int B = (A + stride) % n;
 
-		// Create particle* pair
-		pairs[i] = { &spheres[A], &spheres[B] };
+		// Create particle& pair
+		pairs.emplace_back(spheres[A], spheres[B]);
 	}
 	return pairs;
 }
 
-// todo code an energy minimization for generating clusters. Instead of randomly moving particles around and checking for collisions, move them along x,y,z and check total system energy. Go until system energy does not decrease.
+void make_random_cluster(std::vector<Sphere>& spheres)
+{
+	// Seed for random cluster.
+	const int seed = time(nullptr);
+	srand(seed);
+
+	const int n = spheres.size();
+
+	const int smalls = std::round(static_cast<double>(n) * 27. / 31.375);
+	const int mediums = std::round(static_cast<double>(n) * 27. / (8 * 31.375));
+	const int larges = std::round(static_cast<double>(n) * 1. / 31.375);
+
+	std::thread t1{ [&spheres, radius = 3 * scaleBalls] {
+		std::for_each(
+			std::execution::par_unseq,
+			spheres.begin(),
+			spheres.end(),
+			Rand_vec_in_sphere(radius));
+	} };
+
+	std::thread t2{ [&spheres, radius = 2 * scaleBalls, larges, mediums] {
+		std::for_each(
+			std::execution::par_unseq,
+			spheres.begin() + larges,
+			spheres.begin() + larges + mediums,
+			Rand_vec_in_sphere(radius));
+	} };
+
+	std::thread t3{ [&spheres, radius = scaleBalls, larges, mediums] {
+		std::for_each(
+			std::execution::par_unseq,
+			spheres.begin() + larges + mediums,
+			spheres.end(),
+			Rand_vec_in_sphere(radius));
+	} };
+
+	t1.join(); t2.join(); t3.join();
+}
+
+void no_collisions(std::vector<Sphere_pair> pairs)
+{
+	int collisionDetected = 0;
+	int oldCollisions = pairs.size();
+
+	for (int failed = 0; failed < attempts; failed++)
+	{
+		std::for_each(std::execution::par_unseq, pairs.begin(), pairs.end(), )
+			// Check for Ball overlap.
+
+			if (overlap < 0)
+			{
+				collisionDetected += 1;
+				// Move the other ball:
+				g[B].pos = rand_spherical_vec(spaceRange, spaceRange, spaceRange);
+			}
+		if (collisionDetected < oldCollisions)
+		{
+			oldCollisions = collisionDetected;
+			std::cerr << "Collisions: " << collisionDetected << "                        \r";
+		}
+		if (collisionDetected == 0)
+		{
+			std::cerr << "\nSuccess!\n";
+			break;
+		}
+		if (failed == attempts - 1 || collisionDetected > static_cast<int>(1.5 * static_cast<double>(n))) // Added the second part to speed up spatial constraint increase when there are clearly too many collisions for the space to be feasible.
+		{
+			std::cerr << "Failed " << spaceRange << ". Increasing range " << spaceRangeIncrement << "cm^3.\n";
+			spaceRange += spaceRangeIncrement;
+			failed = 0;
+			for (unsigned int Ball = 0; Ball < n; Ball++)
+			{
+				g[Ball].pos = rand_spherical_vec(spaceRange, spaceRange, spaceRange); // Each time we fail and increase range, redistribute all balls randomly so we don't end up with big balls near mid and small balls outside.
+			}
+		}
+		collisionDetected = 0;
+	}
+}
 

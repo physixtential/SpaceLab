@@ -13,35 +13,6 @@
 #include <execution>
 #include "../vector3d.hpp"
 
-struct Sphere
-{
-	vector3d
-		pos,
-		vel,
-		velh,
-		w,
-		wh,
-		acc,
-		aacc;
-
-	double
-		R = 0,
-		m = 0,
-		moi = 0;
-};
-
-struct Sphere_pair
-{
-	Sphere* A;
-	Sphere* B;
-	double dist;
-	Sphere_pair() = default;
-	Sphere_pair(Sphere* a, Sphere* b, double d) : A(a), B(b), dist(d) {} // Init all
-	Sphere_pair(Sphere* a, Sphere* b) : A(a), B(b), dist(-1.0) {} // init pairs and set D to illogical distance
-	//p_pair(const p_pair& in_pair) : A(in_pair.A), B(in_pair.B), dist(in_pair.dist) {} // Copy constructor
-};
-
-
 class Cosmos
 {
 public:
@@ -1042,98 +1013,9 @@ private:
 
 
 
-	struct Rand_vec_in_sphere
-	{
-		double radius;
 
-		Rand_vec_in_sphere(const double& radius) : radius(radius) {}
 
-		void operator()(vector3d& vec)
-		{
-			do
-			{
-				vec = { rand_double(radius), rand_double(radius), rand_double(radius) };
-			} while (vec.norm() > radius);
-		}
-	};
 
-	void three_radii_cluster(std::vector<Sphere>& spheres)
-	{
-		// Seed for random cluster.
-		const int seed = time(nullptr);
-		srand(seed);
-
-		const int n = spheres.size();
-
-		const int smalls = std::round(static_cast<double>(n) * 27. / 31.375);
-		const int mediums = std::round(static_cast<double>(n) * 27. / (8 * 31.375));
-		const int larges = std::round(static_cast<double>(n) * 1. / 31.375);
-
-		std::thread t1{ [&spheres, radius = 3 * scaleBalls] {
-			std::for_each(
-				std::execution::par_unseq,
-				spheres.begin(),
-				spheres.end(),
-				Rand_vec_in_sphere(radius));
-		} };
-
-		std::thread t2{ [&spheres, radius = 2 * scaleBalls, larges, mediums] {
-			std::for_each(
-				std::execution::par_unseq,
-				spheres.begin() + larges,
-				spheres.begin() + larges + mediums,
-				Rand_vec_in_sphere(radius));
-		} };
-
-		std::thread t3{ [&spheres, radius = scaleBalls, larges, mediums] {
-			std::for_each(
-				std::execution::par_unseq,
-				spheres.begin() + larges + mediums,
-				spheres.end(),
-				Rand_vec_in_sphere(radius));
-		} };
-
-		t1.join(); t2.join(); t3.join();
-
-		//todo move this into a collision detection function
-		int collisionDetected = 0;
-		int oldCollisions = n;
-
-		for (int failed = 0; failed < attempts; failed++)
-		{
-			// Check for Ball overlap.
-			const double dist = (g[A].pos - g[B].pos).norm();
-			const double sumRaRb = g[A].R + g[B].R;
-			const double overlap = dist - sumRaRb;
-			if (overlap < 0)
-			{
-				collisionDetected += 1;
-				// Move the other ball:
-				g[B].pos = rand_spherical_vec(spaceRange, spaceRange, spaceRange);
-			}
-			if (collisionDetected < oldCollisions)
-			{
-				oldCollisions = collisionDetected;
-				std::cerr << "Collisions: " << collisionDetected << "                        \r";
-			}
-			if (collisionDetected == 0)
-			{
-				std::cerr << "\nSuccess!\n";
-				break;
-			}
-			if (failed == attempts - 1 || collisionDetected > static_cast<int>(1.5 * static_cast<double>(n))) // Added the second part to speed up spatial constraint increase when there are clearly too many collisions for the space to be feasible.
-			{
-				std::cerr << "Failed " << spaceRange << ". Increasing range " << spaceRangeIncrement << "cm^3.\n";
-				spaceRange += spaceRangeIncrement;
-				failed = 0;
-				for (unsigned int Ball = 0; Ball < n; Ball++)
-				{
-					g[Ball].pos = rand_spherical_vec(spaceRange, spaceRange, spaceRange); // Each time we fail and increase range, redistribute all balls randomly so we don't end up with big balls near mid and small balls outside.
-				}
-			}
-			collisionDetected = 0;
-		}
-	}
 
 	/// Make ballGroup from file data.
 	void loadSim(const std::string& path, const std::string& filename)

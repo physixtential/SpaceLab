@@ -5,10 +5,8 @@
 #include <ctime>
 #include <sstream>
 #include <iomanip>
-#include <algorithm>
 #include "../vector3d.hpp"
-#include "constants.hpp"
-#include "structures.hpp"
+#include "sphere_physics.h"
 
 // String buffers to hold data in memory until worth writing to file:
 std::stringstream ballBuffer;

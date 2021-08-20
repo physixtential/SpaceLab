@@ -186,18 +186,20 @@ void simOneStep(const unsigned int& Step)
 					// Rolling Friction a:
 					if (O.w[A].norm() > 1e-13 or O.w[B].norm() > 1e-13)
 					{
-
-						const double w_compare_scaler = 0.5 * (1 + O.w[A].normalized().dot(O.w[B].normalized()));
-						rollTorqueA += -u_r * elasticForceOnA.norm() * O.w[A].normalized() * w_compare_scaler;
-						rollTorqueB += -u_r * elasticForceOnA.norm() * O.w[B].normalized() * w_compare_scaler;
-
-						rollForceA = -rollTorqueA.norm() / O.R[A] * rel_vel_of_A_unit;
-						rollForceB = -rollTorqueB.norm() / O.R[B] * -rel_vel_of_A_unit;
-
-						rollTorqueA += -(O.R[A] / sumRaRb) * rVec.cross(rollForceA);
-						rVec = -rVec; // Flip vector between particles
-						rollTorqueB += -(O.R[B] / sumRaRb) * rVec.cross(rollForceB);
-						rVec = -rVec; // Flip vector between particles
+						// More similar rotation means lower value. between 0 and 1.
+						const double w_compare_scaler = fabs(.5 * (-1 + O.w[A].normalized().dot(O.w[B].normalized())));
+						if (O.w[A].norm()>O.w[B].norm())
+						{
+							O.w[A] *= .9*w_compare_scaler;
+							O.w[B] *= 1.1 * w_compare_scaler;
+						}
+						else
+						{
+							O.w[A] *= 1.1 * w_compare_scaler;
+							O.w[B] *= .9 * w_compare_scaler;
+						}
+						//rollTorqueA += -u_r * elasticForceOnA.norm() * O.w[A].normalized() * w_compare_scaler;
+						//rollTorqueB += -u_r * elasticForceOnA.norm() * O.w[B].normalized() * w_compare_scaler;
 					}
 				}
 
