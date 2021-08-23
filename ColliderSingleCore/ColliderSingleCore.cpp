@@ -188,9 +188,9 @@ void simOneStep(const unsigned int& Step)
 					{
 						// More similar rotation means lower value. between 0 and 1.
 						const double w_compare_scaler = fabs(.5 * (-1 + O.w[A].normalized().dot(O.w[B].normalized())));
-						if (O.w[A].norm()>O.w[B].norm())
+						if (O.w[A].norm() > O.w[B].norm())
 						{
-							O.w[A] *= .9*w_compare_scaler;
+							O.w[A] *= .9 * w_compare_scaler;
 							O.w[B] *= 1.1 * w_compare_scaler;
 						}
 						else

@@ -1199,7 +1199,22 @@ private:
 	{
 		kin = kConsts * rMax * vel * vel;
 		kout = cor * kin;
-		dt = .01 * sqrt((fourThirdsPiRho / kin) * rMin * rMin * rMin);
+		const double h2 = h_min * h_min;
+		const double four_R_min = 4 * rMin * h_min;
+		const double vdw_force_max =
+			Ha / 6 *
+			64 * rMin * rMin * rMin * rMin * rMin * rMin *
+			((h_min + rMin + rMin) /
+				(
+					(h2 + four_R_min) *
+					(h2 + four_R_min) *
+					(h2 + four_R_min + 4 * rMin * rMin) *
+					(h2 + four_R_min + 4 * rMin * rMin)
+					));
+		const double elastic_force_max = kin * maxOverlap * rMin;
+		const double regime = (vdw_force_max > elastic_force_max) ? vdw_force_max : elastic_force_max;
+		const double regime_adjust = regime / (maxOverlap * rMin);
+		dt = .01 * sqrt((fourThirdsPiRho / regime_adjust) * rMin * rMin * rMin);
 	}
 
 	void simInitCondAndCenter()

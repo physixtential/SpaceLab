@@ -26,7 +26,7 @@ vCustom = 1, // Velocity cm/s
 kConsts = fourThirdsPiRho / (maxOverlap * maxOverlap),
 impactParameter = 0, // Impact angle radians
 Ha = 21.1e-13, // Hamaker constant for vdw force
-hmin = scaleBalls * .1,//1e8 * std::numeric_limits<double>::epsilon(), // 2.22045e-10 (epsilon is 2.22045e-16)
+h_min = scaleBalls * .1,//1e8 * std::numeric_limits<double>::epsilon(), // 2.22045e-10 (epsilon is 2.22045e-16)
 cone = M_PI_2; // Cone of particles ignored moving away from center of mass. Larger angle ignores more.
 
 // Simulation Structure
