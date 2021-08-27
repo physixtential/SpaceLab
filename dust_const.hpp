@@ -12,7 +12,7 @@ constexpr double
 G = 6.67e-8, // Gravitational constant
 density = 2.7,
 u_s = 0.9, // Coeff of sliding friction
-u_r = 1e-5, // Coeff of rolling friction
+u_r = 1e-1, // Coeff of rolling friction
 sigma = .29, // Poisson ratio for rolling friction.
 Y = 2.0e12, // Young's modulus in erg/cm3
 cor = 0.4, // Coeff of restitution

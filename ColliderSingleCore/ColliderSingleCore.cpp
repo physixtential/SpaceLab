@@ -111,8 +111,9 @@ void simOneStep(const unsigned int& Step)
 		for (unsigned int B = 0; B < A; B++)
 		{
 			const double sumRaRb = O.R[A] + O.R[B];
-			vector3d rVec = O.pos[B] - O.pos[A]; // Start with rVec from a to b.
-			const double dist = (rVec).norm();
+			const vector3d rVecab = O.pos[B] - O.pos[A]; // Start with rVec from a to b.
+			const vector3d rVecba = -rVecab;
+			const double dist = (rVecab).norm();
 
 			// Check for collision between Ball and otherBall:
 			double overlap = sumRaRb - dist;
@@ -137,11 +138,11 @@ void simOneStep(const unsigned int& Step)
 					k = kin;
 				}
 
-				// Cohesion (in contact) h must always be hmin:
-				const double h = hmin;
+				// Cohesion (in contact) h must always be h_min:
+				constexpr double h = h_min;
 				const double Ra = O.R[A];
 				const double Rb = O.R[B];
-				const double h2 = h * h;
+				constexpr double h2 = h * h;
 				const double twoRah = 2 * Ra * h;
 				const double twoRbh = 2 * Rb * h;
 				const vector3d vdwForceOnA =
@@ -154,13 +155,13 @@ void simOneStep(const unsigned int& Step)
 							(h2 + twoRah + twoRbh + 4 * Ra * Rb) *
 							(h2 + twoRah + twoRbh + 4 * Ra * Rb)
 							)) *
-					rVec.normalized();
+					rVecab.normalized();
 
 				// Elastic force:
-				const vector3d elasticForceOnA = -k * overlap * .5 * (rVec / dist);
+				const vector3d elasticForceOnA = -k * overlap * .5 * (rVecab / dist);
 
 				// Gravity force:
-				const vector3d gravForceOnA = (G * O.m[A] * O.m[B] / (dist * dist)) * (rVec / dist);
+				const vector3d gravForceOnA = (G * O.m[A] * O.m[B] / (dist * dist)) * (rVecab / dist);
 
 				// Sliding and Rolling Friction:
 				vector3d torqueA{ 0, 0, 0 };
@@ -176,50 +177,41 @@ void simOneStep(const unsigned int& Step)
 				vector3d rollForceB{ 0, 0, 0 };
 
 				vector3d dVel = O.vel[B] - O.vel[A];
-				const vector3d rel_vel_of_A = dVel - dVel.dot(rVec) * (rVec / (dist * dist)) - O.w[A].cross(O.R[A] / sumRaRb * rVec) - O.w[B].cross(O.R[B] / sumRaRb * rVec);
+				const vector3d rel_vel_of_A = dVel - dVel.dot(rVecab) * (rVecab / (dist * dist)) - O.w[A].cross(O.R[A] / sumRaRb * rVecab) - O.w[B].cross(O.R[B] / sumRaRb * rVecab);
 				double rel_vel_mag = rel_vel_of_A.norm();
 				if (rel_vel_mag > 1e-13) // Prevent divide by zero.
 				{
 					const vector3d rel_vel_of_A_unit = rel_vel_of_A / rel_vel_mag;
 					slideForceOnA = u_s * elasticForceOnA.norm() * (rel_vel_of_A_unit);
-
-					// Rolling Friction a:
-					if (O.w[A].norm() > 1e-13 or O.w[B].norm() > 1e-13)
-					{
-						// More similar rotation means lower value. between 0 and 1.
-						const double w_compare_scaler = fabs(.5 * (-1 + O.w[A].normalized().dot(O.w[B].normalized())));
-						if (O.w[A].norm() > O.w[B].norm())
-						{
-							O.w[A] *= .9 * w_compare_scaler;
-							O.w[B] *= 1.1 * w_compare_scaler;
-						}
-						else
-						{
-							O.w[A] *= 1.1 * w_compare_scaler;
-							O.w[B] *= .9 * w_compare_scaler;
-						}
-						//rollTorqueA += -u_r * elasticForceOnA.norm() * O.w[A].normalized() * w_compare_scaler;
-						//rollTorqueB += -u_r * elasticForceOnA.norm() * O.w[B].normalized() * w_compare_scaler;
-					}
 				}
 
 				// Torque due to sliding for a:
-				slideTorqueA = (O.R[A] / sumRaRb) * rVec.cross(slideForceOnA);
-				rVec = -rVec; // Flip vector between particles
-				slideTorqueB = (O.R[B] / sumRaRb) * rVec.cross(-slideForceOnA);
+				slideTorqueA = (O.R[A] / sumRaRb) * rVecab.cross(slideForceOnA);
+				slideTorqueB = (O.R[B] / sumRaRb) * rVecba.cross(-slideForceOnA);
 
+				// Torque due to rolling friction on a:
+				const double elastic_force_A_norm = elasticForceOnA.norm();
+				const vector3d w_diff = O.w[A] - O.w[B];
+				const double w_diff_norm = w_diff.norm();
+				const vector3d r_a = rVecab * O.R[A] / sumRaRb;
+				const vector3d r_b = rVecab * O.R[B] / sumRaRb;
+				if (w_diff_norm > 1e-13) // Divide by zero protection.
+				{
+					rollForceA = -u_r * elastic_force_A_norm * (w_diff).cross(r_a);
+					rollForceB = -u_r * elastic_force_A_norm * (w_diff).cross(r_b);
 
-
+					rollTorqueA = (O.R[A] / sumRaRb) * rVecab.cross(rollForceA);
+					rollTorqueB = (O.R[B] / sumRaRb) * rVecba.cross(rollForceB);
+				}
 
 
 				// Total forces on a:
-				totalForceOnA = gravForceOnA + elasticForceOnA + slideForceOnA + vdwForceOnA;
+				totalForceOnA = gravForceOnA + elasticForceOnA + slideForceOnA + vdwForceOnA + rollForceA;
 
 				// Total torque a and b:
 				torqueA = slideTorqueA + rollTorqueA;
 				torqueB = slideTorqueB + rollTorqueB;
 
-				// somehow this is not changing angular velocity
 				O.aacc[A] += torqueA / O.moi[A];
 				O.aacc[B] += torqueB / O.moi[B];
 
@@ -232,13 +224,13 @@ void simOneStep(const unsigned int& Step)
 			else // Non-contact forces:
 			{
 				// No collision: Include gravity and vdw:
-				const vector3d gravForceOnA = (G * O.m[A] * O.m[B] / (dist * dist)) * (rVec / dist);
+				const vector3d gravForceOnA = (G * O.m[A] * O.m[B] / (dist * dist)) * (rVecab / dist);
 
 				// Cohesion (non-contact) h must be positive or h + Ra + Rb becomes catastrophic cancellation:
 				double h = std::fabs(overlap);
-				if (h < hmin) // If h is closer to 0 (almost touching), use hmin.
+				if (h < h_min) // If h is closer to 0 (almost touching), use hmin.
 				{
-					h = hmin;
+					h = h_min;
 				}
 				const double Ra = O.R[A];
 				const double Rb = O.R[B];
@@ -255,7 +247,7 @@ void simOneStep(const unsigned int& Step)
 							(h2 + twoRah + twoRbh + 4 * Ra * Rb) *
 							(h2 + twoRah + twoRbh + 4 * Ra * Rb)
 							)) *
-					rVec.normalized();
+					rVecab.normalized();
 
 				totalForceOnA = gravForceOnA + vdwForceOnA;
 				if (writeStep)

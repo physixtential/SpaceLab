@@ -23,7 +23,7 @@ public:
 	{
 		allocateGroup(nBalls);
 	}
-
+	
 	/// @brief For generating a new ballGroup of size nBalls
 	/// @param nBalls Number of balls to allocate.
 	/// @param generate Just here to get you to the right constructor. This is definitely wrong.
@@ -1211,6 +1211,7 @@ private:
 					(h2 + four_R_min + 4 * rMin * rMin) *
 					(h2 + four_R_min + 4 * rMin * rMin)
 					));
+		//todo is it rmin*rmin or rmin*rmax
 		const double elastic_force_max = kin * maxOverlap * rMin;
 		const double regime = (vdw_force_max > elastic_force_max) ? vdw_force_max : elastic_force_max;
 		const double regime_adjust = regime / (maxOverlap * rMin);

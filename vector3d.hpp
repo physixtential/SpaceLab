@@ -145,6 +145,16 @@ public:
 		return *this / this->norm();
 	}
 
+	[[nodiscard]] vector3d normalized_safe() const
+	{
+		if (fabs(this->norm())<1e-13)
+		{
+			std::cerr << "dividing by zero in unit vector calculation!!!!!!!!!!!!!!";
+			system("pause");
+		}
+		return *this / this->norm();
+	}
+
 	[[nodiscard]] std::string toStr() const
 	{
 		return "[" + std::to_string(x) + ", " + std::to_string(y) + ", " + std::to_string(z) + "]";
