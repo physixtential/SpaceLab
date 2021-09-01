@@ -130,7 +130,11 @@ public:
 	}
 	[[nodiscard]] vector3d cross(const vector3d& v) const
 	{
-		return vector3d(y * v.z - z * v.y, z * v.x - x * v.z, x * v.y - y * v.x);
+		return vector3d(
+			y * v.z - z * v.y,
+			z * v.x - x * v.z, 
+			x * v.y - y * v.x
+		);
 	}
 	[[nodiscard]] double norm() const
 	{

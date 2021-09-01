@@ -24,7 +24,6 @@
   <ItemGroup>
     <ClInclude Include="sphere_physics.h" />
     <ClInclude Include="structures.hpp" />
-    <ClInclude Include="constants.hpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>

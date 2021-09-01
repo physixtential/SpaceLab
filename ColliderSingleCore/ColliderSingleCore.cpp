@@ -111,7 +111,7 @@ void simOneStep(const unsigned int& Step)
 		for (unsigned int B = 0; B < A; B++)
 		{
 			const double sumRaRb = O.R[A] + O.R[B];
-			const vector3d rVecab = O.pos[B] - O.pos[A]; // Start with rVec from a to b.
+			const vector3d rVecab = O.pos[B] - O.pos[A]; // Vector from a to b.
 			const vector3d rVecba = -rVecab;
 			const double dist = (rVecab).norm();
 
@@ -164,53 +164,43 @@ void simOneStep(const unsigned int& Step)
 				const vector3d gravForceOnA = (G * O.m[A] * O.m[B] / (dist * dist)) * (rVecab / dist);
 
 				// Sliding and Rolling Friction:
+				vector3d slideForceOnA{ 0, 0, 0 };
+				vector3d rollForceA{ 0, 0, 0 };
 				vector3d torqueA{ 0, 0, 0 };
 				vector3d torqueB{ 0, 0, 0 };
 
-				vector3d slideForceOnA{ 0, 0, 0 };
-
-				vector3d slideTorqueA{ 0, 0, 0 };
-				vector3d slideTorqueB{ 0, 0, 0 };
-				vector3d rollTorqueA{ 0, 0, 0 };
-				vector3d rollTorqueB{ 0, 0, 0 };
-				vector3d rollForceA{ 0, 0, 0 };
-				vector3d rollForceB{ 0, 0, 0 };
-
-				vector3d dVel = O.vel[B] - O.vel[A];
-				const vector3d rel_vel_of_A = dVel - dVel.dot(rVecab) * (rVecab / (dist * dist)) - O.w[A].cross(O.R[A] / sumRaRb * rVecab) - O.w[B].cross(O.R[B] / sumRaRb * rVecab);
-				double rel_vel_mag = rel_vel_of_A.norm();
-				if (rel_vel_mag > 1e-13) // Prevent divide by zero.
-				{
-					const vector3d rel_vel_of_A_unit = rel_vel_of_A / rel_vel_mag;
-					slideForceOnA = u_s * elasticForceOnA.norm() * (rel_vel_of_A_unit);
-				}
-
-				// Torque due to sliding for a:
-				slideTorqueA = (O.R[A] / sumRaRb) * rVecab.cross(slideForceOnA);
-				slideTorqueB = (O.R[B] / sumRaRb) * rVecba.cross(-slideForceOnA);
-
-				// Torque due to rolling friction on a:
-				const double elastic_force_A_norm = elasticForceOnA.norm();
+				// Shared terms:
+				const double elastic_force_A_mag = elasticForceOnA.norm();
+				const vector3d r_a = rVecab * O.R[A] / sumRaRb; // Center to contact point
+				const vector3d r_b = rVecba * O.R[B] / sumRaRb;
 				const vector3d w_diff = O.w[A] - O.w[B];
-				const double w_diff_norm = w_diff.norm();
-				const vector3d r_a = rVecab * O.R[A] / sumRaRb;
-				const vector3d r_b = rVecab * O.R[B] / sumRaRb;
-				if (w_diff_norm > 1e-13) // Divide by zero protection.
-				{
-					rollForceA = -u_r * elastic_force_A_norm * (w_diff).cross(r_a);
-					rollForceB = -u_r * elastic_force_A_norm * (w_diff).cross(r_b);
 
-					rollTorqueA = (O.R[A] / sumRaRb) * rVecab.cross(rollForceA);
-					rollTorqueB = (O.R[B] / sumRaRb) * rVecba.cross(rollForceB);
+				// Sliding friction terms:
+				const vector3d d_vel = O.vel[B] - O.vel[A];
+				//const vector3d rel_vel_of_A = d_vel - d_vel.dot(rVecab) * (rVecab / (dist * dist)) - w_diff.cross(r_a);
+				const vector3d rel_vel_of_A = d_vel - d_vel.dot(rVecab) * (rVecab / (dist * dist)) - O.w[A].cross(r_a) - O.w[B].cross(r_a);
+
+				// Compute sliding friction force:
+				const double rel_vel_mag = rel_vel_of_A.norm();
+				if (rel_vel_mag > 1e-13) // Divide by zero protection.
+				{
+					slideForceOnA = u_s * elastic_force_A_mag * (rel_vel_of_A / rel_vel_mag);
 				}
 
+				// Compute rolling friction force:
+				const double w_diff_mag = w_diff.norm();
+				if (w_diff_mag > 1e-13) // Divide by zero protection.
+				{
+					rollForceA = -u_r * elastic_force_A_mag * (w_diff).cross(r_a) / w_diff_mag;
+				}
 
 				// Total forces on a:
 				totalForceOnA = gravForceOnA + elasticForceOnA + slideForceOnA + vdwForceOnA + rollForceA;
 
 				// Total torque a and b:
-				torqueA = slideTorqueA + rollTorqueA;
-				torqueB = slideTorqueB + rollTorqueB;
+				const vector3d off_center_forces_A = slideForceOnA +rollForceA;
+				torqueA = r_a.cross(off_center_forces_A);
+				torqueB = r_b.cross(-off_center_forces_A);
 
 				O.aacc[A] += torqueA / O.moi[A];
 				O.aacc[B] += torqueB / O.moi[B];
@@ -256,7 +246,7 @@ void simOneStep(const unsigned int& Step)
 				}
 
 				// todo this is part of push_apart. Not great like this.
-				// For expanding overlappers:
+				// For pushing apart overlappers:
 				//O.vel[A] = { 0,0,0 };
 				//O.vel[B] = { 0,0,0 };
 			}

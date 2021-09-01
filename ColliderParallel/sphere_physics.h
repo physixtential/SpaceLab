@@ -62,7 +62,9 @@ public:
 	Sphere_pair(Sphere& a, Sphere& b) :
 		a_(a),
 		b_(b),
-		sum_Ra_Rb(a.R + b.R) {}
+		sum_Ra_Rb(a.R + b.R)
+	{
+	}
 
 
 
@@ -119,7 +121,7 @@ struct Collision_displacer
 {
 	void operator()(Sphere_pair& pair)
 	{
-		if (pair.get_prev_overlap()>0)
+		if (pair.get_prev_overlap() > 0)
 		{
 
 		}
@@ -242,13 +244,14 @@ void make_random_cluster(std::vector<Sphere>& spheres)
 	t1.join(); t2.join(); t3.join();
 }
 
-void no_collisions(std::vector<Sphere_pair> pairs)
+void make_no_collisions(std::vector<Sphere_pair> pairs)
 {
 	int collisionDetected = 0;
 	int oldCollisions = pairs.size();
 
 	for (int failed = 0; failed < attempts; failed++)
 	{
+		// todo start here next time
 		std::for_each(std::execution::par_unseq, pairs.begin(), pairs.end(), )
 			// Check for Ball overlap.
 

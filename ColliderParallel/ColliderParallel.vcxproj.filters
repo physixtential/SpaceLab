@@ -23,9 +23,6 @@
     <ClInclude Include="structures.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="constants.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="sphere_physics.h">
       <Filter>Header Files</Filter>
     </ClInclude>
