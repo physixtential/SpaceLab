@@ -119,6 +119,7 @@ void simOneStep(const unsigned int& Step)
 			double overlap = sumRaRb - dist;
 
 			vector3d totalForceOnA{ 0, 0, 0 };
+			vector3d totalForceOnB{ 0, 0, 0 };
 
 			// Distance array element: 1,0    2,0    2,1    3,0    3,1    3,2 ...
 			unsigned int e = static_cast<unsigned>(A * (A - 1) * .5) + B; // a^2-a is always even, so this works.
@@ -177,30 +178,30 @@ void simOneStep(const unsigned int& Step)
 
 				// Sliding friction terms:
 				const vector3d d_vel = O.vel[B] - O.vel[A];
-				//const vector3d rel_vel_of_A = d_vel - d_vel.dot(rVecab) * (rVecab / (dist * dist)) - w_diff.cross(r_a);
-				const vector3d rel_vel_of_A = d_vel - d_vel.dot(rVecab) * (rVecab / (dist * dist)) - O.w[A].cross(r_a) - O.w[B].cross(r_a);
+				const vector3d frame_A_vel_B = d_vel - d_vel.dot(rVecab) * (rVecab / (dist * dist)) - O.w[A].cross(r_a) - O.w[B].cross(r_a);
 
 				// Compute sliding friction force:
-				const double rel_vel_mag = rel_vel_of_A.norm();
+				const double rel_vel_mag = frame_A_vel_B.norm();
 				if (rel_vel_mag > 1e-13) // Divide by zero protection.
 				{
-					slideForceOnA = u_s * elastic_force_A_mag * (rel_vel_of_A / rel_vel_mag);
+					// In the frame of A, B applies force in the direction of B's velocity.
+					slideForceOnA = u_s * elastic_force_A_mag * (frame_A_vel_B / rel_vel_mag);
 				}
 
 				// Compute rolling friction force:
 				const double w_diff_mag = w_diff.norm();
 				if (w_diff_mag > 1e-13) // Divide by zero protection.
 				{
-					rollForceA = -u_r * elastic_force_A_mag * (w_diff).cross(r_a) / w_diff_mag;
+					rollForceA = u_r * elastic_force_A_mag * (w_diff).cross(r_a) / w_diff_mag;
 				}
 
 				// Total forces on a:
-				totalForceOnA = gravForceOnA + elasticForceOnA + slideForceOnA + vdwForceOnA + rollForceA;
+				totalForceOnA = gravForceOnA + elasticForceOnA + slideForceOnA + vdwForceOnA + 1000 * rollForceA;
 
 				// Total torque a and b:
-				const vector3d off_center_forces_A = slideForceOnA +rollForceA;
-				torqueA = r_a.cross(off_center_forces_A);
-				torqueB = r_b.cross(-off_center_forces_A);
+				const vector3d off_center_forces_A = slideForceOnA + rollForceA;
+				torqueA = r_a.cross(slideForceOnA);// + r_a.cross(rollForceA);
+				torqueB = r_b.cross(-slideForceOnA);// +r_b.cross(rollForceA);
 
 				O.aacc[A] += torqueA / O.moi[A];
 				O.aacc[B] += torqueB / O.moi[B];

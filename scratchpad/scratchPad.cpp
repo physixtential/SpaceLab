@@ -14,16 +14,17 @@ struct Duck
 	}
 };
 
+template<typename T>
+void swap(T& a, T& b)
+{
+	T temp{ a };
+	a = b;
+	b = temp;
+}
+
 int main()
 {
-	std::vector<Duck> plump; // Three ducks that will have their feathers specified later.
-	plump.reserve(3);
-	plump.emplace_back(100);
-	plump.emplace_back(200);
-	plump.emplace_back(300);
-
-	std::cout << plump.size();
-	std::cout << plump[0].feathers;
-	std::cout << plump[1].feathers;
-	std::cout << plump[2].feathers;
+	double x{ 3.0 };
+	double y{ 2.4 };
+	swap(x,y);
 }
