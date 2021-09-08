@@ -196,26 +196,35 @@ void simOneStep(const unsigned int& Step)
 				}
 
 				// Total forces on a:
-				totalForceOnA = gravForceOnA + elasticForceOnA + slideForceOnA + vdwForceOnA + 1000 * rollForceA;
+				totalForceOnA = gravForceOnA + elasticForceOnA + slideForceOnA + vdwForceOnA;// +rollForceA;
 
 				// Total torque a and b:
-				const vector3d off_center_forces_A = slideForceOnA + rollForceA;
-				torqueA = r_a.cross(slideForceOnA);// + r_a.cross(rollForceA);
-				torqueB = r_b.cross(-slideForceOnA);// +r_b.cross(rollForceA);
+				const vector3d off_center_forces_A = slideForceOnA;// + rollForceA;
+				torqueA = r_a.cross(off_center_forces_A);
+				torqueB = r_b.cross(-off_center_forces_A);
 
 				O.aacc[A] += torqueA / O.moi[A];
 				O.aacc[B] += torqueB / O.moi[B];
 
 				if (writeStep)
 				{
-					// Calculate potential energy. Important to recognize that the factor of 1/2 is not in front of K because this is for the spring potential in each ball and they are the same potential.
-					O.PE += -G * O.m[A] * O.m[B] / dist + 0.5 * k * overlap * overlap;
+					// No factor of 1/2. Includes both spheres:
+					//O.PE += -G * O.m[A] * O.m[B] / dist + 0.5 * k * overlap * overlap;
+
+					// Van Der Waals + elastic:
+					const double diffRaRb = O.R[A] - O.R[B];
+					const double z = sumRaRb + h;
+					const double two_RaRb = 2 * O.R[A] * O.R[B];
+					const double denom_sum = z * z - (sumRaRb * sumRaRb);
+					const double denom_diff = z * z - (diffRaRb * diffRaRb);
+					const double U_vdw = -Ha / 6 * (two_RaRb / denom_sum + two_RaRb / denom_diff + log(denom_sum / denom_diff));
+					O.PE += U_vdw + 0.5 * k * overlap * overlap;
 				}
 			}
 			else // Non-contact forces:
 			{
 				// No collision: Include gravity and vdw:
-				const vector3d gravForceOnA = (G * O.m[A] * O.m[B] / (dist * dist)) * (rVecab / dist);
+				//const vector3d gravForceOnA = (G * O.m[A] * O.m[B] / (dist * dist)) * (rVecab / dist);
 
 				// Cohesion (non-contact) h must be positive or h + Ra + Rb becomes catastrophic cancellation:
 				double h = std::fabs(overlap);
@@ -240,10 +249,18 @@ void simOneStep(const unsigned int& Step)
 							)) *
 					rVecab.normalized();
 
-				totalForceOnA = gravForceOnA + vdwForceOnA;
+				totalForceOnA = vdwForceOnA;// +gravForceOnA;
 				if (writeStep)
 				{
-					O.PE += -G * O.m[A] * O.m[B] / dist;
+					//O.PE += -G * O.m[A] * O.m[B] / dist; // Gravitational
+
+					const double diffRaRb = O.R[A] - O.R[B];
+					const double z = sumRaRb + h;
+					const double two_RaRb = 2 * O.R[A] * O.R[B];
+					const double denom_sum = z * z - (sumRaRb * sumRaRb);
+					const double denom_diff = z * z - (diffRaRb * diffRaRb);
+					const double U_vdw = -Ha / 6 * (two_RaRb / denom_sum + two_RaRb / denom_diff + log(denom_sum / denom_diff));
+					O.PE += U_vdw; // Van Der Waals
 				}
 
 				// todo this is part of push_apart. Not great like this.
