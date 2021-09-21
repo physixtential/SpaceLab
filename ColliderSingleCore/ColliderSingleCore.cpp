@@ -192,16 +192,15 @@ void simOneStep(const unsigned int& Step)
 				const double w_diff_mag = w_diff.norm();
 				if (w_diff_mag > 1e-13) // Divide by zero protection.
 				{
-					rollForceA = u_r * elastic_force_A_mag * (w_diff).cross(r_a) / w_diff_mag;
+					rollForceA = -u_r * elastic_force_A_mag * (w_diff).cross(r_a) / (w_diff).cross(r_a).norm();
 				}
 
 				// Total forces on a:
-				totalForceOnA = gravForceOnA + elasticForceOnA + slideForceOnA + vdwForceOnA;// +rollForceA;
+				totalForceOnA = gravForceOnA + elasticForceOnA + slideForceOnA + vdwForceOnA;
 
 				// Total torque a and b:
-				const vector3d off_center_forces_A = slideForceOnA;// + rollForceA;
-				torqueA = r_a.cross(off_center_forces_A);
-				torqueB = r_b.cross(-off_center_forces_A);
+				torqueA = r_a.cross(slideForceOnA + rollForceA);
+				torqueB = r_b.cross(-slideForceOnA + rollForceA);
 
 				O.aacc[A] += torqueA / O.moi[A];
 				O.aacc[B] += torqueB / O.moi[B];

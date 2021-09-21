@@ -31,12 +31,12 @@ public:
 	ballGroup(const int nBalls, const bool generate, const double& customVel)
 	{
 		generateBallField(nBalls);
-		this->pos[0] = { 1e-4, 0, 1.4e-4 };
-		this->pos[1] = { -1e-4, 0, 0 };
-		this->vel[0] = { -0, 0, 0 };
-		this->vel[1] = { 0, 0, 0 };
-		this->m[1] = 10 * density * 4. / 3. * 3.14159 * std::pow(R[1], 3);
-		this->moi[1] = .4 * m[1] * R[1] * R[1];
+		//this->pos[0] = { 1e-4, 0, 1.4e-4 };
+		//this->pos[1] = { -1e-4, 0, 0 };
+		//this->vel[0] = { -vCustom, 0, 0 };
+		//this->vel[1] = { 0, 0, 0 };
+		//this->m[1] = 10 * density * 4. / 3. * 3.14159 * std::pow(R[1], 3);
+		//this->moi[1] = .4 * m[1] * R[1] * R[1];
 		mTotal = getMass();
 		calc_v_collapse();
 		calibrateDT(0, customVel);
@@ -142,7 +142,7 @@ public:
 
 		if (timeResolution / dt > 1.)
 		{
-			skip = 1;// static_cast<unsigned>(floor(timeResolution / dt));
+			skip = static_cast<unsigned>(floor(timeResolution / dt));
 			std::cerr << "\tSkip: " << skip << '\n';
 		}
 		else
