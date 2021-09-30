@@ -10,7 +10,7 @@ constexpr bool dynamicTime = false;
 
 constexpr double
 G = 6.67e-8, // Gravitational constant
-density = 2.7,
+density = 2.25,
 u_s = 0.9, // Coeff of sliding friction
 u_r = 0.01, // Coeff of rolling friction
 sigma = .29, // Poisson ratio for rolling friction.
@@ -32,7 +32,7 @@ cone = M_PI_2; // Cone of particles ignored moving away from center of mass. Lar
 // Simulation Structure
 constexpr int
 properties = 11, // Number of columns in simData file per ball
-genBalls = 50,
+genBalls = 500,
 attempts = 200; // How many times to try moving every ball touching another in generator.
 
 size_t
@@ -43,7 +43,7 @@ double
 dt = -1,
 kin = -1,      // Spring constant
 kout = -1,
-spaceRange = std::pow((1. / .74 * scaleBalls * scaleBalls * scaleBalls * genBalls), 1. / 3.), // Rough minimum space required
+spaceRange = 4 * std::pow((1. / .74 * scaleBalls * scaleBalls * scaleBalls * genBalls), 1. / 3.), // Rough minimum space required
 spaceRangeIncrement = scaleBalls * 3,
 z0Rot = 0,           // Cluster one z axis rotation
 y0Rot = 0,           // Cluster one y axis rotation
