@@ -349,3 +349,14 @@ healthchecksdb
 /ColliderParallel/VTune Profiler Results/sample (matrix)/r000hs
 /ColliderParallel/VTune Profiler Results/sample (matrix)
 /ColliderParallel/VTune Profiler Results/desktop.ini
+/Collider/desktop.ini
+/ColliderCuda/desktop.ini
+/ColliderParallel/desktop.ini
+/ColliderSingleCore/VTune Profiler Results/desktop.ini
+/ColliderSingleCore/desktop.ini
+/scratchpad/VTune Profiler Results/desktop.ini
+/scratchpad/desktop.ini
+/scratchpadCUDA/desktop.ini
+*.ini
+/GeneratorCUDA/desktop.ini
+*.ini
