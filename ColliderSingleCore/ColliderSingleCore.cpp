@@ -29,8 +29,8 @@ void simOneStep(const unsigned int& Step);
 void safetyChecks();
 
 //ballGroup O(path, projectileName, targetName, vCustom); // Collision
-//ballGroup O(path, targetName, 0); // Continue
-ballGroup O(genBalls, true, vCustom); // Generate
+//ballGroup O(path, 0); // Continue
+//ballGroup O(genBalls, true, vCustom); // Generate
 
 //////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////
@@ -53,7 +53,11 @@ int main(const int argc, char const* argv[])
 	//O.pushApart();
 	safetyChecks();
 	O.simInitWrite(outputPrefix);
-	simLooper();
+	for (size_t i = 0; i < 100; i++)
+	{
+		ballGroup O(path, 0);
+		simLooper();
+	}
 
 } // end main
 //////////////////////////////////////////////////////////////
@@ -61,29 +65,8 @@ int main(const int argc, char const* argv[])
 //////////////////////////////////////////////////////////////
 
 
-void simOneStep(const unsigned int& Step)
+void simOneStep(const bool writeStep)
 {
-	// Check if this is a write step:
-	if (Step % skip == 0)
-	{
-		writeStep = true;
-
-		simTimeElapsed += dt * skip;
-
-		// Progress reporting:
-		float eta = ((time(nullptr) - startProgress) / static_cast<float>(skip) * static_cast<float>(steps - Step)) / 3600.f; // Hours.
-		float real = (time(nullptr) - start) / 3600.f;
-		float simmed = simTimeElapsed / 3600.f;
-		float progress = (static_cast<float>(Step) / static_cast<float>(steps) * 100.f);
-		fprintf(stderr, "%u\t%2.0f%%\tETA: %5.2lf\tReal: %5.2f\tSim: %5.2f hrs\tR/S: %5.2f\n", Step, progress, eta, real, simmed, real / simmed);
-		//fprintf(stdout, "%u\t%2.0f%%\tETA: %5.2lf\tReal: %5.2f\tSim: %5.2f hrs\tR/S: %5.2f\n", Step, progress, eta, real, simmed, real / simmed);
-		fflush(stdout);
-		startProgress = time(nullptr);
-	}
-	else
-	{
-		writeStep = false;
-	}
 
 	/// FIRST PASS - Update Kinematic Parameters:
 	for (unsigned int Ball = 0; Ball < O.cNumBalls; Ball++)
@@ -329,57 +312,7 @@ void simOneStep(const unsigned int& Step)
 			O.angMom += O.m[Ball] * O.pos[Ball].cross(O.vel[Ball]) + O.moi[Ball] * O.w[Ball];
 		}
 	} // THIRD PASS END
-
-	if (writeStep)
-	{
-		// Write energy to stream:
-		energyBuffer << '\n'
-			<< simTimeElapsed << ','
-			<< O.PE << ','
-			<< O.KE << ','
-			<< O.PE + O.KE << ','
-			<< O.mom.norm() << ','
-			<< O.angMom.norm(); // the two zeros are bound and unbound mass
-
-		// Reinitialize energies for next step:
-		O.KE = 0;
-		O.PE = 0;
-		O.mom = { 0, 0, 0 };
-		O.angMom = { 0, 0, 0 };
-		// unboundMass = 0;
-		// boundMass = massTotal;
-
-		////////////////////////////////////////////////////////////////////
-		/// Data Export ////////////////////////////////////////////////////
-		////////////////////////////////////////////////////////////////////
-		if (time(nullptr) - lastWrite > 1800 || Step / skip % 10 == 0)
-		{
-			// Report vMax:
-			std::cerr << "vMax = " << O.getVelMax() << " Steps recorded: " << Step / skip << '\n';
-			std::cerr << "Data Write\n\n";
-
-			// Write simData to file and clear buffer.
-			std::ofstream ballWrite;
-			ballWrite.open(outputPrefix + "simData.csv", std::ofstream::app);
-			ballWrite << ballBuffer.rdbuf(); // Barf buffer to file.
-			ballBuffer.str("");              // Empty the stream for next filling.
-			ballWrite.close();
-
-			// Write Energy data to file and clear buffer.
-			std::ofstream energyWrite;
-			energyWrite.open(outputPrefix + "energy.csv", std::ofstream::app);
-			energyWrite << energyBuffer.rdbuf();
-			energyBuffer.str(""); // Empty the stream for next filling.
-			energyWrite.close();
-
-			lastWrite = time(nullptr);
-		} // Data export end
-		if (dynamicTime)
-		{
-			O.calibrateDT(Step, false);
-		}
-	} // writestep end
-} // Steps end
+} // one Step end
 
 
 [[noreturn]] void simLooper()
@@ -390,8 +323,82 @@ void simOneStep(const unsigned int& Step)
 
 	for (unsigned int Step = 1; Step < steps; Step++) // Steps start at 1 because the 0 step is initial conditions.
 	{
-		simOneStep(Step);
+		// Check if this is a write step:
+		if (Step % skip == 0)
+		{
+			writeStep = true;
+
+			simTimeElapsed += dt * skip;
+
+			// Progress reporting:
+			float eta = ((time(nullptr) - startProgress) / static_cast<float>(skip) * static_cast<float>(steps - Step)) / 3600.f; // Hours.
+			float real = (time(nullptr) - start) / 3600.f;
+			float simmed = simTimeElapsed / 3600.f;
+			float progress = (static_cast<float>(Step) / static_cast<float>(steps) * 100.f);
+			fprintf(stderr, "%u\t%2.0f%%\tETA: %5.2lf\tReal: %5.2f\tSim: %5.2f hrs\tR/S: %5.2f\n", Step, progress, eta, real, simmed, real / simmed);
+			//fprintf(stdout, "%u\t%2.0f%%\tETA: %5.2lf\tReal: %5.2f\tSim: %5.2f hrs\tR/S: %5.2f\n", Step, progress, eta, real, simmed, real / simmed);
+			fflush(stdout);
+			startProgress = time(nullptr);
+		}
+		else
+		{
+			writeStep = false;
+		}
+
+		// Physics integration step:
+		simOneStep(writeStep);
+
+		if (writeStep)
+		{
+			// Write energy to stream:
+			energyBuffer << '\n'
+				<< simTimeElapsed << ','
+				<< O.PE << ','
+				<< O.KE << ','
+				<< O.PE + O.KE << ','
+				<< O.mom.norm() << ','
+				<< O.angMom.norm(); // the two zeros are bound and unbound mass
+
+			// Reinitialize energies for next step:
+			O.KE = 0;
+			O.PE = 0;
+			O.mom = { 0, 0, 0 };
+			O.angMom = { 0, 0, 0 };
+			// unboundMass = 0;
+			// boundMass = massTotal;
+
+			// Data Export. Exports every 10 writeSteps (10 new lines of data) and also if the last write was a long time ago.
+			if (time(nullptr) - lastWrite > 1800 || Step / skip % 10 == 0)
+			{
+				// Report vMax:
+				std::cerr << "vMax = " << O.getVelMax() << " Steps recorded: " << Step / skip << '\n';
+				std::cerr << "Data Write\n\n";
+
+				// Write simData to file and clear buffer.
+				std::ofstream ballWrite;
+				ballWrite.open(outputPrefix + "simData.csv", std::ofstream::app);
+				ballWrite << ballBuffer.rdbuf(); // Barf buffer to file.
+				ballBuffer.str("");              // Empty the stream for next filling.
+				ballWrite.close();
+
+				// Write Energy data to file and clear buffer.
+				std::ofstream energyWrite;
+				energyWrite.open(outputPrefix + "energy.csv", std::ofstream::app);
+				energyWrite << energyBuffer.rdbuf();
+				energyBuffer.str(""); // Empty the stream for next filling.
+				energyWrite.close();
+
+				lastWrite = time(nullptr);
+			} // Data export end
+
+
+			if (dynamicTime)
+			{
+				O.calibrateDT(Step, false);
+			}
+		} // writestep end
 	}
+
 	const time_t end = time(nullptr);
 
 	std::cerr << "Simulation complete!\n"

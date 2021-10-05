@@ -132,7 +132,7 @@ public:
 	{
 		return vector3d(
 			y * v.z - z * v.y,
-			z * v.x - x * v.z, 
+			z * v.x - x * v.z,
 			x * v.y - y * v.x
 		);
 	}
@@ -151,7 +151,7 @@ public:
 
 	[[nodiscard]] vector3d normalized_safe() const
 	{
-		if (fabs(this->norm())<1e-13)
+		if (fabs(this->norm()) < 1e-13)
 		{
 			std::cerr << "dividing by zero in unit vector calculation!!!!!!!!!!!!!!";
 			system("pause");
@@ -393,19 +393,29 @@ inline vector3d rand_spherical_vec(double lim1, double lim2, double lim3)
 }
 
 // Returns a vector within the desired radius, resulting in spherical random distribution
-inline vector3d rand_shell_sec(double lim, double innerRadius)
+inline vector3d rand_shell_vec(double outer_radius, double inner_radius)
 {
-	vector3d vec = { rand_double(lim), rand_double(lim), rand_double(lim) };
-	const double halfLim = lim * .5;
-	if (halfLim < innerRadius)
+	vector3d vec = { rand_double(outer_radius), rand_double(outer_radius), rand_double(outer_radius) };
+	const double halfLim = outer_radius * .5;
+	if (halfLim < inner_radius)
 	{
 		std::cerr << "Inner radius is larger than boundary. Impossible.\n";
 		exit(EXIT_FAILURE);
 	}
-	while (vec.norm() > halfLim || vec.norm() < innerRadius)
+	while (vec.norm() > halfLim || vec.norm() < inner_radius)
 	{
-		vec = { rand_double(lim), rand_double(lim), rand_double(lim) };
+		vec = { rand_double(outer_radius), rand_double(outer_radius), rand_double(outer_radius) };
 	}
 	return vec;
 }
 
+inline vector3d random_spherical_unit_vec()
+{
+	srand(static_cast<unsigned>(time(nullptr)));
+	double theta{ acos(2 * (static_cast<double>(rand()) / static_cast<double>(RAND_MAX)) - 1) };
+	double phi{ 2 * M_PI * (static_cast<double>(rand()) / static_cast<double>(RAND_MAX)) };
+	double x = sin(theta) * cos(phi);
+	double z = sin(theta) * sin(phi);
+	double y = cos(theta);
+	return { x, y, z };
+}

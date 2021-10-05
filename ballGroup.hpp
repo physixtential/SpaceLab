@@ -1273,16 +1273,29 @@ private:
 		//projectile.m[0] = 560000;
 		//projectile.moi[0] = .4 * projectile.m[0] * projectile.R[0] * projectile.R[0];
 
-		ballGroup projectile;
-		projectile.loadSim(path, projectileName);
+
+		//ballGroup projectile;
+		//projectile.loadSim(path, projectileName);
 		ballGroup target;
 		target.loadSim(path, targetName);
 
+		// Random particle to origin
+		ballGroup projectile(1);
+		// Particle random position at twice radius of target:
+		vector3d projectile_direction = random_spherical_unit_vec();
+		projectile.pos[0] = projectile_direction * target.initialRadius * 2;
+		projectile.w[0] = { 0, 0, 0 };
+		// Velocity toward origin:
+		projectile.vel[0] = -vCustom * projectile_direction;
+		projectile.R[0] = 1e-5;
+		projectile.m[0] = density * 4. / 3. * M_PI * std::pow(R[0], 3);
+		projectile.moi[0] = .4 * projectile.m[0] * projectile.R[0] * projectile.R[0];
+
 		// DO YOU WANT TO STOP EVERYTHING?
-		projectile.zeroAngVel();
-		projectile.zeroVel();
-		target.zeroAngVel();
-		target.zeroVel();
+		//projectile.zeroAngVel();
+		//projectile.zeroVel();
+		//target.zeroAngVel();
+		//target.zeroVel();
 
 
 		// Calc info to determined cluster positioning and collisions velocity:
