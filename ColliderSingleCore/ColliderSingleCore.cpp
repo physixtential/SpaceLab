@@ -5,7 +5,6 @@
 #include <ctime>
 #include <sstream>
 #include <iomanip>
-#include "../vector3d.hpp"
 #include "../ballGroup.hpp"
 
 
@@ -24,13 +23,13 @@ bool writeStep;       // This prevents writing to file every step (which is slow
 
 
 // Prototypes
-void simOneStep(const unsigned int& Step);
-[[noreturn]] void simLooper();
+void sim_one_step(const bool write_step);
+void sim_looper();
 void safetyChecks();
 
-//ballGroup O(path, projectileName, targetName, vCustom); // Collision
-//ballGroup O(path, 0); // Continue
-//ballGroup O(genBalls, true, vCustom); // Generate
+//Ball_group O(path, projectileName, targetName, v_custom); // Collision
+Ball_group O(path, targetName, 0); // Continue
+//Ball_group O(genBalls, true, v_custom); // Generate
 
 //////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////
@@ -52,24 +51,31 @@ int main(const int argc, char const* argv[])
 	//O.zeroAngVel();
 	//O.pushApart();
 	safetyChecks();
-	O.simInitWrite(outputPrefix);
-	for (size_t i = 0; i < 100; i++)
-	{
-		ballGroup O(path, 0);
-		simLooper();
-	}
 
+	// Normal sim:
+	//O.sim_init_write(output_prefix);
+	//sim_looper();
+
+
+	// Add projectile:
+	std::string ori_output_prefix = output_prefix;
+	for (int i = 0; i < 11; i++)
+	{
+		O = O.add_projectile();
+		O.sim_init_write(ori_output_prefix);
+		sim_looper();
+		simTimeElapsed = 0;
+	}
 } // end main
 //////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////
 
 
-void simOneStep(const bool writeStep)
+void sim_one_step(const bool write_step)
 {
-
 	/// FIRST PASS - Update Kinematic Parameters:
-	for (unsigned int Ball = 0; Ball < O.cNumBalls; Ball++)
+	for (int Ball = 0; Ball < O.num_particles; Ball++)
 	{
 		// Update velocity half step:
 		O.velh[Ball] = O.vel[Ball] + .5 * O.acc[Ball] * dt;
@@ -88,10 +94,10 @@ void simOneStep(const bool writeStep)
 	}
 
 	/// SECOND PASS - Check for collisions, apply forces and torques:
-	for (unsigned int A = 1; A < O.cNumBalls; A++) //cuda
+	for (int A = 1; A < O.num_particles; A++) //cuda
 	{
 		/// DONT DO ANYTHING HERE. A STARTS AT 1.
-		for (unsigned int B = 0; B < A; B++)
+		for (int B = 0; B < A; B++)
 		{
 			const double sumRaRb = O.R[A] + O.R[B];
 			const vector3d rVecab = O.pos[B] - O.pos[A]; // Vector from a to b.
@@ -102,10 +108,9 @@ void simOneStep(const bool writeStep)
 			double overlap = sumRaRb - dist;
 
 			vector3d totalForceOnA{ 0, 0, 0 };
-			vector3d totalForceOnB{ 0, 0, 0 };
 
 			// Distance array element: 1,0    2,0    2,1    3,0    3,1    3,2 ...
-			unsigned int e = static_cast<unsigned>(A * (A - 1) * .5) + B; // a^2-a is always even, so this works.
+			int e = static_cast<unsigned>(A * (A - 1) * .5) + B; // a^2-a is always even, so this works.
 			double oldDist = O.distances[e];
 
 			// Check for collision between Ball and otherBall.
@@ -188,7 +193,7 @@ void simOneStep(const bool writeStep)
 				O.aacc[A] += torqueA / O.moi[A];
 				O.aacc[B] += torqueB / O.moi[B];
 
-				if (writeStep)
+				if (write_step)
 				{
 					// No factor of 1/2. Includes both spheres:
 					//O.PE += -G * O.m[A] * O.m[B] / dist + 0.5 * k * overlap * overlap;
@@ -232,7 +237,7 @@ void simOneStep(const bool writeStep)
 					rVecab.normalized();
 
 				totalForceOnA = vdwForceOnA;// +gravForceOnA;
-				if (writeStep)
+				if (write_step)
 				{
 					//O.PE += -G * O.m[A] * O.m[B] / dist; // Gravitational
 
@@ -261,19 +266,19 @@ void simOneStep(const bool writeStep)
 		// DONT DO ANYTHING HERE. A STARTS AT 1.
 	}
 
-	if (writeStep)
+	if (write_step)
 	{
 		ballBuffer << '\n'; // Prepares a new line for incoming data.
 	}
 
 	// THIRD PASS - Calculate velocity for next step:
-	for (int Ball = 0; Ball < O.cNumBalls; Ball++)
+	for (int Ball = 0; Ball < O.num_particles; Ball++)
 	{
 		// Velocity for next step:
 		O.vel[Ball] = O.velh[Ball] + .5 * O.acc[Ball] * dt;
 		O.w[Ball] = O.wh[Ball] + .5 * O.aacc[Ball] * dt;
 
-		if (writeStep)
+		if (write_step)
 		{
 			// Send positions and rotations to buffer:
 			if (Ball == 0)
@@ -309,19 +314,19 @@ void simOneStep(const bool writeStep)
 
 			O.KE += .5 * O.m[Ball] * O.vel[Ball].normsquared() + .5 * O.moi[Ball] * O.w[Ball].normsquared(); // Now includes rotational kinetic energy.
 			O.mom += O.m[Ball] * O.vel[Ball];
-			O.angMom += O.m[Ball] * O.pos[Ball].cross(O.vel[Ball]) + O.moi[Ball] * O.w[Ball];
+			O.ang_mom += O.m[Ball] * O.pos[Ball].cross(O.vel[Ball]) + O.moi[Ball] * O.w[Ball];
 		}
 	} // THIRD PASS END
 } // one Step end
 
 
-[[noreturn]] void simLooper()
+void sim_looper()
 {
 	std::cerr << "Beginning simulation...\n";
 
 	startProgress = time(nullptr);
 
-	for (unsigned int Step = 1; Step < steps; Step++) // Steps start at 1 because the 0 step is initial conditions.
+	for (int Step = 1; Step < steps; Step++) // Steps start at 1 because the 0 step is initial conditions.
 	{
 		// Check if this is a write step:
 		if (Step % skip == 0)
@@ -333,7 +338,7 @@ void simOneStep(const bool writeStep)
 			// Progress reporting:
 			float eta = ((time(nullptr) - startProgress) / static_cast<float>(skip) * static_cast<float>(steps - Step)) / 3600.f; // Hours.
 			float real = (time(nullptr) - start) / 3600.f;
-			float simmed = simTimeElapsed / 3600.f;
+			float simmed = static_cast<float>(simTimeElapsed / 3600.f);
 			float progress = (static_cast<float>(Step) / static_cast<float>(steps) * 100.f);
 			fprintf(stderr, "%u\t%2.0f%%\tETA: %5.2lf\tReal: %5.2f\tSim: %5.2f hrs\tR/S: %5.2f\n", Step, progress, eta, real, simmed, real / simmed);
 			//fprintf(stdout, "%u\t%2.0f%%\tETA: %5.2lf\tReal: %5.2f\tSim: %5.2f hrs\tR/S: %5.2f\n", Step, progress, eta, real, simmed, real / simmed);
@@ -346,7 +351,7 @@ void simOneStep(const bool writeStep)
 		}
 
 		// Physics integration step:
-		simOneStep(writeStep);
+		sim_one_step(writeStep);
 
 		if (writeStep)
 		{
@@ -357,13 +362,13 @@ void simOneStep(const bool writeStep)
 				<< O.KE << ','
 				<< O.PE + O.KE << ','
 				<< O.mom.norm() << ','
-				<< O.angMom.norm(); // the two zeros are bound and unbound mass
+				<< O.ang_mom.norm(); // the two zeros are bound and unbound mass
 
 			// Reinitialize energies for next step:
 			O.KE = 0;
 			O.PE = 0;
 			O.mom = { 0, 0, 0 };
-			O.angMom = { 0, 0, 0 };
+			O.ang_mom = { 0, 0, 0 };
 			// unboundMass = 0;
 			// boundMass = massTotal;
 
@@ -376,14 +381,14 @@ void simOneStep(const bool writeStep)
 
 				// Write simData to file and clear buffer.
 				std::ofstream ballWrite;
-				ballWrite.open(outputPrefix + "simData.csv", std::ofstream::app);
+				ballWrite.open(output_prefix + "simData.csv", std::ofstream::app);
 				ballWrite << ballBuffer.rdbuf(); // Barf buffer to file.
 				ballBuffer.str("");              // Empty the stream for next filling.
 				ballWrite.close();
 
 				// Write Energy data to file and clear buffer.
 				std::ofstream energyWrite;
-				energyWrite.open(outputPrefix + "energy.csv", std::ofstream::app);
+				energyWrite.open(output_prefix + "energy.csv", std::ofstream::app);
 				energyWrite << energyBuffer.rdbuf();
 				energyBuffer.str(""); // Empty the stream for next filling.
 				energyWrite.close();
@@ -394,7 +399,7 @@ void simOneStep(const bool writeStep)
 
 			if (dynamicTime)
 			{
-				O.calibrateDT(Step, false);
+				O.calibrate_dt(Step, false);
 			}
 		} // writestep end
 	}
@@ -402,15 +407,10 @@ void simOneStep(const bool writeStep)
 	const time_t end = time(nullptr);
 
 	std::cerr << "Simulation complete!\n"
-		<< O.cNumBalls << " Particles and " << steps << " Steps.\n"
+		<< O.num_particles << " Particles and " << steps << " Steps.\n"
 		<< "Simulated time: " << steps * dt << " seconds\n"
 		<< "Computation time: " << end - start << " seconds\n";
 	std::cerr << "\n===============================================================\n";
-	// I know the number of balls in each file and the order they were brought in, so I can effect individual clusters.
-	//
-	// Implement calculation of total mom vector and make it 0 mag
-
-	exit(EXIT_SUCCESS);
 } // end simLooper
 
 
@@ -430,11 +430,11 @@ void safetyChecks()
 
 	if (O.soc <= 0)
 	{
-		fprintf(stderr, "\nvSOC NOT SET\n");
+		fprintf(stderr, "\nSOC NOT SET\n");
 		exit(EXIT_FAILURE);
 	}
 
-	if (O.vCollapse <= 0)
+	if (O.v_collapse <= 0)
 	{
 		fprintf(stderr, "\nvCollapse NOT SET\n");
 		exit(EXIT_FAILURE);
@@ -464,13 +464,13 @@ void safetyChecks()
 		exit(EXIT_FAILURE);
 	}
 
-	if (O.initialRadius <= 0)
+	if (O.initial_radius <= 0)
 	{
 		fprintf(stderr, "\nCluster initialRadius not set\n");
 		exit(EXIT_FAILURE);
 	}
 
-	for (unsigned int Ball = 0; Ball < O.cNumBalls; Ball++)
+	for (int Ball = 0; Ball < O.num_particles; Ball++)
 	{
 		if (O.pos[Ball].norm() < vector3d(1e-10, 1e-10, 1e-10).norm())
 		{

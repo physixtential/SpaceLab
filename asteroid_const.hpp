@@ -25,7 +25,7 @@ fourThirdsPiRho = 4. / 3. * M_PI * density, // for fraction of smallest sphere r
 kConsts = fourThirdsPiRho / (maxOverlap * maxOverlap),
 scaleBalls = 100, // base radius of balls
 KEfactor = 0,       // Determines collision velocity based on KE/PE
-vCustom = 1,
+v_custom = 1,
 impactParameter = 0, // Impact angle radians
 cone = M_PI_2; // Cone of paritlces ignored moving away from center of mass. Larger angle ignores more.
 
@@ -56,4 +56,4 @@ inline std::string
 path = "C:/Users/milin/Desktop/GoogleDrive/GradResearch/Development/SpaceLab/ColliderSingleCore/",
 projectileName = "cohTest_",
 targetName = "cohTest_",
-outputPrefix = "Unnamed_";
+output_prefix = "Unnamed_";

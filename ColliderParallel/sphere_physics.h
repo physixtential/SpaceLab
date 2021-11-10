@@ -53,7 +53,7 @@ public:
 	// Setters
 	void a_add_force(const vector3d& force) { a_.force += force; }
 	void b_add_force(const vector3d& force) { b_.force += force; }
-	void refresh_overlap()
+	void update_overlap()
 	{
 		prev_overlap_ = sum_Ra_Rb - (a_.pos - b_.pos).norm();
 	}
@@ -104,7 +104,7 @@ public:
 
 struct Rand_vec_in_sphere
 {
-	double radius;
+	const double radius;
 
 	Rand_vec_in_sphere(const double& radius) : radius(radius) {}
 
@@ -123,7 +123,7 @@ struct Collision_displacer
 	{
 		if (pair.get_prev_overlap() > 0)
 		{
-
+			pair.a().pos = { 1, 3, 5 };
 		}
 	}
 };
@@ -222,7 +222,7 @@ void make_random_cluster(std::vector<Sphere>& spheres)
 			std::execution::par_unseq,
 			spheres.begin(),
 			spheres.end(),
-			Rand_vec_in_sphere(radius));
+			Rand_vec_in_sphere(spaceRange));
 	} };
 
 	std::thread t2{ [&spheres, radius = 2 * scaleBalls, larges, mediums] {
@@ -230,7 +230,7 @@ void make_random_cluster(std::vector<Sphere>& spheres)
 			std::execution::par_unseq,
 			spheres.begin() + larges,
 			spheres.begin() + larges + mediums,
-			Rand_vec_in_sphere(radius));
+			Rand_vec_in_sphere(spaceRange));
 	} };
 
 	std::thread t3{ [&spheres, radius = scaleBalls, larges, mediums] {
@@ -238,7 +238,7 @@ void make_random_cluster(std::vector<Sphere>& spheres)
 			std::execution::par_unseq,
 			spheres.begin() + larges + mediums,
 			spheres.end(),
-			Rand_vec_in_sphere(radius));
+			Rand_vec_in_sphere(spaceRange));
 	} };
 
 	t1.join(); t2.join(); t3.join();
@@ -252,7 +252,7 @@ void make_no_collisions(std::vector<Sphere_pair> pairs)
 	for (int failed = 0; failed < attempts; failed++)
 	{
 		// todo start here next time
-		std::for_each(std::execution::par_unseq, pairs.begin(), pairs.end(), )
+		std::for_each(std::execution::par_unseq, pairs.begin(), pairs.end(), Collision_displacer)
 			// Check for Ball overlap.
 
 			if (overlap < 0)

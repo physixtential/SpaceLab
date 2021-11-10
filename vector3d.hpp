@@ -3,6 +3,7 @@
 #include <iostream>
 #include <cassert>
 #include <string>
+#include <random>
 
 class vector3d
 {
@@ -136,20 +137,20 @@ public:
 			x * v.y - y * v.x
 		);
 	}
-	[[nodiscard]] double norm() const
+	double norm() const
 	{
 		return sqrt(x * x + y * y + z * z);
 	}
-	[[nodiscard]] double normsquared() const
+	double normsquared() const
 	{
 		return x * x + y * y + z * z;
 	}
-	[[nodiscard]] vector3d normalized() const
+	vector3d normalized() const
 	{
 		return *this / this->norm();
 	}
 
-	[[nodiscard]] vector3d normalized_safe() const
+	vector3d normalized_safe() const
 	{
 		if (fabs(this->norm()) < 1e-13)
 		{
@@ -159,7 +160,7 @@ public:
 		return *this / this->norm();
 	}
 
-	[[nodiscard]] std::string toStr() const
+	std::string toStr() const
 	{
 		return "[" + std::to_string(x) + ", " + std::to_string(y) + ", " + std::to_string(z) + "]";
 	}
@@ -375,19 +376,25 @@ inline bool input(const std::string& question)
 }
 
 // Generate a random double from -.5lim to .5lim so that numbers are distributed evenly around 0:
-inline double rand_double(double lim)
+inline double rand_double(const double lim)
 {
 	return lim * (static_cast<double>(rand()) / static_cast<double>(RAND_MAX) - .5);
 }
 
-// Returns a vector within the desired radius, resulting in spherical random distribution
-inline vector3d rand_spherical_vec(double lim1, double lim2, double lim3)
+inline double rand_between(const double min, const double max)
 {
-	vector3d vec = { rand_double(lim1), rand_double(lim2), rand_double(lim3) };
-	const double halfLim = lim1 * .5;
+	double f = (double)rand() / RAND_MAX;
+	return min + f * (max - min);
+}
+
+// Returns a vector within the desired radius, resulting in spherical random distribution
+inline vector3d rand_spherical_vec(double radius)
+{
+	vector3d vec = { rand_double(radius), rand_double(radius), rand_double(radius) };
+	const double halfLim = radius;
 	while (vec.norm() > halfLim)
 	{
-		vec = { rand_double(lim1), rand_double(lim2), rand_double(lim3) };
+		vec = { rand_double(radius), rand_double(radius), rand_double(radius) };
 	}
 	return vec;
 }
@@ -409,13 +416,4 @@ inline vector3d rand_shell_vec(double outer_radius, double inner_radius)
 	return vec;
 }
 
-inline vector3d random_spherical_unit_vec()
-{
-	srand(static_cast<unsigned>(time(nullptr)));
-	double theta{ acos(2 * (static_cast<double>(rand()) / static_cast<double>(RAND_MAX)) - 1) };
-	double phi{ 2 * M_PI * (static_cast<double>(rand()) / static_cast<double>(RAND_MAX)) };
-	double x = sin(theta) * cos(phi);
-	double z = sin(theta) * sin(phi);
-	double y = cos(theta);
-	return { x, y, z };
-}
+
