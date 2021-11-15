@@ -1,30 +1,19 @@
 #include <vector>
 #include <iostream>
+#include <random>
 
-struct Duck
+inline double rand_between(const double min, const double max)
 {
-	const int feathers = 0;
-	Duck(int feathers) :feathers(feathers) {}
-
-	int a = 0;
-
-	void hello()
-	{
-		a += 1;
-	}
-};
-
-template<typename T>
-void swap(T& a, T& b)
-{
-	T temp{ a };
-	a = b;
-	b = temp;
+	std::uniform_real_distribution<double> test(min, max);
+	std::default_random_engine re;
+	return test(re);
 }
 
 int main()
 {
-	double x{ 3.0 };
-	double y{ 2.4 };
-	swap(x,y);
+	for (size_t i = 0; i < 10; i++)
+	{
+		std::cout << rand_between(3, 5);
+
+	}
 }

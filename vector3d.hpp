@@ -331,9 +331,8 @@ inline std::string rounder(double value, int digits)
 inline std::string scientific(double value)
 {
 	std::stringstream ss;
-	ss << value;
-	std::string conversion = ss.str();
-	return conversion;
+	ss << std::setprecision(0) << std::scientific << value;
+	return ss.str();
 }
 
 // Output a nice title bar in terminal:

@@ -64,10 +64,10 @@ public:
 		generate_ball_field(nBalls);
 
 		// Hack - Override and creation just 2 balls position and velocity.
-		pos[0] = { 1e-4, 1.101e-5, 0 };
-		pos[1] = { -1e-4, -1.101e-5, 0 };
-		vel[0] = { -v_custom, 0, 0 };
-		vel[1] = { v_custom, 0, 0 };
+		pos[0] = { 0, 1.101e-5, 0 };
+		pos[1] = { 0, -1.101e-5, 0 };
+		vel[0] = { 0, 0, 0 };
+		vel[1] = { 0, 0, 0 };
 
 		m_total = getMass();
 		calc_v_collapse();
@@ -1322,11 +1322,11 @@ private:
 
 		output_prefix =
 			std::to_string(nBalls) +
-			"-R" + scientific(getRadius()) +
-			"-v" + scientific(v_custom) +
-			"-cor" + rounder(std::pow(cor, 2), 4) +
-			"-mu" + rounder(u_s, 3) +
-			"-rho" + rounder(density, 4);
+			"_R" + scientific(getRadius()) +
+			"_v" + scientific(v_custom) +
+			"_cor" + rounder(std::pow(cor, 2), 4) +
+			"_mu" + rounder(u_s, 3) +
+			"_rho" + rounder(density, 4);
 	}
 
 	/// Make ballGroup from file data.
@@ -1452,6 +1452,7 @@ private:
 		// Name the file based on info above:
 		output_prefix +=
 			"_k" + scientific(kin) +
+			"_Ha" + scientific(Ha) +
 			"_dt" + scientific(dt) +
 			"_";
 	}
