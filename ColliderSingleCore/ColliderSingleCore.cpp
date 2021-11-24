@@ -28,8 +28,8 @@ void safetyChecks();
 
 /// @brief The ballGroup run by the main sim looper.
 //Ball_group O(path, projectileName, targetName, v_custom); // Collision
-//Ball_group O(path, targetName, 0); // Continue
-Ball_group O(genBalls, true, v_custom); // Generate
+Ball_group O(path, targetName, 0); // Continue
+//Ball_group O(genBalls, true, v_custom); // Generate
 
 //////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////
@@ -53,19 +53,19 @@ int main(const int argc, char const* argv[])
 	safetyChecks();
 
 	// Normal sim:
-	O.sim_init_write(output_prefix);
-	sim_looper();
+	//O.sim_init_write(output_prefix);
+	//sim_looper();
 
 
 	// Add projectile:
-	//std::string ori_output_prefix = output_prefix;
-	//for (int i = 0; i < 11; i++)
-	//{
-	//	O = O.add_projectile();
-	//	O.sim_init_write(ori_output_prefix);
-	//	sim_looper();
-	//	simTimeElapsed = 0;
-	//}
+	std::string ori_output_prefix = output_prefix;
+	for (int i = 0; i < 300; i++)
+	{
+		O = O.add_projectile();
+		O.sim_init_write(ori_output_prefix);
+		sim_looper();
+		simTimeElapsed = 0;
+	}
 } // end main
 //////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////

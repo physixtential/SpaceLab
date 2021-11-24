@@ -11,8 +11,8 @@ constexpr bool dynamicTime = false;
 constexpr double
 G = 6.67e-8, // Gravitational constant
 density = 2.25,
-u_s = 0.9, // Coeff of sliding friction
-u_r = 0.01, // Coeff of rolling friction
+u_s = 0.1, // Coeff of sliding friction
+u_r = 0.0001, // Coeff of rolling friction
 sigma = .29, // Poisson ratio for rolling friction.
 Y = 2.0e12, // Young's modulus in erg/cm3 
 cor = 0.4, // Coeff of restitution
@@ -23,9 +23,9 @@ scaleBalls = 1e-5, // base radius of ball.
 maxOverlap = .1, // of scaleBalls
 KEfactor = 0, // Determines collision velocity based on KE/PE
 v_custom = 1, // Velocity cm/s
-kConsts = fourThirdsPiRho / (maxOverlap * maxOverlap),
+kConsts = 3e3*fourThirdsPiRho / (maxOverlap * maxOverlap),
 impactParameter = 0, // Impact angle radians
-Ha = 21.1e-16, // Hamaker constant for vdw force
+Ha = 4.7e-12, // Hamaker constant for vdw force
 h_min = scaleBalls * .1,//1e8 * std::numeric_limits<double>::epsilon(), // 2.22045e-10 (epsilon is 2.22045e-16)
 cone = M_PI_2; // Cone of particles ignored moving away from center of mass. Larger angle ignores more.
 
@@ -55,5 +55,5 @@ simTimeElapsed = 0;
 inline std::string
 path = "C:/Users/milin/Desktop/VSOUT/",
 projectileName = "",
-targetName = "2-R1.28409e-05-v1-cor0.16-mu0.9-rho2.25_k9.42478_dt3.16228e-10_",
+targetName = "2_R2e-05_v1e+00_cor0.16_mu0.1_rho2.25_k3e+01_Ha5e-12_dt2e-10_",
 output_prefix = "Unnamed_";

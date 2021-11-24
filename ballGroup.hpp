@@ -173,7 +173,7 @@ public:
 		r_min = getRmin();
 		r_max = getRmax();
 		m_total = getMass();
-		initial_radius = getRadius();
+		initial_radius = get_radius();
 		soc = 4 * r_max + initial_radius;
 	}
 
@@ -402,7 +402,7 @@ public:
 	}
 
 	/// Approximate the radius of the ballGroup.
-	[[nodiscard]] double getRadius() const
+	[[nodiscard]] double get_radius() const
 	{
 		double radius = 0;
 
@@ -685,13 +685,20 @@ public:
 		Ball_group projectile(1);
 		// Particle random position at twice radius of target:
 		vector3d projectile_direction = rand_spherical_vec(1).normalized();
-		projectile.pos[0] = projectile_direction * (getRadius() + scaleBalls * 20);
+		projectile.pos[0] = projectile_direction * (get_radius() + scaleBalls * 20);
 		projectile.w[0] = { 0, 0, 0 };
 		// Velocity toward origin:
 		projectile.vel[0] = -v_custom * projectile_direction;
 		projectile.R[0] = 1e-5;//rand_between(1,3)*1e-5;
 		projectile.m[0] = density * 4. / 3. * M_PI * std::pow(R[0], 3);
 		projectile.moi[0] = .4 * projectile.m[0] * projectile.R[0] * projectile.R[0];
+		// Random position offset perpendicular to velocity. Code an intersection test here.
+		//double rand_x = rand_double(get_radius());
+		//double rand_y = rand_double(get_radius());
+		//double rand_z;
+		//rand_z = (projectile.vel[0].x * rand_x + projectile.vel[0].y * rand_y) / -projectile.vel[0].z;
+		//projectile.pos[0] += {rand_x, rand_y, rand_z};
+
 
 		// Collision velocity calculation:
 		const vector3d p_target{ calc_momentum("p_target") };
@@ -1303,7 +1310,7 @@ private:
 		}
 
 		std::cerr << "Final spacerange: " << spaceRange << '\n';
-		std::cerr << "Initial Radius: " << getRadius() << '\n';
+		std::cerr << "Initial Radius: " << get_radius() << '\n';
 		std::cerr << "Mass: " << getMass() << '\n';
 	}
 
@@ -1322,9 +1329,9 @@ private:
 
 		output_prefix =
 			std::to_string(nBalls) +
-			"_R" + scientific(getRadius()) +
+			"_R" + scientific(get_radius()) +
 			"_v" + scientific(v_custom) +
-			"_cor" + rounder(std::pow(cor, 2), 4) +
+			"_cor" + rounder(sqrtf(cor), 4) +
 			"_mu" + rounder(u_s, 3) +
 			"_rho" + rounder(density, 4);
 	}
@@ -1403,7 +1410,7 @@ private:
 		}
 
 		std::cerr << "Final spacerange: " << spaceRange << '\n';
-		std::cerr << "Initial Radius: " << getRadius() << '\n';
+		std::cerr << "Initial Radius: " << get_radius() << '\n';
 		std::cerr << "Mass: " << m_total << '\n';
 	}
 
