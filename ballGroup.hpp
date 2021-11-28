@@ -9,6 +9,7 @@
 #include <cstring>
 #include "dust_const.hpp"
 #include "vector3d.hpp"
+#include "Line_sphere_intersection.h"
 
 /// @brief Facilitates the concept of a group of balls with physical properties.
 class Ball_group
@@ -692,12 +693,19 @@ public:
 		projectile.R[0] = 1e-5;//rand_between(1,3)*1e-5;
 		projectile.m[0] = density * 4. / 3. * M_PI * std::pow(R[0], 3);
 		projectile.moi[0] = .4 * projectile.m[0] * projectile.R[0] * projectile.R[0];
-		// Random position offset perpendicular to velocity. Code an intersection test here.
-		//double rand_x = rand_double(get_radius());
-		//double rand_y = rand_double(get_radius());
-		//double rand_z;
-		//rand_z = (projectile.vel[0].x * rand_x + projectile.vel[0].y * rand_y) / -projectile.vel[0].z;
-		//projectile.pos[0] += {rand_x, rand_y, rand_z};
+		vector3d& aim = projectile.vel[0];
+		for (size_t i = 0; i < num_particles; i++)
+		{
+			// Check that velocity intersects one of the spheres:
+			do
+			{
+				aim.rot()
+				// Now check if it will intersect an existing sphere.
+			} while (!line_sphere_intersect(projectile.pos[0], projectile.vel[0], pos[i], R[i]));
+
+		}
+
+
 
 
 		// Collision velocity calculation:

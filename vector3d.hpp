@@ -4,6 +4,8 @@
 #include <cassert>
 #include <string>
 #include <random>
+#include <sstream>
+#include <iomanip>
 
 class vector3d
 {
@@ -167,7 +169,7 @@ public:
 
 	void print() const
 	{
-		std::cerr << "[" << x << ", " << y << ", " << z << "]";
+		std::cerr << "[" << x << ", " << y << ", " << z << "]\n";
 	}
 
 	[[nodiscard]] vector3d rot(char axis, double angle) const

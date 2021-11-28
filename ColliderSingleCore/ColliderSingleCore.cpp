@@ -59,8 +59,10 @@ int main(const int argc, char const* argv[])
 
 	// Add projectile:
 	std::string ori_output_prefix = output_prefix;
-	for (int i = 0; i < 300; i++)
+	for (int i = 0; i < 250; i++)
 	{
+		O.zeroAngVel();
+		O.zeroVel();
 		O = O.add_projectile();
 		O.sim_init_write(ori_output_prefix);
 		sim_looper();
