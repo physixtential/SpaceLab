@@ -5,7 +5,7 @@
 #include <ctime>
 #include <sstream>
 #include <iomanip>
-#include "../ballGroup.hpp"
+#include "../ball_group.hpp"
 
 
 // String buffers to hold data in memory until worth writing to file:
