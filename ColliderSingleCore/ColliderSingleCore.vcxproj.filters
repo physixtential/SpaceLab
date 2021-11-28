@@ -20,7 +20,7 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\ballGroup.hpp">
+    <ClInclude Include="..\ball_group.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\asteroid_const.hpp">
