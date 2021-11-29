@@ -11,8 +11,9 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "TestBench", "TestBench\Test
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{55500F48-2F31-4A19-A617-3AFED6A27100}"
 	ProjectSection(SolutionItems) = preProject
-		linalg.h = linalg.h
-		Line_sphere_intersection.h = Line_sphere_intersection.h
+		linalg.hpp = linalg.hpp
+		Line_sphere_intersection.hpp = Line_sphere_intersection.hpp
+		Utils.hpp = Utils.hpp
 	EndProjectSection
 EndProject
 Global

@@ -1,17 +1,35 @@
 #include <iostream>
-#include "../Line_sphere_intersection.h"
+#include "../Line_sphere_intersection.hpp"
+#include "../vector3d.hpp"
+#include "../linalg.hpp"
+#include "../Utils.hpp"
+
+using namespace linalg;
+using linalg::aliases::double3;
+
+
+
 
 
 int main()
 {
-	// Make line:
-	vector3d origin = { 3,.9,0 };
-	vector3d direction = { -1,0,0 };
-	// Make sphere:
-	vector3d center = { 0,0,0 };
-	double radius = 1;
+	double3 pos = { 1,1,1 };
+	double3 vel = double3(-1, -1, -1);
 
-	line_sphere_intersect(origin, direction, center, radius);
+	// Make a random displacement in y and z, convert to world coords, add to position vector.
+	std::vector<double3> test_positions;
+	test_positions.emplace_back(perpendicular_move(pos, vel, 0, 0));
+	test_positions.emplace_back(perpendicular_move(pos, vel, 1, 0));
+	test_positions.emplace_back(perpendicular_move(pos, vel, -1, 0));
+	test_positions.emplace_back(perpendicular_move(pos, vel, 0, 1));
+	test_positions.emplace_back(perpendicular_move(pos, vel, 1, 1));
+	test_positions.emplace_back(perpendicular_move(pos, vel, -1, 1));
+	test_positions.emplace_back(perpendicular_move(pos, vel, 0, -1));
+	test_positions.emplace_back(perpendicular_move(pos, vel, 1, -1));
+	test_positions.emplace_back(perpendicular_move(pos, vel, -1, -1));
 
-	return 0;
+	for (auto& vec : test_positions) {
+		std::cout << vec_string(vec) << '\n';
+	}
+
 }

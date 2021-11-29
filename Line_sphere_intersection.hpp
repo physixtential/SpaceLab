@@ -21,21 +21,18 @@ bool line_sphere_intersect(const vector3d& origin, const vector3d& direction, co
 	//double d2 = -u_vec.dot(origin - center) - sqrtf(grad);
 	//std::cout << '\t' << d1 << '\t' << d2 << '\n';
 
-
-
 	if (grad < 0)
 	{
-		std::cout << "Origin"; origin.print();
-		std::cout << "Direction"; direction.print();
-		std::cout << "U_vec"; u_vec.print();
-		std::cout << "Center"; center.print();
+		std::cout << "Position"; origin.print();
+		std::cout << "Direction"; u_vec.print();
+		std::cout << "Target"; center.print();
 		std::cout << "Radius " << radius << '\n';
 		std::cout << "Grad " << grad << '\n';
 		return false;
 	}
 	else
 	{
-		//std::cout << "intersection exists.";
+		std::cout << "Intersection exists.";
 		return true;
 	}
 }

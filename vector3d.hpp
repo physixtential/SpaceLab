@@ -201,6 +201,15 @@ public:
 		}
 		return newVec;
 	}
+
+	vector3d arbitrary_orthogonal() const
+	{
+		bool b0 = (x < y) && (x < z);
+		bool b1 = (y <= x) && (y < z);
+		bool b2 = (z <= x) && (z <= y);
+
+		return this->cross(vector3d(int(b0), int(b1), int(b2)));
+	}
 };
 
 inline vector3d operator*(const double scalar, const vector3d& v)
@@ -322,99 +331,5 @@ private:
 		return *this / sqrt(w * w + x * x + y * y + z * z);
 	}
 };
-
-// Rounding
-inline std::string rounder(double value, int digits)
-{
-	return std::to_string(value).substr(0, digits);
-}
-
-// Scientific Notation
-inline std::string scientific(double value)
-{
-	std::stringstream ss;
-	ss << std::setprecision(0) << std::scientific << value;
-	return ss.str();
-}
-
-// Output a nice title bar in terminal:
-inline void titleBar(std::string title)
-{
-	std::cerr << '\n';
-	for (size_t i = 0; i < ((62 - title.size()) / 2); i++)
-	{
-		std::cerr << '=';
-	}
-	std::cerr << ' ' << title << ' ';
-	for (size_t i = 0; i < ((62 - title.size()) / 2); i++)
-	{
-		std::cerr << '=';
-	}
-	std::cerr << "\n\n";
-}
-
-// // Print anything:
-// template <typename theType>
-// void print(theType value)
-// {
-// 	std::cerr << value;
-// }
-
-// Ask a yes or no question:
-inline bool input(const std::string& question)
-{
-	char answer;
-	std::cerr << question;
-	std::cin >> answer;
-	if (answer == 'y')
-	{
-		return true;
-	}
-	else
-	{
-		return false;
-	}
-}
-
-// Generate a random double from -.5lim to .5lim so that numbers are distributed evenly around 0:
-inline double rand_double(const double lim)
-{
-	return lim * (static_cast<double>(rand()) / static_cast<double>(RAND_MAX) - .5);
-}
-
-inline double rand_between(const double min, const double max)
-{
-	double f = (double)rand() / RAND_MAX;
-	return min + f * (max - min);
-}
-
-// Returns a vector within the desired radius, resulting in spherical random distribution
-inline vector3d rand_spherical_vec(double radius)
-{
-	vector3d vec = { rand_double(radius), rand_double(radius), rand_double(radius) };
-	const double halfLim = radius;
-	while (vec.norm() > halfLim)
-	{
-		vec = { rand_double(radius), rand_double(radius), rand_double(radius) };
-	}
-	return vec;
-}
-
-// Returns a vector within the desired radius, resulting in spherical random distribution
-inline vector3d rand_shell_vec(double outer_radius, double inner_radius)
-{
-	vector3d vec = { rand_double(outer_radius), rand_double(outer_radius), rand_double(outer_radius) };
-	const double halfLim = outer_radius * .5;
-	if (halfLim < inner_radius)
-	{
-		std::cerr << "Inner radius is larger than boundary. Impossible.\n";
-		exit(EXIT_FAILURE);
-	}
-	while (vec.norm() > halfLim || vec.norm() < inner_radius)
-	{
-		vec = { rand_double(outer_radius), rand_double(outer_radius), rand_double(outer_radius) };
-	}
-	return vec;
-}
 
 

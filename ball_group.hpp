@@ -9,7 +9,9 @@
 #include <cstring>
 #include "dust_const.hpp"
 #include "vector3d.hpp"
-#include "Line_sphere_intersection.h"
+#include "Line_sphere_intersection.hpp"
+#include "linalg.hpp"
+#include "Utils.hpp"
 
 /// @brief Facilitates the concept of a group of balls with physical properties.
 class Ball_group
@@ -685,7 +687,7 @@ public:
 		// Random particle to origin
 		Ball_group projectile(1);
 		// Particle random position at twice radius of target:
-		vector3d projectile_direction = rand_spherical_vec(1).normalized();
+		const vector3d projectile_direction = rand_spherical_vec(1).normalized();
 		projectile.pos[0] = projectile_direction * (get_radius() + scaleBalls * 20);
 		projectile.w[0] = { 0, 0, 0 };
 		// Velocity toward origin:
@@ -693,17 +695,30 @@ public:
 		projectile.R[0] = 1e-5;//rand_between(1,3)*1e-5;
 		projectile.m[0] = density * 4. / 3. * M_PI * std::pow(R[0], 3);
 		projectile.moi[0] = .4 * projectile.m[0] * projectile.R[0] * projectile.R[0];
-		vector3d& aim = projectile.vel[0];
-		for (size_t i = 0; i < num_particles; i++)
-		{
-			// Check that velocity intersects one of the spheres:
-			do
-			{
-				aim.rot()
-				// Now check if it will intersect an existing sphere.
-			} while (!line_sphere_intersect(projectile.pos[0], projectile.vel[0], pos[i], R[i]));
 
-		}
+		bool collision = false;
+		do
+		{
+			projectile.pos[0] = to_vector3d
+			(
+				perpendicular_move
+				(
+					projectile.pos[0],
+					projectile.vel[0],
+					rand_between(-get_radius(), get_radius()),
+					rand_between(-get_radius(), get_radius())
+				)
+			);
+			for (size_t i = 0; i < num_particles; i++)
+			{
+				// Check that velocity intersects one of the spheres:
+				if (line_sphere_intersect(projectile.pos[0], projectile.vel[0], pos[i], R[i] + projectile.R[0]))
+				{
+					collision = true;
+					break;
+				}
+			}
+		} while (!collision);
 
 
 
@@ -738,6 +753,7 @@ public:
 		new_group.to_origin();
 
 		return new_group;
+
 	}
 
 private:
