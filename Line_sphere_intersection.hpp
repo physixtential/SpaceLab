@@ -23,16 +23,16 @@ bool line_sphere_intersect(const vector3d& origin, const vector3d& direction, co
 
 	if (grad < 0)
 	{
-		std::cout << "Position"; origin.print();
-		std::cout << "Direction"; u_vec.print();
-		std::cout << "Target"; center.print();
-		std::cout << "Radius " << radius << '\n';
-		std::cout << "Grad " << grad << '\n';
+		//std::cout << "Position"; origin.print();
+		//std::cout << "Direction"; u_vec.print();
+		//std::cout << "Target"; center.print();
+		//std::cout << "Radius " << radius << '\n';
+		//std::cout << "Grad " << grad << '\n';
 		return false;
 	}
 	else
 	{
-		std::cout << "Intersection exists.";
+		//std::cout << "Intersection exists.";
 		return true;
 	}
 }
