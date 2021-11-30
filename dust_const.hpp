@@ -12,7 +12,7 @@ constexpr double
 G = 6.67e-8, // Gravitational constant
 density = 2.25,
 u_s = 0.1, // Coeff of sliding friction
-u_r = 0.0001, // Coeff of rolling friction
+u_r = 0.01, // Coeff of rolling friction
 sigma = .29, // Poisson ratio for rolling friction.
 Y = 2.0e12, // Young's modulus in erg/cm3 
 cor = 0.4, // Coeff of restitution
@@ -53,7 +53,7 @@ simTimeElapsed = 0;
 
 // File from which to proceed with further simulations
 inline std::string
-path = "C:/Users/milin/Desktop/VSOUT/",
+path = "C:/Users/milin/Desktop/VSOUT/dustGrowDisplaced_0.01/",
 projectileName = "",
-targetName = "2_R2e-05_v1e+00_cor0.16_mu0.1_rho2.25_k3e+01_Ha5e-12_dt2e-10_",
+targetName = "81_2_rho2.25_k5e-03_Ha5e-12_dt5e-10_",
 output_prefix = "Unnamed_";

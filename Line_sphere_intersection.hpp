@@ -5,14 +5,14 @@
 #include "vector3d.hpp"
 
 // I got this from https://en.wikipedia.org/wiki/Line%E2%80%93sphere_intersection
-bool line_sphere_intersect(const vector3d& origin, const vector3d& direction, const vector3d& center, const double radius) {
-	vector3d u_vec = direction.normalized();
+bool line_sphere_intersect(const vector3d& position, const vector3d& velocity, const vector3d& center, const double radius) {
+	vector3d direction = velocity.normalized();
 
 	double grad =
-		u_vec.dot((origin - center)) *
-		u_vec.dot((origin - center)) -
+		direction.dot((position - center)) *
+		direction.dot((position - center)) -
 		(
-			(origin - center).normsquared() -
+			(position - center).normsquared() -
 			radius * radius
 			);
 
@@ -23,11 +23,11 @@ bool line_sphere_intersect(const vector3d& origin, const vector3d& direction, co
 
 	if (grad < 0)
 	{
-		//std::cout << "Position"; origin.print();
-		//std::cout << "Direction"; u_vec.print();
-		//std::cout << "Target"; center.print();
-		//std::cout << "Radius " << radius << '\n';
-		//std::cout << "Grad " << grad << '\n';
+		std::cout << "Position"; position.print();
+		std::cout << "Direction"; direction.print();
+		std::cout << "Target"; center.print();
+		std::cout << "Radius " << radius << '\n';
+		std::cout << "Grad " << grad << '\n';
 		return false;
 	}
 	else

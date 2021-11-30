@@ -687,28 +687,25 @@ public:
 		// Random particle to origin
 		Ball_group projectile(1);
 		// Particle random position at twice radius of target:
-		const vector3d projectile_direction = rand_spherical_vec(1).normalized();
-		projectile.pos[0] = projectile_direction * (get_radius() + scaleBalls * 20);
-		projectile.w[0] = { 0, 0, 0 };
-		// Velocity toward origin:
-		projectile.vel[0] = -v_custom * projectile_direction;
-		projectile.R[0] = 1e-5;//rand_between(1,3)*1e-5;
-		projectile.m[0] = density * 4. / 3. * M_PI * std::pow(R[0], 3);
-		projectile.moi[0] = .4 * projectile.m[0] * projectile.R[0] * projectile.R[0];
+		const auto cluster_radius = get_radius();
 
 		bool collision = false;
 		do
 		{
-			projectile.pos[0] = to_vector3d
-			(
-				perpendicular_move
-				(
-					projectile.pos[0],
-					projectile.vel[0],
-					rand_between(-get_radius(), get_radius()),
-					rand_between(-get_radius(), get_radius())
-				)
-			);
+			// It seems like positions really close to an axial plane may cause instabilities in my change of basis matrix. I'm throwing the whole projectile setup into the loop so it gets a fresh initial position every try as well. This will get us past the rare case of an instability.
+			const vector3d projectile_direction = rand_spherical_vec(1).normalized();
+			projectile.pos[0] = projectile_direction * (cluster_radius + scaleBalls * 20);
+			projectile.w[0] = { 0, 0, 0 };
+			// Velocity toward origin:
+			projectile.vel[0] = -v_custom * projectile_direction;
+			projectile.R[0] = 1e-5;//rand_between(1,3)*1e-5;
+			projectile.m[0] = density * 4. / 3. * M_PI * std::pow(R[0], 3);
+			projectile.moi[0] = .4 * projectile.m[0] * projectile.R[0] * projectile.R[0];
+			// Above this line should not have to be in here. Workaround for possible matrix instability near axes.
+
+			const auto rand_y = rand_between(-cluster_radius, cluster_radius);
+			const auto rand_z = rand_between(-cluster_radius, cluster_radius);
+			projectile.pos[0] = to_vector3d(perpendicular_move(projectile.pos[0], projectile.vel[0], rand_y, rand_z));
 			for (size_t i = 0; i < num_particles; i++)
 			{
 				// Check that velocity intersects one of the spheres:
@@ -719,9 +716,6 @@ public:
 				}
 			}
 		} while (!collision);
-
-
-
 
 		// Collision velocity calculation:
 		const vector3d p_target{ calc_momentum("p_target") };
