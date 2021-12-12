@@ -411,17 +411,11 @@ public:
 
 		if (num_particles > 1)
 		{
-			for (int A = 0; A < num_particles; A++)
+			const auto com = getCOM();
+			for (size_t i = 0; i < num_particles; i++)
 			{
-				for (int B = A + 1; B < num_particles; B++)
-				{
-					// Identify two farthest balls from each other. That is diameter of cluster.
-					const double diameter = (pos[A] - pos[B]).norm();
-					if (diameter * .5 > radius)
-					{
-						radius = diameter * .5;
-					}
-				}
+				const auto this_radius = (pos[i] - com).norm();
+				if (this_radius > radius) radius = this_radius;
 			}
 		}
 		else
@@ -694,7 +688,7 @@ public:
 		{
 			// It seems like positions really close to an axial plane may cause instabilities in my change of basis matrix. I'm throwing the whole projectile setup into the loop so it gets a fresh initial position every try as well. This will get us past the rare case of an instability.
 			const vector3d projectile_direction = rand_spherical_vec(1).normalized();
-			projectile.pos[0] = projectile_direction * (cluster_radius + scaleBalls * 20);
+			projectile.pos[0] = projectile_direction * (cluster_radius + scaleBalls * 5);
 			projectile.w[0] = { 0, 0, 0 };
 			// Velocity toward origin:
 			projectile.vel[0] = -v_custom * projectile_direction;
@@ -741,7 +735,9 @@ public:
 		new_group.add_ball_group(*this);
 		new_group.add_ball_group(projectile);
 
-		new_group.calibrate_dt(0, v_custom);
+		// Hack - Calibrate to vel = 1 so we don't have to reform the pair. Probly fine?
+		//new_group.calibrate_dt(0, v_custom);
+		new_group.calibrate_dt(0, 1);
 		new_group.init_conditions();
 
 		new_group.to_origin();

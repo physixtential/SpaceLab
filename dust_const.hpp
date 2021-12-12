@@ -8,11 +8,19 @@
 
 constexpr bool dynamicTime = false;
 
+//T(K)	v(cm / s)
+//3		0.36301555459799423
+//10	0.6627726932618989
+//30	1.1479559785988718
+//100	2.0958712816717324
+//300	3.6301555459799424
+//1000	6.627726932618988
+
 constexpr double
 G = 6.67e-8, // Gravitational constant
 density = 2.25,
 u_s = 0.1, // Coeff of sliding friction
-u_r = 0.01, // Coeff of rolling friction
+u_r = 1.0e-4, // Coeff of rolling friction
 sigma = .29, // Poisson ratio for rolling friction.
 Y = 2.0e12, // Young's modulus in erg/cm3 
 cor = 0.4, // Coeff of restitution
@@ -22,8 +30,8 @@ fourThirdsPiRho = 4. / 3. * M_PI * density, // for fraction of smallest sphere r
 scaleBalls = 1e-5, // base radius of ball.
 maxOverlap = .1, // of scaleBalls
 KEfactor = 0, // Determines collision velocity based on KE/PE
-v_custom = 1, // Velocity cm/s
-kConsts = 3e3*fourThirdsPiRho / (maxOverlap * maxOverlap),
+v_custom = 3.6301555459799424, // Velocity cm/s
+kConsts = 3e3 * fourThirdsPiRho / (maxOverlap * maxOverlap),
 impactParameter = 0, // Impact angle radians
 Ha = 4.7e-12, // Hamaker constant for vdw force
 h_min = scaleBalls * .1,//1e8 * std::numeric_limits<double>::epsilon(), // 2.22045e-10 (epsilon is 2.22045e-16)
@@ -53,7 +61,7 @@ simTimeElapsed = 0;
 
 // File from which to proceed with further simulations
 inline std::string
-path = "C:/Users/milin/Desktop/VSOUT/dustGrowDisplaced_0.01/",
+path = "C:/Users/milin/Desktop/VSOUT/",
 projectileName = "",
-targetName = "81_2_rho2.25_k5e-03_Ha5e-12_dt5e-10_",
+targetName = "2_R2e-05_v1e+00_cor0.16_mu0.1_rho2.25_k3e+01_Ha5e-12_dt2e-10_",
 output_prefix = "Unnamed_";
