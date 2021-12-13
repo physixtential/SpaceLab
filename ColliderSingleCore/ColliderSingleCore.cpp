@@ -1,11 +1,11 @@
 #define _USE_MATH_DEFINES
+#include "../ball_group.hpp"
 #include <cmath>
 #include <iostream>
 #include <fstream>
 #include <ctime>
 #include <sstream>
 #include <iomanip>
-#include "../ball_group.hpp"
 
 
 // String buffers to hold data in memory until worth writing to file:

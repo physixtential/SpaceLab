@@ -176,7 +176,7 @@ public:
 		r_min = getRmin();
 		r_max = getRmax();
 		m_total = getMass();
-		initial_radius = get_radius();
+		initial_radius = get_radius(getCOM());
 		soc = 4 * r_max + initial_radius;
 	}
 
@@ -405,16 +405,15 @@ public:
 	}
 
 	/// Approximate the radius of the ballGroup.
-	[[nodiscard]] double get_radius() const
+	[[nodiscard]] double get_radius(const vector3d& center) const
 	{
 		double radius = 0;
 
 		if (num_particles > 1)
 		{
-			const auto com = getCOM();
 			for (size_t i = 0; i < num_particles; i++)
 			{
-				const auto this_radius = (pos[i] - com).norm();
+				const auto this_radius = (pos[i] - center).norm();
 				if (this_radius > radius) radius = this_radius;
 			}
 		}
@@ -681,35 +680,35 @@ public:
 		// Random particle to origin
 		Ball_group projectile(1);
 		// Particle random position at twice radius of target:
-		const auto cluster_radius = get_radius();
+		// We want the farthest from origin since we are offsetting form origin. Not com.
+		const auto cluster_radius = get_radius(vector3d(0, 0, 0));
 
-		bool collision = false;
+		const vector3d projectile_direction = rand_spherical_vec(1).normalized();
+		projectile.pos[0] = projectile_direction * (cluster_radius + scaleBalls * 4);
+		projectile.w[0] = { 0, 0, 0 };
+		// Velocity toward origin:
+		projectile.vel[0] = -v_custom * projectile_direction;
+		projectile.R[0] = 1e-5;//rand_between(1,3)*1e-5;
+		projectile.m[0] = density * 4. / 3. * M_PI * std::pow(R[0], 3);
+		projectile.moi[0] = .4 * projectile.m[0] * projectile.R[0] * projectile.R[0];
+
+		const auto rand_y = rand_between(-cluster_radius, cluster_radius);
+		const auto rand_z = rand_between(-cluster_radius, cluster_radius);
+		projectile.pos[0] = perpendicular_move(projectile.pos[0], projectile.vel[0], rand_y, rand_z);
+
+		bool intersect = false;
 		do
 		{
-			// It seems like positions really close to an axial plane may cause instabilities in my change of basis matrix. I'm throwing the whole projectile setup into the loop so it gets a fresh initial position every try as well. This will get us past the rare case of an instability.
-			const vector3d projectile_direction = rand_spherical_vec(1).normalized();
-			projectile.pos[0] = projectile_direction * (cluster_radius + scaleBalls * 5);
-			projectile.w[0] = { 0, 0, 0 };
-			// Velocity toward origin:
-			projectile.vel[0] = -v_custom * projectile_direction;
-			projectile.R[0] = 1e-5;//rand_between(1,3)*1e-5;
-			projectile.m[0] = density * 4. / 3. * M_PI * std::pow(R[0], 3);
-			projectile.moi[0] = .4 * projectile.m[0] * projectile.R[0] * projectile.R[0];
-			// Above this line should not have to be in here. Workaround for possible matrix instability near axes.
-
-			const auto rand_y = rand_between(-cluster_radius, cluster_radius);
-			const auto rand_z = rand_between(-cluster_radius, cluster_radius);
-			projectile.pos[0] = to_vector3d(perpendicular_move(projectile.pos[0], projectile.vel[0], rand_y, rand_z));
 			for (size_t i = 0; i < num_particles; i++)
 			{
 				// Check that velocity intersects one of the spheres:
 				if (line_sphere_intersect(projectile.pos[0], projectile.vel[0], pos[i], R[i] + projectile.R[0]))
 				{
-					collision = true;
+					intersect = true;
 					break;
 				}
 			}
-		} while (!collision);
+		} while (!intersect);
 
 		// Collision velocity calculation:
 		const vector3d p_target{ calc_momentum("p_target") };
@@ -825,10 +824,10 @@ private:
 	// Initialize accelerations and energy calculations:
 	void init_conditions()
 	{
-		/// SECOND PASS - Check for collisions, apply forces and torques:
+		// SECOND PASS - Check for collisions, apply forces and torques:
 		for (int A = 1; A < num_particles; A++) //cuda
 		{
-			/// DONT DO ANYTHING HERE. A STARTS AT 1.
+			// DONT DO ANYTHING HERE. A STARTS AT 1.
 			for (int B = 0; B < A; B++)
 			{
 				const double sumRaRb = R[A] + R[B];
@@ -1324,7 +1323,7 @@ private:
 		}
 
 		std::cerr << "Final spacerange: " << spaceRange << '\n';
-		std::cerr << "Initial Radius: " << get_radius() << '\n';
+		std::cerr << "Initial Radius: " << get_radius(getCOM()) << '\n';
 		std::cerr << "Mass: " << getMass() << '\n';
 	}
 
@@ -1343,7 +1342,7 @@ private:
 
 		output_prefix =
 			std::to_string(nBalls) +
-			"_R" + scientific(get_radius()) +
+			"_R" + scientific(get_radius(getCOM())) +
 			"_v" + scientific(v_custom) +
 			"_cor" + rounder(sqrtf(cor), 4) +
 			"_mu" + rounder(u_s, 3) +
@@ -1424,7 +1423,7 @@ private:
 		}
 
 		std::cerr << "Final spacerange: " << spaceRange << '\n';
-		std::cerr << "Initial Radius: " << get_radius() << '\n';
+		std::cerr << "Initial Radius: " << get_radius(getCOM()) << '\n';
 		std::cerr << "Mass: " << m_total << '\n';
 	}
 

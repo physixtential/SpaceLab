@@ -8,33 +8,22 @@
 using namespace linalg;
 using linalg::aliases::double3;
 using linalg::aliases::double3x3;
+using linalg::normalize;
+using linalg::cross;
 
 // Generate a vector orthogonal to the given
-double3 arbitrary_orthogonal(const double3& vec)
+double3x3 local_coordinates(const double3& x)
 {
-	bool b0 = (vec.x < vec.y) && (vec.x < vec.z);
-	bool b1 = (vec.y <= vec.x) && (vec.y < vec.z);
-	bool b2 = (vec.z <= vec.x) && (vec.z <= vec.y);
+	const auto& x_hat = normalize(x);
+	const auto& y_hat = cross(x_hat, double3(0, 0, 1));
+	const auto& z_hat = cross(y_hat, x_hat);
 
-	return linalg::cross(vec, double3(int(b0), int(b1), int(b2)));
+	return double3x3(x_hat, y_hat, z_hat);
 }
-
-// Make a basis coordinate system given a looking direction
-double3x3 make_basis(double3 look) {
-	double3 up = arbitrary_orthogonal(look);
-	double3 side = linalg::cross(up, look);
-
-	look = normalize(look);
-	up = normalize(up);
-	side = normalize(side);
-
-	return double3x3(look, up, side);
-}
-
 
 // Takes a position as origin and velocity (looking) as x axis to define a coordinate system in which y and z allow you to pan in that system and then return the transformed coordinates in the original coordinate system.
 double3 perpendicular_move(const double3& position, const double3& looking, const double y, const double z) {
-	const auto basis33 = make_basis(looking);
+	const auto basis33 = local_coordinates(looking);
 	const auto basis33_transpose = transpose(basis33);
 	return position + mul(basis33_transpose, double3(0, y, z));
 }
@@ -49,11 +38,10 @@ vector3d to_vector3d(const double3& vec) {
 	return { vec.x,vec.y,vec.z };
 }
 
-double3 perpendicular_move(const vector3d& position, const vector3d& looking, const double y, const double z) {
-
-	const auto basis33 = make_basis(to_double3(looking));
+vector3d perpendicular_move(const vector3d& position, const vector3d& looking, const double y, const double z) {
+	const auto basis33 = local_coordinates(to_double3(looking));
 	const auto basis33_transpose = transpose(basis33);
-	return to_double3(position) + mul(basis33_transpose, double3(0, y, z));
+	return position + to_vector3d(mul(basis33_transpose, double3(0, y, z)));
 }
 
 void print_m33(double3x3& m33) {

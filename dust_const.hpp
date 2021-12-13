@@ -20,7 +20,7 @@ constexpr double
 G = 6.67e-8, // Gravitational constant
 density = 2.25,
 u_s = 0.1, // Coeff of sliding friction
-u_r = 1.0e-4, // Coeff of rolling friction
+u_r = 1.0e-3, // Coeff of rolling friction
 sigma = .29, // Poisson ratio for rolling friction.
 Y = 2.0e12, // Young's modulus in erg/cm3 
 cor = 0.4, // Coeff of restitution
@@ -30,7 +30,7 @@ fourThirdsPiRho = 4. / 3. * M_PI * density, // for fraction of smallest sphere r
 scaleBalls = 1e-5, // base radius of ball.
 maxOverlap = .1, // of scaleBalls
 KEfactor = 0, // Determines collision velocity based on KE/PE
-v_custom = 3.6301555459799424, // Velocity cm/s
+v_custom = 6.627726932618988, // Velocity cm/s
 kConsts = 3e3 * fourThirdsPiRho / (maxOverlap * maxOverlap),
 impactParameter = 0, // Impact angle radians
 Ha = 4.7e-12, // Hamaker constant for vdw force
