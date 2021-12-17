@@ -1,7 +1,8 @@
 #pragma once
-#define _USE_MATH_DEFINES
 #include <cmath>
-#include <iostream>
+#include <string>
+#include <numbers>
+
 ////////////////////////////////////
 // Initialization (Units are CGS) //
 ////////////////////////////////////
@@ -16,6 +17,7 @@ constexpr bool dynamicTime = false;
 //300	3.6301555459799424
 //1000	6.627726932618988
 
+using std::numbers::pi;
 constexpr double
 G = 6.67e-8, // Gravitational constant
 density = 2.25,
@@ -26,7 +28,7 @@ Y = 2.0e12, // Young's modulus in erg/cm3
 cor = 0.4, // Coeff of restitution
 simTimeSeconds = 0.5e-3, // Seconds
 timeResolution = 1e-5, // Seconds - This is duration between exported steps.
-fourThirdsPiRho = 4. / 3. * M_PI * density, // for fraction of smallest sphere radius.
+fourThirdsPiRho = 4. / 3. * pi * density, // for fraction of smallest sphere radius.
 scaleBalls = 1e-5, // base radius of ball.
 maxOverlap = .1, // of scaleBalls
 KEfactor = 0, // Determines collision velocity based on KE/PE
@@ -35,7 +37,7 @@ kConsts = 3e3 * fourThirdsPiRho / (maxOverlap * maxOverlap),
 impactParameter = 0, // Impact angle radians
 Ha = 4.7e-12, // Hamaker constant for vdw force
 h_min = scaleBalls * .1,//1e8 * std::numeric_limits<double>::epsilon(), // 2.22045e-10 (epsilon is 2.22045e-16)
-cone = M_PI_2; // Cone of particles ignored moving away from center of mass. Larger angle ignores more.
+cone = pi / 2; // Cone of particles ignored moving away from center of mass. Larger angle ignores more.
 
 // Simulation Structure
 constexpr int

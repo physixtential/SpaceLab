@@ -1,5 +1,5 @@
-#define _USE_MATH_DEFINES
 #include "../ball_group.hpp"
+
 #include <cmath>
 #include <iostream>
 #include <fstream>
@@ -102,14 +102,14 @@ void sim_one_step(const bool write_step)
 		for (int B = 0; B < A; B++)
 		{
 			const double sumRaRb = O.R[A] + O.R[B];
-			const vector3d rVecab = O.pos[B] - O.pos[A]; // Vector from a to b.
-			const vector3d rVecba = -rVecab;
+			const vec3 rVecab = O.pos[B] - O.pos[A]; // Vector from a to b.
+			const vec3 rVecba = -rVecab;
 			const double dist = (rVecab).norm();
 
 			// Check for collision between Ball and otherBall:
 			double overlap = sumRaRb - dist;
 
-			vector3d totalForceOnA{ 0, 0, 0 };
+			vec3 totalForceOnA{ 0, 0, 0 };
 
 			// Distance array element: 1,0    2,0    2,1    3,0    3,1    3,2 ...
 			int e = static_cast<unsigned>(A * (A - 1) * .5) + B; // a^2-a is always even, so this works.
@@ -136,7 +136,7 @@ void sim_one_step(const bool write_step)
 				constexpr double h2 = h * h;
 				const double twoRah = 2 * Ra * h;
 				const double twoRbh = 2 * Rb * h;
-				const vector3d vdwForceOnA =
+				const vec3 vdwForceOnA =
 					Ha / 6 *
 					64 * Ra * Ra * Ra * Rb * Rb * Rb *
 					((h + Ra + Rb) /
@@ -149,26 +149,26 @@ void sim_one_step(const bool write_step)
 					rVecab.normalized();
 
 				// Elastic force:
-				const vector3d elasticForceOnA = -k * overlap * .5 * (rVecab / dist);
+				const vec3 elasticForceOnA = -k * overlap * .5 * (rVecab / dist);
 
 				// Gravity force:
-				const vector3d gravForceOnA = (G * O.m[A] * O.m[B] / (dist * dist)) * (rVecab / dist);
+				const vec3 gravForceOnA = (G * O.m[A] * O.m[B] / (dist * dist)) * (rVecab / dist);
 
 				// Sliding and Rolling Friction:
-				vector3d slideForceOnA{ 0, 0, 0 };
-				vector3d rollForceA{ 0, 0, 0 };
-				vector3d torqueA{ 0, 0, 0 };
-				vector3d torqueB{ 0, 0, 0 };
+				vec3 slideForceOnA{ 0, 0, 0 };
+				vec3 rollForceA{ 0, 0, 0 };
+				vec3 torqueA{ 0, 0, 0 };
+				vec3 torqueB{ 0, 0, 0 };
 
 				// Shared terms:
 				const double elastic_force_A_mag = elasticForceOnA.norm();
-				const vector3d r_a = rVecab * O.R[A] / sumRaRb; // Center to contact point
-				const vector3d r_b = rVecba * O.R[B] / sumRaRb;
-				const vector3d w_diff = O.w[A] - O.w[B];
+				const vec3 r_a = rVecab * O.R[A] / sumRaRb; // Center to contact point
+				const vec3 r_b = rVecba * O.R[B] / sumRaRb;
+				const vec3 w_diff = O.w[A] - O.w[B];
 
 				// Sliding friction terms:
-				const vector3d d_vel = O.vel[B] - O.vel[A];
-				const vector3d frame_A_vel_B = d_vel - d_vel.dot(rVecab) * (rVecab / (dist * dist)) - O.w[A].cross(r_a) - O.w[B].cross(r_a);
+				const vec3 d_vel = O.vel[B] - O.vel[A];
+				const vec3 frame_A_vel_B = d_vel - d_vel.dot(rVecab) * (rVecab / (dist * dist)) - O.w[A].cross(r_a) - O.w[B].cross(r_a);
 
 				// Compute sliding friction force:
 				const double rel_vel_mag = frame_A_vel_B.norm();
@@ -213,7 +213,7 @@ void sim_one_step(const bool write_step)
 			else // Non-contact forces:
 			{
 				// No collision: Include gravity and vdw:
-				//const vector3d gravForceOnA = (G * O.m[A] * O.m[B] / (dist * dist)) * (rVecab / dist);
+				//const vec3 gravForceOnA = (G * O.m[A] * O.m[B] / (dist * dist)) * (rVecab / dist);
 
 				// Cohesion (non-contact) h must be positive or h + Ra + Rb becomes catastrophic cancellation:
 				double h = std::fabs(overlap);
@@ -226,7 +226,7 @@ void sim_one_step(const bool write_step)
 				const double h2 = h * h;
 				const double twoRah = 2 * Ra * h;
 				const double twoRbh = 2 * Rb * h;
-				const vector3d vdwForceOnA =
+				const vec3 vdwForceOnA =
 					Ha / 6 *
 					64 * Ra * Ra * Ra * Rb * Rb * Rb *
 					((h + Ra + Rb) /
@@ -474,7 +474,7 @@ void safetyChecks()
 
 	for (int Ball = 0; Ball < O.num_particles; Ball++)
 	{
-		if (O.pos[Ball].norm() < vector3d(1e-10, 1e-10, 1e-10).norm())
+		if (O.pos[Ball].norm() < vec3(1e-10, 1e-10, 1e-10).norm())
 		{
 			fprintf(stderr, "\nA ball position is [0,0,0]. Possibly didn't initialize balls properly.\n");
 			exit(EXIT_FAILURE);

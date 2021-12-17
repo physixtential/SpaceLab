@@ -7,25 +7,25 @@
 #include <sstream>
 #include <iomanip>
 
-class vector3d
+class vec3
 {
 public:
 	double x;
 	double y;
 	double z;
 
-	vector3d() : x(0), y(0), z(0) {}
+	vec3() : x(0), y(0), z(0) {}
 
-	vector3d(const double newx, const double newy, const double newz)
+	vec3(const double newx, const double newy, const double newz)
 		: x(newx), y(newy), z(newz)
 	{
 	}
 
-	//vector3d(const vector3d& v) : x(v.x), y(v.y), z(v.z)
+	//vec3(const vec3& v) : x(v.x), y(v.y), z(v.z)
 	//{
 	//}
 
-	//vector3d& operator=(const vector3d& v)
+	//vec3& operator=(const vec3& v)
 	//{
 	//	x = v.x;
 	//	y = v.y;
@@ -33,17 +33,19 @@ public:
 	//	return *this;
 	//}
 
-	vector3d operator-() const
+
+
+	vec3 operator-() const
 	{
-		return vector3d(-x, -y, -z);
+		return vec3(-x, -y, -z);
 	}
 
-	vector3d operator+(const vector3d& v) const
+	vec3 operator+(const vec3& v) const
 	{
-		return vector3d(x + v.x, y + v.y, z + v.z);
+		return vec3(x + v.x, y + v.y, z + v.z);
 	}
 
-	vector3d operator+=(const vector3d& v)
+	vec3 operator+=(const vec3& v)
 	{
 		x += v.x;
 		y += v.y;
@@ -51,12 +53,12 @@ public:
 		return *this;
 	}
 
-	vector3d operator-(const vector3d& v) const
+	vec3 operator-(const vec3& v) const
 	{
-		return vector3d(x - v.x, y - v.y, z - v.z);
+		return vec3(x - v.x, y - v.y, z - v.z);
 	}
 
-	vector3d operator-=(const vector3d& v)
+	vec3 operator-=(const vec3& v)
 	{
 		x -= v.x;
 		y -= v.y;
@@ -64,12 +66,12 @@ public:
 		return *this;
 	}
 
-	vector3d operator*(const double scalar) const
+	vec3 operator*(const double scalar) const
 	{
-		return vector3d(scalar * x, scalar * y, scalar * z);
+		return vec3(scalar * x, scalar * y, scalar * z);
 	}
 
-	vector3d operator*=(const double scalar)
+	vec3 operator*=(const double scalar)
 	{
 		x *= scalar;
 		y *= scalar;
@@ -77,12 +79,12 @@ public:
 		return *this;
 	}
 
-	vector3d operator/(const double scalar) const
+	vec3 operator/(const double scalar) const
 	{
-		return vector3d(x / scalar, y / scalar, z / scalar);
+		return vec3(x / scalar, y / scalar, z / scalar);
 	}
 
-	vector3d operator/=(const double scalar)
+	vec3 operator/=(const double scalar)
 	{
 		x /= scalar;
 		y /= scalar;
@@ -90,12 +92,12 @@ public:
 		return *this;
 	}
 
-	//bool operator==(const vector3d& v) const
+	//bool operator==(const vec3& v) const
 	//{
 	//	return ((x == v.x) && (y == v.y) &&
 	//		(z == v.z));
 	//}
-	//bool operator!=(const vector3d& v) const
+	//bool operator!=(const vec3& v) const
 	//{
 	//	return !(*this == v);
 	//}
@@ -127,13 +129,13 @@ public:
 		assert(0);
 	}
 
-	[[nodiscard]] double dot(const vector3d& v) const
+	[[nodiscard]] double dot(const vec3& v) const
 	{
 		return x * v.x + y * v.y + z * v.z;
 	}
-	[[nodiscard]] vector3d cross(const vector3d& v) const
+	[[nodiscard]] vec3 cross(const vec3& v) const
 	{
-		return vector3d(
+		return vec3(
 			y * v.z - z * v.y,
 			z * v.x - x * v.z,
 			x * v.y - y * v.x
@@ -147,12 +149,12 @@ public:
 	{
 		return x * x + y * y + z * z;
 	}
-	vector3d normalized() const
+	vec3 normalized() const
 	{
 		return *this / this->norm();
 	}
 
-	vector3d normalized_safe() const
+	vec3 normalized_safe() const
 	{
 		if (fabs(this->norm()) < 1e-13)
 		{
@@ -162,22 +164,17 @@ public:
 		return *this / this->norm();
 	}
 
-	std::string toStr() const
-	{
-		return "[" + std::to_string(x) + ", " + std::to_string(y) + ", " + std::to_string(z) + "]";
-	}
-
 	void print() const
 	{
-		std::cerr << "[" << x << ", " << y << ", " << z << "]\n";
+		std::cout << x << ',' << y << ',' << z << "\n";
 	}
 
-	[[nodiscard]] vector3d rot(char axis, double angle) const
+	[[nodiscard]] vec3 rot(char axis, double angle) const
 	{
 		double rotx[3][3] = { { 1, 0, 0 }, { 0, cos(angle), -sin(angle) }, { 0, sin(angle), cos(angle) } },
 			roty[3][3] = { { cos(angle), 0, sin(angle) }, { 0, 1, 0 }, { -sin(angle), 0, cos(angle) } },
 			rotz[3][3] = { { cos(angle), -sin(angle), 0 }, { sin(angle), cos(angle), 0 }, { 0, 0, 1 } };
-		vector3d newVec;
+		vec3 newVec;
 		switch (axis)
 		{
 		case 'x':
@@ -202,17 +199,17 @@ public:
 		return newVec;
 	}
 
-	vector3d arbitrary_orthogonal() const
+	vec3 arbitrary_orthogonal() const
 	{
 		bool b0 = (x < y) && (x < z);
 		bool b1 = (y <= x) && (y < z);
 		bool b2 = (z <= x) && (z <= y);
 
-		return this->cross(vector3d(int(b0), int(b1), int(b2)));
+		return this->cross(vec3(int(b0), int(b1), int(b2)));
 	}
 };
 
-inline vector3d operator*(const double scalar, const vector3d& v)
+inline vec3 operator*(const double scalar, const vec3& v)
 {
 	return v * scalar;
 }
@@ -232,10 +229,10 @@ public:
 		y = q.y;
 		z = q.z;
 	}
-	rotation(const double angle, const vector3d& axis)
+	rotation(const double angle, const vec3& axis)
 	{
 		w = cos(angle / 2.0);
-		const vector3d goodaxis = axis.normalized();
+		const vec3 goodaxis = axis.normalized();
 		const double sinangle_over2 = sin(angle / 2.0);
 		x = goodaxis.x * sinangle_over2;
 		y = goodaxis.y * sinangle_over2;
@@ -280,7 +277,7 @@ public:
 		return rotation(w, -x, -y, -z);
 	}
 
-	vector3d rotate_vector(const vector3d& v) const
+	vec3 rotate_vector(const vec3& v) const
 	{
 		const rotation p(v.x * x + v.y * y + v.z * z,
 			v.x * w - v.y * z + v.z * y,
@@ -290,7 +287,7 @@ public:
 			w * p.x + x * p.w + y * p.z - z * p.y,
 			w * p.y - x * p.z + y * p.w + z * p.x,
 			w * p.z + x * p.y - y * p.x + z * p.w);
-		return vector3d(product.x, product.y, product.z);
+		return vec3(product.x, product.y, product.z);
 	}
 
 	//void tostr(char str[]) const {
@@ -332,4 +329,8 @@ private:
 	}
 };
 
-
+// Output vec3 to console easily.
+std::ostream& operator << (std::ostream& s, const vec3& v)
+{
+	return s << v.x << ',' << v.y << ',' << v.z;
+}

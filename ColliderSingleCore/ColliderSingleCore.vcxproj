@@ -33,7 +33,7 @@
     <ClInclude Include="..\ball_group.hpp" />
     <ClInclude Include="..\dust_const.hpp" />
     <ClInclude Include="..\asteroid_const.hpp" />
-    <ClInclude Include="..\vector3d.hpp" />
+    <ClInclude Include="..\vec3.hpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>

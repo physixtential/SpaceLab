@@ -1,4 +1,3 @@
-#define _USE_MATH_DEFINES
 #include <cmath>
 #include <iostream>
 #include <fstream>
@@ -99,9 +98,9 @@ void simOneStep(const unsigned int& Step)
 		for (unsigned int B = 0; B < A; B++)
 		{
 			const double sumRaRb = O.g[A].R + O.g[B].R;
-			vector3d rVec = O.g[B].pos - O.g[A].pos; // Start with rVec from a to b.
+			vec3 rVec = O.g[B].pos - O.g[A].pos; // Start with rVec from a to b.
 			const double dist = (rVec).norm();
-			vector3d totalForce;
+			vec3 totalForce;
 
 			// Check for collision between Ball and otherBall:
 			double overlap = sumRaRb - dist;
@@ -133,7 +132,7 @@ void simOneStep(const unsigned int& Step)
 				const double h2 = h * h;
 				const double twoRah = 2 * Ra * h;
 				const double twoRbh = 2 * Rb * h;
-				const vector3d vdwForce =
+				const vec3 vdwForce =
 					Ha / 6 *
 					64 * Ra * Ra * Ra * Rb * Rb * Rb *
 					(h + Ra + Rb) /
@@ -146,12 +145,12 @@ void simOneStep(const unsigned int& Step)
 					rVec.normalized();
 
 				// Elastic a:
-				vector3d elasticForce = -k * overlap * .5 * (rVec / dist);
+				vec3 elasticForce = -k * overlap * .5 * (rVec / dist);
 
 				// Friction a:
-				vector3d dVel = O.g[B].vel - O.g[A].vel;
-				vector3d frictionForce = { 0, 0, 0 };
-				const vector3d relativeVelOfA = dVel - dVel.dot(rVec) * (rVec / (dist * dist)) - O.g[A].w.cross(O.g[A].R / sumRaRb * rVec) - O.g[B].w.cross(O.g[B].R / sumRaRb * rVec);
+				vec3 dVel = O.g[B].vel - O.g[A].vel;
+				vec3 frictionForce = { 0, 0, 0 };
+				const vec3 relativeVelOfA = dVel - dVel.dot(rVec) * (rVec / (dist * dist)) - O.g[A].w.cross(O.g[A].R / sumRaRb * rVec) - O.g[B].w.cross(O.g[B].R / sumRaRb * rVec);
 				double relativeVelMag = relativeVelOfA.norm();
 				if (relativeVelMag > 1e-10) // When relative velocity is very low, dividing its vector components by its magnitude below is unstable.
 				{
@@ -159,10 +158,10 @@ void simOneStep(const unsigned int& Step)
 				}
 
 				// Torque a:
-				const vector3d aTorque = (O.g[A].R / sumRaRb) * rVec.cross(frictionForce);
+				const vec3 aTorque = (O.g[A].R / sumRaRb) * rVec.cross(frictionForce);
 
 				// Gravity on a:
-				const vector3d gravForceOnA = (G * O.g[A].m * O.g[B].m / (dist * dist)) * (rVec / dist);
+				const vec3 gravForceOnA = (G * O.g[A].m * O.g[B].m / (dist * dist)) * (rVec / dist);
 
 				// Total forces on a:
 				totalForce = gravForceOnA + elasticForce + frictionForce + vdwForce;
@@ -173,13 +172,13 @@ void simOneStep(const unsigned int& Step)
 				dVel = -dVel;
 				elasticForce = -elasticForce;
 
-				const vector3d relativeVelOfB = dVel - dVel.dot(rVec) * (rVec / (dist * dist)) - O.g[B].w.cross(O.g[B].R / sumRaRb * rVec) - O.g[A].w.cross(O.g[A].R / sumRaRb * rVec);
+				const vec3 relativeVelOfB = dVel - dVel.dot(rVec) * (rVec / (dist * dist)) - O.g[B].w.cross(O.g[B].R / sumRaRb * rVec) - O.g[A].w.cross(O.g[A].R / sumRaRb * rVec);
 				relativeVelMag = relativeVelOfB.norm(); // todo - This should be the same as mag for A. Same speed different direction.
 				if (relativeVelMag > 1e-10)
 				{
 					frictionForce = mu * (elasticForce.norm() + vdwForce.norm()) * (relativeVelOfB / relativeVelMag);
 				}
-				const vector3d bTorque = (O.g[B].R / sumRaRb) * rVec.cross(frictionForce);
+				const vec3 bTorque = (O.g[B].R / sumRaRb) * rVec.cross(frictionForce);
 
 				O.g[A].aacc += aTorque / O.g[A].moi;
 				O.g[B].aacc += bTorque / O.g[B].moi;
@@ -194,7 +193,7 @@ void simOneStep(const unsigned int& Step)
 			else
 			{
 				// No collision: Include gravity only:
-				const vector3d gravForceOnA = (G * O.g[A].m * O.g[B].m / (dist * dist)) * (rVec / dist);
+				const vec3 gravForceOnA = (G * O.g[A].m * O.g[B].m / (dist * dist)) * (rVec / dist);
 				totalForce = gravForceOnA;
 				if (writeStep)
 				{
@@ -394,7 +393,7 @@ void safetyChecks()
 
 	for (unsigned int Ball = 0; Ball < O.n; Ball++)
 	{
-		if (O.g[Ball].pos.norm() < vector3d(1e-10, 1e-10, 1e-10).norm())
+		if (O.g[Ball].pos.norm() < vec3(1e-10, 1e-10, 1e-10).norm())
 		{
 			fprintf(stderr, "\nA ball position is [0,0,0]. Possibly didn't initialize balls properly.\n");
 			exit(EXIT_FAILURE);

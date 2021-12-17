@@ -27,8 +27,8 @@ public:
 	double v_max = -1;
 	double v_max_prev = HUGE_VAL;
 
-	vector3d mom = { 0, 0, 0 };
-	vector3d ang_mom = { 0, 0, 0 }; // Can be vector3d because they only matter for writing out to file. Can process on host.
+	vec3 mom = { 0, 0, 0 };
+	vec3 ang_mom = { 0, 0, 0 }; // Can be vec3 because they only matter for writing out to file. Can process on host.
 
 	double U = 0, T = 0;
 
@@ -176,8 +176,8 @@ public:
 				for (unsigned int B = A + 1; B < n; B++)
 				{
 					// Check for Ball overlap.
-					vector3d rVecab = g[B].pos - g[A].pos;
-					vector3d rVecba = -1 * rVecab;
+					vec3 rVecab = g[B].pos - g[A].pos;
+					vec3 rVecba = -1 * rVecab;
 					const double dist = (rVecab).norm();
 					const double sumRaRb = g[A].R + g[B].R;
 					const double overlap = sumRaRb - dist;
@@ -249,7 +249,7 @@ public:
 				// Only consider balls moving toward com and within 4x initial radius around it.
 				// todo - this cone may be too aggressive (larger cone ignores more):
 				constexpr double cone = M_PI_2 + (.5 * M_PI_2);
-				const vector3d fromCOM = g[Ball].pos - getCOM();
+				const vec3 fromCOM = g[Ball].pos - getCOM();
 				if (acos(g[Ball].vel.normalized().dot(fromCOM.normalized())) > cone && fromCOM.norm() < soc)
 				{
 					if (g[Ball].vel.norm() > v_max)
@@ -298,7 +298,7 @@ public:
 
 	void checkMomentum(const std::string& of) const
 	{
-		vector3d pTotal = { 0, 0, 0 };
+		vec3 pTotal = { 0, 0, 0 };
 		for (unsigned int Ball = 0; Ball < n; Ball++)
 		{
 			pTotal += g[Ball].m * g[Ball].vel;
@@ -503,16 +503,16 @@ public:
 	}
 
 
-	[[nodiscard]] vector3d getCOM() const
+	[[nodiscard]] vec3 getCOM() const
 	{
 		if (m_total > 0)
 		{
-			vector3d comNumerator;
+			vec3 comNumerator;
 			for (unsigned int Ball = 0; Ball < n; Ball++)
 			{
 				comNumerator += g[Ball].m * g[Ball].pos;
 			}
-			vector3d com = comNumerator / m_total;
+			vec3 com = comNumerator / m_total;
 			return com;
 		}
 		else
@@ -540,7 +540,7 @@ public:
 
 	void toOrigin()
 	{
-		const vector3d com = getCOM();
+		const vec3 com = getCOM();
 
 		for (unsigned int Ball = 0; Ball < n; Ball++)
 		{
@@ -551,7 +551,7 @@ public:
 	// Set velocity of all balls such that the cluster spins:
 	void comSpinner(const double& spinX, const double& spinY, const double& spinZ)
 	{
-		const vector3d comRot = { spinX, spinY, spinZ }; // Rotation axis and magnitude
+		const vec3 comRot = { spinX, spinY, spinZ }; // Rotation axis and magnitude
 		for (unsigned int Ball = 0; Ball < n; Ball++)
 		{
 			g[Ball].vel += comRot.cross(g[Ball].pos - getCOM());
@@ -656,9 +656,9 @@ private:
 		const double m_a = p_pair.A->m;
 		const double m_b = p_pair.B->m;
 		const double sumRaRb = Ra + Rb;
-		vector3d rVec = p_pair.B->pos - p_pair.A->pos; // Start with rVec from a to b.
+		vec3 rVec = p_pair.B->pos - p_pair.A->pos; // Start with rVec from a to b.
 		const double dist = (rVec).norm();
-		vector3d totalForce;
+		vec3 totalForce;
 
 		// Check for collision between Ball and otherBall:
 		double overlap = sumRaRb - dist;
@@ -686,7 +686,7 @@ private:
 			const double h2 = h * h;
 			const double twoRah = 2 * Ra * h;
 			const double twoRbh = 2 * Rb * h;
-			const vector3d vdwForce =
+			const vec3 vdwForce =
 				Ha / 6 *
 				64 * Ra * Ra * Ra * Rb * Rb * Rb *
 				(h + Ra + Rb) /
@@ -699,12 +699,12 @@ private:
 				rVec.normalized();
 
 			// Elastic a:
-			vector3d elasticForce = -k * overlap * .5 * (rVec / dist);
+			vec3 elasticForce = -k * overlap * .5 * (rVec / dist);
 
 			// Friction a:
-			vector3d dVel = p_pair.B->vel - p_pair.A->vel;
-			vector3d frictionForce = { 0, 0, 0 };
-			const vector3d relativeVelOfA = dVel - dVel.dot(rVec) * (rVec / (dist * dist)) - p_pair.A->w.cross(p_pair.A->R / sumRaRb * rVec) - p_pair.B->w.cross(p_pair.B->R / sumRaRb * rVec);
+			vec3 dVel = p_pair.B->vel - p_pair.A->vel;
+			vec3 frictionForce = { 0, 0, 0 };
+			const vec3 relativeVelOfA = dVel - dVel.dot(rVec) * (rVec / (dist * dist)) - p_pair.A->w.cross(p_pair.A->R / sumRaRb * rVec) - p_pair.B->w.cross(p_pair.B->R / sumRaRb * rVec);
 			double relativeVelMag = relativeVelOfA.norm();
 			if (relativeVelMag > 1e-10) // When relative velocity is very low, dividing its vector components by its magnitude below is unstable.
 			{
@@ -712,10 +712,10 @@ private:
 			}
 
 			// Torque a:
-			const vector3d aTorque = (p_pair.A->R / sumRaRb) * rVec.cross(frictionForce);
+			const vec3 aTorque = (p_pair.A->R / sumRaRb) * rVec.cross(frictionForce);
 
 			// Gravity on a:
-			const vector3d gravForceOnA = (G * p_pair.A->m * p_pair.B->m / (dist * dist)) * (rVec / dist);
+			const vec3 gravForceOnA = (G * p_pair.A->m * p_pair.B->m / (dist * dist)) * (rVec / dist);
 
 			// Total forces on a:
 			totalForce = gravForceOnA + elasticForce + frictionForce + vdwForce;
@@ -726,13 +726,13 @@ private:
 			dVel = -dVel;
 			elasticForce = -elasticForce;
 
-			const vector3d relativeVelOfB = dVel - dVel.dot(rVec) * (rVec / (dist * dist)) - p_pair.B->w.cross(p_pair.B->R / sumRaRb * rVec) - p_pair.A->w.cross(p_pair.A->R / sumRaRb * rVec);
+			const vec3 relativeVelOfB = dVel - dVel.dot(rVec) * (rVec / (dist * dist)) - p_pair.B->w.cross(p_pair.B->R / sumRaRb * rVec) - p_pair.A->w.cross(p_pair.A->R / sumRaRb * rVec);
 			relativeVelMag = relativeVelOfB.norm(); // todo - This should be the same as mag for A. Same speed different direction.
 			if (relativeVelMag > 1e-10)
 			{
 				frictionForce = mu * (elasticForce.norm() + vdwForce.norm()) * (relativeVelOfB / relativeVelMag);
 			}
-			const vector3d bTorque = (p_pair.B->R / sumRaRb) * rVec.cross(frictionForce);
+			const vec3 bTorque = (p_pair.B->R / sumRaRb) * rVec.cross(frictionForce);
 
 			{
 				const std::lock_guard<std::mutex> lock(g_mutex);
@@ -753,7 +753,7 @@ private:
 		else
 		{
 			// No collision: Include gravity only:
-			const vector3d gravForceOnA = (G * p_pair.A->m * p_pair.B->m / (dist * dist)) * (rVec / dist);
+			const vec3 gravForceOnA = (G * p_pair.A->m * p_pair.B->m / (dist * dist)) * (rVec / dist);
 			totalForce = gravForceOnA;
 			if (writeStep)
 			{

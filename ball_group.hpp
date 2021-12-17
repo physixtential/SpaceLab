@@ -1,4 +1,10 @@
 #pragma once
+#include "dust_const.hpp"
+#include "vec3.hpp"
+#include "linalg.hpp"
+#include "Utils.hpp"
+
+#include <cmath>
 #include <iostream>
 #include <string>
 #include <sstream>
@@ -7,11 +13,6 @@
 #include <algorithm>
 #include <limits.h>
 #include <cstring>
-#include "dust_const.hpp"
-#include "vector3d.hpp"
-#include "Line_sphere_intersection.hpp"
-#include "linalg.hpp"
-#include "Utils.hpp"
 
 /// @brief Facilitates the concept of a group of balls with physical properties.
 class Ball_group
@@ -31,20 +32,20 @@ public:
 	double v_max_prev = HUGE_VAL;
 	double soc = -1;
 
-	vector3d mom = { 0, 0, 0 };
-	vector3d ang_mom = { 0, 0, 0 }; // Can be vector3d because they only matter for writing out to file. Can process on host.
+	vec3 mom = { 0, 0, 0 };
+	vec3 ang_mom = { 0, 0, 0 }; // Can be vec3 because they only matter for writing out to file. Can process on host.
 
 	double PE = 0, KE = 0;
 
 	double* distances = nullptr;
 
-	vector3d* pos = nullptr;
-	vector3d* vel = nullptr;
-	vector3d* velh = nullptr; ///< Velocity half step for integration purposes.
-	vector3d* acc = nullptr;
-	vector3d* w = nullptr;
-	vector3d* wh = nullptr; ///< Angular velocity half step for integration purposes.
-	vector3d* aacc = nullptr;
+	vec3* pos = nullptr;
+	vec3* vel = nullptr;
+	vec3* velh = nullptr; ///< Velocity half step for integration purposes.
+	vec3* acc = nullptr;
+	vec3* w = nullptr;
+	vec3* wh = nullptr; ///< Angular velocity half step for integration purposes.
+	vec3* aacc = nullptr;
 	double* R = nullptr; ///< Radius
 	double* m = nullptr; ///< Mass
 	double* moi = nullptr; ///< Moment of inertia
@@ -56,6 +57,12 @@ public:
 	explicit Ball_group(const int nBalls)
 	{
 		allocate_group(nBalls);
+		for (size_t i = 0; i < nBalls; i++)
+		{
+			R[i] = 1;
+			m[i] = 1;
+			moi[i] = calc_moi(R[i], m[i]);
+		}
 	}
 
 	/// @brief For generating a new ballGroup of size nBalls
@@ -117,7 +124,7 @@ public:
 		soc = rhs.soc;
 
 		mom = rhs.mom;
-		ang_mom = rhs.ang_mom; // Can be vector3d because they only matter for writing out to file. Can process on host.
+		ang_mom = rhs.ang_mom; // Can be vec3 because they only matter for writing out to file. Can process on host.
 
 		PE = rhs.PE;
 
@@ -153,7 +160,7 @@ public:
 		soc = rhs.soc;
 
 		mom = rhs.mom;
-		ang_mom = rhs.ang_mom; // Can be vector3d because they only matter for writing out to file. Can process on host.
+		ang_mom = rhs.ang_mom; // Can be vec3 because they only matter for writing out to file. Can process on host.
 
 		PE = rhs.PE;
 
@@ -264,8 +271,8 @@ public:
 				for (int B = A + 1; B < num_particles; B++)
 				{
 					// Check for Ball overlap.
-					vector3d rVecab = pos[B] - pos[A];
-					vector3d rVecba = -1 * rVecab;
+					vec3 rVecab = pos[B] - pos[A];
+					vec3 rVecba = -1 * rVecab;
 					const double dist = (rVecab).norm();
 					const double sumRaRb = R[A] + R[B];
 					const double overlap = sumRaRb - dist;
@@ -336,7 +343,7 @@ public:
 			for (int Ball = 0; Ball < num_particles; Ball++)
 			{
 				// Only consider balls moving toward com and within 4x initial radius around it.
-				const vector3d fromCOM = pos[Ball] - getCOM();
+				const vec3 fromCOM = pos[Ball] - getCOM();
 				if (acos(vel[Ball].normalized().dot(fromCOM.normalized())) > cone && fromCOM.norm() < soc)
 				{
 					if (vel[Ball].norm() > v_max)
@@ -374,7 +381,7 @@ public:
 	}
 
 	// Kick ballGroup (give the whole thing a velocity)
-	void kick(const vector3d& vec) const
+	void kick(const vec3& vec) const
 	{
 		for (int Ball = 0; Ball < num_particles; Ball++)
 		{
@@ -383,14 +390,14 @@ public:
 	}
 
 
-	vector3d calc_momentum(const std::string& of = "") const
+	vec3 calc_momentum(const std::string& of = "") const
 	{
-		vector3d pTotal = { 0, 0, 0 };
+		vec3 pTotal = { 0, 0, 0 };
 		for (int Ball = 0; Ball < num_particles; Ball++)
 		{
 			pTotal += m[Ball] * vel[Ball];
 		}
-		fprintf(stderr, "%s Momentum Check: %.2e, %.2e, %.2e\n", of.c_str(), pTotal.x, pTotal.y, pTotal.z);
+		//fprintf(stderr, "%s Momentum Check: %.2e, %.2e, %.2e\n", of.c_str(), pTotal.x, pTotal.y, pTotal.z);
 		return pTotal;
 	}
 
@@ -405,7 +412,7 @@ public:
 	}
 
 	/// Approximate the radius of the ballGroup.
-	[[nodiscard]] double get_radius(const vector3d& center) const
+	[[nodiscard]] double get_radius(const vec3& center) const
 	{
 		double radius = 0;
 
@@ -595,16 +602,16 @@ public:
 	}
 
 
-	[[nodiscard]] vector3d getCOM() const
+	[[nodiscard]] vec3 getCOM() const
 	{
 		if (m_total > 0)
 		{
-			vector3d comNumerator;
+			vec3 comNumerator;
 			for (int Ball = 0; Ball < num_particles; Ball++)
 			{
 				comNumerator += m[Ball] * pos[Ball];
 			}
-			vector3d com = comNumerator / m_total;
+			vec3 com = comNumerator / m_total;
 			return com;
 		}
 		else
@@ -632,7 +639,7 @@ public:
 
 	void to_origin() const
 	{
-		const vector3d com = getCOM();
+		const vec3 com = getCOM();
 
 		for (int Ball = 0; Ball < num_particles; Ball++)
 		{
@@ -643,7 +650,7 @@ public:
 	// Set velocity of all balls such that the cluster spins:
 	void comSpinner(const double& spinX, const double& spinY, const double& spinZ) const
 	{
-		const vector3d comRot = { spinX, spinY, spinZ }; // Rotation axis and magnitude
+		const vec3 comRot = { spinX, spinY, spinZ }; // Rotation axis and magnitude
 		for (int Ball = 0; Ball < num_particles; Ball++)
 		{
 			vel[Ball] += comRot.cross(pos[Ball] - getCOM());
@@ -671,30 +678,83 @@ public:
 		return .4 * mass * radius * radius;
 	}
 
+	Ball_group spawn_particles(const int count)
+	{
+		// Load file data:
+		std::cerr << "Add Particle\n";
+
+		// Random particle to origin
+		Ball_group projectile(count);
+		// Particle random position at twice radius of target:
+		// We want the farthest from origin since we are offsetting form origin. Not com.
+		const auto cluster_radius = 3;
+
+		const vec3 projectile_direction = rand_vec3(1).normalized();
+		projectile.pos[0] = projectile_direction * (cluster_radius + scaleBalls * 4);
+		projectile.w[0] = { 0, 0, 0 };
+		// Velocity toward origin:
+		projectile.vel[0] = -v_custom * projectile_direction;
+		projectile.R[0] = 1e-5;//rand_between(1,3)*1e-5;
+		projectile.m[0] = density * 4. / 3. * pi * std::pow(projectile.R[0], 3);
+		projectile.moi[0] = calc_moi(projectile.R[0], projectile.m[0]);
+
+
+		const double3x3 local_coords = local_coordinates(to_double3(projectile_direction));
+		//to_vec3(local_coords.y).print();
+		//to_vec3(local_coords.z).print();
+		//projectile.pos[0].print();
+		for (int i = 1; i < projectile.num_particles - 3; i++)
+		{
+			const auto rand_y = rand_between(-cluster_radius, cluster_radius);
+			const auto rand_z = rand_between(-cluster_radius, cluster_radius);
+			//projectile.pos[i] = projectile.pos[0] + perpendicular_shift(local_coords, rand_y, rand_z);
+			projectile.pos[i] = projectile.pos[0] + perpendicular_shift(local_coords, rand_y, rand_z);
+			//std::cout << rand_y << '\t' << to_vec3(local_coords.y * rand_y) <<'\t'<< projectile.pos[i] << '\n';
+		}
+		projectile.pos[projectile.num_particles - 3] = projectile_direction * 2;
+		projectile.pos[projectile.num_particles - 2] = projectile_direction * 4;
+		projectile.pos[projectile.num_particles - 1] = projectile_direction * 6;
+
+		Ball_group new_group{ projectile.num_particles + num_particles };
+
+		new_group.merge_ball_group(*this);
+		new_group.merge_ball_group(projectile);
+
+		//new_group.calibrate_dt(0, 1);
+		//new_group.init_conditions();
+
+		//new_group.to_origin();
+
+		return new_group;
+	}
+
+
 	// Uses previous O as target and adds one particle to hit it:
 	Ball_group add_projectile()
 	{
-		// Load file data:
+		// Load file data: 
 		std::cerr << "Add Particle\n";
 
 		// Random particle to origin
 		Ball_group projectile(1);
 		// Particle random position at twice radius of target:
 		// We want the farthest from origin since we are offsetting form origin. Not com.
-		const auto cluster_radius = get_radius(vector3d(0, 0, 0));
+		const auto cluster_radius = get_radius(vec3(0, 0, 0));
 
-		const vector3d projectile_direction = rand_spherical_vec(1).normalized();
+		const vec3 projectile_direction = rand_unit_vec3();
 		projectile.pos[0] = projectile_direction * (cluster_radius + scaleBalls * 4);
 		projectile.w[0] = { 0, 0, 0 };
 		// Velocity toward origin:
 		projectile.vel[0] = -v_custom * projectile_direction;
 		projectile.R[0] = 1e-5;//rand_between(1,3)*1e-5;
-		projectile.m[0] = density * 4. / 3. * M_PI * std::pow(R[0], 3);
-		projectile.moi[0] = .4 * projectile.m[0] * projectile.R[0] * projectile.R[0];
+		projectile.m[0] = density * 4. / 3. * pi * std::pow(projectile.R[0], 3);
+		projectile.moi[0] = calc_moi(projectile.R[0], projectile.m[0]);
+
+		const double3x3 local_coords = local_coordinates(to_double3(projectile_direction));
 
 		const auto rand_y = rand_between(-cluster_radius, cluster_radius);
 		const auto rand_z = rand_between(-cluster_radius, cluster_radius);
-		projectile.pos[0] = perpendicular_move(projectile.pos[0], projectile.vel[0], rand_y, rand_z);
+		projectile.pos[0] += perpendicular_shift(local_coords, rand_y, rand_z);
 
 		bool intersect = false;
 		do
@@ -711,13 +771,13 @@ public:
 		} while (!intersect);
 
 		// Collision velocity calculation:
-		const vector3d p_target{ calc_momentum("p_target") };
-		const vector3d p_projectile{ projectile.calc_momentum("p_particle") };
-		const vector3d p_total{ p_target + p_projectile };
+		const vec3 p_target{ calc_momentum("p_target") };
+		const vec3 p_projectile{ projectile.calc_momentum("p_particle") };
+		const vec3 p_total{ p_target + p_projectile };
 		const double m_target{ getMass() };
 		const double m_projectile{ projectile.getMass() };
 		const double m_total{ m_target + m_projectile };
-		const vector3d v_com = p_total / m_total;
+		const vec3 v_com = p_total / m_total;
 
 		// Negate total system momentum:
 		projectile.kick(-v_com);
@@ -731,11 +791,11 @@ public:
 
 		Ball_group new_group{ projectile.num_particles + num_particles };
 
-		new_group.add_ball_group(*this);
-		new_group.add_ball_group(projectile);
+		new_group.merge_ball_group(*this);
+		new_group.merge_ball_group(projectile);
 
 		// Hack - Calibrate to vel = 1 so we don't have to reform the pair. Probly fine?
-		//new_group.calibrate_dt(0, v_custom);
+		new_group.calibrate_dt(0, v_custom);
 		new_group.calibrate_dt(0, 1);
 		new_group.init_conditions();
 
@@ -745,42 +805,9 @@ public:
 
 	}
 
-private:
-	// String buffers to hold data in memory until worth writing to file:
-	std::stringstream ballBuffer;
-	std::stringstream energyBuffer;
-
-
-	/// Allocate balls
-	void allocate_group(const int nBalls)
-	{
-		num_particles = nBalls;
-
-		try
-		{
-			distances = new double[(num_particles * num_particles / 2) - (num_particles / 2)];
-
-			pos = new vector3d[num_particles];
-			vel = new vector3d[num_particles];
-			velh = new vector3d[num_particles];
-			acc = new vector3d[num_particles];
-			w = new vector3d[num_particles];
-			wh = new vector3d[num_particles];
-			aacc = new vector3d[num_particles];
-			R = new double[num_particles];
-			m = new double[num_particles];
-			moi = new double[num_particles];
-		}
-		catch (const std::exception& e)
-		{
-			std::cerr << "Failed trying to allocate group. " << e.what() << '\n';
-		}
-	}
-
-
 	/// @brief Add another ballGroup into this one.
 	/// @param src The ballGroup to be added.
-	void add_ball_group(const Ball_group& src)
+	void merge_ball_group(const Ball_group& src)
 	{
 		// Copy incoming data to the end of the currently loaded data.
 		std::memcpy(&distances[num_particles_added], src.distances, sizeof(src.distances[0]) * src.num_particles);
@@ -799,8 +826,41 @@ private:
 		num_particles_added += src.num_particles;
 		calc_helpfuls();
 
-		// DON'T FORGET TO FREEMEMORY
 	}
+
+private:
+	// String buffers to hold data in memory until worth writing to file:
+	std::stringstream ballBuffer;
+	std::stringstream energyBuffer;
+
+
+	/// Allocate balls
+	void allocate_group(const int nBalls)
+	{
+		num_particles = nBalls;
+
+		try
+		{
+			distances = new double[(num_particles * num_particles / 2) - (num_particles / 2)];
+
+			pos = new vec3[num_particles];
+			vel = new vec3[num_particles];
+			velh = new vec3[num_particles];
+			acc = new vec3[num_particles];
+			w = new vec3[num_particles];
+			wh = new vec3[num_particles];
+			aacc = new vec3[num_particles];
+			R = new double[num_particles];
+			m = new double[num_particles];
+			moi = new double[num_particles];
+		}
+		catch (const std::exception& e)
+		{
+			std::cerr << "Failed trying to allocate group. " << e.what() << '\n';
+		}
+	}
+
+
 
 	/// @brief Deallocate arrays to recover memory.
 	void freeMemory() const
@@ -831,14 +891,14 @@ private:
 			for (int B = 0; B < A; B++)
 			{
 				const double sumRaRb = R[A] + R[B];
-				const vector3d rVecab = pos[B] - pos[A]; // Vector from a to b.
-				const vector3d rVecba = -rVecab;
+				const vec3 rVecab = pos[B] - pos[A]; // Vector from a to b.
+				const vec3 rVecba = -rVecab;
 				const double dist = (rVecab).norm();
 
 				// Check for collision between Ball and otherBall:
 				double overlap = sumRaRb - dist;
 
-				vector3d totalForceOnA{ 0, 0, 0 };
+				vec3 totalForceOnA{ 0, 0, 0 };
 
 				// Distance array element: 1,0    2,0    2,1    3,0    3,1    3,2 ...
 				int e = static_cast<int>(A * (A - 1) * .5) + B; // a^2-a is always even, so this works.
@@ -865,7 +925,7 @@ private:
 					constexpr double h2 = h * h;
 					const double twoRah = 2 * Ra * h;
 					const double twoRbh = 2 * Rb * h;
-					const vector3d vdwForceOnA =
+					const vec3 vdwForceOnA =
 						Ha / 6 *
 						64 * Ra * Ra * Ra * Rb * Rb * Rb *
 						((h + Ra + Rb) /
@@ -878,26 +938,26 @@ private:
 						rVecab.normalized();
 
 					// Elastic force:
-					const vector3d elasticForceOnA = -k * overlap * .5 * (rVecab / dist);
+					const vec3 elasticForceOnA = -k * overlap * .5 * (rVecab / dist);
 
 					// Gravity force:
-					const vector3d gravForceOnA = (G * m[A] * m[B] / (dist * dist)) * (rVecab / dist);
+					const vec3 gravForceOnA = (G * m[A] * m[B] / (dist * dist)) * (rVecab / dist);
 
 					// Sliding and Rolling Friction:
-					vector3d slideForceOnA{ 0, 0, 0 };
-					vector3d rollForceA{ 0, 0, 0 };
-					vector3d torqueA{ 0, 0, 0 };
-					vector3d torqueB{ 0, 0, 0 };
+					vec3 slideForceOnA{ 0, 0, 0 };
+					vec3 rollForceA{ 0, 0, 0 };
+					vec3 torqueA{ 0, 0, 0 };
+					vec3 torqueB{ 0, 0, 0 };
 
 					// Shared terms:
 					const double elastic_force_A_mag = elasticForceOnA.norm();
-					const vector3d r_a = rVecab * R[A] / sumRaRb; // Center to contact point
-					const vector3d r_b = rVecba * R[B] / sumRaRb;
-					const vector3d w_diff = w[A] - w[B];
+					const vec3 r_a = rVecab * R[A] / sumRaRb; // Center to contact point
+					const vec3 r_b = rVecba * R[B] / sumRaRb;
+					const vec3 w_diff = w[A] - w[B];
 
 					// Sliding friction terms:
-					const vector3d d_vel = vel[B] - vel[A];
-					const vector3d frame_A_vel_B = d_vel - d_vel.dot(rVecab) * (rVecab / (dist * dist)) - w[A].cross(r_a) - w[B].cross(r_a);
+					const vec3 d_vel = vel[B] - vel[A];
+					const vec3 frame_A_vel_B = d_vel - d_vel.dot(rVecab) * (rVecab / (dist * dist)) - w[A].cross(r_a) - w[B].cross(r_a);
 
 					// Compute sliding friction force:
 					const double rel_vel_mag = frame_A_vel_B.norm();
@@ -941,7 +1001,7 @@ private:
 				else // Non-contact forces:
 				{
 					// No collision: Include gravity and vdw:
-					//const vector3d gravForceOnA = (G * m[A] * m[B] / (dist * dist)) * (rVecab / dist);
+					//const vec3 gravForceOnA = (G * m[A] * m[B] / (dist * dist)) * (rVecab / dist);
 
 					// Cohesion (non-contact) h must be positive or h + Ra + Rb becomes catastrophic cancellation:
 					double h = std::fabs(overlap);
@@ -954,7 +1014,7 @@ private:
 					const double h2 = h * h;
 					const double twoRah = 2 * Ra * h;
 					const double twoRbh = 2 * Rb * h;
-					const vector3d vdwForceOnA =
+					const vec3 vdwForceOnA =
 						Ha / 6 *
 						64 * Ra * Ra * Ra * Rb * Rb * Rb *
 						((h + Ra + Rb) /
@@ -1255,7 +1315,7 @@ private:
 			m[Ball] = density * 4. / 3. * 3.14159 * std::pow(R[Ball], 3);
 			moi[Ball] = .4 * m[Ball] * R[Ball] * R[Ball];
 			w[Ball] = { 0, 0, 0 };
-			pos[Ball] = rand_spherical_vec(spaceRange);
+			pos[Ball] = rand_vec3(spaceRange);
 		}
 
 		for (int Ball = larges; Ball < (larges + mediums); Ball++)
@@ -1264,7 +1324,7 @@ private:
 			m[Ball] = density * 4. / 3. * 3.14159 * std::pow(R[Ball], 3);
 			moi[Ball] = .4 * m[Ball] * R[Ball] * R[Ball];
 			w[Ball] = { 0, 0, 0 };
-			pos[Ball] = rand_spherical_vec(spaceRange);
+			pos[Ball] = rand_vec3(spaceRange);
 		}
 		for (int Ball = (larges + mediums); Ball < nBalls; Ball++)
 		{
@@ -1272,7 +1332,7 @@ private:
 			m[Ball] = density * 4. / 3. * 3.14159 * std::pow(R[Ball], 3);
 			moi[Ball] = .4 * m[Ball] * R[Ball] * R[Ball];
 			w[Ball] = { 0, 0, 0 };
-			pos[Ball] = rand_spherical_vec(spaceRange);
+			pos[Ball] = rand_vec3(spaceRange);
 		}
 
 		std::cerr << "Smalls: " << smalls << " Mediums: " << mediums << " Larges: " << larges << '\n';
@@ -1295,7 +1355,7 @@ private:
 					{
 						collisionDetected += 1;
 						// Move the other ball:
-						pos[B] = rand_spherical_vec(spaceRange);
+						pos[B] = rand_vec3(spaceRange);
 					}
 				}
 			}
@@ -1316,7 +1376,7 @@ private:
 				failed = 0;
 				for (int Ball = 0; Ball < nBalls; Ball++)
 				{
-					pos[Ball] = rand_spherical_vec(spaceRange); // Each time we fail and increase range, redistribute all balls randomly so we don't end up with big balls near mid and small balls outside.
+					pos[Ball] = rand_vec3(spaceRange); // Each time we fail and increase range, redistribute all balls randomly so we don't end up with big balls near mid and small balls outside.
 				}
 			}
 			collisionDetected = 0;
@@ -1374,7 +1434,7 @@ private:
 			m[Ball] = density * 4. / 3. * 3.14159 * std::pow(R[Ball], 3);
 			moi[Ball] = .4 * m[Ball] * R[Ball] * R[Ball];
 			w[Ball] = { 0, 0, 0 };
-			pos[Ball] = rand_spherical_vec(spaceRange);
+			pos[Ball] = rand_vec3(spaceRange);
 		}
 
 		// Generate non-overlapping spherical particle field:
@@ -1395,7 +1455,7 @@ private:
 					{
 						collisionDetected += 1;
 						// Move the other ball:
-						pos[B] = rand_spherical_vec(spaceRange);
+						pos[B] = rand_vec3(spaceRange);
 					}
 				}
 			}
@@ -1416,7 +1476,7 @@ private:
 				failed = 0;
 				for (int Ball = 0; Ball < nBalls; Ball++)
 				{
-					pos[Ball] = rand_spherical_vec(spaceRange); // Each time we fail and increase range, redistribute all balls randomly so we don't end up with big balls near mid and small balls outside.
+					pos[Ball] = rand_vec3(spaceRange); // Each time we fail and increase range, redistribute all balls randomly so we don't end up with big balls near mid and small balls outside.
 				}
 			}
 			collisionDetected = 0;
@@ -1546,8 +1606,8 @@ private:
 			exit(EXIT_FAILURE);
 		}
 
-		projectile.kick(vector3d(vSmall, 0, 0));
-		target.kick(vector3d(vBig, 0, 0));
+		projectile.kick(vec3(vSmall, 0, 0));
+		target.kick(vec3(vBig, 0, 0));
 
 		fprintf(stderr, "\nTarget Velocity: %.2e\nProjectile Velocity: %.2e\n", vBig, vSmall);
 
@@ -1557,8 +1617,8 @@ private:
 
 		allocate_group(projectile.num_particles + target.num_particles);
 
-		add_ball_group(target);
-		add_ball_group(projectile); // projectile second so smallest ball at end and largest ball at front for dt/k calcs.
+		merge_ball_group(target);
+		merge_ball_group(projectile); // projectile second so smallest ball at end and largest ball at front for dt/k calcs.
 
 		output_prefix =
 			projectileName + targetName +

@@ -12,9 +12,10 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{55500F48-2F31-4A19-A617-3AFED6A27100}"
 	ProjectSection(SolutionItems) = preProject
 		linalg.hpp = linalg.hpp
-		Line_sphere_intersection.hpp = Line_sphere_intersection.hpp
 		Utils.hpp = Utils.hpp
 	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "TestColliderSingleCore", "TestColliderSingleCore\TestColliderSingleCore.vcxproj", "{5EB89134-3BE9-4E84-B36C-BBE711A6023F}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -55,6 +56,18 @@ Global
 		{25FFD236-7D27-4BEA-B9B6-40DD4AAF3848}.Release|x64.Build.0 = Release|x64
 		{25FFD236-7D27-4BEA-B9B6-40DD4AAF3848}.Release|x86.ActiveCfg = Release|Win32
 		{25FFD236-7D27-4BEA-B9B6-40DD4AAF3848}.Release|x86.Build.0 = Release|Win32
+		{5EB89134-3BE9-4E84-B36C-BBE711A6023F}.Debug|Any CPU.ActiveCfg = Debug|x64
+		{5EB89134-3BE9-4E84-B36C-BBE711A6023F}.Debug|Any CPU.Build.0 = Debug|x64
+		{5EB89134-3BE9-4E84-B36C-BBE711A6023F}.Debug|x64.ActiveCfg = Debug|x64
+		{5EB89134-3BE9-4E84-B36C-BBE711A6023F}.Debug|x64.Build.0 = Debug|x64
+		{5EB89134-3BE9-4E84-B36C-BBE711A6023F}.Debug|x86.ActiveCfg = Debug|Win32
+		{5EB89134-3BE9-4E84-B36C-BBE711A6023F}.Debug|x86.Build.0 = Debug|Win32
+		{5EB89134-3BE9-4E84-B36C-BBE711A6023F}.Release|Any CPU.ActiveCfg = Release|x64
+		{5EB89134-3BE9-4E84-B36C-BBE711A6023F}.Release|Any CPU.Build.0 = Release|x64
+		{5EB89134-3BE9-4E84-B36C-BBE711A6023F}.Release|x64.ActiveCfg = Release|x64
+		{5EB89134-3BE9-4E84-B36C-BBE711A6023F}.Release|x64.Build.0 = Release|x64
+		{5EB89134-3BE9-4E84-B36C-BBE711A6023F}.Release|x86.ActiveCfg = Release|Win32
+		{5EB89134-3BE9-4E84-B36C-BBE711A6023F}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

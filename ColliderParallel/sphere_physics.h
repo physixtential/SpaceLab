@@ -12,7 +12,7 @@
 /// Radius, mass, and moment of inertia must be defined upon creation.
 struct Sphere
 {
-	vector3d
+	vec3
 		pos,
 		vel,
 		velh,
@@ -51,8 +51,8 @@ public:
 	double get_prev_overlap() const { return prev_overlap_; }
 
 	// Setters
-	void a_add_force(const vector3d& force) { a_.force += force; }
-	void b_add_force(const vector3d& force) { b_.force += force; }
+	void a_add_force(const vec3& force) { a_.force += force; }
+	void b_add_force(const vec3& force) { b_.force += force; }
 	void update_overlap()
 	{
 		prev_overlap_ = sum_Ra_Rb - (a_.pos - b_.pos).norm();
@@ -85,8 +85,8 @@ public:
 	double v_max = -1; // Fastest particle.
 	double v_max_prev = HUGE_VAL;
 
-	vector3d mom = { 0, 0, 0 }; // Momentum of the cosmos.
-	vector3d ang_mom = { 0, 0, 0 }; // Angular momentum of the cosmos.
+	vec3 mom = { 0, 0, 0 }; // Momentum of the cosmos.
+	vec3 ang_mom = { 0, 0, 0 }; // Angular momentum of the cosmos.
 
 	double U = 0; // Potential energy.
 	double T = 0; // Kinetic energy.
@@ -108,7 +108,7 @@ struct Rand_vec_in_sphere
 
 	Rand_vec_in_sphere(const double& radius) : radius(radius) {}
 
-	void operator()(vector3d& vec)
+	void operator()(vec3& vec)
 	{
 		do
 		{
@@ -128,20 +128,20 @@ struct Collision_displacer
 	}
 };
 
-vector3d vec_atob(const Sphere_pair& pair)
+vec3 vec_atob(const Sphere_pair& pair)
 {
 	return pair.a().pos - pair.b().pos;
 }
 
 double distance(const Sphere_pair& pair)
 {
-	vector3d vec = pair.b().pos - pair.a().pos;
+	vec3 vec = pair.b().pos - pair.a().pos;
 	return sqrt(vec.x * vec.x + vec.y * vec.y + vec.z * vec.z);
 }
 
 void apply_grav_force(Sphere_pair& pair, double& dist)
 {
-	vector3d force = (G * pair.a().m * pair.b().m / (dist * dist)) * (vec_atob(pair) / dist);
+	vec3 force = (G * pair.a().m * pair.b().m / (dist * dist)) * (vec_atob(pair) / dist);
 	pair.a_add_force(force);
 	pair.b_add_force(-force);
 }
@@ -149,7 +149,7 @@ void apply_grav_force(Sphere_pair& pair, double& dist)
 void apply_elastic_force(Sphere_pair& pair, double& k)
 {
 	//todo -this get_overlap is bad. I need all the force functions to be able to use overlap without recalcing for each. Maybe they need to be moved into the Sphere_pair
-	const vector3d force = k * pair.get_overlap() * .5 * (vec_atob(pair).normalized());
+	const vec3 force = k * pair.get_overlap() * .5 * (vec_atob(pair).normalized());
 	pair.a_add_force(-force);
 	pair.b_add_force(force);
 }

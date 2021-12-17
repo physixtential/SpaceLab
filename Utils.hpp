@@ -1,15 +1,67 @@
 #pragma once
-
-#include <iostream>
-#include <cmath>
-#include "vector3d.hpp"
+#include "vec3.hpp"
 #include "linalg.hpp"
+#include <random>
+#include <cmath>
+#include <iostream>
 
 using namespace linalg;
 using linalg::aliases::double3;
 using linalg::aliases::double3x3;
 using linalg::normalize;
 using linalg::cross;
+
+//Convert from vec3 to double3
+double3 to_double3(const vec3& vec) {
+	return { vec.x,vec.y,vec.z };
+}
+
+//Convert from double3 to vec3
+vec3 to_vec3(const double3& vec) {
+	return { vec.x,vec.y,vec.z };
+}
+
+std::random_device rd;
+std::mt19937 gen(rd());
+double random_gaussian(const double mean = 0, const double standard_deviation = 1) {
+	std::normal_distribution<double> d(mean, standard_deviation);
+	return d(gen);
+}
+
+
+// I got this from https://en.wikipedia.org/wiki/Line%E2%80%93sphere_intersection
+bool line_sphere_intersect(const vec3& position, const vec3& velocity, const vec3& center, const double radius) {
+	vec3 direction = velocity.normalized();
+
+	double grad =
+		direction.dot((position - center)) *
+		direction.dot((position - center)) -
+		(
+			(position - center).normsquared() -
+			radius * radius
+			);
+
+	// If I ever want the distance to the two intersections:
+	//double d1 = -u_vec.dot(origin - center) + sqrtf(grad);
+	//double d2 = -u_vec.dot(origin - center) - sqrtf(grad);
+	//std::cout << '\t' << d1 << '\t' << d2 << '\n';
+
+	if (grad < 0)
+	{
+		//std::cout << "Position"; position.print();
+		//std::cout << "Direction"; direction.print();
+		//std::cout << "Target"; center.print();
+		//std::cout << "Radius " << radius << '\n';
+		//std::cout << "Grad " << grad << '\n';
+		return false;
+	}
+	else
+	{
+		//std::cout << "Intersection exists.";
+		return true;
+	}
+}
+
 
 // Generate a vector orthogonal to the given
 double3x3 local_coordinates(const double3& x)
@@ -18,30 +70,15 @@ double3x3 local_coordinates(const double3& x)
 	const auto& y_hat = cross(x_hat, double3(0, 0, 1));
 	const auto& z_hat = cross(y_hat, x_hat);
 
-	return double3x3(x_hat, y_hat, z_hat);
+	return double3x3(x_hat, normalize(y_hat), normalize(z_hat));
 }
 
-// Takes a position as origin and velocity (looking) as x axis to define a coordinate system in which y and z allow you to pan in that system and then return the transformed coordinates in the original coordinate system.
-double3 perpendicular_move(const double3& position, const double3& looking, const double y, const double z) {
-	const auto basis33 = local_coordinates(looking);
-	const auto basis33_transpose = transpose(basis33);
-	return position + mul(basis33_transpose, double3(0, y, z));
-}
 
-//Convert from vector3d to double3
-double3 to_double3(const vector3d& vec) {
-	return { vec.x,vec.y,vec.z };
-}
+vec3 perpendicular_shift(const double3x3 local_basis, const double y, const double z) {
+	return to_vec3(local_basis.y * y + local_basis.z * z);
 
-//Convert from double3 to vector3d
-vector3d to_vector3d(const double3& vec) {
-	return { vec.x,vec.y,vec.z };
-}
-
-vector3d perpendicular_move(const vector3d& position, const vector3d& looking, const double y, const double z) {
-	const auto basis33 = local_coordinates(to_double3(looking));
-	const auto basis33_transpose = transpose(basis33);
-	return position + to_vector3d(mul(basis33_transpose, double3(0, y, z)));
+	//const auto basis33_transpose = transpose(local_basis);
+	//return to_vec3(mul(basis33_transpose, double3(0, y, z)));
 }
 
 void print_m33(double3x3& m33) {
@@ -110,43 +147,22 @@ inline bool input(const std::string& question)
 	}
 }
 
-// Generate a random double from -.5lim to .5lim so that numbers are distributed evenly around 0:
-inline double rand_double(const double lim)
-{
-	return lim * (static_cast<double>(rand()) / static_cast<double>(RAND_MAX) - .5);
-}
-
 inline double rand_between(const double min, const double max)
 {
 	double f = (double)rand() / RAND_MAX;
 	return min + f * (max - min);
 }
 
-// Returns a vector within the desired radius, resulting in spherical random distribution
-inline vector3d rand_spherical_vec(double radius)
+// Returns a random unit vector.
+vec3 rand_unit_vec3()
 {
-	vector3d vec = { rand_double(radius), rand_double(radius), rand_double(radius) };
-	const double halfLim = radius;
-	while (vec.norm() > halfLim)
-	{
-		vec = { rand_double(radius), rand_double(radius), rand_double(radius) };
-	}
-	return vec;
+	return vec3(random_gaussian(), random_gaussian(), random_gaussian()).normalized();
 }
 
-// Returns a vector within the desired radius, resulting in spherical random distribution
-inline vector3d rand_shell_vec(double outer_radius, double inner_radius)
+// // Returns a vector within the desired radius, and optionally outside an inner radius (shell).
+vec3 rand_vec3(double outer_radius, double inner_radius = 0)
 {
-	vector3d vec = { rand_double(outer_radius), rand_double(outer_radius), rand_double(outer_radius) };
-	const double halfLim = outer_radius * .5;
-	if (halfLim < inner_radius)
-	{
-		std::cerr << "Inner radius is larger than boundary. Impossible.\n";
-		exit(EXIT_FAILURE);
-	}
-	while (vec.norm() > halfLim || vec.norm() < inner_radius)
-	{
-		vec = { rand_double(outer_radius), rand_double(outer_radius), rand_double(outer_radius) };
-	}
-	return vec;
+	double r3 = outer_radius * outer_radius * outer_radius;
+	double r = cbrt(rand_between(inner_radius, r3));
+	return rand_unit_vec3() * r;
 }
