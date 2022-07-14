@@ -6,7 +6,7 @@
 #include <execution>
 #include <thread>
 #include "../dust_const.hpp"
-#include "../vector3d.hpp"
+#include "../vec3.hpp"
 
 /// @brief Contains everything needed to describe the physical state of a sphere.
 /// Radius, mass, and moment of inertia must be defined upon creation.

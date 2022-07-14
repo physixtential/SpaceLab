@@ -2,7 +2,7 @@
 #include "pch.h"
 #include "../ball_group.hpp"
 
-//TEST(TestAddProjectile, OutsideClusterRadius) {
+// TEST(TestAddProjectile, OutsideClusterRadius) {
 //	Ball_group group(1);
 //
 //	for (size_t i = 0; i < 1000; i++) {
@@ -14,10 +14,10 @@
 //	}
 //}
 
-TEST(TestRandomDistribution, GaussianCbrt) {
-
-	for (size_t i = 0; i < 1000; i++) {
-		double radius = cbrt(rand_between(0, 5));
-		std::cout << rand_spherical_vec(5) << '\n';
-	}
+TEST(TestRandomDistribution, GaussianCbrt)
+{
+    for (size_t i = 0; i < 1000; i++) {
+        double radius = cbrt(rand_between(0, 5));
+        std::cout << rand_vec3(5) << '\n';
+    }
 }

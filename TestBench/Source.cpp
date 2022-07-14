@@ -1,22 +1,20 @@
-#include "../Utils.hpp"
-#include "../ball_group.hpp"
+#include <iostream>
+#include <unordered_map>
+#include <string>
+#include <iomanip>
+#include <unordered_set>
+#include <set>
 
+int
+main()
+{
+    std::set<int> mySet;
 
-Ball_group group(1);
+    mySet.insert(3);
+    mySet.insert(4);
+    mySet.insert(5);
 
-int main() {
-	for (size_t i = 0; i < 100; i++)
-	{
-		group = group.add_projectile();
-	}
+    std:: << mySet[0];
 
-	for (size_t i = 0; i < group.num_particles; i++)
-	{
-		std::cout << group.pos[i] << '\n';
-	}
-	//for (size_t i = 0; i < 100; i++)
-	//{
-	//	//std::cout<<rand_between(-3, 3)<<'\n';
-	//	//rand_spherical_vec(1).print();
-	//}
+    for (const auto& i : mySet) { std::cout << i << '\n'; }
 }
