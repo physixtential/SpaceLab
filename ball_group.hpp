@@ -107,6 +107,7 @@ public:
         const std::string& targetName,
         const double& customVel)
     {
+        std::cerr<<path<<std::endl;
         sim_init_two_cluster(path, projectileName, targetName);
         calc_v_collapse();
         calibrate_dt(0, customVel);
@@ -433,12 +434,12 @@ public:
         // compatibility. What happens without setting output_prefix = filename? Check if file name already
         // exists.
         std::ifstream checkForFile;
-        checkForFile.open(filename + "simData.csv", std::ifstream::in);
+        checkForFile.open(output_folder + filename + "simData.csv", std::ifstream::in);
         // Add a counter to the file name until it isn't overwriting anything:
         while (checkForFile.is_open()) {
             counter++;
             checkForFile.close();
-            checkForFile.open(std::to_string(counter) + '_' + filename + "simData.csv", std::ifstream::in);
+            checkForFile.open(output_folder + std::to_string(counter) + '_' + filename + "simData.csv", std::ifstream::in);
         }
 
         if (counter > 0) { filename.insert(0, std::to_string(counter) + '_'); }
@@ -446,9 +447,9 @@ public:
         output_prefix = filename;
 
         // Complete file names:
-        std::string simDataFilename = filename + "simData.csv";
-        std::string energyFilename = filename + "energy.csv";
-        std::string constantsFilename = filename + "constants.csv";
+        std::string simDataFilename = output_folder + filename + "simData.csv";
+        std::string energyFilename = output_folder + filename + "energy.csv";
+        std::string constantsFilename = output_folder + filename + "constants.csv";
 
         std::cerr << "New file tag: " << filename;
 
@@ -1082,7 +1083,7 @@ private:
         // todo - for some reason I need checkForFile instead of just using ballWrite. Need to work out why.
         // Check if file name already exists. If not, initialize
         std::ifstream checkForFile;
-        checkForFile.open(outFilename + "simData.csv", std::ifstream::in);
+        checkForFile.open(output_folder + outFilename + "simData.csv", std::ifstream::in);
         if (checkForFile.is_open() == false) {
             sim_init_write(outFilename);
         } else {
@@ -1105,7 +1106,7 @@ private:
 
             // Write simData to file and clear buffer.
             std::ofstream ballWrite;
-            ballWrite.open(outFilename + "simData.csv", std::ofstream::app);
+            ballWrite.open(output_folder + outFilename + "simData.csv", std::ofstream::app);
             ballWrite << ballBuffer.rdbuf();  // Barf buffer to file.
             ballBuffer.str("");               // Resets the stream for that balls to blank.
             ballWrite.close();
@@ -1160,6 +1161,13 @@ private:
             pos[Ball] = rand_vec3(spaceRange);
         }
 
+        m_total = 0;
+        for (int i = 0; i < nBalls; i++)
+        {
+            m_total += m[i];
+            std::cerr<<"Ball "<<i<<"\tmass is "<<m[i]<<"\t"<<"radius is "<<R[i]<<std::endl;
+        }
+
         std::cerr << "Smalls: " << smalls << " Mediums: " << mediums << " Larges: " << larges << '\n';
 
         // Generate non-overlapping spherical particle field:
@@ -1210,6 +1218,7 @@ private:
         }
 
         std::cerr << "Final spacerange: " << spaceRange << '\n';
+        std::cerr << "m_total: " << m_total << '\n';
         std::cerr << "Initial Radius: " << get_radius(getCOM()) << '\n';
         std::cerr << "Mass: " << getMass() << '\n';
     }
@@ -1416,7 +1425,7 @@ private:
         const double vBig = -(mSmall / mBig) * vSmall;  // Negative to oppose projectile.
         // const double vBig = 0; // Dymorphous override.
 
-        if (isnan(vSmall) || isnan(vBig)) {
+        if (std::isnan(vSmall) || std::isnan(vBig)) {
             std::cerr << "A VELOCITY WAS NAN!!!!!!!!!!!!!!!!!!!!!!\n\n";
             exit(EXIT_FAILURE);
         }

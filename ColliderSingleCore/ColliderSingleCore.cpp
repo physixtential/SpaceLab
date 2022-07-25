@@ -30,8 +30,11 @@ safetyChecks();
 
 /// @brief The ballGroup run by the main sim looper.
 // Ball_group O(path, projectileName, targetName, v_custom); // Collision
-Ball_group O(path, targetName, 0);  // Continue
-// Ball_group O(genBalls, true, v_custom); // Generate
+// Ball_group O(path, targetName, 0);  // Continue
+// std::cout<<"Start Main"<<std::endl;
+// std::cerr<<"genBalls: "<<genBalls<<std::endl;
+// Ball_group O(20, true, v_custom); // Generate
+Ball_group O(genBalls, true, v_custom); // Generate
 
 //////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////
@@ -61,7 +64,8 @@ main(const int argc, char const* argv[])
 
     // Add projectile:
     std::string ori_output_prefix = output_prefix;
-    for (int i = 0; i < 250; i++) {
+    for (int i = 0; i < genBalls; i++) {
+    // for (int i = 0; i < 250; i++) {
         O.zeroAngVel();
         O.zeroVel();
         O = O.add_projectile();
@@ -354,14 +358,14 @@ sim_looper()
 
                 // Write simData to file and clear buffer.
                 std::ofstream ballWrite;
-                ballWrite.open(output_prefix + "simData.csv", std::ofstream::app);
+                ballWrite.open(output_folder + output_prefix + "simData.csv", std::ofstream::app);
                 ballWrite << ballBuffer.rdbuf();  // Barf buffer to file.
                 ballBuffer.str("");               // Empty the stream for next filling.
                 ballWrite.close();
 
                 // Write Energy data to file and clear buffer.
                 std::ofstream energyWrite;
-                energyWrite.open(output_prefix + "energy.csv", std::ofstream::app);
+                energyWrite.open(output_folder + output_prefix + "energy.csv", std::ofstream::app);
                 energyWrite << energyBuffer.rdbuf();
                 energyBuffer.str("");  // Empty the stream for next filling.
                 energyWrite.close();

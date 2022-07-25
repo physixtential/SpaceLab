@@ -5,7 +5,8 @@
 #include <sstream>
 #include <stdio.h>
 #include "math.h"
-#include "../vector3d.h"
+// #include "../vector3d.h"
+#include "../vec3.hpp"
 #include "../initializations.h"
 #include "../objects.h"
 
