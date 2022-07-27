@@ -1232,7 +1232,8 @@ private:
         //		const int seedSave = static_cast<int>(time(nullptr));
         srand(0);  // srand(seedSave);
 
-        threeSizeSphere(nBalls);
+        oneSizeSphere(nBalls);
+        // threeSizeSphere(nBalls);
 
         calc_helpfuls();
 
