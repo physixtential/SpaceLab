@@ -31,7 +31,7 @@ constexpr double fourThirdsPiRho = 4. / 3. * pi * density;  // for fraction of s
 constexpr double scaleBalls = 1e-5;                         // base radius of ball.
 constexpr double maxOverlap = .1;                           // of scaleBalls
 constexpr double KEfactor = 0;                              // Determines collision velocity based on KE/PE
-constexpr double v_custom = 3.6301555459799424;            // Velocity cm/s
+constexpr double v_custom = 0.36301555459799423;            // Velocity cm/s
 constexpr double kConsts = 3e3 * fourThirdsPiRho / (maxOverlap * maxOverlap);
 constexpr double impactParameter = 0;  // Impact angle radians
 constexpr double Ha = 4.7e-12;         // Hamaker constant for vdw force
@@ -63,7 +63,7 @@ double simTimeElapsed = 0;
 
 // File from which to proceed with further simulations
 std::string path = "/home/lucas/Desktop/Research/SpaceLabTesting/SpaceLab/";
-std::string output_folder = path + "output/dust_collision/";
-std::string projectileName = "19_2_R3e-05_v4e-01_cor0.63_mu0.1_rho2.25_k4e+00_Ha5e-12_dt5e-10_";
-std::string targetName = projectileName;
+std::string output_folder = path + "output/dust_formation/";
+// std::string projectileName = "19_2_R3e-05_v4e-01_cor0.63_mu0.1_rho2.25_k4e+00_Ha5e-12_dt5e-10_";
+// std::string targetName = projectileName;
 std::string output_prefix = "TEST";

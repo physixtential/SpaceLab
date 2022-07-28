@@ -147,6 +147,9 @@ input(const std::string& question)
     }
 }
 
+// inline double
+// lin_rand()
+
 inline double
 rand_between(const double min, const double max)
 {

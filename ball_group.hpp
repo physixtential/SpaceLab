@@ -623,13 +623,44 @@ public:
         return new_group;
     }
 
-
-    // Uses previous O as target and adds one particle to hit it:
-    Ball_group add_projectile()
+    //@brief returns new position of particle after it is given random offset
+    //@param local_coords is plane perpendicular to direction of projectile
+    //@param projectile_pos is projectile's position before offset is applied
+    //@param projectile_vel is projectile's velocity
+    //@param projectile_rad is projectile's radius
+    vec3 dust_agglomeration_offset(
+        const double3x3 local_coords,
+        vec3 projectile_pos,
+        vec3 projectile_vel,
+        const double projectile_rad)
     {
-        // Load file data:
-        std::cerr << "Add Particle\n";
+        const auto cluster_radius = get_radius(vec3(0, 0, 0));
+        bool intersect = false;
+        int count = 0;
+        vec3 new_position = vec3(0,0,0);
+        do {
+            const auto rand_y = rand_between(-cluster_radius, cluster_radius);
+            const auto rand_z = rand_between(-cluster_radius, cluster_radius);
+            auto test_pos = projectile_pos + perpendicular_shift(local_coords, rand_y, rand_z);
 
+            count++;
+            for (size_t i = 0; i < num_particles; i++) {
+                // Check that velocity intersects one of the spheres:
+                if (line_sphere_intersect(test_pos, projectile_vel, pos[i], R[i] + projectile_rad)) {
+                    new_position = test_pos;
+                    intersect = true;
+                    break;
+                }
+            }
+        } while (!intersect);
+        return new_position;
+    }
+
+    // @brief returns new ball group consisting of one particle
+    //        where particle is given initial conditions
+    //        including an random offset linearly dependant on radius 
+    Ball_group dust_agglomeration_particle_init()
+    {
         // Random particle to origin
         Ball_group projectile(1);
         // Particle random position at twice radius of target:
@@ -641,31 +672,31 @@ public:
         projectile.w[0] = {0, 0, 0};
         // Velocity toward origin:
         projectile.vel[0] = -v_custom * projectile_direction;
-        projectile.R[0] = 1e-5;  // rand_between(1,3)*1e-5;
+        projectile.R[0] = scaleBalls;  // rand_between(1,3)*1e-5;
+        // projectile.R[0] = 1e-5;  // rand_between(1,3)*1e-5;
         projectile.m[0] = density * 4. / 3. * pi * std::pow(projectile.R[0], 3);
         projectile.moi[0] = calc_moi(projectile.R[0], projectile.m[0]);
 
         const double3x3 local_coords = local_coordinates(to_double3(projectile_direction));
 
+        projectile.pos[0] = dust_agglomeration_offset(local_coords,projectile.pos[0],projectile.vel[0],projectile.R[0]);
 
-        bool intersect = false;
-        int count = 0;
-        do {
-            const auto rand_y = rand_between(-cluster_radius, cluster_radius);
-            const auto rand_z = rand_between(-cluster_radius, cluster_radius);
-            auto test_pos = projectile.pos[0] + perpendicular_shift(local_coords, rand_y, rand_z);
+        
+        return projectile;
+    } 
 
-            count++;
-            for (size_t i = 0; i < num_particles; i++) {
-                // Check that velocity intersects one of the spheres:
-                if (line_sphere_intersect(test_pos, projectile.vel[0], pos[i], R[i] + projectile.R[0])) {
-                    projectile.pos[0] = test_pos;
-                    intersect = true;
-                    break;
-                }
-            }
-        } while (!intersect);
+    
 
+    // Uses previous O as target and adds one particle to hit it:
+    Ball_group add_projectile()
+    {
+        // Load file data:
+        std::cerr << "Add Particle\n";
+
+        
+        Ball_group projectile = dust_agglomeration_particle_init();
+
+        
         // Collision velocity calculation:
         const vec3 p_target{calc_momentum("p_target")};
         const vec3 p_projectile{projectile.calc_momentum("p_particle")};
@@ -1232,10 +1263,11 @@ private:
         //		const int seedSave = static_cast<int>(time(nullptr));
         srand(0);  // srand(seedSave);
 
-        oneSizeSphere(nBalls);
-        // threeSizeSphere(nBalls);
 
+        oneSizeSphere(nBalls);
+        
         calc_helpfuls();
+        // threeSizeSphere(nBalls);
 
         output_prefix = std::to_string(nBalls) + "_R" + scientific(get_radius(getCOM())) + "_v" +
                         scientific(v_custom) + "_cor" + rounder(sqrtf(cor), 4) + "_mu" + rounder(u_s, 3) +
@@ -1259,6 +1291,7 @@ private:
 
     void oneSizeSphere(const int nBalls)
     {
+
         for (int Ball = 0; Ball < nBalls; Ball++) {
             R[Ball] = scaleBalls;
             m[Ball] = density * 4. / 3. * 3.14159 * std::pow(R[Ball], 3);
@@ -1266,6 +1299,8 @@ private:
             w[Ball] = {0, 0, 0};
             pos[Ball] = rand_vec3(spaceRange);
         }
+
+        m_total = getMass();
 
         // Generate non-overlapping spherical particle field:
         int collisionDetected = 0;
