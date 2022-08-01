@@ -9,7 +9,7 @@ int main()
 	// safetyChecks()
 
     // int inputs = 100;
-	int tries = 100;
+	int tries = 10;
 
 	double rand_z;
 	double rand_y;
@@ -24,7 +24,7 @@ int main()
 
     	rand_z = rand_between(-radius, radius);
     	rand_y = rand_between(-radius, radius);
-        output_radius[i] = std::sqrt(std::pow(rand_z, 2) + std::pow(rand_z, 2));
+        output_radius[i] = std::sqrt(std::pow(rand_z, 2) + std::pow(rand_y, 2));
 
     }
 
@@ -52,6 +52,8 @@ int main()
     {
         std::cerr<<output_radius[i]<<", ";
     } 
+
+    std::cout<<RAND_MAX<<std::endl;
 
 }
 

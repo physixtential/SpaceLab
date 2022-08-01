@@ -63,6 +63,35 @@ line_sphere_intersect(const vec3& position, const vec3& velocity, const vec3& ce
 }
 
 
+// @brief - returns maxwell boltzmann probability density function value
+//          @param x where @param a = sqrt(K*T/m) where K is boltzmanns constant
+//          T is tempurature and m is mass.
+double mbdpdf(double a, double x)
+{
+    return std::sqrt(2/M_PI)*(std::pow(x,2)/std::pow(a,3))*std::exp(-(std::pow(x,2))/(2*std::pow(a,2)));
+}
+
+// @brief - returns a velocity from the maxwell boltzmann distribution given 
+//          @param a, which is the same as @param a from mbdpdf()
+double max_bolt_dist(double a)
+{
+    double v0,Fv0,sigma,test;
+    double maxVal;
+    
+    sigma = a*std::sqrt((3*M_PI-8)/M_PI);
+    maxVal = mbdpdf(a,a*M_SQRT2);
+
+    do
+    {
+        Fv0 = rand_between(0,20*M_SQRT2*a*sigma);
+        v0 = Fv0/(a*M_SQRT2);
+        test = rand_between(0,maxVal);
+    }while(test > mbdpdf(a,v0));
+    
+    return v0;
+}
+
+
 // Generate a vector orthogonal to the given
 double3x3
 local_coordinates(const double3& x)
