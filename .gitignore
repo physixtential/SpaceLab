@@ -6,6 +6,9 @@
 #.o files
 **/*.o
 
+#jobs
+jobs/
+
 # User-specific files
 *.rsuser
 *.suo

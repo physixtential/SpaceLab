@@ -22,11 +22,11 @@ bool writeStep;                      // This prevents writing to file every step
 
 // Prototypes
 void
-sim_one_step(const bool write_step);
+sim_one_step(const bool write_step, Ball_group O);
 void
-sim_looper();
+sim_looper(Ball_group O);
 void
-safetyChecks();
+safetyChecks(Ball_group O);
 
 /// @brief The ballGroup run by the main sim looper.
 // Ball_group O(output_folder, projectileName, targetName, v_custom); // Collision
@@ -34,7 +34,7 @@ safetyChecks();
 // std::cout<<"Start Main"<<std::endl;
 // std::cerr<<"genBalls: "<<genBalls<<std::endl;
 // Ball_group O(20, true, v_custom); // Generate
-Ball_group O(genBalls, true, v_custom); // Generate
+// Ball_group O(genBalls, true, v_custom); // Generate
 
 //////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////
@@ -42,6 +42,7 @@ Ball_group O(genBalls, true, v_custom); // Generate
 int
 main(const int argc, char const* argv[])
 {
+    Ball_group O(true, v_custom, argv[1]); // Generate
     energyBuffer.precision(12);  // Need more precision on momentum.
 
     // Runtime arguments:
@@ -55,23 +56,21 @@ main(const int argc, char const* argv[])
 
     // O.zeroAngVel();
     // O.pushApart();
-    safetyChecks();
+    safetyChecks(O);
 
     // Normal sim:
     // O.sim_init_write(output_prefix);
     // sim_looper();
 
-    std::cerr<<"IN MAIN"<<std::endl;
     // Add projectile: For dust formation BPCA
     std::string ori_output_prefix = output_prefix;
-    for (int i = 0; i < 10; i++) {
+    for (int i = 0; i < 5; i++) {
     // for (int i = 0; i < 250; i++) {
-        std::cerr<<"LOOPING"<<std::endl;
         O.zeroAngVel();
         O.zeroVel();
         O = O.add_projectile();
         O.sim_init_write(ori_output_prefix);
-        sim_looper();
+        sim_looper(O);
         simTimeElapsed = 0;
     }
 }  // end main
@@ -81,7 +80,7 @@ main(const int argc, char const* argv[])
 
 
 void
-sim_one_step(const bool write_step)
+sim_one_step(const bool write_step, Ball_group O)
 {
     /// FIRST PASS - Update Kinematic Parameters:
     for (int Ball = 0; Ball < O.num_particles; Ball++) {
@@ -131,10 +130,12 @@ sim_one_step(const bool write_step)
                 }
 
                 // Cohesion (in contact) h must always be h_min:
-                constexpr double h = h_min;
+                // constexpr double h = h_min;
+                const double h = h_min;
                 const double Ra = O.R[A];
                 const double Rb = O.R[B];
-                constexpr double h2 = h * h;
+                const double h2 = h * h;
+                // constexpr double h2 = h * h;
                 const double twoRah = 2 * Ra * h;
                 const double twoRbh = 2 * Rb * h;
                 const vec3 vdwForceOnA = Ha / 6 * 64 * Ra * Ra * Ra * Rb * Rb * Rb *
@@ -294,7 +295,7 @@ sim_one_step(const bool write_step)
 
 
 void
-sim_looper()
+sim_looper(Ball_group O)
 {
     std::cerr << "Beginning simulation...\n";
 
@@ -333,7 +334,7 @@ sim_looper()
         }
 
         // Physics integration step:
-        sim_one_step(writeStep);
+        sim_one_step(writeStep,O);
 
         if (writeStep) {
             // Write energy to stream:
@@ -355,7 +356,9 @@ sim_looper()
             if (time(nullptr) - lastWrite > 1800 || Step / skip % 10 == 0) {
                 // Report vMax:
                 std::cerr << "vMax = " << O.getVelMax() << " Steps recorded: " << Step / skip << '\n';
-                std::cerr << "Data Write\n\n";
+                std::cerr << "Data Write to "<<output_folder<<"\n";
+                // std::cerr<<"output_prefix: "<<output_prefix<<std::endl;
+
 
                 // Write simData to file and clear buffer.
                 std::ofstream ballWrite;
@@ -390,7 +393,7 @@ sim_looper()
 
 
 void
-safetyChecks()
+safetyChecks(Ball_group O)
 {
     titleBar("SAFETY CHECKS");
 

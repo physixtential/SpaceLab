@@ -1,5 +1,7 @@
 #pragma once
-#include "dust_const.hpp"
+#include "dust_const_init.hpp"
+// #include "dust_const.hpp"
+#include "../../json/single_include/nlohmann/json.hpp"
 #include "vec3.hpp"
 #include "linalg.hpp"
 #include "Utils.hpp"
@@ -13,6 +15,10 @@
 #include <algorithm>
 #include <limits.h>
 #include <cstring>
+#include <typeinfo>
+
+using std::numbers::pi;
+using json = nlohmann::json;
 
 /// @brief Facilitates the concept of a group of balls with physical properties.
 class Ball_group
@@ -52,6 +58,104 @@ public:
     double* m = nullptr;    ///< Mass
     double* moi = nullptr;  ///< Moment of inertia
 
+
+    void parse_input_file(char const* location)
+    {
+        std::string s_location(location);
+        std::string json_file = s_location + "input.json";
+        std::ifstream ifs(json_file);
+        json inputs = json::parse(ifs);
+
+        dynamicTime = inputs["dynamicTime"];
+        G = inputs["G"];
+        density = inputs["density"];
+        u_s = inputs["u_s"];
+        u_r = inputs["u_r"];
+        sigma = inputs["sigma"];
+        Y = inputs["Y"];
+        cor = inputs["cor"];
+        simTimeSeconds = inputs["simTimeSeconds"];
+        timeResolution = inputs["timeResolution"];
+        fourThirdsPiRho = 4. / 3. * pi * density;
+        scaleBalls = inputs["scaleBalls"];
+        maxOverlap = inputs["maxOverlap"];
+        KEfactor = inputs["KEfactor"];
+        if (inputs["v_custom"] == std::string("default"))
+        {
+            v_custom = 0.36301555459799423;
+        }
+        else
+        {
+            v_custom = inputs["v_custom"];
+        }
+        temp = inputs["temp"];
+        double temp_kConst = inputs["kConsts"];
+        kConsts = temp_kConst * (fourThirdsPiRho / (maxOverlap * maxOverlap));
+        impactParameter = inputs["impactParameter"];
+        Ha = inputs["Ha"];
+        double temp_h_min = inputs["h_min"];
+        h_min = temp_h_min * scaleBalls;
+        if (inputs["cone"] == std::string("default"))
+        {
+            cone = pi/2;
+        }
+        else
+        {
+            cone = inputs["cone"];
+        }
+        properties = inputs["properties"];
+        genBalls = inputs["genBalls"];
+        attempts = inputs["attempts"];
+        skip = inputs["skip"];
+        steps = inputs["steps"];
+        dt = inputs["dt"];
+        kin = inputs["kin"];
+        kout = inputs["kout"];
+        if (inputs["spaceRange"] == std::string("default"))
+        {
+            spaceRange = 4 * std::pow(
+                            (1. / .74 * scaleBalls * scaleBalls * scaleBalls * genBalls),
+                            1. / 3.); 
+        }
+        else
+        {
+            spaceRange = inputs["spaceRange"];
+        }
+        if (inputs["spaceRangeIncrement"] == std::string("default"))
+        {
+            spaceRangeIncrement = scaleBalls * 3;
+        }
+        else
+        {
+            spaceRangeIncrement = inputs["spaceRangeIncrement"];
+        }
+        z0Rot = inputs["z0Rot"];
+        y0Rot = inputs["y0Rot"];
+        z1Rot = inputs["z1Rot"];
+        y1Rot = inputs["y1Rot"];
+        simTimeElapsed = inputs["simTimeElapsed"];
+        project_path = inputs["project_path"];
+        if (project_path == std::string("default"))
+        {
+            project_path = s_location;
+        }
+        output_folder = inputs["output_folder"];
+        if (output_folder == std::string("default"))
+        {
+            output_folder = s_location;
+        }
+        projectileName = inputs["projectileName"];
+        targetName = inputs["targetName"];
+        output_prefix = inputs["output_prefix"];
+        if (output_prefix == std::string("default"))
+        {
+            output_prefix = "";
+        }
+
+
+
+    }
+
     Ball_group() = default;
 
     /// @brief For creating a new ballGroup of size nBalls
@@ -70,9 +174,10 @@ public:
     /// @param nBalls Number of balls to allocate.
     /// @param generate Just here to get you to the right constructor. This is definitely wrong.
     /// @param customVel To condition for specific vMax.
-    Ball_group(const int nBalls, const bool generate, const double& customVel)
+    Ball_group(const bool generate, const double& customVel, const char* path)
     {
-        generate_ball_field(nBalls);
+        parse_input_file(path);
+        generate_ball_field(genBalls);
 
         // Hack - Override and creation just 2 balls position and velocity.
         pos[0] = {0, 1.101e-5, 0};
@@ -185,6 +290,7 @@ public:
         m = rhs.m;      ///< Mass
         moi = rhs.moi;  ///< Moment of inertia
     }
+
 
     void calc_helpfuls()
     {
@@ -838,10 +944,12 @@ private:
                     }
 
                     // Cohesion (in contact) h must always be h_min:
-                    constexpr double h = h_min;
+                    // constexpr double h = h_min;
+                    const double h = h_min;
                     const double Ra = R[A];
                     const double Rb = R[B];
-                    constexpr double h2 = h * h;
+                    const double h2 = h * h;
+                    // constexpr double h2 = h * h;
                     const double twoRah = 2 * Ra * h;
                     const double twoRbh = 2 * Rb * h;
                     const vec3 vdwForceOnA =
