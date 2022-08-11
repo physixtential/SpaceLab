@@ -9,6 +9,12 @@
 #jobs
 jobs/
 
+**/*.blend1
+**/*errors.txt
+**/*output.txt
+/*errors.txt
+/*output.txt
+
 # User-specific files
 *.rsuser
 *.suo
