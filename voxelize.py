@@ -19,7 +19,7 @@ if __name__ == '__main__':
 	temps = [3,10,30,100,300,1000]
 	attempts = [2]
 
-	num_vox = 100
+	num_vox = 1000
 	
 	for attempt in attempts:
 		for temp in temps:

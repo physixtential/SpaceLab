@@ -66,7 +66,7 @@ def get_data_range(data_folder):
 
 class datamgr(object):
 	"""docstring for datamgr"""
-	def __init__(self, data_folder,voxel_buffer=5,ppb=1000):
+	def __init__(self, data_folder,voxel_buffer=5,ppb=1000000):
 		super(datamgr, self).__init__()
 		self.data_folder = data_folder
 		#how many points in single ball pointcloud
@@ -79,7 +79,7 @@ class datamgr(object):
 		data_range = get_data_range(self.data_folder)
 		data_abs_max = max(data_range,key=abs) 
 		self.vox_size = (data_abs_max*2)/num_vox
-		self.vox_rep = np.zeros((num_vox+self.buffer*2,num_vox+self.buffer*2,num_vox+self.buffer*2))
+		# self.vox_rep = np.zeros((num_vox+self.buffer*2,num_vox+self.buffer*2,num_vox+self.buffer*2))
 
 	#evenly spaced points on sphere code form:
 	#http://extremelearning.com.au/how-to-evenly-distribute-points-on-a-sphere-more-effectively-than-the-canonical-fibonacci-lattice/
@@ -97,32 +97,48 @@ class datamgr(object):
 		return return_array
 					
 
+	#adapted from
+	#https://towardsdatascience.com/how-to-voxelize-meshes-and-point-clouds-in-python-ca94d403f81d
 	def vox_me_bro(self,num_vox):
-		self.point_cloud = np.zeros((self.nBalls*self.ppb,3))
+		# self.point_cloud = np.zeros((self.nBalls*self.ppb,3))
+		self.point_cloud = np.zeros((self.ppb,3))
 		self.vox_init(num_vox)
 
-		for ind,pt in enumerate(self.data):
-			# self.gen_pt_cloud(pt)
-			self.point_cloud[ind*self.ppb:(ind+1)*self.ppb] = self.gen_pt_cloud(pt)
+		# for ind,pt in enumerate(self.data):
+		# 	# self.gen_pt_cloud(pt)
+		# 	self.point_cloud[ind*self.ppb:(ind+1)*self.ppb] = self.gen_pt_cloud(pt)
+		self.point_cloud = self.gen_pt_cloud(self.data[0])
 		pcd = o3d.geometry.PointCloud()
 		# Add the points, colors and normals as Vectors
 		pcd.points = o3d.utility.Vector3dVector(self.point_cloud)
 		# print(self.data.shape)
-		# colors = np.random.rand(self.data.shape[0],self.data.shape[1])	
+		colors = np.random.rand(self.data.shape[0],self.data.shape[1])	
 		# exit(0)
-		pcd.colors = o3d.utility.Vector3dVector(np.random.uniform(0, 1, size=(self.data.shape[0], 3)))
-		voxel_grid=o3d.geometry.VoxelGrid.create_from_point_cloud(pcd,voxel_size=self.vox_size)
+		pcd.colors = o3d.utility.Vector3dVector(np.random.uniform(0, 1, size=(self.point_cloud.shape[0], 3)))
+		
+
+		# tetra_mesh, pt_map = o3d.geometry.TetraMesh.create_from_point_cloud(pcd)
+		# alpha = 0.001
+		# mesh = o3d.geometry.TriangleMesh.create_from_point_cloud_alpha_shape(pcd, alpha)
+		# mesh.compute_triangle_normals()
+		# o3d.visualization.draw_geometries([mesh], mesh_show_back_face=True)
+
+		voxel_grid = o3d.geometry.VoxelGrid.create_from_point_cloud(pcd,voxel_size=0.0000001)
+		# voxel_grid = o3d.geometry.VoxelGrid.create_dense(voxel_grid)
+		# print(voxel_grid.get_voxels)
+		
+
 		vis = o3d.visualization.Visualizer()
-		# Create a window, name it and scale it
+		# # Create a window, name it and scale it
+		vis.create_window(window_name='VoxVis', width=800, height=600)
+
+		# # # Add the voxel grid to the visualizer
 		vis.add_geometry(voxel_grid)
-		print(vis.create_window(window_name='VoxVis', width=800, height=600))
 
-		# # Add the voxel grid to the visualizer
-
-		# # We run the visualizater
-		# vis.run()
-		# # Once the visualizer is closed destroy the window and clean up
-		# vis.destroy_window()
+		# # # We run the visualizater
+		vis.run()
+		# # # Once the visualizer is closed destroy the window and clean up
+		vis.destroy_window()
 
 				
 		
