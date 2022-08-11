@@ -1,7 +1,7 @@
 #pragma once
 #include "dust_const_init.hpp"
 // #include "dust_const.hpp"
-#include "../../json/single_include/nlohmann/json.hpp"
+#include "../json/single_include/nlohmann/json.hpp"
 #include "vec3.hpp"
 #include "linalg.hpp"
 #include "Utils.hpp"
@@ -88,7 +88,7 @@ public:
         {
             v_custom = inputs["v_custom"];
         }
-        temp = inputs["temp"];
+        temp = inputs["temp"]; // this will modify v_custom in oneSizeSphere
         double temp_kConst = inputs["kConsts"];
         kConsts = temp_kConst * (fourThirdsPiRho / (maxOverlap * maxOverlap));
         impactParameter = inputs["impactParameter"];
@@ -775,12 +775,17 @@ public:
 
         const vec3 projectile_direction = rand_unit_vec3();
         projectile.pos[0] = projectile_direction * (cluster_radius + scaleBalls * 4);
-        projectile.w[0] = {0, 0, 0};
-        // Velocity toward origin:
-        projectile.vel[0] = -v_custom * projectile_direction;
         projectile.R[0] = scaleBalls;  // rand_between(1,3)*1e-5;
-        // projectile.R[0] = 1e-5;  // rand_between(1,3)*1e-5;
+        projectile.w[0] = {0, 0, 0};
         projectile.m[0] = density * 4. / 3. * pi * std::pow(projectile.R[0], 3);
+        // Velocity toward origin:
+        if (temp > 0)
+        {
+            double a = std::sqrt(Kb*temp/projectile.m[0]);
+            v_custom = max_bolt_dist(a); 
+        }
+        projectile.vel[0] = -v_custom * projectile_direction;
+        // projectile.R[0] = 1e-5;  // rand_between(1,3)*1e-5;
         projectile.moi[0] = calc_moi(projectile.R[0], projectile.m[0]);
 
         const double3x3 local_coords = local_coordinates(to_double3(projectile_direction));
@@ -1365,12 +1370,12 @@ private:
     void generate_ball_field(const int nBalls)
     {
         std::cerr << "CLUSTER FORMATION\n";
+
         allocate_group(nBalls);
 
         // Create new random number set.
         //		const int seedSave = static_cast<int>(time(nullptr));
         srand(0);  // srand(seedSave);
-
 
         oneSizeSphere(nBalls);
         

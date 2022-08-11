@@ -64,7 +64,7 @@ main(const int argc, char const* argv[])
 
     // Add projectile: For dust formation BPCA
     std::string ori_output_prefix = output_prefix;
-    for (int i = 0; i < 5; i++) {
+    for (int i = 0; i < 100; i++) {
     // for (int i = 0; i < 250; i++) {
         O.zeroAngVel();
         O.zeroVel();

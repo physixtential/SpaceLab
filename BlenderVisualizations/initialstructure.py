@@ -39,17 +39,19 @@ frameNum = 0
 #path = "C:/Users/milin/Desktop/VSOUT/10/213_2_rho2.25_k5e-03_Ha5e-12_dt5e-10_"
 #path = "C:/Users/milin/Desktop/VSOUT/3-1e-4/50_2_rho2.25_k5e-03_Ha5e-12_dt5e-10_"
      
-path = '/home/kolanzl/Desktop/SpaceLab/jobs/tempVariance/T_3/'
+path = '/home/kolanzl/Desktop/SpaceLab/jobs/tempVariance_attempt2/T_1000/'
 #path = '/home/lucas/Desktop/Research/SpaceLabTesting/SpaceLab/ColliderSingleCore/'
 #filename = '_20_R1e-04_v4e-01_cor0.63_mu0.1_rho2.25_k1e+01_Ha5e-12_dt3e-10_'
-filename = '_2_R2e-05_v4e-01_cor0.63_mu0.1_rho2.25_k4e+00_Ha5e-12_dt5e-10_'
-sim = 1
-simData = np.loadtxt(path + str(sim) + filename + "simData.csv",dtype=float,delimiter=',',skiprows = 1)
+#filename = '2_R2e-05_v4e-01_cor0.63_mu0.1_rho2.25_k4e+00_Ha5e-12_dt5e-10_'
+#filename = '2_R5e-05_v4e-01_cor0.63_mu0.1_rho2.25_k4e+00_Ha5e-12_dt5e-10_'
+filename = '2_R4e-05_v4e-01_cor0.63_mu0.1_rho2.25_k4e+00_Ha5e-12_dt5e-10_'
+
+simData = np.loadtxt(path + filename + "simData.csv",dtype=float,delimiter=',',skiprows = 1)
 #simData = np.array([simData]) # Uncomment this line for single timestep data with no headers
 #simData.T # Uncomment this line for single timestep data with no headers
 steps = len(simData)
 print("steps: ",steps)
-constants = np.genfromtxt(path + str(sim) + filename + "constants.csv",dtype=float,delimiter=',')
+constants = np.genfromtxt(path + filename + "constants.csv",dtype=float,delimiter=',')
 numSpheres = len(constants)
 print("num spheres: ",numSpheres)
 
@@ -59,12 +61,12 @@ actionSet = []
 # Initial sphere mesh to be instanced:
 bpy.ops.mesh.primitive_uv_sphere_add(location = (0,0,0), radius = 1)
 #bpy.ops.object.metaball_add(type='BALL', radius=2, enter_editmode=False, align='WORLD', location=(0, 0, 0), scale=(1, 1, 1))
-bpy.data.objects[2].hide_set(True)
+#bpy.data.objects[2].hide_set(True)
 obj = bpy.context.object # the currently selected object
 #obj.data.resolution = .1
 #obj.data.threshold = 1.7
 sphereMesh = obj.data # retrieve the mesh
-#bpy.data.objects.remove(obj) # remove the object
+bpy.data.objects.remove(obj) # remove the object
 
 #xcm = 0
 #ycm = 0
@@ -88,47 +90,47 @@ for sphere in range(numSpheres):
 #    print(sphereSet[sphere].location)        
     sphereSet[sphere].rotation_mode = "XYZ"
 #print(sphereSet)
-for sim in range(94,96):
-    if frameNum > 1:        
-        # Load the new particle:
-        fullPath = path + str(sim) + filename
-        simData = np.loadtxt(fullPath + "simData.csv",dtype=float,delimiter=',',skiprows = 1)
-        #simData = np.array([simData]) # Uncomment this line for single timestep data with no headers
-        #simData.T # Uncomment this line for single timestep data with no headers
-        steps = len(simData)
-        print("num steps",steps)
-        constants = np.genfromtxt(fullPath + "constants.csv",dtype=float,delimiter=',')
-        numSpheres = len(constants)
-        print("num spheres",numSpheres,properties*numSpheres-1)
-        
-        
-        # Instanciaten the new particle and the end of file:
-        sphereSet.append(bpy.data.objects.new("Mball." + str(numSpheres),sphereMesh))
-        bpy.context.scene.collection.objects.link(sphereSet[numSpheres-1]) # link the object to the scene collection
-        sphereSet[sphere].scale = (scaleUp*constants[numSpheres-1,0],scaleUp*constants[numSpheres-1,0],scaleUp*constants[numSpheres-1,0])
-        sphereSet[sphere].location = (scaleUp*simData[0][0 + properties*(numSpheres-1)],scaleUp*simData[0][1 + properties*(numSpheres-1)],scaleUp*simData[0][2 + properties*(numSpheres-1)])
-        
-        sphereSet[sphere].rotation_mode = "XYZ"
+#for sim in range(simstartnum,simendnum):
+if frameNum > 1:        
+    # Load the new particle:
+    fullPath = path + filename
+    simData = np.loadtxt(fullPath + "simData.csv",dtype=float,delimiter=',',skiprows = 1)
+    #simData = np.array([simData]) # Uncomment this line for single timestep data with no headers
+    #simData.T # Uncomment this line for single timestep data with no headers
+    steps = len(simData)
+    print("num steps",steps)
+    constants = np.genfromtxt(fullPath + "constants.csv",dtype=float,delimiter=',')
+    numSpheres = len(constants)
+    print("num spheres",numSpheres,properties*numSpheres-1)
+    
+    
+    # Instanciaten the new particle and the end of file:
+    sphereSet.append(bpy.data.objects.new("Mball." + str(numSpheres),sphereMesh))
+    bpy.context.scene.collection.objects.link(sphereSet[numSpheres-1]) # link the object to the scene collection
+    sphereSet[sphere].scale = (scaleUp*constants[numSpheres-1,0],scaleUp*constants[numSpheres-1,0],scaleUp*constants[numSpheres-1,0])
+    sphereSet[sphere].location = (scaleUp*simData[0][0 + properties*(numSpheres-1)],scaleUp*simData[0][1 + properties*(numSpheres-1)],scaleUp*simData[0][2 + properties*(numSpheres-1)])
+    
+    sphereSet[sphere].rotation_mode = "XYZ"
 
-    for step in range(steps):
+for step in range(steps):
 #        print("step: ",step)
-        if step % steps / 10 == 0:
-            print(str(step/steps*100)+'%')
-        if step % stepSkip == 0:
-            bpy.context.scene.frame_set(frameNum)
-            for sphere in range(numSpheres):
-                
-                # Move spheres
-                sphereSet[sphere].location = (scaleUp*simData[step][0 + properties*sphere],scaleUp*simData[step][1 + properties*sphere],scaleUp*simData[step][2 + properties*sphere])
-                
-                # Rotate spheres
-                #sphereSet[sphere].rotation_euler = (Euler((stepTime*simData[step][3 + properties*sphere],stepTime*simData[step][4 + properties*sphere],stepTime*simData[step][5 + properties*sphere])).to_matrix() @ sphereSet[sphere].rotation_euler.to_matrix()).to_euler()
-                
-                # Keyframe spheres
-                sphereSet[sphere].keyframe_insert(data_path="location",index=-1)
-                
-                sphereSet[sphere].keyframe_insert(data_path="rotation_euler",index=-1)
-            frameNum += 1
+    if step % steps / 10 == 0:
+        print(str(step/steps*100)+'%')
+    if step % stepSkip == 0:
+        bpy.context.scene.frame_set(frameNum)
+        for sphere in range(numSpheres):
+            
+            # Move spheres
+            sphereSet[sphere].location = (scaleUp*simData[step][0 + properties*sphere],scaleUp*simData[step][1 + properties*sphere],scaleUp*simData[step][2 + properties*sphere])
+            
+            # Rotate spheres
+            #sphereSet[sphere].rotation_euler = (Euler((stepTime*simData[step][3 + properties*sphere],stepTime*simData[step][4 + properties*sphere],stepTime*simData[step][5 + properties*sphere])).to_matrix() @ sphereSet[sphere].rotation_euler.to_matrix()).to_euler()
+            
+            # Keyframe spheres
+            sphereSet[sphere].keyframe_insert(data_path="location",index=-1)
+            
+            sphereSet[sphere].keyframe_insert(data_path="rotation_euler",index=-1)
+        frameNum += 1
 
 bpy.data.scenes[0].frame_end = frameNum
 bpy.data.scenes[0].frame_start = 0
