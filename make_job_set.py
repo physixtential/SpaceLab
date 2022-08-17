@@ -10,7 +10,7 @@ def run_job(location):
 if __name__ == '__main__':
 	#make new output folders
 	curr_folder = os.getcwd() + '/'
-	job_set_name = "tempVariance_attempt8"
+	job_set_name = "tempVariance_attempt11"
 	folder_name_scheme = "T_"
 
 	job_set_folder = curr_folder + 'jobs/' + job_set_name + '/'

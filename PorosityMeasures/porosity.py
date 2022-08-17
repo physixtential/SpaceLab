@@ -85,7 +85,9 @@ if __name__ == '__main__':
 	data_prefolder = '/home/kolanzl/Desktop/SpaceLab/jobs/tempVariance_attempt'
 
 	temps = [3,10,30,100,300,1000]
-	attempts = [2,3,4,5]
+	attempts = [2,3,4,5,6,7,8,9,10,11]
+	std_dev = []
+	std_err = []
 	# attempts = [attempts[3]]
 	porositiesabc = []
 	porositiesKBM = []
@@ -99,28 +101,43 @@ if __name__ == '__main__':
 		porositiesabc.append(temp_porosity1)
 		porositiesKBM.append(temp_porosity2)
 
-	porositiesabc = np.array(porositiesabc)
-	porositiesKBM = np.array(porositiesKBM)
+	porositiesabc = np.array(porositiesabc,dtype=np.float64)
+	porositiesKBM = np.array(porositiesKBM,dtype=np.float64)
 	# print(porositiesabc.shape)
 	# print(porositiesabc.shape)
 
-	for i in range(len(attempts)):
-		pors = np.array([porositiesabc[:,i],porositiesKBM[:,i],np.array(porositiesabc[:,i])/np.array(porositiesKBM[:,i])])
-		plt.plot(temps,pors.T)
-		plt.title('Porosity run {}'.format(i))
-		plt.xlabel('Temperature in K')
-		plt.ylabel('Porosity')
-		plt.legend(['Rabc','RKBM','Rabc/RKBM'])
-		plt.xscale('log')
-		plt.show()
+	# for i in range(len(attempts)):
+	# 	pors = np.array([porositiesabc[:,i],porositiesKBM[:,i],np.array(porositiesabc[:,i])/np.array(porositiesKBM[:,i])])
+	# 	plt.plot(temps,pors.T)
+	# 	plt.title('Porosity run {}'.format(i))
+	# 	plt.xlabel('Temperature in K')
+	# 	plt.ylabel('Porosity')
+	# 	plt.legend(['Rabc','RKBM','Rabc/RKBM'])
+	# 	plt.xscale('log')
+	# 	plt.show()
 
-	porositiesabc = np.average(porositiesabc,axis=1)
-	porositiesKBM = np.average(porositiesKBM,axis=1)
-	plt.plot(temps,np.array([porositiesabc,porositiesKBM]).T)
+
+	porositiesabcavg = np.average(porositiesabc,axis=1)
+	porositiesKBMavg = np.average(porositiesKBM,axis=1)
+	porositiesabcstd = np.std(porositiesabc,axis=1)
+	porositiesKBMstd = np.std(porositiesKBM,axis=1)
+
+	plotme = np.array([porositiesabcavg,porositiesKBMavg])
+	yerr=np.array([porositiesabcstd,porositiesKBMstd])/np.sqrt(len(temps))
+	# print(yerr[0])
+	plt.errorbar(temps,plotme[0],yerr=yerr[0])
+	plt.errorbar(temps,plotme[1],yerr=yerr[1])
+	# plt.errorbar(x, y + 3, yerr=yerr, label='both limits (default)')
 	plt.xlabel('Temperature in K')
 	plt.title('Porosity average over {} sims'.format(len(attempts)))
 	plt.ylabel('Porosity')
-	plt.legend(['Rabc','RKBM','Rabc/RKBM'])
+	plt.legend(['Rabc','RKBM'])
+	# plt.errorbar(temps,)
 	plt.xscale('log')
 	plt.show()
 	#still need to do lots of other porosity measures
+
+
+	'''
+	Add standard deviation and standard error (std error / sqrt(N))
+	'''

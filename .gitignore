@@ -9,6 +9,8 @@
 #jobs
 jobs/
 
+RenderOption*
+
 **/*.blend1
 **/*errors.txt
 **/*output.txt
