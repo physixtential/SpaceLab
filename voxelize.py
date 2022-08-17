@@ -19,11 +19,13 @@ if __name__ == '__main__':
 	temps = [3,10,30,100,300,1000]
 	attempts = [2]
 
-	min_vox_size = 0.0000001
+	min_vox_size = 5.1e-06
+	min_vox_size = 4e-5
 	
 	for attempt in attempts:
 		for temp in temps:
 			data_folder = data_prefolder + str(attempt) + '/' + 'T_' + str(temp) + '/'
 			vox = u.voxelize(data_folder,min_vox_size)
-			vox.write_book()
+			# vox.write_book()
+			vox.open_book()
 			exit(0)

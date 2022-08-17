@@ -1,6 +1,7 @@
 import numpy as np
 import os,glob
 import sys
+import json
 import matplotlib.pyplot as plt
 from treelib import Node, Tree
 # cwd = os.getcwd()
@@ -329,12 +330,10 @@ class voxelize(object):
 		n=0
 		for point in list(zip(*[iter(sentence)]*3)):
 			for coord,letter in enumerate(point):
-				# print(coord,letter)
 				vox_size = self.init_vox_size/(2**n)
 				if letter == '1':
 					vertex[coord] += vox_size
 			n += 1
-			# exit(0)
 
 		vertices = []
 		for i in range(8):
@@ -360,19 +359,6 @@ class voxelize(object):
 
 	def box_contains(self,sentence,pt,radius):
 		box_verts = self.ind_to_pt(sentence)
-		# print(box_verts)
-		# exit(0)
-		# print(pt,radius)
-		# plot(box_verts,pt,radius)
-		# exit(0)
-		# sphere_bounding_verts = []
-		# sphere_bounding_verts.append(pt[0]-radius)
-		# sphere_bounding_verts.append(pt[0]+radius)
-		# sphere_bounding_verts.append(pt[1]-radius)
-		# sphere_bounding_verts.append(pt[1]+radius)
-		# sphere_bounding_verts.append(pt[2]-radius)
-		# sphere_bounding_verts.append(pt[2]+radius)
-
 		center_to_vert_dists = []
 		for vert in box_verts:
 			center_to_vert_dists.append(dist(vert,pt))
@@ -401,38 +387,14 @@ class voxelize(object):
 	def write_chapter(self,n):
 		vox_size = self.init_vox_size/(2**n)
 		chapter = []
-		# if self.num_nodes == 0:
-		# 	max_depth = self.book.depth()
-		# 	print(max_depth)
-		# 	exit(0)
-		# 	# previous_chapter = #Nodes in previous level
-		# else:
-		# 	previous_chapter = ['','','']
-		# self.book.show()
-		#get all nodes at lowest level
-		# max_depth_nodes = [self.book[node].tag for node in \
-			# self.book.expand_tree(filter = lambda x: \
-			# self.book.depth(x) == self.book.depth())]
-		# max_depth_nodes = list(self.book.filter_nodes(lambda x: self.book.depth(x) == self.book.depth())) 
-		# print(list(self.book.filter_nodes(lambda x: self.book.depth(x) == self.book.depth())))
-		# print(self.book.depth())
-		# print(self.book.depth(self.book.get_node('1')))
-		# print(self.book.depth(self.book.get_node('0')))
-		# print('max depth nodes: ',max_depth_nodes)
+
 		temp_deepest_nodes = []
 		for node in self.deepest_nodes:
 			word = ''	
 			t_node = node
-			# exit(0)
 			while(t_node.tag != 0):
-				
-				# print("node",node,type(node))
-				# print("t_node",t_node,type(node))
 				word = t_node.data + word
 				t_node = self.book.parent(t_node.tag)
-				# print("t_node", t_node)
-			# for previous_word in previous_sentence:
-			# print("node", node)
 
 			for row in [0,1]:
 				for col in [0,1]:
@@ -440,13 +402,6 @@ class voxelize(object):
 						new_word = str(row) + str(col) + str(dep)
 						for pt in self.dm.data:
 							test_ind = word + new_word
-
-							# sentence = previous_sentence.copy()
-							# sentence[0] += str(row)
-							# sentence[1] += str(col)
-							# sentence[2] += str(dep)
-							# print(sentence)
-							# # exit(0)
 							result = self.box_contains(test_ind,pt,self.dm.radius)
 							if result == 1:
 								#if true, add this node
@@ -460,13 +415,12 @@ class voxelize(object):
 								self.book.create_node(str(self.num_nodes)+"VOL",str(self.num_nodes)+"VOL",data=new_word,parent=node)
 								break
 
-			# self.book.show()
 
-		# self.book.append(chapter)
 		self.deepest_nodes = temp_deepest_nodes
 		self.max_depth += 1
-		# print("depth")
 		return vox_size
+
+	# def 
 
 	def write_book(self):
 		curr_vox_size = self.init_vox_size
@@ -474,10 +428,47 @@ class voxelize(object):
 		while curr_vox_size > self.min_vox_size:# and n != 3:
 			curr_vox_size = self.write_chapter(n)
 			print(curr_vox_size,n)
-			# print("depth",self.book.depth())
 			n += 1
 
+		with open(self.data_folder+'tree.json','w') as f:
+			f.write(self.book.to_json(with_data=True))
+		# self.book.save2file(self.data_folder+'tree.txt')
 		# print(self.book)
+
+	def rewrite_book(self,parentnode,jsonnode):
+		self.book.show()
+		for children in jsonnode['children']:
+			for child in children:
+				# print(print(children))
+				# print(children[child].keys())
+				self.num_nodes += 1
+				new_node = self.book.create_node(str(self.num_nodes),str(self.num_nodes),parent=parentnode,data=children[child]['data'])
+				if 'children' in children[child].keys():
+					self.rewrite_book(new_node,children[child])
+
+	def open_book(self):
+		with open(self.data_folder+'tree.json','r') as f:
+			jsonbook = json.load(f)
+		
+		jsonroot = jsonbook['0']
+		# jsonnode = jsonroot
+
+		# root = self.book.get_node('0')
+		root = self.book.get_node(self.num_nodes)
+		# print(root)
+		self.book.show()
+		# node = root
+
+		self.rewrite_book(root,jsonroot)
+		
+		# visited = []
+		# coord = ''
+		# # print(node['children'][0])
+		# # print(root['children'][2])
+		# count = 0
+		# 	for key in child:
+		# 		print(child[key]['data'])
+
 
 # class datamgr(object):
 # 	"""docstring for datamgr"""
