@@ -44,16 +44,24 @@ main(const int argc, char const* argv[])
 {
     Ball_group O(true, v_custom, argv[1]); // Generate
     energyBuffer.precision(12);  // Need more precision on momentum.
-
+    int num_balls;
     // Runtime arguments:
-    if (argc > 1) {
+    if (argc > 2) 
+    {
+        std::stringstream s(argv[2]);
+        // s << argv[2];
+        s >> num_balls;
         // numThreads = atoi(argv[1]);
         // fprintf(stderr,"\nThread count set to %i.\n", numThreads);
         // projectileName = argv[2];
         // targetName = argv[3];
         // KEfactor = atof(argv[4]);
     }
-
+    else
+    {
+        num_balls = 100;
+    }
+    std::cout<<num_balls<<std::endl;
     // O.zeroAngVel();
     // O.pushApart();
     safetyChecks(O);
@@ -64,7 +72,7 @@ main(const int argc, char const* argv[])
 
     // Add projectile: For dust formation BPCA
     std::string ori_output_prefix = output_prefix;
-    for (int i = 0; i < 100; i++) {
+    for (int i = 0; i < num_balls; i++) {
     // for (int i = 0; i < 250; i++) {
         O.zeroAngVel();
         O.zeroVel();

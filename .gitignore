@@ -17,6 +17,11 @@ RenderOption*
 /*errors.txt
 /*output.txt
 
+**/*.png
+*.png
+**/*.pcd
+*.pcd
+
 #venv
 py3.7venv/
 

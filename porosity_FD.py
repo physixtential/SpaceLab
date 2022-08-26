@@ -89,20 +89,21 @@ if __name__ == '__main__':
 	std_dev = []
 	std_err = []
 	# attempts = [attempts[3]]
-	porositiesabc = []
-	porositiesKBM = []
-	for temp in temps:
-		temp_porosity1 = []
-		temp_porosity2 = []
-		for attempt in attempts:
+	porositiesabc = np.zeros((len(temps),len(attempts)),dtype=np.float64)
+	porositiesKBM = np.zeros((len(temps),len(attempts)),dtype=np.float64) 
+	FD_data = np.zeros((len(temps),len(attempts)),dtype=np.float64)
+	for i,temp in enumerate(temps):
+		for j,attempt in enumerate(attempts):
 			data_folder = data_prefolder + str(attempt) + '/' + 'T_' + str(temp) + '/'
-			temp_porosity1.append(porosity_measure1(data_folder))
-			temp_porosity2.append(porosity_measure2(data_folder))
-		porositiesabc.append(temp_porosity1)
-		porositiesKBM.append(temp_porosity2)
+			porositiesabc[i,j] = porosity_measure1(data_folder)
+			porositiesKBM[i,j] = porosity_measure2(data_folder)
 
-	porositiesabc = np.array(porositiesabc,dtype=np.float64)
-	porositiesKBM = np.array(porositiesKBM,dtype=np.float64)
+			o3dv = u.o3doctree(data_folder,overwrite_data=False)
+			o3dv.make_tree()
+			FD_data[i,j] = o3dv.calc_fractal_dimension(show_graph=False)
+
+	# porositiesabc = np.array(porositiesabc,dtype=np.float64)
+	# porositiesKBM = np.array(porositiesKBM,dtype=np.float64)
 	# print(porositiesabc.shape)
 	# print(porositiesabc.shape)
 
@@ -121,19 +122,32 @@ if __name__ == '__main__':
 	porositiesKBMavg = np.average(porositiesKBM,axis=1)
 	porositiesabcstd = np.std(porositiesabc,axis=1)
 	porositiesKBMstd = np.std(porositiesKBM,axis=1)
+	FD_dataavg = np.average(FD_data,axis=1)
+	FD_datastd = np.std(FD_data,axis=1)
 
 	plotme = np.array([porositiesabcavg,porositiesKBMavg])
-	yerr=np.array([porositiesabcstd,porositiesKBMstd])/np.sqrt(len(attempts))
+	yerr1 = np.array([porositiesabcstd,porositiesKBMstd])/np.sqrt(len(attempts))
+	yerr2 = FD_datastd/np.sqrt(len(attempts))
 	# print(yerr[0])
-	plt.errorbar(temps,plotme[0],yerr=yerr[0])
-	plt.errorbar(temps,plotme[1],yerr=yerr[1])
+
+	fig,ax = plt.subplots()
+	ax.errorbar(temps,plotme[0],yerr=yerr1[0],label="Rabc",zorder=5)
+	ax.errorbar(temps,plotme[1],yerr=yerr1[1],label="RKBM",zorder=10)
 	# plt.errorbar(x, y + 3, yerr=yerr, label='both limits (default)')
-	plt.xlabel('Temperature in K')
-	plt.title('Porosity average over {} sims'.format(len(attempts)))
-	plt.ylabel('Porosity')
-	plt.legend(['Rabc','RKBM'])
+	ax.set_xlabel('Temperature in K')
+	ax.set_title('Porosity average over {} sims'.format(len(attempts)))
+	ax.set_ylabel('Porosity')
+	# ax.set_legend(['Rabc','RKBM'])
 	# plt.errorbar(temps,)
-	plt.xscale('log')
+	ax.set_xscale('log')
+
+	ax2 = ax.twinx()
+	ax2.errorbar(temps,FD_dataavg,yerr=yerr2,label="Frac Dim",color='r',zorder=0)
+	ax2.invert_yaxis()
+	ax2.set_ylabel('Avg Fractal Dimension')
+
+	fig.legend()
+	plt.savefig("FractDimandPorosity.png")
 	plt.show()
 	#still need to do lots of other porosity measures
 

@@ -39,15 +39,17 @@ frameNum = 0
 #path = "C:/Users/milin/Desktop/VSOUT/10/213_2_rho2.25_k5e-03_Ha5e-12_dt5e-10_"
 #path = "C:/Users/milin/Desktop/VSOUT/3-1e-4/50_2_rho2.25_k5e-03_Ha5e-12_dt5e-10_"
      
-path = '/home/kolanzl/Desktop/SpaceLab/jobs/tempVariance_attempt2/T_1000/'
-path = '/home/kolanzl/Desktop/SpaceLab/jobs/tempVariance/T_1000/'
+path = '/home/kolanzl/Desktop/SpaceLab/jobs/large_aggregate/N_1000/'
+#path = '/home/kolanzl/Desktop/SpaceLab/jobs/tempVariance/T_1000/'
 #path = '/home/lucas/Desktop/Research/SpaceLabTesting/SpaceLab/ColliderSingleCore/'
 #filename = '_20_R1e-04_v4e-01_cor0.63_mu0.1_rho2.25_k1e+01_Ha5e-12_dt3e-10_'
-#filename = '2_R2e-05_v4e-01_cor0.63_mu0.1_rho2.25_k4e+00_Ha5e-12_dt5e-10_'
-#filename = '2_R5e-05_v4e-01_cor0.63_mu0.1_rho2.25_k4e+00_Ha5e-12_dt5e-10_'
 filename = '2_R4e-05_v4e-01_cor0.63_mu0.1_rho2.25_k4e+00_Ha5e-12_dt5e-10_'
+#filename = '2_R2e-05_v4e-01_cor0.63_mu0.1_rho2.25_k4e+00_Ha5e-12_dt5e-10_'
+#filename = '2_R3e-05_v4e-01_cor0.63_mu0.1_rho2.25_k4e+00_Ha5e-12_dt5e-10_'
+#filename = '2_R4e-05_v4e-01_cor0.63_mu0.1_rho2.25_k4e+00_Ha5e-12_dt5e-10_'
+#filename = '2_R5e-05_v4e-01_cor0.63_mu0.1_rho2.25_k4e+00_Ha5e-12_dt5e-10_'
 
-sim = 99
+sim = 199
 
 simData = np.loadtxt(path + str(sim) + '_' + filename + "simData.csv",dtype=float,delimiter=',',skiprows = 1)
 #simData = np.array([simData]) # Uncomment this line for single timestep data with no headers
