@@ -4,18 +4,18 @@ import multiprocessing as mp
 import subprocess
 
 def run_job(location):
-	cmd = ["python3", "{}run_sim.py".format(location), location]
+	cmd = ["python3", "{}run_sim.py".format(location), location, '7']
 	# print(cmd)
 	subprocess.run(cmd)
 
 if __name__ == '__main__':
 	#make new output folders
 	curr_folder = os.getcwd() + '/'
-	job_set_name = "tempVariance_attempt"
+	job_set_name = "test"
 	folder_name_scheme = "T_"
 
-	attempts = [18,19,20,21,22,23,24,25,26,27,28,29,30,31,32] 
-	attempts_at_once = 3
+	attempts = [18] 
+	attempts_at_once = 1
 	for i in range(0,len(attempts),attempts_at_once):
 		folders = []
 		for j in range(i,i+attempts_at_once):
@@ -27,7 +27,7 @@ if __name__ == '__main__':
 				print("Job set '{}' already exists.".format(job_set_folder))
 
 			#Make an array of what you want to vary
-			Temps = [3,10,30,100,300,1000]
+			Temps = [300]
 
 			#actually make the folders
 			folder_values = Temps

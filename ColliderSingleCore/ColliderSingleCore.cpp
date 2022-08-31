@@ -5,7 +5,10 @@
 #include <fstream>
 #include <ctime>
 #include <sstream>
+#include <string>
 #include <iomanip>
+#include <filesystem>
+namespace fs = std::filesystem;
 
 
 // String buffers to hold data in memory until worth writing to file:
@@ -27,6 +30,8 @@ void
 sim_looper(Ball_group O);
 void
 safetyChecks(Ball_group O);
+std::string 
+check_restart(std::string folder,int* restart);
 
 /// @brief The ballGroup run by the main sim looper.
 // Ball_group O(output_folder, projectileName, targetName, v_custom); // Collision
@@ -42,9 +47,13 @@ safetyChecks(Ball_group O);
 int
 main(const int argc, char const* argv[])
 {
-    Ball_group O(true, v_custom, argv[1]); // Generate
+
     energyBuffer.precision(12);  // Need more precision on momentum.
     int num_balls;
+    int rest = -1;
+    int *restart = &rest;
+    std::string filename;
+    Ball_group O;
     // Runtime arguments:
     if (argc > 2) 
     {
@@ -61,7 +70,29 @@ main(const int argc, char const* argv[])
     {
         num_balls = 100;
     }
-    std::cout<<num_balls<<std::endl;
+
+    //See if run has already been started
+    filename = check_restart(argv[1],restart);
+    if (*restart > -1) //Restart is necessary
+    {
+        *restart--;
+        if (*restart > 0)
+        {
+            filename = std::to_string(*restart) + filename;
+            std::cout<<filename<<std::endl;
+            std::cout<<"restart: "<<*restart<<std::endl;
+        }
+        O = Ball_group(argv[1],filename,v_custom);
+        // num_balls = num_balls - *restart;
+    }
+    else // Make new ball group
+    {
+        *restart = 0;
+        O = Ball_group(true, v_custom, argv[1]); // Generate
+    }
+
+    // std::cout<<"Total number of monomers accreted: "<<num_balls<<std::endl;
+
     // O.zeroAngVel();
     // O.pushApart();
     safetyChecks(O);
@@ -72,8 +103,10 @@ main(const int argc, char const* argv[])
 
     // Add projectile: For dust formation BPCA
     std::string ori_output_prefix = output_prefix;
-    for (int i = 0; i < num_balls; i++) {
+    for (int i = *restart; i < num_balls; i++) {
     // for (int i = 0; i < 250; i++) {
+
+        // std::cout<<"i: "<<i<<std::endl;
         O.zeroAngVel();
         O.zeroVel();
         O = O.add_projectile();
@@ -86,6 +119,90 @@ main(const int argc, char const* argv[])
 //////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////
 
+// @brief checks if this is new job or restart
+std::string check_restart(std::string folder,int* restart)
+{
+    std::string file;
+    // std::cout<<folder<<std::endl;
+    // int tot_count = 0;
+    // int file_count = 0;
+    int largest_file_index = -1;
+    int file_index;
+    std::string largest_index_name;
+    for (const auto & entry : fs::directory_iterator(folder))
+    {
+        file = entry.path();
+        size_t pos = file.find_last_of("/");
+        // std::cout<<file<<std::endl;
+        file = file.erase(0,pos+1);
+        // tot_count++;
+        if (file.substr(file.size()-4,file.size()) == ".csv")
+        {
+            // file_count++;
+            if (file[3] == '_')
+            {
+                // std::cout<<"HERER: "<<file<<std::endl;
+                std::cout<<stoi(file.substr(0,file.find("_")))<<std::endl;
+                file_index = stoi(file.substr(0,file.find("_")));
+            }
+            else if (file[1] == '_' and file[3] != '_')
+            {
+                // std::cout<<stoi(file.substr(0,file.find("_")))<<std::endl;
+                file_index = 0;
+            }
+            if (file_index > largest_file_index)
+            {
+                largest_file_index = file_index;
+                largest_index_name = file;
+            }
+        }
+    }
+    // std::cout<<"File count: "<<file_count<<std::endl;
+    // std::cout<<"Total count: "<<tot_count<<std::endl;
+    // std::cout<<largest_index_name<<std::endl;
+    *restart = largest_file_index;
+    if (*restart != -1)
+    {
+        size_t start,end;
+        start = largest_index_name.find('_');
+        end = largest_index_name.find_last_of('_');
+        // std::cout<<"restart: "<<*restart<<std::endl;
+        //Delete most recent save file as this is likely only partially 
+        //complete if we are restarting
+        /////////
+        //TODO: restart is not the correct value, it is way to big for some reason
+        //////////////
+        std::string remove_file = std::to_string(*restart) + largest_index_name.substr(start,end-start+1);
+        std::string file1 = folder + remove_file + "constants.csv";
+        std::string file2 = folder + remove_file + "energy.csv";
+        std::string file3 = folder + remove_file + "simData.csv";
+        int status1 = remove(file1.c_str());
+        int status2 = remove(file2.c_str());
+        int status3 = remove(file3.c_str());
+
+        if (status1 != 0)
+        {
+            std::cout<<"File: "<<file1<<" could not be removed, now exiting with failure."<<std::endl;
+            exit(EXIT_FAILURE);
+        }
+        else if (status2 != 0)
+        {
+            std::cout<<"File: "<<file2<<" could not be removed, now exiting with failure."<<std::endl;
+            exit(EXIT_FAILURE);
+        }
+        else if (status3 != 0)
+        {
+            std::cout<<"File: "<<file3<<" could not be removed, now exiting with failure."<<std::endl;
+            exit(EXIT_FAILURE);
+        }
+
+        return largest_index_name.substr(start,end-start+1);
+    }
+    else
+    {
+        return "";
+    }
+}
 
 void
 sim_one_step(const bool write_step, Ball_group O)

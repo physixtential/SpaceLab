@@ -1,7 +1,7 @@
 #pragma once
 #include "dust_const_init.hpp"
 // #include "dust_const.hpp"
-#include "../json/single_include/nlohmann/json.hpp"
+#include "json/single_include/nlohmann/json.hpp"
 #include "vec3.hpp"
 #include "linalg.hpp"
 #include "Utils.hpp"
@@ -58,6 +58,11 @@ public:
     double* m = nullptr;    ///< Mass
     double* moi = nullptr;  ///< Moment of inertia
 
+
+    double get_soc()
+    {
+        return soc;
+    }
 
     void parse_input_file(char const* location)
     {
@@ -151,9 +156,6 @@ public:
         {
             output_prefix = "";
         }
-
-
-
     }
 
     Ball_group() = default;
@@ -196,6 +198,7 @@ public:
     /// @param customVel To condition for specific vMax.
     explicit Ball_group(const std::string& path, const std::string& filename, const double& customVel)
     {
+        parse_input_file(path.c_str());
         sim_continue(path, filename);
         calc_v_collapse();
         calibrate_dt(0, customVel);
@@ -1124,11 +1127,10 @@ private:
     void parseSimData(std::string line)
     {
         std::string lineElement;
-
         // Get number of balls in file
-        int count = std::count(line.begin(), line.end(), ',') / properties + 1;
+        int count = 54 / properties + 1;
+        // int count = std::count(line.begin(), line.end(), ',') / properties + 1;
         allocate_group(count);
-
         std::stringstream chosenLine(line);  // This is the last line of the read file, containing all data
                                              // for all balls at last time step
 
@@ -1188,7 +1190,6 @@ private:
     [[nodiscard]] static std::string getLastLine(const std::string& path, const std::string& filename)
     {
         std::string simDataFilepath = path + filename + "simData.csv";
-
         if (auto simDataStream = std::ifstream(simDataFilepath, std::ifstream::in)) {
             std::cerr << "\nParsing last line of data.\n";
 
@@ -1212,7 +1213,6 @@ private:
             }
             std::string line;
             std::getline(simDataStream, line);  // Read the current line
-
             return line;
         } else {
             std::cerr << "Could not open simData file: " << simDataFilepath << "... Existing program."
@@ -1514,11 +1514,14 @@ private:
 
         loadSim(path, filename);
 
+
+
         std::cerr << '\n';
         calc_momentum("O");
 
         // Name the file based on info above:
-        output_prefix = std::to_string(num_particles) + "_rho" + rounder(density, 4);
+        // output_prefix = std::to_string(num_particles) + "_rho" + rounder(density, 4);
+        output_prefix = filename;
     }
 
 
