@@ -5,7 +5,7 @@ import subprocess
 
 def run_job(location):
 	cmd = ["python3", "{}run_sim.py".format(location), location, '7']
-	# print(cmd)
+	# exit(0)
 	subprocess.run(cmd)
 
 if __name__ == '__main__':

@@ -32,6 +32,8 @@ void
 safetyChecks(Ball_group O);
 std::string 
 check_restart(std::string folder,int* restart);
+Ball_group 
+make_group(const char *argv1,int* restart);
 
 /// @brief The ballGroup run by the main sim looper.
 // Ball_group O(output_folder, projectileName, targetName, v_custom); // Collision
@@ -52,8 +54,8 @@ main(const int argc, char const* argv[])
     int num_balls;
     int rest = -1;
     int *restart = &rest;
-    std::string filename;
-    Ball_group O;
+    
+    
     // Runtime arguments:
     if (argc > 2) 
     {
@@ -70,26 +72,8 @@ main(const int argc, char const* argv[])
     {
         num_balls = 100;
     }
-
-    //See if run has already been started
-    filename = check_restart(argv[1],restart);
-    if (*restart > -1) //Restart is necessary
-    {
-        *restart--;
-        if (*restart > 0)
-        {
-            filename = std::to_string(*restart) + filename;
-            std::cout<<filename<<std::endl;
-            std::cout<<"restart: "<<*restart<<std::endl;
-        }
-        O = Ball_group(argv[1],filename,v_custom);
-        // num_balls = num_balls - *restart;
-    }
-    else // Make new ball group
-    {
-        *restart = 0;
-        O = Ball_group(true, v_custom, argv[1]); // Generate
-    }
+    Ball_group O = make_group(argv[1],restart);
+    
 
     // std::cout<<"Total number of monomers accreted: "<<num_balls<<std::endl;
 
@@ -106,7 +90,6 @@ main(const int argc, char const* argv[])
     for (int i = *restart; i < num_balls; i++) {
     // for (int i = 0; i < 250; i++) {
 
-        // std::cout<<"i: "<<i<<std::endl;
         O.zeroAngVel();
         O.zeroVel();
         O = O.add_projectile();
@@ -119,11 +102,47 @@ main(const int argc, char const* argv[])
 //////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////
 
+//@brief sets Ball_group object based on the need for a restart or not
+Ball_group make_group(const char *argv1,int* restart)
+{
+    Ball_group O;
+    
+    //See if run has already been started
+    std::string filename = check_restart(argv1,restart);
+    if (*restart > -1) //Restart is necessary unless only first write has happended so far
+    {
+        if (*restart > 1)
+        {//TESTED
+            (*restart)--;
+            // filename = std::to_string(*restart) + filename;
+            filename = filename.substr(1,filename.length());
+            O = Ball_group(argv1,filename,v_custom,*restart);
+        }
+        else if (*restart == 1) //restart from first write (different naming convension for first write)
+        {//TESTED
+            (*restart)--;
+            filename = filename.substr(1,filename.length());
+            // exit(EXIT_SUCCESS);
+            O = Ball_group(argv1,filename,v_custom,*restart);
+        }
+        else //if restart is 0, need to rerun whole thing
+        {//TESTED
+            O = Ball_group(true, v_custom, argv1); // Generate new group
+        }
+
+    }
+    else // Make new ball group
+    {
+        *restart = 0;
+        O = Ball_group(true, v_custom, argv1); // Generate new group
+    }
+    return O;
+}
+
 // @brief checks if this is new job or restart
 std::string check_restart(std::string folder,int* restart)
 {
     std::string file;
-    // std::cout<<folder<<std::endl;
     // int tot_count = 0;
     // int file_count = 0;
     int largest_file_index = -1;
@@ -133,7 +152,6 @@ std::string check_restart(std::string folder,int* restart)
     {
         file = entry.path();
         size_t pos = file.find_last_of("/");
-        // std::cout<<file<<std::endl;
         file = file.erase(0,pos+1);
         // tot_count++;
         if (file.substr(file.size()-4,file.size()) == ".csv")
@@ -141,13 +159,10 @@ std::string check_restart(std::string folder,int* restart)
             // file_count++;
             if (file[3] == '_')
             {
-                // std::cout<<"HERER: "<<file<<std::endl;
-                std::cout<<stoi(file.substr(0,file.find("_")))<<std::endl;
                 file_index = stoi(file.substr(0,file.find("_")));
             }
             else if (file[1] == '_' and file[3] != '_')
             {
-                // std::cout<<stoi(file.substr(0,file.find("_")))<<std::endl;
                 file_index = 0;
             }
             if (file_index > largest_file_index)
@@ -157,22 +172,27 @@ std::string check_restart(std::string folder,int* restart)
             }
         }
     }
-    // std::cout<<"File count: "<<file_count<<std::endl;
-    // std::cout<<"Total count: "<<tot_count<<std::endl;
-    // std::cout<<largest_index_name<<std::endl;
+
     *restart = largest_file_index;
     if (*restart != -1)
     {
         size_t start,end;
         start = largest_index_name.find('_');
         end = largest_index_name.find_last_of('_');
-        // std::cout<<"restart: "<<*restart<<std::endl;
         //Delete most recent save file as this is likely only partially 
         //complete if we are restarting
-        /////////
-        //TODO: restart is not the correct value, it is way to big for some reason
-        //////////////
-        std::string remove_file = std::to_string(*restart) + largest_index_name.substr(start,end-start+1);
+
+        std::string remove_file;
+
+        if (*restart == 0)
+        {
+            remove_file = largest_index_name.substr(0,end+1);
+        }
+        else
+        {
+            remove_file = std::to_string(*restart) + largest_index_name.substr(start,end-start+1);
+        }
+
         std::string file1 = folder + remove_file + "constants.csv";
         std::string file2 = folder + remove_file + "energy.csv";
         std::string file3 = folder + remove_file + "simData.csv";

@@ -190,19 +190,19 @@ public:
         m_total = getMass();
         calc_v_collapse();
         calibrate_dt(0, customVel);
-        simInit_cond_and_center();
+        simInit_cond_and_center(true);
     }
 
     /// @brief For continuing a sim.
     /// @param fullpath is the filename and path excluding the suffix _simData.csv, _constants.csv, etc.
     /// @param customVel To condition for specific vMax.
-    explicit Ball_group(const std::string& path, const std::string& filename, const double& customVel)
+    explicit Ball_group(const std::string& path, const std::string& filename, const double& customVel, int start_file_index=0)
     {
         parse_input_file(path.c_str());
-        sim_continue(path, filename);
+        sim_continue(path, filename,start_file_index);
         calc_v_collapse();
         calibrate_dt(0, customVel);
-        simInit_cond_and_center();
+        simInit_cond_and_center(false);
     }
 
     /// @brief For two cluster sim.
@@ -219,7 +219,7 @@ public:
         sim_init_two_cluster(path, projectileName, targetName);
         calc_v_collapse();
         calibrate_dt(0, customVel);
-        simInit_cond_and_center();
+        simInit_cond_and_center(true);
     }
 
     Ball_group& operator=(const Ball_group& rhs)
@@ -1128,19 +1128,21 @@ private:
     {
         std::string lineElement;
         // Get number of balls in file
-        int count = 54 / properties + 1;
+        int count = 54 / properties;
+        if (num_particles > 0)
+        {
+            count = num_particles;
+        }
         // int count = std::count(line.begin(), line.end(), ',') / properties + 1;
         allocate_group(count);
         std::stringstream chosenLine(line);  // This is the last line of the read file, containing all data
                                              // for all balls at last time step
-
         // Get position and angular velocity data:
         for (int A = 0; A < num_particles; A++) {
             for (int i = 0; i < 3; i++)  // Position
             {
                 std::getline(chosenLine, lineElement, ',');
                 pos[A][i] = std::stod(lineElement);
-                // std::cerr << tclus.pos[A][i]<<',';
             }
             for (int i = 0; i < 3; i++)  // Angular Velocity
             {
@@ -1391,7 +1393,6 @@ private:
     void loadSim(const std::string& path, const std::string& filename)
     {
         parseSimData(getLastLine(path, filename));
-
         loadConsts(path, filename);
 
         calc_helpfuls();
@@ -1486,7 +1487,7 @@ private:
         dt = .01 * sqrt((fourThirdsPiRho / regime_adjust) * r_min * r_min * r_min);
     }
 
-    void simInit_cond_and_center()
+    void simInit_cond_and_center(bool add_prefix)
     {
         std::cerr << "==================" << '\n';
         std::cerr << "dt: " << dt << '\n';
@@ -1503,16 +1504,27 @@ private:
         init_conditions();
 
         // Name the file based on info above:
-        output_prefix += "_k" + scientific(kin) + "_Ha" + scientific(Ha) + "_dt" + scientific(dt) + "_";
+        if (add_prefix)
+        {   
+            output_prefix += "_k" + scientific(kin) + "_Ha" + scientific(Ha) + "_dt" + scientific(dt) + "_";
+        }
     }
 
 
-    void sim_continue(const std::string& path, const std::string& filename)
+    void sim_continue(const std::string& path, const std::string& filename, int start_file_index=0)
     {
         // Load file data:
-        std::cerr << "Continuing Sim...\nFile: " << filename << '\n';
-
-        loadSim(path, filename);
+        num_particles = 3 + start_file_index;
+        if (start_file_index == 0)
+        {
+            std::cerr << "Continuing Sim...\nFile: " << filename << '\n';
+            loadSim(path, filename);
+        }
+        else
+        {
+            std::cerr << "Continuing Sim...\nFile: " << start_file_index << filename << '\n';
+            loadSim(path, std::to_string(start_file_index) + "_" + filename);
+        }
 
 
 
