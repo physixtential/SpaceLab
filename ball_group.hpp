@@ -98,9 +98,12 @@ public:
         generate_ball_field(genBalls);
         // Hack - Override and creation just 2 balls position and velocity.
         pos[0] = {0, 1.101e-5, 0};
-        pos[1] = {0, -1.101e-5, 0};
         vel[0] = {0, 0, 0};
-        vel[1] = {0, 0, 0};
+        if (genBalls > 1)
+        {
+            pos[1] = {0, -1.101e-5, 0};
+            vel[1] = {0, 0, 0};
+        }
 
         m_total = getMass();
         calc_v_collapse();

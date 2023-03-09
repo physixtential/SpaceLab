@@ -87,18 +87,13 @@ main(const int argc, char const* argv[])
     std::string ori_output_prefix = output_prefix;
     for (int i = *restart; i < num_balls; i++) {
     // for (int i = 0; i < 250; i++) {
-        std::cout<<"radiiDistribution in main(1): "<<O.radiiDistribution<<std::endl;
         O.zeroAngVel();
         O.zeroVel();
-        std::cout<<"radiiDistribution in main(2): "<<O.radiiDistribution<<std::endl;
         t.start_event("add_projectile");
         O = O.add_projectile();
-        std::cout<<"radiiDistribution in main(3): "<<O.radiiDistribution<<std::endl;
         t.end_event("add_projectile");
         O.sim_init_write(ori_output_prefix, i);
-        std::cout<<"radiiDistribution in main(4): "<<O.radiiDistribution<<std::endl;
         sim_looper(O);
-        std::cout<<"radiiDistribution in main(5): "<<O.radiiDistribution<<std::endl;
         simTimeElapsed = 0;
     }
     t.end_event("WholeThing");
@@ -369,7 +364,8 @@ sim_one_step(const bool write_step, Ball_group &O)
                     const double denom_diff = z * z - (diffRaRb * diffRaRb);
                     const double U_vdw =
                         -Ha / 6 *
-                        (two_RaRb / denom_sum + two_RaRb / denom_diff + log(denom_sum / denom_diff));
+                        (two_RaRb / denom_sum + two_RaRb / denom_diff + 
+                        log(denom_sum / denom_diff));
                     O.PE += U_vdw + 0.5 * k * overlap * overlap;
                 }
             } else  // Non-contact forces:
