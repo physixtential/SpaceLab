@@ -16,16 +16,24 @@
 #include <limits.h>
 #include <cstring>
 #include <typeinfo>
+#include <random>
 
 using std::numbers::pi;
 using json = nlohmann::json;
+
 
 /// @brief Facilitates the concept of a group of balls with physical properties.
 class Ball_group
 {
 public:
+    std::string out_folder;
     int num_particles = 0;
     int num_particles_added = 0;
+
+    int seed = -1;
+    enum distributions {constant, logNorm};
+    distributions radiiDistribution;
+    double lnSigma = 0.2; //sigma for log normal distribution 
 
     // Useful values:
     double r_min = -1;
@@ -58,106 +66,14 @@ public:
     double* m = nullptr;    ///< Mass
     double* moi = nullptr;  ///< Moment of inertia
 
+    void parse_input_file(char const* location);
 
     double get_soc()
     {
         return soc;
     }
 
-    void parse_input_file(char const* location)
-    {
-        std::string s_location(location);
-        std::string json_file = s_location + "input.json";
-        std::ifstream ifs(json_file);
-        json inputs = json::parse(ifs);
-
-        dynamicTime = inputs["dynamicTime"];
-        G = inputs["G"];
-        density = inputs["density"];
-        u_s = inputs["u_s"];
-        u_r = inputs["u_r"];
-        sigma = inputs["sigma"];
-        Y = inputs["Y"];
-        cor = inputs["cor"];
-        simTimeSeconds = inputs["simTimeSeconds"];
-        timeResolution = inputs["timeResolution"];
-        fourThirdsPiRho = 4. / 3. * pi * density;
-        scaleBalls = inputs["scaleBalls"];
-        maxOverlap = inputs["maxOverlap"];
-        KEfactor = inputs["KEfactor"];
-        if (inputs["v_custom"] == std::string("default"))
-        {
-            v_custom = 0.36301555459799423;
-        }
-        else
-        {
-            v_custom = inputs["v_custom"];
-        }
-        temp = inputs["temp"]; // this will modify v_custom in oneSizeSphere
-        double temp_kConst = inputs["kConsts"];
-        kConsts = temp_kConst * (fourThirdsPiRho / (maxOverlap * maxOverlap));
-        impactParameter = inputs["impactParameter"];
-        Ha = inputs["Ha"];
-        double temp_h_min = inputs["h_min"];
-        h_min = temp_h_min * scaleBalls;
-        if (inputs["cone"] == std::string("default"))
-        {
-            cone = pi/2;
-        }
-        else
-        {
-            cone = inputs["cone"];
-        }
-        properties = inputs["properties"];
-        genBalls = inputs["genBalls"];
-        attempts = inputs["attempts"];
-        skip = inputs["skip"];
-        steps = inputs["steps"];
-        dt = inputs["dt"];
-        kin = inputs["kin"];
-        kout = inputs["kout"];
-        if (inputs["spaceRange"] == std::string("default"))
-        {
-            spaceRange = 4 * std::pow(
-                            (1. / .74 * scaleBalls * scaleBalls * scaleBalls * genBalls),
-                            1. / 3.); 
-        }
-        else
-        {
-            spaceRange = inputs["spaceRange"];
-        }
-        if (inputs["spaceRangeIncrement"] == std::string("default"))
-        {
-            spaceRangeIncrement = scaleBalls * 3;
-        }
-        else
-        {
-            spaceRangeIncrement = inputs["spaceRangeIncrement"];
-        }
-        z0Rot = inputs["z0Rot"];
-        y0Rot = inputs["y0Rot"];
-        z1Rot = inputs["z1Rot"];
-        y1Rot = inputs["y1Rot"];
-        simTimeElapsed = inputs["simTimeElapsed"];
-        project_path = inputs["project_path"];
-        if (project_path == std::string("default"))
-        {
-            project_path = s_location;
-        }
-        output_folder = inputs["output_folder"];
-        if (output_folder == std::string("default"))
-        {
-            output_folder = s_location;
-        }
-        projectileName = inputs["projectileName"];
-        targetName = inputs["targetName"];
-        output_prefix = inputs["output_prefix"];
-        if (output_prefix == std::string("default"))
-        {
-            output_prefix = "";
-        }
-    }
-
+    
     Ball_group() = default;
 
     /// @brief For creating a new ballGroup of size nBalls
@@ -180,7 +96,6 @@ public:
     {
         parse_input_file(path);
         generate_ball_field(genBalls);
-
         // Hack - Override and creation just 2 balls position and velocity.
         pos[0] = {0, 1.101e-5, 0};
         pos[1] = {0, -1.101e-5, 0};
@@ -242,6 +157,7 @@ public:
                                 // on host.
 
         PE = rhs.PE;
+        KE = rhs.KE;
 
         distances = rhs.distances;
 
@@ -255,6 +171,8 @@ public:
         R = rhs.R;      ///< Radius
         m = rhs.m;      ///< Mass
         moi = rhs.moi;  ///< Moment of inertia
+
+        radiiDistribution = rhs.radiiDistribution;
 
         return *this;
     }
@@ -279,6 +197,7 @@ public:
                                 // on host.
 
         PE = rhs.PE;
+        KE = rhs.KE;
 
         distances = rhs.distances;
 
@@ -292,6 +211,8 @@ public:
         R = rhs.R;      ///< Radius
         m = rhs.m;      ///< Mass
         moi = rhs.moi;  ///< Moment of inertia
+
+        radiiDistribution = rhs.radiiDistribution;
     }
 
 
@@ -543,7 +464,16 @@ public:
         // compatibility. What happens without setting output_prefix = filename? Check if file name already
         // exists.
         std::ifstream checkForFile;
-        checkForFile.open(output_folder + filename + "simData.csv", std::ifstream::in);
+        std::string filenum;
+        if (counter != 0)
+        {
+            filenum = std::to_string(counter) + '_';
+        }
+        else
+        {
+            filenum = "";
+        }
+        checkForFile.open(output_folder + filenum + filename + "simData.csv", std::ifstream::in);
         // Add a counter to the file name until it isn't overwriting anything:
         while (checkForFile.is_open()) {
             counter++;
@@ -586,7 +516,6 @@ public:
             constWrite << R[Ball] << ',' << m[Ball] << ',' << moi[Ball] << '\n';
         }
 
-        // Write energy data to buffer:
         energyBuffer << '\n'
                      << simTimeElapsed << ',' << PE << ',' << KE << ',' << PE + KE << ',' << mom.norm() << ','
                      << ang_mom.norm();
@@ -772,13 +701,24 @@ public:
     {
         // Random particle to origin
         Ball_group projectile(1);
+        projectile.radiiDistribution = radiiDistribution;
+
         // Particle random position at twice radius of target:
         // We want the farthest from origin since we are offsetting form origin. Not com.
         const auto cluster_radius = get_radius(vec3(0, 0, 0));
 
         const vec3 projectile_direction = rand_unit_vec3();
         projectile.pos[0] = projectile_direction * (cluster_radius + scaleBalls * 4);
-        projectile.R[0] = scaleBalls;  // rand_between(1,3)*1e-5;
+        if (radiiDistribution == constant)
+        {
+            projectile.R[0] = scaleBalls/(2);  //limit of 1.4// rand_between(1,3)*1e-5;
+            // std::cout<<"(constant) Particle added with radius of "<<projectile.R[0]<<std::endl;
+        }
+        else
+        {
+            projectile.R[0] = lognorm_dist(scaleBalls*std::exp(-5*std::pow(lnSigma,2)/2),lnSigma);
+            // std::cout<<"(lognorm) Particle added with radius of "<<projectile.R[0]<<std::endl;
+        }
         projectile.w[0] = {0, 0, 0};
         projectile.m[0] = density * 4. / 3. * pi * std::pow(projectile.R[0], 3);
         // Velocity toward origin:
@@ -807,9 +747,7 @@ public:
         // Load file data:
         std::cerr << "Add Particle\n";
 
-        
         Ball_group projectile = dust_agglomeration_particle_init();
-
         
         // Collision velocity calculation:
         const vec3 p_target{calc_momentum("p_target")};
@@ -838,6 +776,7 @@ public:
 
         new_group.merge_ball_group(*this);
         new_group.merge_ball_group(projectile);
+        // std::cout<<"radiiDistribution in add_projectile(4): "<<new_group.radiiDistribution<<std::endl;
 
         // Hack - Calibrate to vel = 1 so we don't have to reform the pair. Probly fine?
         new_group.calibrate_dt(0, v_custom);
@@ -869,6 +808,7 @@ public:
 
         // Keep track of now loaded ball set to start next set after it:
         num_particles_added += src.num_particles;
+        radiiDistribution = src.radiiDistribution;
         calc_helpfuls();
     }
 
@@ -1376,10 +1316,17 @@ private:
         allocate_group(nBalls);
 
         // Create new random number set.
-        //		const int seedSave = static_cast<int>(time(nullptr));
-        srand(0);  // srand(seedSave);
-
-        oneSizeSphere(nBalls);
+            //This should be done in parse_input_file
+        // const int seedSave = static_cast<int>(time(nullptr));
+        // srand(seedSave);
+        if (radiiDistribution == constant)
+        {
+            oneSizeSphere(nBalls);
+        }
+        else
+        {
+            distSizeSphere(nBalls);
+        }
         
         calc_helpfuls();
         // threeSizeSphere(nBalls);
@@ -1402,10 +1349,23 @@ private:
         std::cerr << "Approximate radius: " << initial_radius << " cm.\n";
     }
 
+    void distSizeSphere(const int nBalls)
+    {
+        for (int Ball = 0; Ball < nBalls; Ball++) {
+            R[Ball] = lognorm_dist(scaleBalls*std::exp(-5*std::pow(lnSigma,2)/2),lnSigma);
+            m[Ball] = density * 4. / 3. * 3.14159 * std::pow(R[Ball], 3);
+            moi[Ball] = .4 * m[Ball] * R[Ball] * R[Ball];
+            w[Ball] = {0, 0, 0};
+            pos[Ball] = rand_vec3(spaceRange);
+        }
+
+        m_total = getMass();
+
+        placeBalls(nBalls);
+    }
 
     void oneSizeSphere(const int nBalls)
     {
-
         for (int Ball = 0; Ball < nBalls; Ball++) {
             R[Ball] = scaleBalls;
             m[Ball] = density * 4. / 3. * 3.14159 * std::pow(R[Ball], 3);
@@ -1416,9 +1376,19 @@ private:
 
         m_total = getMass();
 
+        placeBalls(nBalls);
+    }
+
+    void placeBalls(const int nBalls)
+    {
         // Generate non-overlapping spherical particle field:
         int collisionDetected = 0;
         int oldCollisions = nBalls;
+
+        if (nBalls == 1)
+        {
+            pos[0] = {0,1e-5,0};
+        }
 
         for (int failed = 0; failed < attempts; failed++) {
             for (int A = 0; A < nBalls; A++) {
@@ -1468,7 +1438,6 @@ private:
         std::cerr << "Mass: " << m_total << '\n';
     }
 
-
     void updateDTK(const double& velocity)
     {
         calc_helpfuls();
@@ -1484,6 +1453,7 @@ private:
         const double elastic_force_max = kin * maxOverlap * r_min;
         const double regime = (vdw_force_max > elastic_force_max) ? vdw_force_max : elastic_force_max;
         const double regime_adjust = regime / (maxOverlap * r_min);
+
         dt = .01 * sqrt((fourThirdsPiRho / regime_adjust) * r_min * r_min * r_min);
     }
 
@@ -1496,7 +1466,10 @@ private:
         std::cerr << "Steps: " << steps << '\n';
         std::cerr << "==================" << '\n';
 
-        to_origin();
+        if (num_particles > 1)
+        {
+            to_origin();
+        }
 
         calc_momentum("After Zeroing");  // Is total mom zero like it should be?
 
@@ -1522,7 +1495,7 @@ private:
         }
         else
         {
-            std::cerr << "Continuing Sim...\nFile: " << start_file_index << filename << '\n';
+            std::cerr << "Continuing Sim...\nFile: " << start_file_index << '_' << filename << '\n';
             loadSim(path, std::to_string(start_file_index) + "_" + filename);
         }
 
@@ -1613,4 +1586,121 @@ private:
                         scientific(vBig) + "_vSmall" + scientific(vSmall) + "_IP" +
                         rounder(impactParameter * 180 / 3.14159, 2) + "_rho" + rounder(density, 4);
     }
+
 };
+
+void Ball_group::parse_input_file(char const* location)
+{
+    std::string s_location(location);
+    std::string json_file = s_location + "input.json";
+    std::ifstream ifs(json_file);
+    json inputs = json::parse(ifs);
+
+    if (inputs["seed"] == std::string("default"))
+    {
+        seed = static_cast<int>(time(nullptr));
+    }
+    else
+    {
+        seed = static_cast<int>(inputs["seed"]);
+        random_generator.seed(seed);
+    }
+    srand(seed);
+
+    std::string temp_distribution = inputs["radiiDistribution"];
+    if (temp_distribution == "logNormal")
+    {
+        radiiDistribution = logNorm;
+    }
+    else
+    {
+        radiiDistribution = constant;
+    }
+    dynamicTime = inputs["dynamicTime"];
+    G = inputs["G"];
+    density = inputs["density"];
+    u_s = inputs["u_s"];
+    u_r = inputs["u_r"];
+    sigma = inputs["sigma"];
+    Y = inputs["Y"];
+    cor = inputs["cor"];
+    simTimeSeconds = inputs["simTimeSeconds"];
+    timeResolution = inputs["timeResolution"];
+    fourThirdsPiRho = 4. / 3. * pi * density;
+    scaleBalls = inputs["scaleBalls"];
+    maxOverlap = inputs["maxOverlap"];
+    KEfactor = inputs["KEfactor"];
+    if (inputs["v_custom"] == std::string("default"))
+    {
+        v_custom = 0.36301555459799423;
+    }
+    else
+    {
+        v_custom = inputs["v_custom"];
+    }
+    temp = inputs["temp"]; // this will modify v_custom in oneSizeSphere
+    double temp_kConst = inputs["kConsts"];
+    kConsts = temp_kConst * (fourThirdsPiRho / (maxOverlap * maxOverlap));
+    impactParameter = inputs["impactParameter"];
+    Ha = inputs["Ha"];
+    double temp_h_min = inputs["h_min"];
+    h_min = temp_h_min * scaleBalls;
+    if (inputs["cone"] == std::string("default"))
+    {
+        cone = pi/2;
+    }
+    else
+    {
+        cone = inputs["cone"];
+    }
+    properties = inputs["properties"];
+    genBalls = inputs["genBalls"];
+    attempts = inputs["attempts"];
+    skip = inputs["skip"];
+    steps = inputs["steps"];
+    dt = inputs["dt"];
+    kin = inputs["kin"];
+    kout = inputs["kout"];
+    if (inputs["spaceRange"] == std::string("default"))
+    {
+        spaceRange = 4 * std::pow(
+                        (1. / .74 * scaleBalls * scaleBalls * scaleBalls * genBalls),
+                        1. / 3.); 
+    }
+    else
+    {
+        spaceRange = inputs["spaceRange"];
+    }
+    if (inputs["spaceRangeIncrement"] == std::string("default"))
+    {
+        spaceRangeIncrement = scaleBalls * 3;
+    }
+    else
+    {
+        spaceRangeIncrement = inputs["spaceRangeIncrement"];
+    }
+    z0Rot = inputs["z0Rot"];
+    y0Rot = inputs["y0Rot"];
+    z1Rot = inputs["z1Rot"];
+    y1Rot = inputs["y1Rot"];
+    simTimeElapsed = inputs["simTimeElapsed"];
+    project_path = inputs["project_path"];
+    if (project_path == std::string("default"))
+    {
+        project_path = s_location;
+    }
+    output_folder = inputs["output_folder"];
+    out_folder = inputs["output_folder"];
+    if (output_folder == std::string("default"))
+    {
+        output_folder = s_location;
+        out_folder = s_location;
+    }
+    projectileName = inputs["projectileName"];
+    targetName = inputs["targetName"];
+    output_prefix = inputs["output_prefix"];
+    if (output_prefix == std::string("default"))
+    {
+        output_prefix = "";
+    }
+}

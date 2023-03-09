@@ -18,27 +18,20 @@ if __name__ == '__main__':
 	except:
 		print('compilation failed')
 		exit(-1)
+		
+	job_set_name = "lognorm_radius_test"
+	job_set_name = "small_balls"
+	# folder_name_scheme = "T_"
 
-
-	job_set_name = "tempVarianceRand_attempt"
-	folder_name_scheme = "T_"
-
-	runs_at_once = 18
-	attempts = [1] 
-	attempts = [21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40]
-	attempts = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20] 
-	attempts = [i for i in range(11,17)]
-
-	print(attempts)
-	# exit(0)
-
-	N = [300]
-	Temps = [3,10,30,100,300,1000]
+	runs_at_once = 1
+	# attempts = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20] 
+	attempts = [4] 
+	N = [10]
+	Temps = [1]
 	folders = []
-	folders_N = []
-	for Temp in Temps:
-		for attempt in attempts:
-			for n in N:
+	for attempt in attempts:
+		for n in N:
+			for Temp in Temps:
 				job = curr_folder + 'jobs/' + job_set_name + str(attempt) + '/'\
 							+ 'N_' + str(n) + '/' + 'T_' + str(Temp) + '/'
 				if not os.path.exists(job):
@@ -54,8 +47,9 @@ if __name__ == '__main__':
 				####################################
 				######Change input values here######
 				input_json['temp'] = Temp
-				input_json['seed'] = 'default'
-
+				input_json['seed'] = 100
+				input_json['genBalls'] = 2
+				input_json['radiiDistribution'] = 'constant'
 				####################################
 
 				with open(job + "input.json",'w') as fp:
@@ -65,13 +59,11 @@ if __name__ == '__main__':
 				os.system("cp default_files/run_sim.py {}run_sim.py".format(job))
 				os.system("cp ColliderSingleCore/ColliderSingleCore.o {}ColliderSingleCore.o".format(job))
 				folders.append(job)
-				folders_N.append(n)
 	# print(folders)
-	# if len(N) != len(folders):
-	# 	for i in range(len(folders))
-	# 	N = [str(N[0]) for i in range(len(folders))]
+	if len(N) != len(folders):
+		N = [str(N[0]) for i in range(len(folders))]
 
-	inputs = list(zip(folders,folders_N))
+	inputs = list(zip(folders,N))
 	print(inputs)
 
 	for i in range(0,len(folders),runs_at_once):

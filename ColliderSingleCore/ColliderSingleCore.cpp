@@ -1,4 +1,5 @@
 #include "../ball_group.hpp"
+#include "../timing/timing.hpp"
 
 #include <cmath>
 #include <iostream>
@@ -25,11 +26,11 @@ bool writeStep;                      // This prevents writing to file every step
 
 // Prototypes
 void
-sim_one_step(const bool write_step, Ball_group O);
+sim_one_step(const bool write_step, Ball_group &O);
 void
-sim_looper(Ball_group O);
+sim_looper(Ball_group &O);
 void
-safetyChecks(Ball_group O);
+safetyChecks(Ball_group &O);
 std::string 
 check_restart(std::string folder,int* restart);
 Ball_group 
@@ -38,10 +39,10 @@ make_group(const char *argv1,int* restart);
 /// @brief The ballGroup run by the main sim looper.
 // Ball_group O(output_folder, projectileName, targetName, v_custom); // Collision
 // Ball_group O(path, targetName, 0);  // Continue
-// std::cout<<"Start Main"<<std::endl;
 // std::cerr<<"genBalls: "<<genBalls<<std::endl;
 // Ball_group O(20, true, v_custom); // Generate
 // Ball_group O(genBalls, true, v_custom); // Generate
+timey t;
 
 //////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////
@@ -49,7 +50,7 @@ make_group(const char *argv1,int* restart);
 int
 main(const int argc, char const* argv[])
 {
-
+    t.start_event("WholeThing");
     energyBuffer.precision(12);  // Need more precision on momentum.
     int num_balls;
     int rest = -1;
@@ -72,10 +73,7 @@ main(const int argc, char const* argv[])
     {
         num_balls = 100;
     }
-    Ball_group O = make_group(argv[1],restart);
-    
-
-    // std::cout<<"Total number of monomers accreted: "<<num_balls<<std::endl;
+    Ball_group O = make_group(argv[1],restart);    
 
     // O.zeroAngVel();
     // O.pushApart();
@@ -89,14 +87,23 @@ main(const int argc, char const* argv[])
     std::string ori_output_prefix = output_prefix;
     for (int i = *restart; i < num_balls; i++) {
     // for (int i = 0; i < 250; i++) {
-
+        std::cout<<"radiiDistribution in main(1): "<<O.radiiDistribution<<std::endl;
         O.zeroAngVel();
         O.zeroVel();
+        std::cout<<"radiiDistribution in main(2): "<<O.radiiDistribution<<std::endl;
+        t.start_event("add_projectile");
         O = O.add_projectile();
-        O.sim_init_write(ori_output_prefix);
+        std::cout<<"radiiDistribution in main(3): "<<O.radiiDistribution<<std::endl;
+        t.end_event("add_projectile");
+        O.sim_init_write(ori_output_prefix, i);
+        std::cout<<"radiiDistribution in main(4): "<<O.radiiDistribution<<std::endl;
         sim_looper(O);
+        std::cout<<"radiiDistribution in main(5): "<<O.radiiDistribution<<std::endl;
         simTimeElapsed = 0;
     }
+    t.end_event("WholeThing");
+    t.print_events();
+    t.save_events(output_folder + "timing.txt");
 }  // end main
 //////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////
@@ -131,10 +138,14 @@ Ball_group make_group(const char *argv1,int* restart)
         }
 
     }
-    else // Make new ball group
+    else if (*restart == -1) // Make new ball group
     {
         *restart = 0;
         O = Ball_group(true, v_custom, argv1); // Generate new group
+    }
+    else
+    {
+        std::cerr<<"Simulation already complete.\n";
     }
     return O;
 }
@@ -150,6 +161,12 @@ std::string check_restart(std::string folder,int* restart)
     std::string largest_index_name;
     for (const auto & entry : fs::directory_iterator(folder))
     {
+        if (file.substr(0,file.size()-4) == "timing")
+        {
+            *restart = -2;
+            return "";
+        }
+
         file = entry.path();
         size_t pos = file.find_last_of("/");
         file = file.erase(0,pos+1);
@@ -172,7 +189,6 @@ std::string check_restart(std::string folder,int* restart)
             }
         }
     }
-
     *restart = largest_file_index;
     if (*restart != -1)
     {
@@ -225,9 +241,10 @@ std::string check_restart(std::string folder,int* restart)
 }
 
 void
-sim_one_step(const bool write_step, Ball_group O)
+sim_one_step(const bool write_step, Ball_group &O)
 {
     /// FIRST PASS - Update Kinematic Parameters:
+    t.start_event("UpdateKinPar");
     for (int Ball = 0; Ball < O.num_particles; Ball++) {
         // Update velocity half step:
         O.velh[Ball] = O.vel[Ball] + .5 * O.acc[Ball] * dt;
@@ -244,8 +261,10 @@ sim_one_step(const bool write_step, Ball_group O)
         // Reinitialize angular acceleration to be recalculated:
         O.aacc[Ball] = {0, 0, 0};
     }
+    t.end_event("UpdateKinPar");
 
     /// SECOND PASS - Check for collisions, apply forces and torques:
+    t.start_event("CalcForces/loopApplicablepairs");
     for (int A = 1; A < O.num_particles; A++)  // cuda
     {
         /// DONT DO ANYTHING HERE. A STARTS AT 1.
@@ -405,12 +424,14 @@ sim_one_step(const bool write_step, Ball_group O)
         }
         // DONT DO ANYTHING HERE. A STARTS AT 1.
     }
+    t.end_event("CalcForces/loopApplicablepairs");
 
     if (write_step) {
         ballBuffer << '\n';  // Prepares a new line for incoming data.
     }
 
     // THIRD PASS - Calculate velocity for next step:
+    t.start_event("CalcVelocityforNextStep");
     for (int Ball = 0; Ball < O.num_particles; Ball++) {
         // Velocity for next step:
         O.vel[Ball] = O.velh[Ball] + .5 * O.acc[Ball] * dt;
@@ -436,11 +457,12 @@ sim_one_step(const bool write_step, Ball_group O)
             O.ang_mom += O.m[Ball] * O.pos[Ball].cross(O.vel[Ball]) + O.moi[Ball] * O.w[Ball];
         }
     }  // THIRD PASS END
+    t.end_event("CalcVelocityforNextStep");
 }  // one Step end
 
 
 void
-sim_looper(Ball_group O)
+sim_looper(Ball_group &O)
 {
     std::cerr << "Beginning simulation...\n";
 
@@ -450,6 +472,7 @@ sim_looper(Ball_group O)
     {
         // Check if this is a write step:
         if (Step % skip == 0) {
+            t.start_event("writeProgressReport");
             writeStep = true;
 
             simTimeElapsed += dt * skip;
@@ -474,6 +497,7 @@ sim_looper(Ball_group O)
             // progress, eta, real, simmed, real / simmed);
             fflush(stdout);
             startProgress = time(nullptr);
+            t.end_event("writeProgressReport");
         } else {
             writeStep = false;
         }
@@ -482,6 +506,7 @@ sim_looper(Ball_group O)
         sim_one_step(writeStep,O);
 
         if (writeStep) {
+            t.start_event("writeStep");
             // Write energy to stream:
             energyBuffer << '\n'
                          << simTimeElapsed << ',' << O.PE << ',' << O.KE << ',' << O.PE + O.KE << ','
@@ -524,6 +549,7 @@ sim_looper(Ball_group O)
 
 
             if (dynamicTime) { O.calibrate_dt(Step, false); }
+            t.end_event("writeStep");
         }  // writestep end
     }
 
@@ -538,7 +564,7 @@ sim_looper(Ball_group O)
 
 
 void
-safetyChecks(Ball_group O)
+safetyChecks(Ball_group &O)
 {
     titleBar("SAFETY CHECKS");
 
@@ -576,6 +602,7 @@ safetyChecks(Ball_group O)
         fprintf(stderr, "\nCluster initialRadius not set\n");
         exit(EXIT_FAILURE);
     }
+
 
     for (int Ball = 0; Ball < O.num_particles; Ball++) {
         if (O.pos[Ball].norm() < vec3(1e-10, 1e-10, 1e-10).norm()) {
