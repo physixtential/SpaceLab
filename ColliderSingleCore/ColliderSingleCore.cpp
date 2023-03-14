@@ -91,6 +91,9 @@ main(const int argc, char const* argv[])
         O.zeroVel();
         t.start_event("add_projectile");
         O = O.add_projectile();
+        ///////////
+        O.zeroSlidRoll();
+        ///////////
         t.end_event("add_projectile");
         O.sim_init_write(ori_output_prefix, i);
         sim_looper(O);
@@ -334,6 +337,11 @@ sim_one_step(const bool write_step, Ball_group &O)
                     slideForceOnA = u_s * elastic_force_A_mag * (frame_A_vel_B / rel_vel_mag);
                 }
 
+                /////////////////////////////////
+                O.slidFric[A] += slideForceOnA;
+                O.slidFric[B] -= slideForceOnA;
+                /////////////////////////////////
+
                 // Compute rolling friction force:
                 const double w_diff_mag = w_diff.norm();
                 if (w_diff_mag > 1e-13)  // Divide by zero protection.
@@ -341,6 +349,11 @@ sim_one_step(const bool write_step, Ball_group &O)
                     rollForceA =
                         -u_r * elastic_force_A_mag * (w_diff).cross(r_a) / (w_diff).cross(r_a).norm();
                 }
+
+                /////////////////////////////////
+                O.rollFric[A] += rollForceA;
+                O.rollFric[B] -= rollForceA;
+                /////////////////////////////////
 
                 // Total forces on a:
                 totalForceOnA = gravForceOnA + elasticForceOnA + slideForceOnA + vdwForceOnA;
@@ -420,6 +433,23 @@ sim_one_step(const bool write_step, Ball_group &O)
         }
         // DONT DO ANYTHING HERE. A STARTS AT 1.
     }
+
+    //////////////////////////////
+    // Write out sliding/rolling fric
+    std::ofstream fricWrite;
+    fricWrite.open(output_folder + output_prefix + "fricData.csv", std::ofstream::app);
+    fricWrite << '\n';
+    for (int i = 0; i < O.num_particles; ++i)
+    {
+        fricWrite << O.rollFric[i] << "," << O.slidFric[i];
+        if (i != O.num_particles - 1)
+        {
+            fricWrite << ',';
+        } 
+    }
+    fricWrite.close();
+    //////////////////////////////
+
     t.end_event("CalcForces/loopApplicablepairs");
 
     if (write_step) {
@@ -495,7 +525,7 @@ sim_looper(Ball_group &O)
             startProgress = time(nullptr);
             t.end_event("writeProgressReport");
         } else {
-            writeStep = false;
+            writeStep = O.debug;
         }
 
         // Physics integration step:

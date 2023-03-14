@@ -26,6 +26,8 @@ using json = nlohmann::json;
 class Ball_group
 {
 public:
+    bool debug = false;
+
     std::string out_folder;
     int num_particles = 0;
     int num_particles_added = 0;
@@ -65,6 +67,11 @@ public:
     double* R = nullptr;    ///< Radius
     double* m = nullptr;    ///< Mass
     double* moi = nullptr;  ///< Moment of inertia
+
+    ///////////////////////////
+    vec3* slidFric = nullptr;
+    vec3* rollFric = nullptr;
+    ///////////////////////////
 
     void parse_input_file(char const* location);
 
@@ -177,6 +184,11 @@ public:
 
         radiiDistribution = rhs.radiiDistribution;
 
+        /////////////////////////////////////
+        slidFric = rhs.slidFric;
+        rollFric = rhs.rollFric;
+        /////////////////////////////////////
+
         return *this;
     }
 
@@ -216,8 +228,23 @@ public:
         moi = rhs.moi;  ///< Moment of inertia
 
         radiiDistribution = rhs.radiiDistribution;
+
+        /////////////////////////////////////
+        slidFric = rhs.slidFric;
+        rollFric = rhs.rollFric;
+        /////////////////////////////////////
     }
 
+    ////////////////////////////////////
+    void zeroSlidRoll()
+    {
+        for (int i = 0; i < num_particles; ++i)
+        {
+            slidFric[i] = {0,0,0};
+            rollFric[i] = {0,0,0};
+        }
+    }
+    ////////////////////////////////////
 
     void calc_helpfuls()
     {
@@ -463,6 +490,7 @@ public:
         //	else { spinCombo += "0"; }
         //}
 
+
         // todo - filename is now a copy and this works. Need to consider how old way worked for
         // compatibility. What happens without setting output_prefix = filename? Check if file name already
         // exists.
@@ -487,6 +515,21 @@ public:
         if (counter > 0) { filename.insert(0, std::to_string(counter) + '_'); }
 
         output_prefix = filename;
+
+        //////////////////////////
+        std::ofstream fricWrite;
+        fricWrite.open(output_folder + filename + "fricData.csv", std::ofstream::app);
+        for (int i = 0; i < num_particles; ++i)
+        {
+            fricWrite << "b"<<i<<"xroll,"<<"b"<<i<<"yroll,"<<"b"<<i<<"zroll,"<<
+            "b"<<i<<"xslide,"<<"b"<<i<<"yslide,"<<"b"<<i<<"zslide";
+            if (i != num_particles-1)
+            {
+                fricWrite << ',';
+            }
+        }
+        fricWrite.close();
+        //////////////////////////
 
         // Complete file names:
         std::string simDataFilename = output_folder + filename + "simData.csv";
@@ -634,7 +677,6 @@ public:
         projectile.m[0] = density * 4. / 3. * pi * std::pow(projectile.R[0], 3);
         projectile.moi[0] = calc_moi(projectile.R[0], projectile.m[0]);
 
-
         const double3x3 local_coords = local_coordinates(to_double3(projectile_direction));
         // to_vec3(local_coords.y).print();
         // to_vec3(local_coords.z).print();
@@ -734,6 +776,11 @@ public:
         // projectile.R[0] = 1e-5;  // rand_between(1,3)*1e-5;
         projectile.moi[0] = calc_moi(projectile.R[0], projectile.m[0]);
 
+        //////////////////////////////////
+        projectile.slidFric[0] = {0,0,0};
+        projectile.rollFric[0] = {0,0,0};
+        //////////////////////////////////
+
         const double3x3 local_coords = local_coordinates(to_double3(projectile_direction));
 
         projectile.pos[0] = dust_agglomeration_offset(local_coords,projectile.pos[0],projectile.vel[0],projectile.R[0]);
@@ -774,7 +821,6 @@ public:
         std::cerr << '\n';
         projectile.calc_momentum("Projectile");
         calc_momentum("Target");
-
         Ball_group new_group{projectile.num_particles + num_particles};
 
         new_group.merge_ball_group(*this);
@@ -808,6 +854,10 @@ public:
         std::memcpy(&R[num_particles_added], src.R, sizeof(src.R[0]) * src.num_particles);
         std::memcpy(&m[num_particles_added], src.m, sizeof(src.m[0]) * src.num_particles);
         std::memcpy(&moi[num_particles_added], src.moi, sizeof(src.moi[0]) * src.num_particles);
+        //////////////////////////////////////
+        std::memcpy(&slidFric[num_particles_added], src.slidFric, sizeof(src.slidFric[0]) * src.num_particles);
+        std::memcpy(&rollFric[num_particles_added], src.rollFric, sizeof(src.rollFric[0]) * src.num_particles);
+        // //////////////////////////////////////
 
         // Keep track of now loaded ball set to start next set after it:
         num_particles_added += src.num_particles;
@@ -839,6 +889,11 @@ private:
             R = new double[num_particles];
             m = new double[num_particles];
             moi = new double[num_particles];
+
+            // /////////////////////////
+            slidFric = new vec3[num_particles];
+            rollFric = new vec3[num_particles];
+            // /////////////////////////
         } catch (const std::exception& e) {
             std::cerr << "Failed trying to allocate group. " << e.what() << '\n';
         }
@@ -859,6 +914,10 @@ private:
         delete[] R;
         delete[] m;
         delete[] moi;
+        /////////////////////
+        delete[] slidFric;
+        delete[] rollFric;
+        /////////////////////
     }
 
 
@@ -1375,6 +1434,10 @@ private:
             moi[Ball] = .4 * m[Ball] * R[Ball] * R[Ball];
             w[Ball] = {0, 0, 0};
             pos[Ball] = rand_vec3(spaceRange);
+            ////////////////////////////
+            slidFric[Ball] = {0,0,0};
+            rollFric[Ball] = {0,0,0};
+            ////////////////////////////
         }
 
         m_total = getMass();
@@ -1457,6 +1520,7 @@ private:
         const double regime = (vdw_force_max > elastic_force_max) ? vdw_force_max : elastic_force_max;
         const double regime_adjust = regime / (maxOverlap * r_min);
 
+        // dt = .001 * sqrt((fourThirdsPiRho / regime_adjust) * r_min * r_min * r_min);
         dt = .01 * sqrt((fourThirdsPiRho / regime_adjust) * r_min * r_min * r_min);
     }
 

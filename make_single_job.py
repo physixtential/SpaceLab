@@ -25,8 +25,8 @@ if __name__ == '__main__':
 
 	runs_at_once = 1
 	# attempts = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20] 
-	attempts = [6] 
-	N = [10]
+	attempts = [16] 
+	N = [2]
 	Temps = [1]
 	folders = []
 	for attempt in attempts:
@@ -50,6 +50,7 @@ if __name__ == '__main__':
 				input_json['seed'] = 100
 				input_json['genBalls'] = 2
 				input_json['radiiDistribution'] = 'constant'
+				input_json['simTimeSeconds'] = 1e-3
 				####################################
 
 				with open(job + "input.json",'w') as fp:
