@@ -69,8 +69,14 @@ public:
     double* moi = nullptr;  ///< Moment of inertia
 
     ///////////////////////////
-    vec3* slidFric = nullptr;
-    vec3* rollFric = nullptr;
+    // vec3* slidDir = nullptr;
+    // vec3* rollDir = nullptr;
+    double* inout = nullptr;
+    vec3* slidB3 = nullptr;
+    vec3* rollB3 = nullptr;
+    double* distB3 = nullptr;
+    // vec3* slidFric = nullptr;
+    // vec3* rollFric = nullptr;
     ///////////////////////////
 
     void parse_input_file(char const* location);
@@ -185,8 +191,14 @@ public:
         radiiDistribution = rhs.radiiDistribution;
 
         /////////////////////////////////////
-        slidFric = rhs.slidFric;
-        rollFric = rhs.rollFric;
+        // slidDir = rhs.slidDir;
+        // rollDir = rhs.rollDir;
+        inout = rhs.inout;
+        distB3 = rhs.distB3;
+        slidB3 = rhs.slidB3;
+        rollB3 = rhs.rollB3;
+        // slidFric = rhs.slidFric;
+        // rollFric = rhs.rollFric;
         /////////////////////////////////////
 
         return *this;
@@ -230,8 +242,14 @@ public:
         radiiDistribution = rhs.radiiDistribution;
 
         /////////////////////////////////////
-        slidFric = rhs.slidFric;
-        rollFric = rhs.rollFric;
+        // slidDir = rhs.slidDir;
+        // rollDir = rhs.rollDir;
+        inout = rhs.inout;
+        distB3 = rhs.distB3;
+        slidB3 = rhs.slidB3;
+        rollB3 = rhs.rollB3;
+        // slidFric = rhs.slidFric;
+        // rollFric = rhs.rollFric;
         /////////////////////////////////////
     }
 
@@ -240,8 +258,17 @@ public:
     {
         for (int i = 0; i < num_particles; ++i)
         {
-            slidFric[i] = {0,0,0};
-            rollFric[i] = {0,0,0};
+            if (i < num_particles)
+            {
+                distB3[i] = 0.0;
+            }
+            // slidDir[i] = {0,0,0};
+            // rollDir[i] = {0,0,0};
+            inout[i] = 0.0;
+            slidB3[i] = {0,0,0};
+            rollB3[i] = {0,0,0};
+            // slidFric[i] = {0,0,0};
+            // rollFric[i] = {0,0,0};
         }
     }
     ////////////////////////////////////
@@ -517,18 +544,53 @@ public:
         output_prefix = filename;
 
         //////////////////////////
-        std::ofstream fricWrite;
-        fricWrite.open(output_folder + filename + "fricData.csv", std::ofstream::app);
+        // std::ofstream fricWrite;
+        // fricWrite.open(output_folder + filename + "fricData.csv", std::ofstream::app);
+        // for (int i = 0; i < num_particles; ++i)
+        // {
+        //     fricWrite << "b"<<i<<"xroll,"<<"b"<<i<<"yroll,"<<"b"<<i<<"zroll,"<<
+        //     "b"<<i<<"xslide,"<<"b"<<i<<"yslide,"<<"b"<<i<<"zslide";
+        //     if (i != num_particles-1)
+        //     {
+        //         fricWrite << ',';
+        //     }
+        // }
+        // fricWrite.close();
+        std::ofstream fricB3Write;
+        fricB3Write.open(output_folder + filename + "fricB3Data.csv", std::ofstream::app);
         for (int i = 0; i < num_particles; ++i)
         {
-            fricWrite << "b"<<i<<"xroll,"<<"b"<<i<<"yroll,"<<"b"<<i<<"zroll,"<<
-            "b"<<i<<"xslide,"<<"b"<<i<<"yslide,"<<"b"<<i<<"zslide";
+            fricB3Write << "Fx3"<<i<<"roll,"<<"Fy3"<<i<<"roll,"<<"Fz3"<<i<<"roll,"<<
+            "Fx3"<<i<<"slide,"<<"Fy3"<<i<<"slide,"<<"Fz3"<<i<<"slide";
             if (i != num_particles-1)
             {
-                fricWrite << ',';
+                fricB3Write << ',';
             }
         }
-        fricWrite.close();
+        fricB3Write.close();
+        // std::ofstream dirB3Write;
+        // dirB3Write.open(output_folder + filename + "dirB3Data.csv", std::ofstream::app);
+        // for (int i = 0; i < num_particles; ++i)
+        // {
+        //     dirB3Write << "xhat3"<<i<<"roll,"<<"yhat3"<<i<<"roll,"<<"zhat3"<<i<<"roll,"<<
+        //     "xhat3"<<i<<"slide,"<<"yhat3"<<i<<"slide,"<<"zhat3"<<i<<"slide";
+        //     if (i != num_particles-1)
+        //     {
+        //         dirB3Write << ',';
+        //     }
+        // }
+        // dirB3Write.close();
+        std::ofstream distB3Write;
+        distB3Write.open(output_folder + filename + "distB3Data.csv", std::ofstream::app);
+        for (int i = 0; i < num_particles-1; ++i)
+        {
+            distB3Write << "dist3"<<i;
+            if (i != num_particles-2)
+            {
+                distB3Write << ',';
+            }
+        }
+        distB3Write.close();
         //////////////////////////
 
         // Complete file names:
@@ -756,7 +818,7 @@ public:
         projectile.pos[0] = projectile_direction * (cluster_radius + scaleBalls * 4);
         if (radiiDistribution == constant)
         {
-            projectile.R[0] = scaleBalls/(2);  //limit of 1.4// rand_between(1,3)*1e-5;
+            projectile.R[0] = scaleBalls/2;  //limit of 1.4// rand_between(1,3)*1e-5;
             // std::cout<<"(constant) Particle added with radius of "<<projectile.R[0]<<std::endl;
         }
         else
@@ -777,13 +839,32 @@ public:
         projectile.moi[0] = calc_moi(projectile.R[0], projectile.m[0]);
 
         //////////////////////////////////
-        projectile.slidFric[0] = {0,0,0};
-        projectile.rollFric[0] = {0,0,0};
+        // projectile.slidDir[0] = {0,0,0};
+        // projectile.rollDir[0] = {0,0,0};
+        projectile.inout[0] = 0.0;
+        projectile.distB3[0] = 0.0;
+        projectile.slidB3[0] = {0,0,0};
+        projectile.rollB3[0] = {0,0,0};
+        // projectile.slidFric[0] = {0,0,0};
+        // projectile.rollFric[0] = {0,0,0};
         //////////////////////////////////
 
         const double3x3 local_coords = local_coordinates(to_double3(projectile_direction));
+        
+        // projectile.pos[0] = dust_agglomeration_offset(local_coords,projectile.pos[0],projectile.vel[0],projectile.R[0]);
+        //////////////////////////////////
+        //TURN ON above LINE AND OFF REST FOR REAL SIM
+        if (num_particles == 3)
+        {
+            projectile.vel[0] = {0,0,0};
+            projectile.pos[0] = {0,0,2e-5};
 
-        projectile.pos[0] = dust_agglomeration_offset(local_coords,projectile.pos[0],projectile.vel[0],projectile.R[0]);
+        }
+        else
+        {
+            projectile.pos[0] = dust_agglomeration_offset(local_coords,projectile.pos[0],projectile.vel[0],projectile.R[0]);
+        }
+        //////////////////////////////////
 
         
         return projectile;
@@ -855,9 +936,15 @@ public:
         std::memcpy(&m[num_particles_added], src.m, sizeof(src.m[0]) * src.num_particles);
         std::memcpy(&moi[num_particles_added], src.moi, sizeof(src.moi[0]) * src.num_particles);
         //////////////////////////////////////
-        std::memcpy(&slidFric[num_particles_added], src.slidFric, sizeof(src.slidFric[0]) * src.num_particles);
-        std::memcpy(&rollFric[num_particles_added], src.rollFric, sizeof(src.rollFric[0]) * src.num_particles);
-        // //////////////////////////////////////
+        std::memcpy(&distB3[num_particles_added], src.distB3, sizeof(src.distB3[0]) * src.num_particles);
+        std::memcpy(&inout[num_particles_added], src.inout, sizeof(src.inout[0]) * src.num_particles);
+        // std::memcpy(&slidDir[num_particles_added], src.slidDir, sizeof(src.slidDir[0]) * src.num_particles);
+        // std::memcpy(&rollDir[num_particles_added], src.rollDir, sizeof(src.rollDir[0]) * src.num_particles);
+        std::memcpy(&slidB3[num_particles_added], src.slidB3, sizeof(src.slidB3[0]) * src.num_particles);
+        std::memcpy(&rollB3[num_particles_added], src.rollB3, sizeof(src.rollB3[0]) * src.num_particles);
+        // std::memcpy(&slidFric[num_particles_added], src.slidFric, sizeof(src.slidFric[0]) * src.num_particles);
+        // std::memcpy(&rollFric[num_particles_added], src.rollFric, sizeof(src.rollFric[0]) * src.num_particles);
+        ////////////////////////////////////////
 
         // Keep track of now loaded ball set to start next set after it:
         num_particles_added += src.num_particles;
@@ -891,8 +978,14 @@ private:
             moi = new double[num_particles];
 
             // /////////////////////////
-            slidFric = new vec3[num_particles];
-            rollFric = new vec3[num_particles];
+            inout = new double[num_particles-1];
+            distB3 = new double[num_particles-1];
+            // slidDir = new vec3[num_particles];
+            // rollDir = new vec3[num_particles];
+            slidB3 = new vec3[num_particles];
+            rollB3 = new vec3[num_particles];
+            // slidFric = new vec3[num_particles];
+            // rollFric = new vec3[num_particles];
             // /////////////////////////
         } catch (const std::exception& e) {
             std::cerr << "Failed trying to allocate group. " << e.what() << '\n';
@@ -915,8 +1008,14 @@ private:
         delete[] m;
         delete[] moi;
         /////////////////////
-        delete[] slidFric;
-        delete[] rollFric;
+        // delete[] slidDir;
+        // delete[] rollDir;
+        delete[] inout;
+        delete[] distB3;
+        delete[] slidB3;
+        delete[] rollB3;
+        // delete[] slidFric;
+        // delete[] rollFric;
         /////////////////////
     }
 
@@ -1197,7 +1296,8 @@ private:
         if (auto simDataStream = std::ifstream(simDataFilepath, std::ifstream::in)) {
             std::cerr << "\nParsing last line of data.\n";
 
-            simDataStream.seekg(-1, std::ios_base::end);  // go to one spot before the EOF
+            simDataStream.seekg(-1, std::ios_base::end);  // go to 
+             // spot before the EOF
 
             bool keepLooping = true;
             while (keepLooping) {
@@ -1378,7 +1478,8 @@ private:
         allocate_group(nBalls);
 
         // Create new random number set.
-            //This should be done in parse_input_file
+            //This should be d
+             // in parse_input_file
         // const int seedSave = static_cast<int>(time(nullptr));
         // srand(seedSave);
         if (radiiDistribution == constant)
@@ -1435,8 +1536,17 @@ private:
             w[Ball] = {0, 0, 0};
             pos[Ball] = rand_vec3(spaceRange);
             ////////////////////////////
-            slidFric[Ball] = {0,0,0};
-            rollFric[Ball] = {0,0,0};
+            if (Ball < nBalls-1)
+            {
+                inout[Ball] = 0.0;
+                distB3[Ball] = 0.0;
+            }
+            // slidDir[Ball] = {0,0,0};
+            // rollDir[Ball] = {0,0,0};
+            slidB3[Ball] = {0,0,0};
+            rollB3[Ball] = {0,0,0};
+            // slidFric[Ball] = {0,0,0};
+            // rollFric[Ball] = {0,0,0};
             ////////////////////////////
         }
 
@@ -1520,8 +1630,9 @@ private:
         const double regime = (vdw_force_max > elastic_force_max) ? vdw_force_max : elastic_force_max;
         const double regime_adjust = regime / (maxOverlap * r_min);
 
-        // dt = .001 * sqrt((fourThirdsPiRho / regime_adjust) * r_min * r_min * r_min);
-        dt = .01 * sqrt((fourThirdsPiRho / regime_adjust) * r_min * r_min * r_min);
+        // dt = .02 * sqrt((fourThirdsPiRho / regime_adjust) * r_min * r_min * r_min);
+        dt = .01 * sqrt((fourThirdsPiRho / regime_adjust) * r_min * r_min * r_min); //NORMAL ONE
+        // dt = .005 * sqrt((fourThirdsPiRho / regime_adjust) * r_min * r_min * r_min);
     }
 
     void simInit_cond_and_center(bool add_prefix)

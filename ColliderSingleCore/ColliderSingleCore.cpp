@@ -91,9 +91,7 @@ main(const int argc, char const* argv[])
         O.zeroVel();
         t.start_event("add_projectile");
         O = O.add_projectile();
-        ///////////
-        O.zeroSlidRoll();
-        ///////////
+        
         t.end_event("add_projectile");
         O.sim_init_write(ori_output_prefix, i);
         sim_looper(O);
@@ -280,15 +278,25 @@ sim_one_step(const bool write_step, Ball_group &O)
             // Distance array element: 1,0    2,0    2,1    3,0    3,1    3,2 ...
             int e = static_cast<unsigned>(A * (A - 1) * .5) + B;  // a^2-a is always even, so this works.
             double oldDist = O.distances[e];
-
+            /////////////////////////////
+            // double inoutT;
+            /////////////////////////////
             // Check for collision between Ball and otherBall.
             if (overlap > 0) {
                 double k;
+                // double k = kout;
                 // Apply coefficient of restitution to balls leaving collision.
+                // if ((dist - oldDist) > 5.125e-10) {
                 if (dist >= oldDist) {
                     k = kout;
+                    ////////////////
+                    // inoutT = 100;
+                    ////////////////
                 } else {
                     k = kin;
+                    ////////////////
+                    // inoutT = -100;
+                    ////////////////
                 }
 
                 // Cohesion (in contact) h must always be h_min:
@@ -307,10 +315,30 @@ sim_one_step(const bool write_step, Ball_group &O)
                                          rVecab.normalized();
 
                 // Elastic force:
+                // vec3 elasticForceOnA{0, 0, 0};
+                // if (std::fabs(overlap) > 1e-6)
+                // {
+                //     elasticForceOnA = -k * overlap * .5 * (rVecab / dist);
+                // }
                 const vec3 elasticForceOnA = -k * overlap * .5 * (rVecab / dist);
 
+                ///////////////////////////////
+                ///////material parameters for silicate composite from Reissl 2023
+                // const double Estar = 1e5*169; //in Pa
+                // const double nu2 = 0.27*0.27; // nu squared (unitless)
+                // const double prevoverlap = sumRaRb - oldDist;
+                // const double rij = sqrt(std::pow(Ra,2)-std::pow((Ra-overlap/2),2));
+                // const double Tvis = 15e-12; //Viscoelastic timescale (15ps)
+                // // const double Tvis = 5e-12; //Viscoelastic timescale (5ps)
+                // const vec3 viscoelaticforceOnA = -(2*Estar/nu2) * 
+                //                                  ((overlap - prevoverlap)/dt) * 
+                //                                  rij * Tvis * (rVecab / dist);
+                const vec3 viscoelaticforceOnA = {0,0,0};
+                ///////////////////////////////
+
                 // Gravity force:
-                const vec3 gravForceOnA = (G * O.m[A] * O.m[B] / (dist * dist)) * (rVecab / dist);
+                // const vec3 gravForceOnA = (G * O.m[A] * O.m[B] / (dist * dist)) * (rVecab / dist);
+                const vec3 gravForceOnA = {0,0,0};
 
                 // Sliding and Rolling Friction:
                 vec3 slideForceOnA{0, 0, 0};
@@ -331,32 +359,48 @@ sim_one_step(const bool write_step, Ball_group &O)
 
                 // Compute sliding friction force:
                 const double rel_vel_mag = frame_A_vel_B.norm();
-                if (rel_vel_mag > 1e-13)  // Divide by zero protection.
+                // if (rel_vel_mag > 1e-20)  // Divide by zero protection.
+                // if (rel_vel_mag > 1e-8)  // Divide by zero protection.
+                if (rel_vel_mag > 1e-13)  // NORMAL ONE Divide by zero protection.
                 {
                     // In the frame of A, B applies force in the direction of B's velocity.
                     slideForceOnA = u_s * elastic_force_A_mag * (frame_A_vel_B / rel_vel_mag);
                 }
 
-                /////////////////////////////////
-                O.slidFric[A] += slideForceOnA;
-                O.slidFric[B] -= slideForceOnA;
-                /////////////////////////////////
 
                 // Compute rolling friction force:
                 const double w_diff_mag = w_diff.norm();
-                if (w_diff_mag > 1e-13)  // Divide by zero protection.
+                // if (w_diff_mag > 1e-20)  // Divide by zero protection.
+                // if (w_diff_mag > 1e-8)  // Divide by zero protection.
+                if (w_diff_mag > 1e-13)  // NORMAL ONE Divide by zero protection.
                 {
-                    rollForceA =
+                    rollForceA = 
                         -u_r * elastic_force_A_mag * (w_diff).cross(r_a) / (w_diff).cross(r_a).norm();
                 }
 
                 /////////////////////////////////
-                O.rollFric[A] += rollForceA;
-                O.rollFric[B] -= rollForceA;
+                if (A == O.num_particles-1)
+                {
+                    // O.slidDir[B] += (frame_A_vel_B / rel_vel_mag);
+                    // O.rollDir[B] += (w_diff).cross(r_a) / (w_diff).cross(r_a).norm();
+                    O.slidB3[B] += slideForceOnA;
+                    O.rollB3[B] += rollForceA;
+                    // O.distB3[B] += dist;
+                    // O.inout[B] += inoutT;
+                }
+                // O.slidFric[A] += slideForceOnA;
+                // O.slidFric[B] -= slideForceOnA;
+                /////////////////////////////////
+                /////////////////////////////////
+                // O.rollFric[A] += rollForceA;
+                // O.rollFric[B] -= rollForceA;
                 /////////////////////////////////
 
                 // Total forces on a:
-                totalForceOnA = gravForceOnA + elasticForceOnA + slideForceOnA + vdwForceOnA;
+                // totalForceOnA = gravForceOnA + elasticForceOnA + slideForceOnA + vdwForceOnA;
+                ////////////////////////////////
+                totalForceOnA = viscoelaticforceOnA + gravForceOnA + elasticForceOnA + slideForceOnA + vdwForceOnA;
+                ////////////////////////////////
 
                 // Total torque a and b:
                 torqueA = r_a.cross(slideForceOnA + rollForceA);
@@ -430,24 +474,83 @@ sim_one_step(const bool write_step, Ball_group &O)
 
             // So last distance can be known for COR:
             O.distances[e] = dist;
+            //////////////////////////
+            if (A == O.num_particles-1)
+            {
+                O.distB3[B] += dist;
+            }
+            //////////////////////////
         }
         // DONT DO ANYTHING HERE. A STARTS AT 1.
     }
 
     //////////////////////////////
     // Write out sliding/rolling fric
-    std::ofstream fricWrite;
-    fricWrite.open(output_folder + output_prefix + "fricData.csv", std::ofstream::app);
-    fricWrite << '\n';
+    // std::ofstream fricWrite;
+    // fricWrite.open(output_folder + output_prefix + "fricData.csv", std::ofstream::app);
+    // fricWrite << '\n';
+    // for (int i = 0; i < O.num_particles; ++i)
+    // {
+    //     fricWrite << O.rollFric[i] << "," << O.slidFric[i];
+    //     if (i != O.num_particles - 1)
+    //     {
+    //         fricWrite << ',';
+    //     } 
+    // }
+    // fricWrite.close();
+
+    std::ofstream fricB3Write;
+    fricB3Write.open(output_folder + output_prefix + "fricB3Data.csv", std::ofstream::app);
+    fricB3Write << '\n';
     for (int i = 0; i < O.num_particles; ++i)
     {
-        fricWrite << O.rollFric[i] << "," << O.slidFric[i];
+        fricB3Write << O.rollB3[i] << "," << O.slidB3[i];
         if (i != O.num_particles - 1)
         {
-            fricWrite << ',';
+            fricB3Write << ',';
         } 
     }
-    fricWrite.close();
+    fricB3Write.close();
+
+    // std::ofstream dirB3Write;
+    // dirB3Write.open(output_folder + output_prefix + "dirB3Data.csv", std::ofstream::app);
+    // dirB3Write << '\n';
+    // for (int i = 0; i < O.num_particles; ++i)
+    // {
+    //     dirB3Write << O.rollDir[i] << "," << O.slidDir[i];
+    //     if (i != O.num_particles - 1)
+    //     {
+    //         dirB3Write << ',';
+    //     } 
+    // }
+    // dirB3Write.close();
+
+    std::ofstream distB3Write;
+    distB3Write.open(output_folder + output_prefix + "distB3Data.csv", std::ofstream::app);
+    distB3Write << '\n';
+    for (int i = 0; i < O.num_particles-1; ++i)
+    {
+        distB3Write << O.distB3[i];
+        if (i != O.num_particles - 2)
+        {
+            distB3Write << ',';
+        } 
+    }
+    distB3Write.close();
+
+    // std::ofstream inoutB3Write;
+    // inoutB3Write.open(output_folder + output_prefix + "inoutB3Data.csv", std::ofstream::app);
+    // inoutB3Write << '\n';
+    // for (int i = 0; i < O.num_particles-1; ++i)
+    // {
+    //     inoutB3Write << O.inout[i];
+    //     if (i != O.num_particles - 2)
+    //     {
+    //         inoutB3Write << ',';
+    //     } 
+    // }
+    // inoutB3Write.close();
+    
     //////////////////////////////
 
     t.end_event("CalcForces/loopApplicablepairs");
@@ -463,6 +566,9 @@ sim_one_step(const bool write_step, Ball_group &O)
         O.vel[Ball] = O.velh[Ball] + .5 * O.acc[Ball] * dt;
         O.w[Ball] = O.wh[Ball] + .5 * O.aacc[Ball] * dt;
 
+        /////////////////////////////////
+        // if (true) {
+        /////////////////////////////////
         if (write_step) {
             // Send positions and rotations to buffer:
             if (Ball == 0) {
@@ -529,23 +635,54 @@ sim_looper(Ball_group &O)
         }
 
         // Physics integration step:
+        ///////////
+        O.zeroSlidRoll();
+        ///////////
         sim_one_step(writeStep,O);
+
+        ///////////////////////////////////////
+        //TAKE THIS OUT FOR REAL RUNS
+        energyBuffer << '\n'
+                     << simTimeElapsed << ',' << O.PE << ',' << O.KE << ',' << O.PE + O.KE << ','
+                     << O.mom.norm() << ','
+                     << O.ang_mom.norm();  // the two zeros are bound and unbound mass
+
+        // Reinitialize energies for next step:
+        O.KE = 0;
+        O.PE = 0;
+        O.mom = {0, 0, 0};
+        O.ang_mom = {0, 0, 0};
+        // unboundMass = 0;
+        // boundMass = massTotal;
+        if (Step % 10 == 0)
+        {
+            std::ofstream energyWrite;
+            energyWrite.open(output_folder + output_prefix + "energy.csv", std::ofstream::app);
+            energyWrite << energyBuffer.rdbuf();
+            energyBuffer.str("");  // Empty the stream for next filling.
+            energyWrite.close();
+        }
+        ///////////////////////////////////////
+        
 
         if (writeStep) {
             t.start_event("writeStep");
             // Write energy to stream:
-            energyBuffer << '\n'
-                         << simTimeElapsed << ',' << O.PE << ',' << O.KE << ',' << O.PE + O.KE << ','
-                         << O.mom.norm() << ','
-                         << O.ang_mom.norm();  // the two zeros are bound and unbound mass
+            ////////////////////////////////////
+            //TURN THIS ON FOR REAL RUNS!!!
+            // energyBuffer << '\n'
+            //              << simTimeElapsed << ',' << O.PE << ',' << O.KE << ',' << O.PE + O.KE << ','
+            //              << O.mom.norm() << ','
+            //              << O.ang_mom.norm();  // the two zeros are bound and unbound mass
 
-            // Reinitialize energies for next step:
-            O.KE = 0;
-            O.PE = 0;
-            O.mom = {0, 0, 0};
-            O.ang_mom = {0, 0, 0};
+            // // Reinitialize energies for next step:
+            // O.KE = 0;
+            // O.PE = 0;
+            // O.mom = {0, 0, 0};
+            // O.ang_mom = {0, 0, 0};
             // unboundMass = 0;
             // boundMass = massTotal;
+            ////////////////////////////////////
 
             // Data Export. Exports every 10 writeSteps (10 new lines of data) and also if the last write was
             // a long time ago.
@@ -564,11 +701,14 @@ sim_looper(Ball_group &O)
                 ballWrite.close();
 
                 // Write Energy data to file and clear buffer.
-                std::ofstream energyWrite;
-                energyWrite.open(output_folder + output_prefix + "energy.csv", std::ofstream::app);
-                energyWrite << energyBuffer.rdbuf();
-                energyBuffer.str("");  // Empty the stream for next filling.
-                energyWrite.close();
+                ////////////////////////////////////////////
+                //TURN ON FOR REAL SIM
+                // std::ofstream energyWrite;
+                // energyWrite.open(output_folder + output_prefix + "energy.csv", std::ofstream::app);
+                // energyWrite << energyBuffer.rdbuf();
+                // energyBuffer.str("");  // Empty the stream for next filling.
+                // energyWrite.close();
+                // ////////////////////////////////////////////
 
                 lastWrite = time(nullptr);
             }  // Data export end

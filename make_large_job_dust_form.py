@@ -3,13 +3,13 @@ import json
 import multiprocessing as mp
 import subprocess
 
-def run_job(location,num_balls):
+def run_job(location,num_balls): #what happens in here can be anything, not just running a subprocess
 	cmd = ["python3", "{}run_sim.py".format(location), location, str(num_balls)]
 	# print(cmd)
 	# exit(0)
 	subprocess.run(cmd)
 
-if __name__ == '__main__':
+if __name__ == '__main__': #Important for multiprocessing to put your main function in this way
 	#make new output folders
 	curr_folder = os.getcwd() + '/'
 	job_set_name = "large_aggregate_test"
