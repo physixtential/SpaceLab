@@ -27,10 +27,10 @@ def main():
 	fileprefix = []
 	path.append("/mnt/be2a0173-321f-4b9d-b05a-addba547276f/kolanzl/SpaceLab_stable/SpaceLab/jobs/small_balls41/N_2/T_1/")
 	path.append("/mnt/be2a0173-321f-4b9d-b05a-addba547276f/kolanzl/SpaceLab_stable/SpaceLab/jobs/small_balls42/N_2/T_1/")
-	path.append("/mnt/be2a0173-321f-4b9d-b05a-addba547276f/kolanzl/SpaceLab_stable/SpaceLab/jobs/small_balls40/N_2/T_1/")
+	# path.append("/mnt/be2a0173-321f-4b9d-b05a-addba547276f/kolanzl/SpaceLab_stable/SpaceLab/jobs/small_balls40/N_2/T_1/")
 	# path.append("/mnt/be2a0173-321f-4b9d-b05a-addba547276f/kolanzl/SpaceLab_stable/SpaceLab/jobs/small_balls39/N_2/T_1/")
 	# fileprefix.append("1_2_R3e-05_v4e-01_cor0.63_mu0.1_rho2.25_k4e+00_Ha5e-12_dt5e-10_")
-	fileprefix.append("1_2_R3e-05_v4e-01_cor0.63_mu0.1_rho2.25_k4e+00_Ha5e-12_dt5e-10_")
+	# fileprefix.append("1_2_R3e-05_v4e-01_cor0.63_mu0.1_rho2.25_k4e+00_Ha5e-12_dt5e-10_")
 	fileprefix.append("1_2_R3e-05_v4e-01_cor0.63_mu0.1_rho2.25_k4e+00_Ha5e-12_dt5e-10_")
 	fileprefix.append("1_2_R3e-05_v4e-01_cor0.63_mu0.1_rho2.25_k4e+00_Ha5e-12_dt5e-10_")
 	# fileprefix.append("1_2_R3e-05_v4e-01_cor0.63_mu0.1_rho2.25_k4e+00_Ha5e-12_dt5e-10_")
@@ -231,7 +231,7 @@ def main():
 			fig.suptitle("Distance w.r.t. ball {} end zoom NO SLIDING FRIC".format(disp_balls[-1]+1))
 		elif pind == 1:
 			startind = np.where(xdata>=0.92)[0][0]
-			endind = np.where(xdata>=0.925)[0][0]
+			endind = np.where(xdata>=0.9202)[0][0]
 			# startind = np.where(xdata>=0.047826)[0][0]
 			# endind = np.where(xdata>=0.047827)[0][0]
 			fig.suptitle("Distance w.r.t. ball {} end zoom NO ROLLING FRIC".format(disp_balls[-1]+1))

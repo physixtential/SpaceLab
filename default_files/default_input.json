@@ -1,4 +1,6 @@
 {
+	"note": "",
+	"radiiFraction": 1,
 	"radiiDistribution": "constant",
 	"dynamicTime": false,
 	"G": 6.67e-8,

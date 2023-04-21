@@ -15,8 +15,6 @@ namespace fs = std::filesystem;
 // String buffers to hold data in memory until worth writing to file:
 std::stringstream ballBuffer;
 std::stringstream energyBuffer;
-std::stringstream contactBuffer;
-
 
 // These are used within simOneStep to keep track of time.
 // They need to survive outside its scope, and I don't want to have to pass them all.
@@ -24,7 +22,9 @@ const time_t start = time(nullptr);  // For end of program analysis
 time_t startProgress;                // For progress reporting (gets reset)
 time_t lastWrite;                    // For write control (gets reset)
 bool writeStep;                      // This prevents writing to file every step (which is slow).
-bool contact = false;
+int writeStepCounter = 0;
+int currStep = 0;
+bool contact;
 
 // Prototypes
 void
@@ -91,11 +91,15 @@ main(const int argc, char const* argv[])
     // for (int i = 0; i < 250; i++) {
         // O.zeroAngVel();
         // O.zeroVel();
+        // std::cout<<"ZEROED"<<std::endl;
         contact = false;
         t.start_event("add_projectile");
         O = O.add_projectile();
+        // std::cout<<"ADD PROJ"<<std::endl;
+        // safetyChecks(O);
         t.end_event("add_projectile");
         O.sim_init_write(ori_output_prefix, i);
+        // std::cout<<"LOOP START"<<std::endl;
         sim_looper(O);
         simTimeElapsed = 0;
     }
@@ -259,6 +263,7 @@ sim_one_step(const bool write_step, Ball_group &O)
         // Reinitialize angular acceleration to be recalculated:
         O.aacc[Ball] = {0, 0, 0};
     }
+
     t.end_event("UpdateKinPar");
 
     /// SECOND PASS - Check for collisions, apply forces and torques:
@@ -285,14 +290,22 @@ sim_one_step(const bool write_step, Ball_group &O)
             /////////////////////////////
             // Check for collision between Ball and otherBall.
             if (overlap > 0) {
-
-                if (!contact && A == O.num_particles-1)
+                /////////////////////////////////////////////
+                //check if the most recently added ball has made contact.
+                // std::cout<<"Contact: "<<contact<<std::endl;
+                // std::cout<<"Ball: "<<A<<std::endl;
+                // std::cout<<"Numparticels: "<<O.num_particles<<std::endl;
+                if (A == O.num_particles-1 && !contact)
                 {
-                    // std::cout<<"CONTACT MADE"<<std::endl;
+                    std::cout<<"CONTACT MADE"<<std::endl;
                     contact = true;
-                    contactBuffer<<A<<','<<simTimeElapsed<<'\n';
+                    std::ofstream contact_write;
+                    contact_write.open(output_folder + output_prefix + "contact.csv", std::ofstream::app);
+                    contact_write<<A<<','<<currStep;
+                    contact_write << '\n';
+                    contact_write.close();
                 }
-
+                /////////////////////////////////////////////
                 double k;
                 // double k = kout;
                 // Apply coefficient of restitution to balls leaving collision.
@@ -323,10 +336,7 @@ sim_one_step(const bool write_step, Ball_group &O)
                                                            (h2 + twoRah + twoRbh + 4 * Ra * Rb) *
                                                            (h2 + twoRah + twoRbh + 4 * Ra * Rb))) *
                                          rVecab.normalized();
-                /////////////////////////////
-                O.vdwForce[A] += vdwForceOnA;
-                O.vdwForce[B] -= vdwForceOnA;
-                /////////////////////////////
+
                 // Elastic force:
                 // vec3 elasticForceOnA{0, 0, 0};
                 // if (std::fabs(overlap) > 1e-6)
@@ -334,10 +344,7 @@ sim_one_step(const bool write_step, Ball_group &O)
                 //     elasticForceOnA = -k * overlap * .5 * (rVecab / dist);
                 // }
                 const vec3 elasticForceOnA = -k * overlap * .5 * (rVecab / dist);
-                ///////////////////////////////
-                O.elasticForce[A] += elasticForceOnA;
-                O.elasticForce[B] -= elasticForceOnA;
-                ///////////////////////////////
+
                 ///////////////////////////////
                 ///////material parameters for silicate composite from Reissl 2023
                 // const double Estar = 1e5*169; //in Pa
@@ -382,10 +389,6 @@ sim_one_step(const bool write_step, Ball_group &O)
                     // In the frame of A, B applies force in the direction of B's velocity.
                     slideForceOnA = u_s * elastic_force_A_mag * (frame_A_vel_B / rel_vel_mag);
                 }
-                //////////////////////////////////////
-                O.slideForce[A] += slideForceOnA;
-                O.slideForce[B] -= slideForceOnA;
-                //////////////////////////////////////
 
 
                 // Compute rolling friction force:
@@ -397,21 +400,17 @@ sim_one_step(const bool write_step, Ball_group &O)
                     rollForceA = 
                         -u_r * elastic_force_A_mag * (w_diff).cross(r_a) / (w_diff).cross(r_a).norm();
                 }
-                //////////////////////////////////////
-                O.rollForce[A] += rollForceA;
-                O.rollForce[B] -= rollForceA;
-                //////////////////////////////////////
 
                 /////////////////////////////////
-                // if (A == O.num_particles-1)
-                // {
-                //     // O.slidDir[B] += (frame_A_vel_B / rel_vel_mag);
-                //     // O.rollDir[B] += (w_diff).cross(r_a) / (w_diff).cross(r_a).norm();
-                //     O.slidB3[B] += slideForceOnA;
-                //     O.rollB3[B] += rollForceA;
-                //     // O.distB3[B] += dist;
-                //     // O.inout[B] += inoutT;
-                // }
+                if (A == O.num_particles-1)
+                {
+                    // O.slidDir[B] += (frame_A_vel_B / rel_vel_mag);
+                    // O.rollDir[B] += (w_diff).cross(r_a) / (w_diff).cross(r_a).norm();
+                    O.slidB3[B] += slideForceOnA;
+                    O.rollB3[B] += rollForceA;
+                    // O.distB3[B] += dist;
+                    // O.inout[B] += inoutT;
+                }
                 // O.slidFric[A] += slideForceOnA;
                 // O.slidFric[B] -= slideForceOnA;
                 /////////////////////////////////
@@ -428,19 +427,15 @@ sim_one_step(const bool write_step, Ball_group &O)
 
                 // Total torque a and b:
                 torqueA = r_a.cross(slideForceOnA + rollForceA);
-                torqueB = r_b.cross(-slideForceOnA + rollForceA); // original code
-                //////////////////////////////////////
-                // torqueB = r_b.cross(slideForceOnA + rollForceA); // test code
-                //////////////////////////////////////
-                //////////////////////////////////////
-                O.torqueForce[A] += torqueA;
-                O.torqueForce[B] += torqueB;
-                //////////////////////////////////////
+                torqueB = r_b.cross(-slideForceOnA + rollForceA);
 
                 O.aacc[A] += torqueA / O.moi[A];
                 O.aacc[B] += torqueB / O.moi[B];
 
-                if (write_step) {
+                /////////////////////////////////
+                // if (true) {
+                /////////////////////////////////
+                if (write_step) { //THIS IS CORRECT LINE
                     // No factor of 1/2. Includes both spheres:
                     // O.PE += -G * O.m[A] * O.m[B] / dist + 0.5 * k * overlap * overlap;
 
@@ -477,12 +472,12 @@ sim_one_step(const bool write_step, Ball_group &O)
                                                            (h2 + twoRah + twoRbh + 4 * Ra * Rb) *
                                                            (h2 + twoRah + twoRbh + 4 * Ra * Rb))) *
                                          rVecab.normalized();
-                /////////////////////////////
-                O.vdwForce[A] += vdwForceOnA;
-                O.vdwForce[B] -= vdwForceOnA;
-                /////////////////////////////
+
                 totalForceOnA = vdwForceOnA;  // +gravForceOnA;
-                if (write_step) {
+                ////////////////////////////////////
+                // if (true) {
+                ////////////////////////////////////
+                if (write_step) { //THIS IS THE CORRECT LINE
                     // O.PE += -G * O.m[A] * O.m[B] / dist; // Gravitational
 
                     const double diffRaRb = O.R[A] - O.R[B];
@@ -509,10 +504,10 @@ sim_one_step(const bool write_step, Ball_group &O)
             // So last distance can be known for COR:
             O.distances[e] = dist;
             //////////////////////////
-            // if (A == O.num_particles-1)
-            // {
-            //     O.distB3[B] += dist;
-            // }
+            if (A == O.num_particles-1)
+            {
+                O.distB3[B] += dist;
+            }
             //////////////////////////
         }
         // DONT DO ANYTHING HERE. A STARTS AT 1.
@@ -588,33 +583,53 @@ sim_one_step(const bool write_step, Ball_group &O)
     //////////////////////////////
 
     t.end_event("CalcForces/loopApplicablepairs");
-
+    ///////////////////////////// THIS IS THE CORRECT LINES
     if (write_step) {
         ballBuffer << '\n';  // Prepares a new line for incoming data.
     }
-
+    ////////////////////////////
+    // ballBuffer << '\n';  // Prepares a new line for incoming data.
     // THIRD PASS - Calculate velocity for next step:
-    t.start_event("CalcVelocityforNextStep");
+    // t.start_event("CalcVelocityforNextStep");
     for (int Ball = 0; Ball < O.num_particles; Ball++) {
         // Velocity for next step:
         O.vel[Ball] = O.velh[Ball] + .5 * O.acc[Ball] * dt;
         O.w[Ball] = O.wh[Ball] + .5 * O.aacc[Ball] * dt;
-
         /////////////////////////////////
-        // if (true) {
+        // if (true) 
         /////////////////////////////////
-        if (write_step) {
+        if (write_step) //{ THIS IS THE CORRECT LINE
+        {            
+            // std::cout<<"Ball count before buffer write: "<<O.num_particles<<std::endl;
             // Send positions and rotations to buffer:
             if (Ball == 0) {
+                // std::cout<<"Writing ball: "<<Ball<<std::endl;
                 ballBuffer << O.pos[Ball][0] << ',' << O.pos[Ball][1] << ',' << O.pos[Ball][2] << ','
                            << O.w[Ball][0] << ',' << O.w[Ball][1] << ',' << O.w[Ball][2] << ','
                            << O.w[Ball].norm() << ',' << O.vel[Ball].x << ',' << O.vel[Ball].y << ','
                            << O.vel[Ball].z << ',' << 0;
+                // if (O.num_particles == 3)
+                // {
+                //     std::cout<<"Ball "<<Ball<<',';
+                //     std::cout << O.pos[Ball][0] << ',' << O.pos[Ball][1] << ',' << O.pos[Ball][2] << ','
+                //            << O.w[Ball][0] << ',' << O.w[Ball][1] << ',' << O.w[Ball][2] << ','
+                //            << O.w[Ball].norm() << ',' << O.vel[Ball].x << ',' << O.vel[Ball].y << ','
+                //            << O.vel[Ball].z << ',' << 0<<std::endl;
+                // }
             } else {
+                // std::cout<<"Writing ball: "<<Ball<<std::endl;
                 ballBuffer << ',' << O.pos[Ball][0] << ',' << O.pos[Ball][1] << ',' << O.pos[Ball][2] << ','
                            << O.w[Ball][0] << ',' << O.w[Ball][1] << ',' << O.w[Ball][2] << ','
                            << O.w[Ball].norm() << ',' << O.vel[Ball].x << ',' << O.vel[Ball].y << ','
                            << O.vel[Ball].z << ',' << 0;
+                // if (O.num_particles == 3)
+                // {    
+                //     std::cout<<",Ball "<<Ball;
+                //     std::cout<< ',' << O.pos[Ball][0] << ',' << O.pos[Ball][1] << ',' << O.pos[Ball][2] << ','
+                //            << O.w[Ball][0] << ',' << O.w[Ball][1] << ',' << O.w[Ball][2] << ','
+                //            << O.w[Ball].norm() << ',' << O.vel[Ball].x << ',' << O.vel[Ball].y << ','
+                //            << O.vel[Ball].z << ',' << 0<<std::endl;
+                // }
             }
 
             O.KE += .5 * O.m[Ball] * O.vel[Ball].normsquared() +
@@ -623,7 +638,7 @@ sim_one_step(const bool write_step, Ball_group &O)
             O.ang_mom += O.m[Ball] * O.pos[Ball].cross(O.vel[Ball]) + O.moi[Ball] * O.w[Ball];
         }
     }  // THIRD PASS END
-    t.end_event("CalcVelocityforNextStep");
+    // t.end_event("CalcVelocityforNextStep");
 }  // one Step end
 
 
@@ -633,18 +648,21 @@ sim_looper(Ball_group &O)
     std::cerr << "Beginning simulation...\n";
 
     startProgress = time(nullptr);
-
     for (int Step = 1; Step < steps; Step++)  // Steps start at 1 because the 0 step is initial conditions.
     {
-        simTimeElapsed += dt; //New code #1
+
+
+                std::cerr<<"step: "<<Step<<", skip: "<<skip<<std::endl;
+                std::cerr<<"step/skip: "<<Step/skip<<std::endl;
+                // std::cerr<<"time: "<<(time(nullptr) - lastWrite > 1800)<<std::endl;
+                std::cerr<<"T/F: "<<(Step / skip == 0)<<std::endl; 
         // Check if this is a write step:
         if (Step % skip == 0) {
-            t.start_event("writeProgressReport");
+            // t.start_event("writeProgressReport");
+            std::cerr<<"WRITESTEP TRRUE"<<std::endl;
             writeStep = true;
 
-            /////////////////////// Original code #1
-            // simTimeElapsed += dt * skip;
-            ///////////////////////
+            simTimeElapsed += dt * skip;
 
             // Progress reporting:
             float eta = ((time(nullptr) - startProgress) / static_cast<float>(skip) *
@@ -666,15 +684,16 @@ sim_looper(Ball_group &O)
             // progress, eta, real, simmed, real / simmed);
             fflush(stdout);
             startProgress = time(nullptr);
-            t.end_event("writeProgressReport");
+            // t.end_event("writeProgressReport");
         } else {
             writeStep = O.debug;
         }
 
         // Physics integration step:
         ///////////
-        O.zeroSaveVals();
+        O.zeroSlidRoll();
         ///////////
+
         sim_one_step(writeStep,O);
 
         ///////////////////////////////////////
@@ -691,7 +710,7 @@ sim_looper(Ball_group &O)
         // O.ang_mom = {0, 0, 0};
         // // unboundMass = 0;
         // // boundMass = massTotal;
-        // if (Step % 10 == 0)
+        // if (true)
         // {
         //     std::ofstream energyWrite;
         //     energyWrite.open(output_folder + output_prefix + "energy.csv", std::ofstream::app);
@@ -700,70 +719,10 @@ sim_looper(Ball_group &O)
         //     energyWrite.close();
         // }
         ///////////////////////////////////////
-        //////////////////////////////////////
-        if (contact)
-        {
-            std::ofstream contact_write;
-            contact_write.open(output_folder + "contact.csv", std::ofstream::app);
-            contact_write << contactBuffer.rdbuf();  // Barf buffer to file.
-            contactBuffer.str("");               // Empty the stream for next filling.
-            contact_write.close();
-        }
-        //////////////////////////////////////
-        //////////////////////////////////////
-        std::ofstream vdwWrite;
-        vdwWrite.open(output_folder + output_prefix + "vdwData.csv", std::ofstream::app);
-        vdwWrite<<O.vdwForce[0][0]<<','<<O.vdwForce[0][1]<<','<<O.vdwForce[0][0]<<',';
-        for (int i = 1; i < O.num_particles; ++i)
-        {
-            vdwWrite<<','<<O.vdwForce[i][0]<<','<<O.vdwForce[i][1]<<','<<O.vdwForce[i][0];
-        }
-        vdwWrite << '\n';  
-        vdwWrite.close();
-
-        std::ofstream elasticWrite;
-        elasticWrite.open(output_folder + output_prefix + "elasticData.csv", std::ofstream::app);
-        elasticWrite<<O.elasticForce[0][0]<<','<<O.elasticForce[0][1]<<','<<O.elasticForce[0][0]<<',';
-        for (int i = 1; i < O.num_particles; ++i)
-        {
-            elasticWrite<<','<<O.elasticForce[i][0]<<','<<O.elasticForce[i][1]<<','<<O.elasticForce[i][0];
-        }
-        elasticWrite << '\n';  
-        elasticWrite.close();
-
-        std::ofstream slideWrite;
-        slideWrite.open(output_folder + output_prefix + "slideData.csv", std::ofstream::app);
-        slideWrite<<O.slideForce[0][0]<<','<<O.slideForce[0][1]<<','<<O.slideForce[0][0]<<',';
-        for (int i = 1; i < O.num_particles; ++i)
-        {
-            slideWrite<<','<<O.slideForce[i][0]<<','<<O.slideForce[i][1]<<','<<O.slideForce[i][0];
-        }
-        slideWrite << '\n';  
-        slideWrite.close();
-
-        std::ofstream rollWrite;
-        rollWrite.open(output_folder + output_prefix + "rollData.csv", std::ofstream::app);
-        rollWrite<<O.rollForce[0][0]<<','<<O.rollForce[0][1]<<','<<O.rollForce[0][0]<<',';
-        for (int i = 1; i < O.num_particles; ++i)
-        {
-            rollWrite<<','<<O.rollForce[i][0]<<','<<O.rollForce[i][1]<<','<<O.rollForce[i][0];
-        }
-        rollWrite << '\n';  
-        rollWrite.close();
-
-        std::ofstream torqueWrite;
-        torqueWrite.open(output_folder + output_prefix + "torqueData.csv", std::ofstream::app);
-        torqueWrite<<O.torqueForce[0][0]<<','<<O.torqueForce[0][1]<<','<<O.torqueForce[0][0]<<',';
-        for (int i = 1; i < O.num_particles; ++i)
-        {
-            torqueWrite<<','<<O.torqueForce[i][0]<<','<<O.torqueForce[i][1]<<','<<O.torqueForce[i][0];
-        }
-        torqueWrite << '\n';  
-        torqueWrite.close();
-        //////////////////////////////////////
         
 
         if (writeStep) {
+            // writeStepCounter++;
             t.start_event("writeStep");
             // Write energy to stream:
             ////////////////////////////////////
@@ -778,17 +737,43 @@ sim_looper(Ball_group &O)
             O.PE = 0;
             O.mom = {0, 0, 0};
             O.ang_mom = {0, 0, 0};
-            //unboundMass = 0;
-            //boundMass = massTotal;
+            // // unboundMass = 0;
+            // // boundMass = massTotal;
             ////////////////////////////////////
 
             // Data Export. Exports every 10 writeSteps (10 new lines of data) and also if the last write was
             // a long time ago.
+            // int compare;
+            // if (O.debug)
+            // {
+            //     compare = skip*10;
+            // }
+            // else
+            // {
+            //     compare = 10;
+            // }
+                std::cerr<<"step: "<<Step<<", skip: "<<skip<<std::endl;
+                std::cerr<<"time: "<<(time(nullptr) - lastWrite > 1800)<<std::endl;
+                std::cerr<<"skip: "<<(Step / skip % 10 == 0)<<std::endl; 
             if (time(nullptr) - lastWrite > 1800 || Step / skip % 10 == 0) {
+            // if (time(nullptr) - lastWrite > 1800 || writeStepCounter >= compare) {
+
+                // if (Step > skip*10)
+                // {
+
+                // std::cerr<<"step: "<<Step<<", skip: "<<skip<<std::endl;
+                // std::cerr<<"time: "<<(time(nullptr) - lastWrite > 1800)<<std::endl;
+                // std::cerr<<"skip: "<<(Step / skip % 10 == 0)<<std::endl; 
+                // std::cerr<<"skip: "<<Step / skip % 10<<std::endl; 
+                // std::cerr<<"skip: "<<Step / skip<<std::endl; 
+                
+                writeStepCounter = 0;
+
                 // Report vMax:
                 std::cerr << "vMax = " << O.getVelMax() << " Steps recorded: " << Step / skip << '\n';
                 std::cerr << "Data Write to "<<output_folder<<"\n";
                 // std::cerr<<"output_prefix: "<<output_prefix<<std::endl;
+
 
 
                 // Write simData to file and clear buffer.
@@ -809,6 +794,7 @@ sim_looper(Ball_group &O)
                 // ////////////////////////////////////////////
 
                 lastWrite = time(nullptr);
+                // }
             }  // Data export end
 
 
@@ -865,6 +851,12 @@ safetyChecks(Ball_group &O)
     if (O.initial_radius <= 0) {
         fprintf(stderr, "\nCluster initialRadius not set\n");
         exit(EXIT_FAILURE);
+    }
+
+    if (O.radiiFraction < 0)
+    {
+        fprintf(stderr, "\nradiiFraction not set\n");
+        exit(EXIT_FAILURE);   
     }
 
 

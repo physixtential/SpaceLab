@@ -26,6 +26,7 @@ using json = nlohmann::json;
 class Ball_group
 {
 public:
+    double radiiFraction = -1;
     bool debug = false;
 
     std::string out_folder;
@@ -71,12 +72,19 @@ public:
     ///////////////////////////
     // vec3* slidDir = nullptr;
     // vec3* rollDir = nullptr;
-    double* inout = nullptr;
-    vec3* slidB3 = nullptr;
-    vec3* rollB3 = nullptr;
-    double* distB3 = nullptr;
+    // double* inout = nullptr;
+    // vec3* slidB3 = nullptr;
+    // vec3* rollB3 = nullptr;
+    // double* distB3 = nullptr;
     // vec3* slidFric = nullptr;
     // vec3* rollFric = nullptr;
+    //////////
+    //all force pointers
+    vec3* vdwForce = nullptr;
+    vec3* elasticForce = nullptr;
+    vec3* slideForce = nullptr;
+    vec3* rollForce = nullptr;
+    vec3* torqueForce = nullptr;
     ///////////////////////////
 
     void parse_input_file(char const* location);
@@ -189,16 +197,23 @@ public:
         moi = rhs.moi;  ///< Moment of inertia
 
         radiiDistribution = rhs.radiiDistribution;
+        radiiFraction = rhs.radiiFraction;
 
         /////////////////////////////////////
         // slidDir = rhs.slidDir;
         // rollDir = rhs.rollDir;
-        inout = rhs.inout;
-        distB3 = rhs.distB3;
-        slidB3 = rhs.slidB3;
-        rollB3 = rhs.rollB3;
+        // inout = rhs.inout;
+        // distB3 = rhs.distB3;
+        // slidB3 = rhs.slidB3;
+        // rollB3 = rhs.rollB3;
         // slidFric = rhs.slidFric;
         // rollFric = rhs.rollFric;
+        //////////
+        vdwForce = rhs.vdwForce;
+        elasticForce = rhs.elasticForce;
+        slideForce = rhs.slideForce;
+        rollForce = rhs.rollForce;
+        torqueForce = rhs.torqueForce;
         /////////////////////////////////////
 
         return *this;
@@ -240,36 +255,52 @@ public:
         moi = rhs.moi;  ///< Moment of inertia
 
         radiiDistribution = rhs.radiiDistribution;
+        radiiFraction = rhs.radiiFraction;
 
         /////////////////////////////////////
         // slidDir = rhs.slidDir;
         // rollDir = rhs.rollDir;
-        inout = rhs.inout;
-        distB3 = rhs.distB3;
-        slidB3 = rhs.slidB3;
-        rollB3 = rhs.rollB3;
+        // inout = rhs.inout;
+        // distB3 = rhs.distB3;
+        // slidB3 = rhs.slidB3;
+        // rollB3 = rhs.rollB3;
         // slidFric = rhs.slidFric;
         // rollFric = rhs.rollFric;
+        //////////
+        vdwForce = rhs.vdwForce;
+        elasticForce = rhs.elasticForce;
+        slideForce = rhs.slideForce;
+        rollForce = rhs.rollForce;
+        torqueForce = rhs.torqueForce;
         /////////////////////////////////////
     }
 
     ////////////////////////////////////
-    void zeroSlidRoll()
+    void zeroSaveVals()
     {
-        for (int i = 0; i < num_particles; ++i)
+        int size = num_particles;
+        for (int i = 0; i < size; ++i)
         {
-            if (i < num_particles)
-            {
-                distB3[i] = 0.0;
-            }
-            // slidDir[i] = {0,0,0};
-            // rollDir[i] = {0,0,0};
-            inout[i] = 0.0;
-            slidB3[i] = {0,0,0};
-            rollB3[i] = {0,0,0};
-            // slidFric[i] = {0,0,0};
-            // rollFric[i] = {0,0,0};
+            vdwForce[i] = {0,0,0};
+            elasticForce[i] = {0,0,0};
+            slideForce[i] = {0,0,0};
+            rollForce[i] = {0,0,0};
+            torqueForce[i] = {0,0,0};
         }
+        // for (int i = 0; i < num_particles; ++i)
+        // {
+        //     if (i < num_particles)
+        //     {
+        //         distB3[i] = 0.0;
+        //     }
+        //     // slidDir[i] = {0,0,0};
+        //     // rollDir[i] = {0,0,0};
+        //     inout[i] = 0.0;
+        //     slidB3[i] = {0,0,0};
+        //     rollB3[i] = {0,0,0};
+        //     // slidFric[i] = {0,0,0};
+        //     // rollFric[i] = {0,0,0};
+        // }
     }
     ////////////////////////////////////
 
@@ -544,6 +575,77 @@ public:
         output_prefix = filename;
 
         //////////////////////////
+        // Force writes
+        std::ofstream vdwWrite;
+        vdwWrite.open(output_folder + filename + "vdwData.csv", std::ofstream::app);
+        for (int A = 0; A < num_particles; ++A)
+        {
+            for (int B = 0; B < A; ++B)
+            {
+                vdwWrite <<"vdw("<<B<<';'<<A<<')';
+                if (B != num_particles-1)
+                {
+                    vdwWrite << ',';
+                }
+            }
+        }
+        vdwWrite.close();
+        std::ofstream elasticWrite;
+        elasticWrite.open(output_folder + filename + "elasticData.csv", std::ofstream::app);
+        for (int A = 0; A < num_particles; ++A)
+        {
+            for (int B = 0; B < A; ++B)
+            {
+                elasticWrite <<"ela("<<B<<';'<<A<<')';
+                if (B != num_particles-1)
+                {
+                    elasticWrite << ',';
+                }
+            }
+        }
+        elasticWrite.close();
+        std::ofstream slideWrite;
+        slideWrite.open(output_folder + filename + "slideData.csv", std::ofstream::app);
+        for (int A = 0; A < num_particles; ++A)
+        {
+            for (int B = 0; B < A; ++B)
+            {
+                slideWrite <<"sli("<<B<<';'<<A<<')';
+                if (B != num_particles-1)
+                {
+                    slideWrite << ',';
+                }
+            }
+        }
+        slideWrite.close();
+        std::ofstream rollWrite;
+        rollWrite.open(output_folder + filename + "rollData.csv", std::ofstream::app);
+        for (int A = 0; A < num_particles; ++A)
+        {
+            for (int B = 0; B < A; ++B)
+            {
+                rollWrite <<"rol("<<B<<';'<<A<<')';
+                if (B != num_particles-1)
+                {
+                    rollWrite << ',';
+                }
+            }
+        }
+        rollWrite.close();
+        std::ofstream torqueWrite;
+        torqueWrite.open(output_folder + filename + "torqueData.csv", std::ofstream::app);
+        for (int A = 0; A < num_particles; ++A)
+        {
+            for (int B = 0; B < A; ++B)
+            {
+                torqueWrite <<"rol("<<B<<';'<<A<<')';
+                if (B != num_particles-1)
+                {
+                    torqueWrite << ',';
+                }
+            }
+        }
+        torqueWrite.close();
         // std::ofstream fricWrite;
         // fricWrite.open(output_folder + filename + "fricData.csv", std::ofstream::app);
         // for (int i = 0; i < num_particles; ++i)
@@ -556,18 +658,18 @@ public:
         //     }
         // }
         // fricWrite.close();
-        std::ofstream fricB3Write;
-        fricB3Write.open(output_folder + filename + "fricB3Data.csv", std::ofstream::app);
-        for (int i = 0; i < num_particles; ++i)
-        {
-            fricB3Write << "Fx3"<<i<<"roll,"<<"Fy3"<<i<<"roll,"<<"Fz3"<<i<<"roll,"<<
-            "Fx3"<<i<<"slide,"<<"Fy3"<<i<<"slide,"<<"Fz3"<<i<<"slide";
-            if (i != num_particles-1)
-            {
-                fricB3Write << ',';
-            }
-        }
-        fricB3Write.close();
+        // std::ofstream fricB3Write;
+        // fricB3Write.open(output_folder + filename + "fricB3Data.csv", std::ofstream::app);
+        // for (int i = 0; i < num_particles; ++i)
+        // {
+        //     fricB3Write << "Fx3"<<i<<"roll,"<<"Fy3"<<i<<"roll,"<<"Fz3"<<i<<"roll,"<<
+        //     "Fx3"<<i<<"slide,"<<"Fy3"<<i<<"slide,"<<"Fz3"<<i<<"slide";
+        //     if (i != num_particles-1)
+        //     {
+        //         fricB3Write << ',';
+        //     }
+        // }
+        // fricB3Write.close();
         // std::ofstream dirB3Write;
         // dirB3Write.open(output_folder + filename + "dirB3Data.csv", std::ofstream::app);
         // for (int i = 0; i < num_particles; ++i)
@@ -580,17 +682,17 @@ public:
         //     }
         // }
         // dirB3Write.close();
-        std::ofstream distB3Write;
-        distB3Write.open(output_folder + filename + "distB3Data.csv", std::ofstream::app);
-        for (int i = 0; i < num_particles-1; ++i)
-        {
-            distB3Write << "dist3"<<i;
-            if (i != num_particles-2)
-            {
-                distB3Write << ',';
-            }
-        }
-        distB3Write.close();
+        // std::ofstream distB3Write;
+        // distB3Write.open(output_folder + filename + "distB3Data.csv", std::ofstream::app);
+        // for (int i = 0; i < num_particles-1; ++i)
+        // {
+        //     distB3Write << "dist3"<<i;
+        //     if (i != num_particles-2)
+        //     {
+        //         distB3Write << ',';
+        //     }
+        // }
+        // distB3Write.close();
         //////////////////////////
 
         // Complete file names:
@@ -609,14 +711,22 @@ public:
         // Make column headers:
         energyWrite << "Time,PE,KE,E,p,L";
         ballWrite << "x0,y0,z0,wx0,wy0,wz0,wmag0,vx0,vy0,vz0,bound0";
+        // std::cout << "x0,y0,z0,wx0,wy0,wz0,wmag0,vx0,vy0,vz0,bound0";
+        // std::cout<<simDataFilename<<std::endl;
+        // std::cout<<num_particles<<std::endl;
 
         for (int Ball = 1; Ball < num_particles;
              Ball++)  // Start at 2nd ball because first one was just written^.
         {
+            // std::cout<<Ball<<','<<num_particles<<std::endl;
             std::string thisBall = std::to_string(Ball);
             ballWrite << ",x" + thisBall << ",y" + thisBall << ",z" + thisBall << ",wx" + thisBall
                       << ",wy" + thisBall << ",wz" + thisBall << ",wmag" + thisBall << ",vx" + thisBall
                       << ",vy" + thisBall << ",vz" + thisBall << ",bound" + thisBall;
+            // std::cout << ",x" + thisBall << ",y" + thisBall << ",z" + thisBall << ",wx" + thisBall
+            //           << ",wy" + thisBall << ",wz" + thisBall << ",wmag" + thisBall << ",vx" + thisBall
+            //           << ",vy" + thisBall << ",vz" + thisBall << ",bound" + thisBall;
+
         }
 
         // Write constant data:
@@ -809,7 +919,7 @@ public:
         // Random particle to origin
         Ball_group projectile(1);
         projectile.radiiDistribution = radiiDistribution;
-
+        projectile.radiiFraction = radiiFraction;
         // Particle random position at twice radius of target:
         // We want the farthest from origin since we are offsetting form origin. Not com.
         const auto cluster_radius = get_radius(vec3(0, 0, 0));
@@ -818,7 +928,8 @@ public:
         projectile.pos[0] = projectile_direction * (cluster_radius + scaleBalls * 4);
         if (radiiDistribution == constant)
         {
-            projectile.R[0] = scaleBalls/2;  //limit of 1.4// rand_between(1,3)*1e-5;
+            // std::cout<<"radiiFraction: "<<radiiFraction<<std::endl;
+            projectile.R[0] = scaleBalls/radiiFraction;  //limit of 1.4// rand_between(1,3)*1e-5;
             // std::cout<<"(constant) Particle added with radius of "<<projectile.R[0]<<std::endl;
         }
         else
@@ -841,29 +952,35 @@ public:
         //////////////////////////////////
         // projectile.slidDir[0] = {0,0,0};
         // projectile.rollDir[0] = {0,0,0};
-        projectile.inout[0] = 0.0;
-        projectile.distB3[0] = 0.0;
-        projectile.slidB3[0] = {0,0,0};
-        projectile.rollB3[0] = {0,0,0};
+        // projectile.inout[0] = 0.0;
+        // projectile.distB3[0] = 0.0;
+        // projectile.slidB3[0] = {0,0,0};
+        // projectile.rollB3[0] = {0,0,0};
         // projectile.slidFric[0] = {0,0,0};
         // projectile.rollFric[0] = {0,0,0};
+        //////////
+        projectile.vdwForce[0] = {0,0,0};
+        projectile.elasticForce[0] = {0,0,0};
+        projectile.slideForce[0] = {0,0,0};
+        projectile.rollForce[0] = {0,0,0};
+        projectile.torqueForce[0] = {0,0,0};
         //////////////////////////////////
 
         const double3x3 local_coords = local_coordinates(to_double3(projectile_direction));
         
-        // projectile.pos[0] = dust_agglomeration_offset(local_coords,projectile.pos[0],projectile.vel[0],projectile.R[0]);
+        projectile.pos[0] = dust_agglomeration_offset(local_coords,projectile.pos[0],projectile.vel[0],projectile.R[0]);
         //////////////////////////////////
         //TURN ON above LINE AND OFF REST FOR REAL SIM
-        if (num_particles == 3)
-        {
-            projectile.vel[0] = {0,0,0};
-            projectile.pos[0] = {0,0,2e-5};
+        // if (num_particles == 3)
+        // {
+        //     projectile.vel[0] = {0,0,0};
+        //     projectile.pos[0] = {0.5e-5,0.5e-5,1.2e-5};
 
-        }
-        else
-        {
-            projectile.pos[0] = dust_agglomeration_offset(local_coords,projectile.pos[0],projectile.vel[0],projectile.R[0]);
-        }
+        // }
+        // else
+        // {
+        //     projectile.pos[0] = dust_agglomeration_offset(local_coords,projectile.pos[0],projectile.vel[0],projectile.R[0]);
+        // }
         //////////////////////////////////
 
         
@@ -936,19 +1053,26 @@ public:
         std::memcpy(&m[num_particles_added], src.m, sizeof(src.m[0]) * src.num_particles);
         std::memcpy(&moi[num_particles_added], src.moi, sizeof(src.moi[0]) * src.num_particles);
         //////////////////////////////////////
-        std::memcpy(&distB3[num_particles_added], src.distB3, sizeof(src.distB3[0]) * src.num_particles);
-        std::memcpy(&inout[num_particles_added], src.inout, sizeof(src.inout[0]) * src.num_particles);
+        // std::memcpy(&distB3[num_particles_added], src.distB3, sizeof(src.distB3[0]) * src.num_particles);
+        // std::memcpy(&inout[num_particles_added], src.inout, sizeof(src.inout[0]) * src.num_particles);
         // std::memcpy(&slidDir[num_particles_added], src.slidDir, sizeof(src.slidDir[0]) * src.num_particles);
         // std::memcpy(&rollDir[num_particles_added], src.rollDir, sizeof(src.rollDir[0]) * src.num_particles);
-        std::memcpy(&slidB3[num_particles_added], src.slidB3, sizeof(src.slidB3[0]) * src.num_particles);
-        std::memcpy(&rollB3[num_particles_added], src.rollB3, sizeof(src.rollB3[0]) * src.num_particles);
+        // std::memcpy(&slidB3[num_particles_added], src.slidB3, sizeof(src.slidB3[0]) * src.num_particles);
+        // std::memcpy(&rollB3[num_particles_added], src.rollB3, sizeof(src.rollB3[0]) * src.num_particles);
         // std::memcpy(&slidFric[num_particles_added], src.slidFric, sizeof(src.slidFric[0]) * src.num_particles);
         // std::memcpy(&rollFric[num_particles_added], src.rollFric, sizeof(src.rollFric[0]) * src.num_particles);
+        //////////
+        std::memcpy(&vdwForce[num_particles_added], src.vdwForce, sizeof(src.vdwForce[0]) * src.num_particles);
+        std::memcpy(&elasticForce[num_particles_added], src.elasticForce, sizeof(src.elasticForce[0]) * src.num_particles);
+        std::memcpy(&slideForce[num_particles_added], src.slideForce, sizeof(src.slideForce[0]) * src.num_particles);
+        std::memcpy(&rollForce[num_particles_added], src.rollForce, sizeof(src.rollForce[0]) * src.num_particles);
+        std::memcpy(&torqueForce[num_particles_added], src.torqueForce, sizeof(src.torqueForce[0]) * src.num_particles);
         ////////////////////////////////////////
 
         // Keep track of now loaded ball set to start next set after it:
         num_particles_added += src.num_particles;
         radiiDistribution = src.radiiDistribution;
+        radiiFraction = src.radiiFraction;
         calc_helpfuls();
     }
 
@@ -978,14 +1102,20 @@ private:
             moi = new double[num_particles];
 
             // /////////////////////////
-            inout = new double[num_particles-1];
-            distB3 = new double[num_particles-1];
+            // inout = new double[num_particles-1];
+            // distB3 = new double[num_particles-1];
             // slidDir = new vec3[num_particles];
             // rollDir = new vec3[num_particles];
-            slidB3 = new vec3[num_particles];
-            rollB3 = new vec3[num_particles];
+            // slidB3 = new vec3[num_particles];
+            // rollB3 = new vec3[num_particles];
             // slidFric = new vec3[num_particles];
             // rollFric = new vec3[num_particles];
+            //////////
+            vdwForce = new vec3[num_particles];
+            elasticForce = new vec3[num_particles];
+            slideForce = new vec3[num_particles];
+            rollForce = new vec3[num_particles];
+            torqueForce = new vec3[num_particles];
             // /////////////////////////
         } catch (const std::exception& e) {
             std::cerr << "Failed trying to allocate group. " << e.what() << '\n';
@@ -1010,12 +1140,18 @@ private:
         /////////////////////
         // delete[] slidDir;
         // delete[] rollDir;
-        delete[] inout;
-        delete[] distB3;
-        delete[] slidB3;
-        delete[] rollB3;
+        // delete[] inout;
+        // delete[] distB3;
+        // delete[] slidB3;
+        // delete[] rollB3;
         // delete[] slidFric;
         // delete[] rollFric;
+        //////////
+        delete[] vdwForce;
+        delete[] elasticForce;
+        delete[] slideForce;
+        delete[] rollForce;
+        delete[] torqueForce;
         /////////////////////
     }
 
@@ -1536,15 +1672,15 @@ private:
             w[Ball] = {0, 0, 0};
             pos[Ball] = rand_vec3(spaceRange);
             ////////////////////////////
-            if (Ball < nBalls-1)
-            {
-                inout[Ball] = 0.0;
-                distB3[Ball] = 0.0;
-            }
+            // if (Ball < nBalls-1)
+            // {
+            //     inout[Ball] = 0.0;
+            //     distB3[Ball] = 0.0;
+            // }
             // slidDir[Ball] = {0,0,0};
             // rollDir[Ball] = {0,0,0};
-            slidB3[Ball] = {0,0,0};
-            rollB3[Ball] = {0,0,0};
+            // slidB3[Ball] = {0,0,0};
+            // rollB3[Ball] = {0,0,0};
             // slidFric[Ball] = {0,0,0};
             // rollFric[Ball] = {0,0,0};
             ////////////////////////////
@@ -1881,4 +2017,6 @@ void Ball_group::parse_input_file(char const* location)
     {
         output_prefix = "";
     }
+
+    radiiFraction = inputs["radiiFraction"];
 }

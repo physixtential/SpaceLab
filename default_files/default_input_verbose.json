@@ -2,6 +2,11 @@
 ////////////////////////////////////
 // Initialization (Units are CGS) //
 ////////////////////////////////////
+	//What is this sim for?
+	"note": "",
+	//for constant distribution, added balls will have ri/radiiFraction sized 
+	//radii where ri is the radius of the inital balls (scaleBalls)
+	"radiiFraction": 1,
 	//distribution of radii, default to "constant", other options: "logNormal": 
 	"radiiDistribution": "constant",
 	//IDK, keep false until figure it out
