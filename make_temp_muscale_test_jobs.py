@@ -18,21 +18,35 @@ if __name__ == '__main__':
 	except:
 		print('compilation failed')
 		exit(-1)
-		
-	job_set_name = "lognorm_radius_test"
-	job_set_name = "test"
-	job_set_name = "step_back"
-	# folder_name_scheme = "T_"
 
-	runs_at_once = 1
+
+	job_set_name = "muscale_test"
+	folder_name_scheme = "T_"
+
+	runs_at_once = 10
+	# attempts = [1] 
+	# attempts = [21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40]
 	# attempts = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20] 
-	attempts = [20] 
-	N = [2]
-	Temps = [1]
+	attempts = [i for i in range(42)]
+	attempts_300 = [i for i in range(16)]
+
+	#test it out first
+	# attempts = [0]
+	attempts = [i for i in range(40)]
+	attempts_300 = [0]
+
+	N = [100]
+	# N = [300]
+	Temps = [100]
+	# Temps = [3]
 	folders = []
-	for attempt in attempts:
+	folders_N = []
+	for Temp in Temps:
 		for n in N:
-			for Temp in Temps:
+			temp_attempt = attempts
+			if n == 300:
+				temp_attempt = attempts_300
+			for attempt in temp_attempt:
 				job = curr_folder + 'jobs/' + job_set_name + str(attempt) + '/'\
 							+ 'N_' + str(n) + '/' + 'T_' + str(Temp) + '/'
 				if not os.path.exists(job):
@@ -48,16 +62,10 @@ if __name__ == '__main__':
 				####################################
 				######Change input values here######
 				input_json['temp'] = Temp
-				input_json['seed'] = 100
-				input_json['genBalls'] = 2
-				input_json['radiiDistribution'] = 'constant'
-				# input_json['scaleBalls'] = 5e4
-				# input_json['timeResolution'] = 1e2
-				input_json['simTimeSeconds'] = 1e-3
-				input_json['h_min'] = 0.1
-				# input_json['simTimeSeconds'] = 0.5e-3 # Original one
-				input_json['radiiFraction'] = 2
-				input_json['note'] = 'Normal h_min of 0.1'
+				input_json['seed'] = 'default'
+				input_json['radiiDistribution'] = 'logNormal'
+				input_json['h_min'] = 0.5
+
 				####################################
 
 				with open(job + "input.json",'w') as fp:
@@ -67,11 +75,13 @@ if __name__ == '__main__':
 				os.system("cp default_files/run_sim.py {}run_sim.py".format(job))
 				os.system("cp ColliderSingleCore/ColliderSingleCore.o {}ColliderSingleCore.o".format(job))
 				folders.append(job)
+				folders_N.append(n)
 	# print(folders)
-	if len(N) != len(folders):
-		N = [str(N[0]) for i in range(len(folders))]
+	# if len(N) != len(folders):
+	# 	for i in range(len(folders))
+	# 	N = [str(N[0]) for i in range(len(folders))]
 
-	inputs = list(zip(folders,N))
+	inputs = list(zip(folders,folders_N))
 	print(inputs)
 
 	for i in range(0,len(folders),runs_at_once):

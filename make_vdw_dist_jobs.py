@@ -19,22 +19,25 @@ if __name__ == '__main__':
 		print('compilation failed')
 		exit(-1)
 		
-	job_set_name = "lognorm_radius_test"
-	job_set_name = "test"
-	job_set_name = "step_back"
+	job_set_name = "vdwDist"
 	# folder_name_scheme = "T_"
 
-	runs_at_once = 1
+	runs_at_once = 9
 	# attempts = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20] 
-	attempts = [20] 
-	N = [2]
+	attempts = [0,1,2,3,4,5,6,7,8] 
+	ri = [1e-5,1e-5,5e-6,1e-5,1e-5,5e-6,1e-5,1e-5,5e-6]
+	hmin = [1e-6/ri[0],1e-6/ri[1],1e-6/ri[2],5e-6/ri[3],5e-6/ri[4],5e-6/ri[5],\
+				2.1e-8/ri[6],2.1e-8/ri[7],2.1e-8/ri[8]]
+	rfrac = [1,2,1,1,2,1,1,2,1]
+
+	N = [1]
 	Temps = [1]
 	folders = []
-	for attempt in attempts:
+	for att,attempt in enumerate(attempts):
 		for n in N:
 			for Temp in Temps:
 				job = curr_folder + 'jobs/' + job_set_name + str(attempt) + '/'\
-							+ 'N_' + str(n) + '/' + 'T_' + str(Temp) + '/'
+
 				if not os.path.exists(job):
 					os.makedirs(job)
 				else:
@@ -48,16 +51,16 @@ if __name__ == '__main__':
 				####################################
 				######Change input values here######
 				input_json['temp'] = Temp
-				input_json['seed'] = 100
-				input_json['genBalls'] = 2
+				input_json['seed'] = 'default'
+				input_json['genBalls'] = 1
 				input_json['radiiDistribution'] = 'constant'
-				# input_json['scaleBalls'] = 5e4
+				input_json['scaleBalls'] = ri[att]
 				# input_json['timeResolution'] = 1e2
 				input_json['simTimeSeconds'] = 1e-3
-				input_json['h_min'] = 0.1
+				input_json['h_min'] = hmin[att]
 				# input_json['simTimeSeconds'] = 0.5e-3 # Original one
-				input_json['radiiFraction'] = 2
-				input_json['note'] = 'Normal h_min of 0.1'
+				input_json['radiiFraction'] = rfrac[att]
+				input_json['note'] = 'b1r={}, b2r={}, h_min={}'.format(ri[att],ri[att]/rfrac[att],hmin[att])
 				####################################
 
 				with open(job + "input.json",'w') as fp:
@@ -67,7 +70,7 @@ if __name__ == '__main__':
 				os.system("cp default_files/run_sim.py {}run_sim.py".format(job))
 				os.system("cp ColliderSingleCore/ColliderSingleCore.o {}ColliderSingleCore.o".format(job))
 				folders.append(job)
-	# print(folders)
+
 	if len(N) != len(folders):
 		N = [str(N[0]) for i in range(len(folders))]
 

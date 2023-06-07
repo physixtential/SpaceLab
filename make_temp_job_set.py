@@ -20,25 +20,32 @@ if __name__ == '__main__':
 		exit(-1)
 
 
-	job_set_name = "tempVarianceRand_attempt"
+	job_set_name = "logNormSizeDist"
 	folder_name_scheme = "T_"
 
-	runs_at_once = 18
-	attempts = [1] 
-	attempts = [21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40]
-	attempts = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20] 
-	attempts = [i for i in range(11,17)]
+	runs_at_once = 10
+	# attempts = [1] 
+	# attempts = [21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40]
+	# attempts = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20] 
+	attempts = [i for i in range(42)]
+	attempts_300 = [i for i in range(16)]
 
-	print(attempts)
-	# exit(0)
+	#test it out first
+	attempts = [0]
+	attempts_300 = [0]
 
-	N = [300]
+	N = [30,100,300]
+	# N = [300]
 	Temps = [3,10,30,100,300,1000]
+	# Temps = [3]
 	folders = []
 	folders_N = []
 	for Temp in Temps:
-		for attempt in attempts:
-			for n in N:
+		for n in N:
+			temp_attempt = attempts
+			if n == 300:
+				temp_attempt = attempts_300
+			for attempt in temp_attempt:
 				job = curr_folder + 'jobs/' + job_set_name + str(attempt) + '/'\
 							+ 'N_' + str(n) + '/' + 'T_' + str(Temp) + '/'
 				if not os.path.exists(job):
@@ -55,6 +62,8 @@ if __name__ == '__main__':
 				######Change input values here######
 				input_json['temp'] = Temp
 				input_json['seed'] = 'default'
+				input_json['radiiDistribution'] = 'logNormal'
+				input_json['h_min'] = 0.5
 
 				####################################
 

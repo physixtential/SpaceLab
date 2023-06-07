@@ -20,20 +20,22 @@ if __name__ == '__main__':
 		exit(-1)
 		
 	job_set_name = "lognorm_radius_test"
-	job_set_name = "small_balls"
+	job_set_name = "writeTest"
+	job_set_name = "calibrateTest"
 	# folder_name_scheme = "T_"
 
 	runs_at_once = 1
 	# attempts = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20] 
-	attempts = [40] 
-	N = [2]
-	Temps = [1]
+	attempts = [1] 
+	N = [100]
+	Temps = [1000]
 	folders = []
 	for attempt in attempts:
 		for n in N:
 			for Temp in Temps:
-				job = curr_folder + 'jobs/' + job_set_name + str(attempt) + '/'\
-							+ 'N_' + str(n) + '/' + 'T_' + str(Temp) + '/'
+				job = curr_folder + 'jobs/' + job_set_name + str(attempt) + '/'
+				# job = curr_folder + 'jobs/' + job_set_name + str(attempt) + '/'
+							# + 'N_' + str(n) + '/' + 'T_' + str(Temp) + '/'
 				if not os.path.exists(job):
 					os.makedirs(job)
 				else:
@@ -47,11 +49,13 @@ if __name__ == '__main__':
 				####################################
 				######Change input values here######
 				input_json['temp'] = Temp
-				input_json['seed'] = 100
-				input_json['genBalls'] = 2
+				input_json['seed'] = 101
 				input_json['radiiDistribution'] = 'constant'
-				input_json['simTimeSeconds'] = 1e-3
-				input_json['radiiFraction'] = 2
+				# input_json['kConsts'] = 3e3
+				input_json['h_min'] = 0.5
+				input_json['u_s'] = 0.5
+				input_json['u_r'] = 0.5
+				input_json['note'] = "calibrate_dt(v)), "
 				####################################
 
 				with open(job + "input.json",'w') as fp:

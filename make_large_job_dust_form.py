@@ -22,8 +22,11 @@ if __name__ == '__main__': #Important for multiprocessing to put your main funct
 		print("Job set '{}' already exists.".format(job_set_folder))
 
 	#Make an array of what you want to vary
-	Temps = [1000]
-	N = [1000]
+	attempts_for_N = [\
+					[],\
+					]
+	Temps = [1,3,10,30,100,300,1000]
+	N = [30,100,300]
 
 	#actually make the folders
 	folder_values = N

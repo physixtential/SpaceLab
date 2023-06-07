@@ -28,12 +28,14 @@ class Ball_group
 public:
     double radiiFraction = -1;
     bool debug = false;
+    bool write_all = false;
 
     std::string out_folder;
     int num_particles = 0;
     int num_particles_added = 0;
 
     int seed = -1;
+    int output_width = -1;
     enum distributions {constant, logNorm};
     distributions radiiDistribution;
     double lnSigma = 0.2; //sigma for log normal distribution 
@@ -47,6 +49,12 @@ public:
     double v_max = -1;
     double v_max_prev = HUGE_VAL;
     double soc = -1;
+
+    /////////////////////////////////
+    const double h_min_physical = 2.1e-8; //prolly should make this a parameter/calculation
+    const double max_mu = 0.5; // Make another parameter
+    bool mu_scale = false;
+    /////////////////////////////////
 
     vec3 mom = {0, 0, 0};
     vec3 ang_mom = {
@@ -68,8 +76,12 @@ public:
     double* R = nullptr;    ///< Radius
     double* m = nullptr;    ///< Mass
     double* moi = nullptr;  ///< Moment of inertia
+    double* u_scale = nullptr; ///ADD TO COPY CONSTRUCTOR, ETC
+    
 
     ///////////////////////////
+    // if (write_all)
+    // {
     // vec3* slidDir = nullptr;
     // vec3* rollDir = nullptr;
     // double* inout = nullptr;
@@ -81,13 +93,16 @@ public:
     //////////
     //all force pointers
     vec3* vdwForce = nullptr;
-    vec3* elasticForce = nullptr;
-    vec3* slideForce = nullptr;
-    vec3* rollForce = nullptr;
-    vec3* torqueForce = nullptr;
+    // vec3* elasticForce = nullptr;
+    // vec3* slideForce = nullptr;
+    // vec3* rollForce = nullptr;
+    // vec3* torqueForce = nullptr;
+    // }
     ///////////////////////////
 
     void parse_input_file(char const* location);
+    inline double calc_VDW_force_mag(const double Ra, const double Rb, const double h);
+    void calc_mu_scale_factor();
 
     double get_soc()
     {
@@ -124,6 +139,11 @@ public:
         {
             pos[1] = {0, -1.101e-5, 0};
             vel[1] = {0, 0, 0};
+        }
+
+        if (mu_scale)
+        {
+            calc_mu_scale_factor();
         }
 
         m_total = getMass();
@@ -200,20 +220,23 @@ public:
         radiiFraction = rhs.radiiFraction;
 
         /////////////////////////////////////
-        // slidDir = rhs.slidDir;
-        // rollDir = rhs.rollDir;
-        // inout = rhs.inout;
-        // distB3 = rhs.distB3;
-        // slidB3 = rhs.slidB3;
-        // rollB3 = rhs.rollB3;
-        // slidFric = rhs.slidFric;
-        // rollFric = rhs.rollFric;
-        //////////
-        vdwForce = rhs.vdwForce;
-        elasticForce = rhs.elasticForce;
-        slideForce = rhs.slideForce;
-        rollForce = rhs.rollForce;
-        torqueForce = rhs.torqueForce;
+        if (write_all)
+        {
+            // slidDir = rhs.slidDir;
+            // rollDir = rhs.rollDir;
+            // inout = rhs.inout;
+            // distB3 = rhs.distB3;
+            // slidB3 = rhs.slidB3;
+            // rollB3 = rhs.rollB3;
+            // slidFric = rhs.slidFric;
+            // rollFric = rhs.rollFric;
+            //////////
+            vdwForce = rhs.vdwForce;
+            // elasticForce = rhs.elasticForce;
+            // slideForce = rhs.slideForce;
+            // rollForce = rhs.rollForce;
+            // torqueForce = rhs.torqueForce;
+        }
         /////////////////////////////////////
 
         return *this;
@@ -268,37 +291,37 @@ public:
         // rollFric = rhs.rollFric;
         //////////
         vdwForce = rhs.vdwForce;
-        elasticForce = rhs.elasticForce;
-        slideForce = rhs.slideForce;
-        rollForce = rhs.rollForce;
-        torqueForce = rhs.torqueForce;
+        // elasticForce = rhs.elasticForce;
+        // slideForce = rhs.slideForce;
+        // rollForce = rhs.rollForce;
+        // torqueForce = rhs.torqueForce;
         /////////////////////////////////////
     }
 
     ////////////////////////////////////
     void zeroSaveVals()
     {
-        int size = num_particles;
+        int size = num_particles*num_particles;
         for (int i = 0; i < size; ++i)
         {
             vdwForce[i] = {0,0,0};
-            elasticForce[i] = {0,0,0};
-            slideForce[i] = {0,0,0};
-            rollForce[i] = {0,0,0};
-            torqueForce[i] = {0,0,0};
+            // elasticForce[i] = {0,0,0};
+            // slideForce[i] = {0,0,0};
+            // rollForce[i] = {0,0,0};
+            // torqueForce[i] = {0,0,0};
         }
         // for (int i = 0; i < num_particles; ++i)
         // {
-        //     if (i < num_particles)
-        //     {
-        //         distB3[i] = 0.0;
-        //     }
+        //     // if (i < num_particles)
+        //     // {
+        //     // distB3[i] = 0.0;
+        //     // }
         //     // slidDir[i] = {0,0,0};
         //     // rollDir[i] = {0,0,0};
-        //     inout[i] = 0.0;
-        //     slidB3[i] = {0,0,0};
-        //     rollB3[i] = {0,0,0};
-        //     // slidFric[i] = {0,0,0};
+        //     // inout[i] = 0.0;
+        //     // slidB3[i] = {0,0,0};
+        //     // rollB3[i] = {0,0,0};
+        //     // // slidFric[i] = {0,0,0};
         //     // rollFric[i] = {0,0,0};
         // }
     }
@@ -575,126 +598,161 @@ public:
         output_prefix = filename;
 
         //////////////////////////
-        // Force writes
-        std::ofstream vdwWrite;
-        vdwWrite.open(output_folder + filename + "vdwData.csv", std::ofstream::app);
-        for (int A = 0; A < num_particles; ++A)
+        if (write_all)
         {
-            for (int B = 0; B < A; ++B)
+            // Force writes
+            std::ofstream vdwWrite;
+            vdwWrite.open(output_folder + filename + "vdwData.csv", std::ofstream::app);
+            for (int A = 0; A < num_particles; ++A)
             {
-                vdwWrite <<"vdw("<<B<<';'<<A<<')';
-                if (B != num_particles-1)
+                vdwWrite <<"vdw("<<A<<"x)"<<"vdw("<<A<<"y)"<<"vdw("<<A<<"z)";
+                if (A != num_particles-1)
                 {
                     vdwWrite << ',';
                 }
             }
-        }
-        vdwWrite.close();
-        std::ofstream elasticWrite;
-        elasticWrite.open(output_folder + filename + "elasticData.csv", std::ofstream::app);
-        for (int A = 0; A < num_particles; ++A)
-        {
-            for (int B = 0; B < A; ++B)
-            {
-                elasticWrite <<"ela("<<B<<';'<<A<<')';
-                if (B != num_particles-1)
-                {
-                    elasticWrite << ',';
-                }
-            }
-        }
-        elasticWrite.close();
-        std::ofstream slideWrite;
-        slideWrite.open(output_folder + filename + "slideData.csv", std::ofstream::app);
-        for (int A = 0; A < num_particles; ++A)
-        {
-            for (int B = 0; B < A; ++B)
-            {
-                slideWrite <<"sli("<<B<<';'<<A<<')';
-                if (B != num_particles-1)
-                {
-                    slideWrite << ',';
-                }
-            }
-        }
-        slideWrite.close();
-        std::ofstream rollWrite;
-        rollWrite.open(output_folder + filename + "rollData.csv", std::ofstream::app);
-        for (int A = 0; A < num_particles; ++A)
-        {
-            for (int B = 0; B < A; ++B)
-            {
-                rollWrite <<"rol("<<B<<';'<<A<<')';
-                if (B != num_particles-1)
-                {
-                    rollWrite << ',';
-                }
-            }
-        }
-        rollWrite.close();
-        std::ofstream torqueWrite;
-        torqueWrite.open(output_folder + filename + "torqueData.csv", std::ofstream::app);
-        for (int A = 0; A < num_particles; ++A)
-        {
-            for (int B = 0; B < A; ++B)
-            {
-                torqueWrite <<"rol("<<B<<';'<<A<<')';
-                if (B != num_particles-1)
-                {
-                    torqueWrite << ',';
-                }
-            }
-        }
-        torqueWrite.close();
-        // std::ofstream fricWrite;
-        // fricWrite.open(output_folder + filename + "fricData.csv", std::ofstream::app);
-        // for (int i = 0; i < num_particles; ++i)
-        // {
-        //     fricWrite << "b"<<i<<"xroll,"<<"b"<<i<<"yroll,"<<"b"<<i<<"zroll,"<<
-        //     "b"<<i<<"xslide,"<<"b"<<i<<"yslide,"<<"b"<<i<<"zslide";
-        //     if (i != num_particles-1)
-        //     {
-        //         fricWrite << ',';
-        //     }
-        // }
-        // fricWrite.close();
-        // std::ofstream fricB3Write;
-        // fricB3Write.open(output_folder + filename + "fricB3Data.csv", std::ofstream::app);
-        // for (int i = 0; i < num_particles; ++i)
-        // {
-        //     fricB3Write << "Fx3"<<i<<"roll,"<<"Fy3"<<i<<"roll,"<<"Fz3"<<i<<"roll,"<<
-        //     "Fx3"<<i<<"slide,"<<"Fy3"<<i<<"slide,"<<"Fz3"<<i<<"slide";
-        //     if (i != num_particles-1)
-        //     {
-        //         fricB3Write << ',';
-        //     }
-        // }
-        // fricB3Write.close();
-        // std::ofstream dirB3Write;
-        // dirB3Write.open(output_folder + filename + "dirB3Data.csv", std::ofstream::app);
-        // for (int i = 0; i < num_particles; ++i)
-        // {
-        //     dirB3Write << "xhat3"<<i<<"roll,"<<"yhat3"<<i<<"roll,"<<"zhat3"<<i<<"roll,"<<
-        //     "xhat3"<<i<<"slide,"<<"yhat3"<<i<<"slide,"<<"zhat3"<<i<<"slide";
-        //     if (i != num_particles-1)
-        //     {
-        //         dirB3Write << ',';
-        //     }
-        // }
-        // dirB3Write.close();
-        // std::ofstream distB3Write;
-        // distB3Write.open(output_folder + filename + "distB3Data.csv", std::ofstream::app);
-        // for (int i = 0; i < num_particles-1; ++i)
-        // {
-        //     distB3Write << "dist3"<<i;
-        //     if (i != num_particles-2)
-        //     {
-        //         distB3Write << ',';
-        //     }
-        // }
-        // distB3Write.close();
-        //////////////////////////
+            vdwWrite<<'\n';
+            vdwWrite.close();
 
+            // std::ofstream elasticWrite;
+            // elasticWrite.open(output_folder + filename + "elasticData.csv", std::ofstream::app);
+            // for (int A = 0; A < num_particles; ++A)
+            // {
+            //     elasticWrite <<"ela("<<A<<')';
+            //     if (A != num_particles-1)
+            //     {
+            //         elasticWrite << ',';
+            //     }
+            // }
+            // elasticWrite<<'\n';
+            // elasticWrite.close();
+
+            // std::ofstream slideWrite;
+            // slideWrite.open(output_folder + filename + "slideData.csv", std::ofstream::app);
+            // for (int A = 0; A < num_particles; ++A)
+            // {
+            //     for (int B = 0; B < num_particles; ++B)
+            //     {
+            //         slideWrite <<"sli("<<A<<';'<<B<<')';
+            //         if ((B != num_particles-1) && (A != num_particles-1))
+            //         {
+            //             slideWrite << ',';
+            //         }
+            //     }
+            // }
+            // slideWrite<<'\n';
+            // slideWrite.close();
+
+            // std::ofstream rollWrite;
+            // rollWrite.open(output_folder + filename + "rollData.csv", std::ofstream::app);
+            // for (int A = 0; A < num_particles; ++A)
+            // {
+            //     for (int B = 0; B < num_particles; ++B)
+            //     {
+            //         rollWrite <<"rol("<<A<<';'<<B<<')';
+            //         if ((B != num_particles-1) && (A != num_particles-1))
+            //         {
+            //             rollWrite << ',';
+            //         }
+            //     }
+            // }
+            // rollWrite<<'\n';
+            // rollWrite.close();
+            
+            // std::ofstream torqueWrite;
+            // torqueWrite.open(output_folder + filename + "torqueData.csv", std::ofstream::app);
+            // for (int A = 0; A < num_particles; ++A)
+            // {
+            //     for (int B = 0; B < num_particles; ++B)
+            //     {
+            //         torqueWrite <<"tor("<<A<<';'<<B<<')';
+            //         if ((B != num_particles-1) && (A != num_particles-1))
+            //         {
+            //             torqueWrite << ',';
+            //         }
+            //     }
+            // }
+            // torqueWrite<<'\n';
+            // torqueWrite.close();
+
+            // std::ofstream wWrite;
+            // wWrite.open(output_folder + filename + "wData.csv", std::ofstream::app);
+            // wWrite<<"w(0)";
+            // for (int A = 1; A < num_particles; ++A)
+            // {
+            //     wWrite<<','<<"w("<<A<<')';
+            // }
+            // wWrite<<'\n';
+            // wWrite.close();
+
+            // std::ofstream posWrite;
+            // posWrite.open(output_folder + filename + "posData.csv", std::ofstream::app);
+            // posWrite<<"pos(0)";
+            // for (int A = 1; A < num_particles; ++A)
+            // {
+            //     posWrite<<','<<"pos("<<A<<')';
+            // }
+            // posWrite<<'\n';
+            // posWrite.close();
+
+            // std::ofstream velWrite;
+            // velWrite.open(output_folder + filename + "velData.csv", std::ofstream::app);
+            // velWrite<<"vel(0)";
+            // for (int A = 1; A < num_particles; ++A)
+            // {
+            //     velWrite<<','<<"vel("<<A<<')';
+            // }
+            // velWrite<<'\n';
+            // velWrite.close();
+            // std::ofstream fricWrite;
+            // fricWrite.open(output_folder + filename + "fricData.csv", std::ofstream::app);
+            // for (int i = 0; i < num_particles; ++i)
+            // {
+            //     fricWrite << "b"<<i<<"xroll,"<<"b"<<i<<"yroll,"<<"b"<<i<<"zroll,"<<
+            //     "b"<<i<<"xslide,"<<"b"<<i<<"yslide,"<<"b"<<i<<"zslide";
+            //     if (i != num_particles-1)
+            //     {
+            //         fricWrite << ',';
+            //     }
+            // }
+            // fricWrite.close();
+            // std::ofstream fricB3Write;
+            // fricB3Write.open(output_folder + filename + "fricB3Data.csv", std::ofstream::app);
+            // for (int i = 0; i < num_particles; ++i)
+            // {
+            //     fricB3Write << "Fx3"<<i<<"roll,"<<"Fy3"<<i<<"roll,"<<"Fz3"<<i<<"roll,"<<
+            //     "Fx3"<<i<<"slide,"<<"Fy3"<<i<<"slide,"<<"Fz3"<<i<<"slide";
+            //     if (i != num_particles-1)
+            //     {
+            //         fricB3Write << ',';
+            //     }
+            // }
+            // fricB3Write.close();
+            // std::ofstream dirB3Write;
+            // dirB3Write.open(output_folder + filename + "dirB3Data.csv", std::ofstream::app);
+            // for (int i = 0; i < num_particles; ++i)
+            // {
+            //     dirB3Write << "xhat3"<<i<<"roll,"<<"yhat3"<<i<<"roll,"<<"zhat3"<<i<<"roll,"<<
+            //     "xhat3"<<i<<"slide,"<<"yhat3"<<i<<"slide,"<<"zhat3"<<i<<"slide";
+            //     if (i != num_particles-1)
+            //     {
+            //         dirB3Write << ',';
+            //     }
+            // }
+            // dirB3Write.close();
+            // std::ofstream distB3Write;
+            // distB3Write.open(output_folder + filename + "distB3Data.csv", std::ofstream::app);
+            // for (int i = 0; i < num_particles-1; ++i)
+            // {
+            //     distB3Write << "dist3"<<i;
+            //     if (i != num_particles-2)
+            //     {
+            //         distB3Write << ',';
+            //     }
+            // }
+            // distB3Write.close();
+            //////////////////////////
+        }
         // Complete file names:
         std::string simDataFilename = output_folder + filename + "simData.csv";
         std::string energyFilename = output_folder + filename + "energy.csv";
@@ -874,7 +932,7 @@ public:
         // new_group.init_conditions();
 
         // new_group.to_origin();
-
+        std::cerr<<"MADE IT HERE"<<std::endl;
         return new_group;
     }
 
@@ -944,26 +1002,31 @@ public:
         {
             double a = std::sqrt(Kb*temp/projectile.m[0]);
             v_custom = max_bolt_dist(a); 
+            std::cerr<<"v_custom set to "<<v_custom<< "cm/s based on a temp of "
+                    <<temp<<" degrees K."<<std::endl; 
         }
         projectile.vel[0] = -v_custom * projectile_direction;
         // projectile.R[0] = 1e-5;  // rand_between(1,3)*1e-5;
         projectile.moi[0] = calc_moi(projectile.R[0], projectile.m[0]);
 
         //////////////////////////////////
-        // projectile.slidDir[0] = {0,0,0};
-        // projectile.rollDir[0] = {0,0,0};
-        // projectile.inout[0] = 0.0;
-        // projectile.distB3[0] = 0.0;
-        // projectile.slidB3[0] = {0,0,0};
-        // projectile.rollB3[0] = {0,0,0};
-        // projectile.slidFric[0] = {0,0,0};
-        // projectile.rollFric[0] = {0,0,0};
-        //////////
-        projectile.vdwForce[0] = {0,0,0};
-        projectile.elasticForce[0] = {0,0,0};
-        projectile.slideForce[0] = {0,0,0};
-        projectile.rollForce[0] = {0,0,0};
-        projectile.torqueForce[0] = {0,0,0};
+        if (write_all)
+        {
+            // projectile.slidDir[0] = {0,0,0};
+            // projectile.rollDir[0] = {0,0,0};
+            // projectile.inout[0] = 0.0;
+            // projectile.distB3[0] = 0.0;
+            // projectile.slidB3[0] = {0,0,0};
+            // projectile.rollB3[0] = {0,0,0};
+            // projectile.slidFric[0] = {0,0,0};
+            // projectile.rollFric[0] = {0,0,0};
+            //////////
+            projectile.vdwForce[0] = {0,0,0};
+            // projectile.elasticForce[0][0] = {0,0,0};
+            // projectile.slideForce[0] = {0,0,0};
+            // projectile.rollForce[0] = {0,0,0};
+            // projectile.torqueForce[0] = {0,0,0};
+        }
         //////////////////////////////////
 
         const double3x3 local_coords = local_coordinates(to_double3(projectile_direction));
@@ -1026,8 +1089,14 @@ public:
         // std::cout<<"radiiDistribution in add_projectile(4): "<<new_group.radiiDistribution<<std::endl;
 
         // Hack - Calibrate to vel = 1 so we don't have to reform the pair. Probly fine?
-        new_group.calibrate_dt(0, v_custom);
-        new_group.calibrate_dt(0, 1);
+        if (v_custom < 1)
+        {
+            new_group.calibrate_dt(0, 1);
+        }
+        else
+        {
+            new_group.calibrate_dt(0, v_custom);
+        }
         new_group.init_conditions();
 
         new_group.to_origin();
@@ -1053,20 +1122,23 @@ public:
         std::memcpy(&m[num_particles_added], src.m, sizeof(src.m[0]) * src.num_particles);
         std::memcpy(&moi[num_particles_added], src.moi, sizeof(src.moi[0]) * src.num_particles);
         //////////////////////////////////////
-        // std::memcpy(&distB3[num_particles_added], src.distB3, sizeof(src.distB3[0]) * src.num_particles);
-        // std::memcpy(&inout[num_particles_added], src.inout, sizeof(src.inout[0]) * src.num_particles);
-        // std::memcpy(&slidDir[num_particles_added], src.slidDir, sizeof(src.slidDir[0]) * src.num_particles);
-        // std::memcpy(&rollDir[num_particles_added], src.rollDir, sizeof(src.rollDir[0]) * src.num_particles);
-        // std::memcpy(&slidB3[num_particles_added], src.slidB3, sizeof(src.slidB3[0]) * src.num_particles);
-        // std::memcpy(&rollB3[num_particles_added], src.rollB3, sizeof(src.rollB3[0]) * src.num_particles);
-        // std::memcpy(&slidFric[num_particles_added], src.slidFric, sizeof(src.slidFric[0]) * src.num_particles);
-        // std::memcpy(&rollFric[num_particles_added], src.rollFric, sizeof(src.rollFric[0]) * src.num_particles);
-        //////////
-        std::memcpy(&vdwForce[num_particles_added], src.vdwForce, sizeof(src.vdwForce[0]) * src.num_particles);
-        std::memcpy(&elasticForce[num_particles_added], src.elasticForce, sizeof(src.elasticForce[0]) * src.num_particles);
-        std::memcpy(&slideForce[num_particles_added], src.slideForce, sizeof(src.slideForce[0]) * src.num_particles);
-        std::memcpy(&rollForce[num_particles_added], src.rollForce, sizeof(src.rollForce[0]) * src.num_particles);
-        std::memcpy(&torqueForce[num_particles_added], src.torqueForce, sizeof(src.torqueForce[0]) * src.num_particles);
+        if (write_all)
+        {
+            // std::memcpy(&distB3[num_particles_added], src.distB3, sizeof(src.distB3[0]) * src.num_particles);
+            // std::memcpy(&inout[num_particles_added], src.inout, sizeof(src.inout[0]) * src.num_particles);
+            // std::memcpy(&slidDir[num_particles_added], src.slidDir, sizeof(src.slidDir[0]) * src.num_particles);
+            // std::memcpy(&rollDir[num_particles_added], src.rollDir, sizeof(src.rollDir[0]) * src.num_particles);
+            // std::memcpy(&slidB3[num_particles_added], src.slidB3, sizeof(src.slidB3[0]) * src.num_particles);
+            // std::memcpy(&rollB3[num_particles_added], src.rollB3, sizeof(src.rollB3[0]) * src.num_particles);
+            // std::memcpy(&slidFric[num_particles_added], src.slidFric, sizeof(src.slidFric[0]) * src.num_particles);
+            // std::memcpy(&rollFric[num_particles_added], src.rollFric, sizeof(src.rollFric[0]) * src.num_particles);
+            //////////
+            std::memcpy(&vdwForce[num_particles_added], src.vdwForce, sizeof(src.vdwForce[0]) * src.num_particles);
+            // std::memcpy(&elasticForce[num_particles_added], src.elasticForce, sizeof(src.elasticForce[0]) * src.num_particles);
+            // std::memcpy(&slideForce[num_particles_added], src.slideForce, sizeof(src.slideForce[0]) * src.num_particles);
+            // std::memcpy(&rollForce[num_particles_added], src.rollForce, sizeof(src.rollForce[0]) * src.num_particles);
+            // std::memcpy(&torqueForce[num_particles_added], src.torqueForce, sizeof(src.torqueForce[0]) * src.num_particles);
+        }
         ////////////////////////////////////////
 
         // Keep track of now loaded ball set to start next set after it:
@@ -1102,20 +1174,23 @@ private:
             moi = new double[num_particles];
 
             // /////////////////////////
-            // inout = new double[num_particles-1];
-            // distB3 = new double[num_particles-1];
-            // slidDir = new vec3[num_particles];
-            // rollDir = new vec3[num_particles];
-            // slidB3 = new vec3[num_particles];
-            // rollB3 = new vec3[num_particles];
-            // slidFric = new vec3[num_particles];
-            // rollFric = new vec3[num_particles];
-            //////////
-            vdwForce = new vec3[num_particles];
-            elasticForce = new vec3[num_particles];
-            slideForce = new vec3[num_particles];
-            rollForce = new vec3[num_particles];
-            torqueForce = new vec3[num_particles];
+            if (write_all)
+            {
+                // inout = new double[num_particles-1];
+                // distB3 = new double[num_particles-1];
+                // slidDir = new vec3[num_particles];
+                // rollDir = new vec3[num_particles];
+                // slidB3 = new vec3[num_particles];
+                // rollB3 = new vec3[num_particles];
+                // slidFric = new vec3[num_particles];
+                // rollFric = new vec3[num_particles];
+                //////////
+                vdwForce = new vec3[num_particles*num_particles];
+                // elasticForce = new vec3[num_particles*num_particles];
+                // slideForce = new vec3[num_particles*num_particles];
+                // rollForce = new vec3[num_particles*num_particles];
+                // torqueForce = new vec3[num_particles*num_particles];
+            }
             // /////////////////////////
         } catch (const std::exception& e) {
             std::cerr << "Failed trying to allocate group. " << e.what() << '\n';
@@ -1138,20 +1213,23 @@ private:
         delete[] m;
         delete[] moi;
         /////////////////////
-        // delete[] slidDir;
-        // delete[] rollDir;
-        // delete[] inout;
-        // delete[] distB3;
-        // delete[] slidB3;
-        // delete[] rollB3;
-        // delete[] slidFric;
-        // delete[] rollFric;
-        //////////
-        delete[] vdwForce;
-        delete[] elasticForce;
-        delete[] slideForce;
-        delete[] rollForce;
-        delete[] torqueForce;
+        if (write_all)
+        {
+            // delete[] slidDir;
+            // delete[] rollDir;
+            // delete[] inout;
+            // delete[] distB3;
+            // delete[] slidB3;
+            // delete[] rollB3;
+            // delete[] slidFric;
+            // delete[] rollFric;
+            //////////
+            delete[] vdwForce;
+            // delete[] elasticForce;
+            // delete[] slideForce;
+            // delete[] rollForce;
+            // delete[] torqueForce;
+        }
         /////////////////////
     }
 
@@ -1769,6 +1847,23 @@ private:
         // dt = .02 * sqrt((fourThirdsPiRho / regime_adjust) * r_min * r_min * r_min);
         dt = .01 * sqrt((fourThirdsPiRho / regime_adjust) * r_min * r_min * r_min); //NORMAL ONE
         // dt = .005 * sqrt((fourThirdsPiRho / regime_adjust) * r_min * r_min * r_min);
+        std::cerr << "==================" << '\n';
+        std::cerr << "dt set to: " << dt << '\n';
+        std::cerr << "kin set to: " << kin << '\n';
+        std::cerr << "kout set to: " << kout << '\n';
+        std::cerr << "h_min set to: " << h_min << '\n';
+        std::cerr << "Ha set to: " << Ha << '\n';
+        std::cerr << "u_s set to: " << u_s << '\n';
+        std::cerr << "u_r set to: " << u_r << '\n';
+        if (vdw_force_max > elastic_force_max)
+        {
+            std::cerr << "In the vdw regime."<<std::endl;
+        }
+        else
+        {
+            std::cerr << "In the elastic regime."<<std::endl;
+        }
+        std::cerr << "==================" << '\n';
     }
 
     void simInit_cond_and_center(bool add_prefix)
@@ -2019,4 +2114,48 @@ void Ball_group::parse_input_file(char const* location)
     }
 
     radiiFraction = inputs["radiiFraction"];
+
+    output_width = num_particles;
 }
+
+// @brief calculates the vdw force
+inline double Ball_group::calc_VDW_force_mag(const double Ra,const double Rb,const double h)
+{
+    const double h2 = h * h;
+    // constexpr double h2 = h * h;
+    const double twoRah = 2 * Ra * h;
+    const double twoRbh = 2 * Rb * h;
+    return Ha / 6 * 64 * Ra * Ra * Ra * Rb * Rb * Rb *
+             ((h + Ra + Rb) / ((h2 + twoRah + twoRbh) * (h2 + twoRah + twoRbh) *
+                               (h2 + twoRah + twoRbh + 4 * Ra * Rb) *
+                               (h2 + twoRah + twoRbh + 4 * Ra * Rb)));
+
+}
+
+// @breif calculates the mu scaling factor for all pairs of particle sizes
+void Ball_group::calc_mu_scale_factor()
+{
+    int e;
+    for (int A = 1; A < num_particles; ++A)
+    {
+        for (int B = 0; B < A; ++B)
+        {   
+            e = static_cast<unsigned>(A * (A - 1) * .5) + B;  // a^2-a is always even, so this works.
+            u_scale[e] = calc_VDW_force_mag(R[A],R[B],h_min_physical)/
+                                calc_VDW_force_mag(R[A],R[B],h_min);  
+        }
+    }
+}
+
+// @brief calculates angular momentum of the system
+//        WRT the center of mass
+// double Ball_group::calc_tot_ang_mom()
+// {
+//     vec3 l = {0.0,0.0,0.0};
+//     vec3 curr_COM = getCOM();
+//     for (int i = 0; i < num_particles; ++i)
+//     {
+//         l += m[i]*(pos[i]-curr_COM).cross(vel[i]) + moi[i]*w[i];
+//     }
+//     return l;
+// }

@@ -25,6 +25,8 @@ time_t startProgress;                // For progress reporting (gets reset)
 time_t lastWrite;                    // For write control (gets reset)
 bool writeStep;                      // This prevents writing to file every step (which is slow).
 bool contact = false;
+bool inital_contact = true;
+
 
 // Prototypes
 void
@@ -37,7 +39,8 @@ std::string
 check_restart(std::string folder,int* restart);
 Ball_group 
 make_group(const char *argv1,int* restart);
-
+inline int 
+twoDtoOneD(const int row, const int col, const int width);
 /// @brief The ballGroup run by the main sim looper.
 // Ball_group O(output_folder, projectileName, targetName, v_custom); // Collision
 // Ball_group O(path, targetName, 0);  // Continue
@@ -85,6 +88,7 @@ main(const int argc, char const* argv[])
     // O.sim_init_write(output_prefix);
     // sim_looper();
 
+
     // Add projectile: For dust formation BPCA
     std::string ori_output_prefix = output_prefix;
     for (int i = *restart; i < num_balls; i++) {
@@ -92,6 +96,7 @@ main(const int argc, char const* argv[])
         // O.zeroAngVel();
         // O.zeroVel();
         contact = false;
+        inital_contact = true;
         t.start_event("add_projectile");
         O = O.add_projectile();
         t.end_event("add_projectile");
@@ -272,6 +277,10 @@ sim_one_step(const bool write_step, Ball_group &O)
             const vec3 rVecba = -rVecab;
             const double dist = (rVecab).norm();
 
+            //////////////////////
+            // const double grav_scale = 3.0e21;
+            //////////////////////
+
             // Check for collision between Ball and otherBall:
             double overlap = sumRaRb - dist;
 
@@ -294,19 +303,10 @@ sim_one_step(const bool write_step, Ball_group &O)
                 }
 
                 double k;
-                // double k = kout;
-                // Apply coefficient of restitution to balls leaving collision.
-                // if ((dist - oldDist) > 5.125e-10) {
                 if (dist >= oldDist) {
                     k = kout;
-                    ////////////////
-                    // inoutT = 100;
-                    ////////////////
                 } else {
                     k = kin;
-                    ////////////////
-                    // inoutT = -100;
-                    ////////////////
                 }
 
                 // Cohesion (in contact) h must always be h_min:
@@ -323,9 +323,15 @@ sim_one_step(const bool write_step, Ball_group &O)
                                                            (h2 + twoRah + twoRbh + 4 * Ra * Rb) *
                                                            (h2 + twoRah + twoRbh + 4 * Ra * Rb))) *
                                          rVecab.normalized();
+                
+                // std::cout<<vdwForceOnA[0]<<std::endl;  
+                // const vec3 vdwForceOnA = {0,0,0}; // FOR TESTING
                 /////////////////////////////
-                O.vdwForce[A] += vdwForceOnA;
-                O.vdwForce[B] -= vdwForceOnA;
+                if (O.write_all)
+                {
+                    O.vdwForce[A] += vdwForceOnA;
+                    O.vdwForce[B] -= vdwForceOnA;
+                }
                 /////////////////////////////
                 // Elastic force:
                 // vec3 elasticForceOnA{0, 0, 0};
@@ -335,8 +341,8 @@ sim_one_step(const bool write_step, Ball_group &O)
                 // }
                 const vec3 elasticForceOnA = -k * overlap * .5 * (rVecab / dist);
                 ///////////////////////////////
-                O.elasticForce[A] += elasticForceOnA;
-                O.elasticForce[B] -= elasticForceOnA;
+                // O.elasticForce[A] += elasticForceOnA;
+                // O.elasticForce[B] -= elasticForceOnA;
                 ///////////////////////////////
                 ///////////////////////////////
                 ///////material parameters for silicate composite from Reissl 2023
@@ -353,8 +359,9 @@ sim_one_step(const bool write_step, Ball_group &O)
                 ///////////////////////////////
 
                 // Gravity force:
-                // const vec3 gravForceOnA = (G * O.m[A] * O.m[B] / (dist * dist)) * (rVecab / dist);
+                // const vec3 gravForceOnA = (G * O.m[A] * O.m[B] * grav_scale / (dist * dist)) * (rVecab / dist); //SCALE MASS
                 const vec3 gravForceOnA = {0,0,0};
+                // const vec3 gravForceOnA = (G * O.m[A] * O.m[B] / (dist * dist)) * (rVecab / dist);
 
                 // Sliding and Rolling Friction:
                 vec3 slideForceOnA{0, 0, 0};
@@ -377,14 +384,35 @@ sim_one_step(const bool write_step, Ball_group &O)
                 const double rel_vel_mag = frame_A_vel_B.norm();
                 // if (rel_vel_mag > 1e-20)  // Divide by zero protection.
                 // if (rel_vel_mag > 1e-8)  // Divide by zero protection.
+                ////////////////////////////////////////// CALC THIS AT INITIALIZATION for all combos os Ra,Rb
+                // const double u_scale = O.calc_VDW_force_mag(Ra,Rb,O.h_min_physical)/
+                //                         vdwForceOnA.norm();         //Friction coefficient scale factor
+                //////////////////////////////////////////
                 if (rel_vel_mag > 1e-13)  // NORMAL ONE Divide by zero protection.
                 {
+                    // slideForceOnA = u_s * elastic_force_A_mag * (frame_A_vel_B / rel_vel_mag);
                     // In the frame of A, B applies force in the direction of B's velocity.
-                    slideForceOnA = u_s * elastic_force_A_mag * (frame_A_vel_B / rel_vel_mag);
+                    ///////////////////////////////////
+                    // if (O.mu_scale)
+                    // {
+                    //     if (O.u_scale[e]*u_s > O.max_mu)
+                    //     {
+                    //         slideForceOnA = O.max_mu * elastic_force_A_mag * (frame_A_vel_B / rel_vel_mag);
+                    //     }
+                    //     else
+                    //     {
+                    //         slideForceOnA = O.u_scale[e] * u_s * elastic_force_A_mag * (frame_A_vel_B / rel_vel_mag);
+                    //     }
+                    // }
+                    // else
+                    // {
+                        slideForceOnA = u_s * elastic_force_A_mag * (frame_A_vel_B / rel_vel_mag);
+                    // }
+                    ///////////////////////////////////
                 }
                 //////////////////////////////////////
-                O.slideForce[A] += slideForceOnA;
-                O.slideForce[B] -= slideForceOnA;
+                // O.slideForce[A] += slideForceOnA;
+                // O.slideForce[B] -= slideForceOnA;
                 //////////////////////////////////////
 
 
@@ -394,12 +422,36 @@ sim_one_step(const bool write_step, Ball_group &O)
                 // if (w_diff_mag > 1e-8)  // Divide by zero protection.
                 if (w_diff_mag > 1e-13)  // NORMAL ONE Divide by zero protection.
                 {
-                    rollForceA = 
-                        -u_r * elastic_force_A_mag * (w_diff).cross(r_a) / (w_diff).cross(r_a).norm();
+                    // rollForceA = 
+                    //     -u_r * elastic_force_A_mag * (w_diff).cross(r_a) / 
+                    //     (w_diff).cross(r_a).norm();
+                    /////////////////////////////////////
+                    // if (O.mu_scale)
+                    // {
+                    //     if (O.u_scale[e]*u_r > O.max_mu)
+                    //     {
+                    //         rollForceA = 
+                    //             -O.max_mu * elastic_force_A_mag * (w_diff).cross(r_a) / 
+                    //             (w_diff).cross(r_a).norm();
+                    //     }
+                    //     else
+                    //     {
+                    //         rollForceA = 
+                    //             -O.u_scale[e] * u_r * elastic_force_A_mag * (w_diff).cross(r_a) / 
+                    //             (w_diff).cross(r_a).norm();
+                    //     }
+                    // }
+                    // else
+                    // {
+                        rollForceA = 
+                            -u_r * elastic_force_A_mag * (w_diff).cross(r_a) / 
+                            (w_diff).cross(r_a).norm();
+                    // }
+                    /////////////////////////////////////
                 }
                 //////////////////////////////////////
-                O.rollForce[A] += rollForceA;
-                O.rollForce[B] -= rollForceA;
+                // O.rollForce[A] += rollForceA;
+                // O.rollForce[B] -= rollForceA;
                 //////////////////////////////////////
 
                 /////////////////////////////////
@@ -433,8 +485,8 @@ sim_one_step(const bool write_step, Ball_group &O)
                 // torqueB = r_b.cross(slideForceOnA + rollForceA); // test code
                 //////////////////////////////////////
                 //////////////////////////////////////
-                O.torqueForce[A] += torqueA;
-                O.torqueForce[B] += torqueB;
+                // O.torqueForce[twoDtoOneD(A,B,O.num_particles)] = torqueA;
+                // O.torqueForce[twoDtoOneD(B,A,O.num_particles)] = torqueB;
                 //////////////////////////////////////
 
                 O.aacc[A] += torqueA / O.moi[A];
@@ -442,6 +494,7 @@ sim_one_step(const bool write_step, Ball_group &O)
 
                 if (write_step) {
                     // No factor of 1/2. Includes both spheres:
+                    // O.PE += -G * O.m[A] * O.m[B] * grav_scale / dist + 0.5 * k * overlap * overlap;
                     // O.PE += -G * O.m[A] * O.m[B] / dist + 0.5 * k * overlap * overlap;
 
                     // Van Der Waals + elastic:
@@ -454,13 +507,14 @@ sim_one_step(const bool write_step, Ball_group &O)
                         -Ha / 6 *
                         (two_RaRb / denom_sum + two_RaRb / denom_diff + 
                         log(denom_sum / denom_diff));
-                    O.PE += U_vdw + 0.5 * k * overlap * overlap;
+                    O.PE += U_vdw + 0.5 * k * overlap * overlap; ///TURN ON FOR REAL SIM
                 }
             } else  // Non-contact forces:
             {
-                // No collision: Include gravity and vdw:
-                // const vec3 gravForceOnA = (G * O.m[A] * O.m[B] / (dist * dist)) * (rVecab / dist);
 
+                // No collision: Include gravity and vdw:
+                // const vec3 gravForceOnA = (G * O.m[A] * O.m[B] * grav_scale / (dist * dist)) * (rVecab / dist);
+                const vec3 gravForceOnA = {0.0,0.0,0.0};
                 // Cohesion (non-contact) h must be positive or h + Ra + Rb becomes catastrophic cancellation:
                 double h = std::fabs(overlap);
                 if (h < h_min)  // If h is closer to 0 (almost touching), use hmin.
@@ -477,13 +531,21 @@ sim_one_step(const bool write_step, Ball_group &O)
                                                            (h2 + twoRah + twoRbh + 4 * Ra * Rb) *
                                                            (h2 + twoRah + twoRbh + 4 * Ra * Rb))) *
                                          rVecab.normalized();
+                // const vec3 vdwForceOnA = {0.0,0.0,0.0};
                 /////////////////////////////
-                O.vdwForce[A] += vdwForceOnA;
-                O.vdwForce[B] -= vdwForceOnA;
+                if (O.write_all)
+                {
+                    O.vdwForce[A] += vdwForceOnA;
+                    O.vdwForce[B] -= vdwForceOnA;
+                }
                 /////////////////////////////
-                totalForceOnA = vdwForceOnA;  // +gravForceOnA;
+                /////////////////////////////
+                totalForceOnA = vdwForceOnA + gravForceOnA;
+                // totalForceOnA = vdwForceOnA;
+                // totalForceOnA = gravForceOnA;
+                /////////////////////////////
                 if (write_step) {
-                    // O.PE += -G * O.m[A] * O.m[B] / dist; // Gravitational
+                    // O.PE += -G * O.m[A] * O.m[B] * grav_scale / dist; // Gravitational
 
                     const double diffRaRb = O.R[A] - O.R[B];
                     const double z = sumRaRb + h;
@@ -493,7 +555,7 @@ sim_one_step(const bool write_step, Ball_group &O)
                     const double U_vdw =
                         -Ha / 6 *
                         (two_RaRb / denom_sum + two_RaRb / denom_diff + log(denom_sum / denom_diff));
-                    O.PE += U_vdw;  // Van Der Waals
+                    O.PE += U_vdw;  // Van Der Waals TURN ON FOR REAL SIM
                 }
 
                 // todo this is part of push_apart. Not great like this.
@@ -591,6 +653,7 @@ sim_one_step(const bool write_step, Ball_group &O)
 
     if (write_step) {
         ballBuffer << '\n';  // Prepares a new line for incoming data.
+        // std::cerr<<"Writing "<<O.num_particles<<" balls"<<std::endl;
     }
 
     // THIRD PASS - Calculate velocity for next step:
@@ -605,6 +668,7 @@ sim_one_step(const bool write_step, Ball_group &O)
         /////////////////////////////////
         if (write_step) {
             // Send positions and rotations to buffer:
+            // std::cerr<<"Write ball "<<Ball<<std::endl;
             if (Ball == 0) {
                 ballBuffer << O.pos[Ball][0] << ',' << O.pos[Ball][1] << ',' << O.pos[Ball][2] << ','
                            << O.w[Ball][0] << ',' << O.w[Ball][1] << ',' << O.w[Ball][2] << ','
@@ -673,7 +737,10 @@ sim_looper(Ball_group &O)
 
         // Physics integration step:
         ///////////
-        O.zeroSaveVals();
+        if (O.write_all)
+        {
+            O.zeroSaveVals();
+        }
         ///////////
         sim_one_step(writeStep,O);
 
@@ -701,8 +768,9 @@ sim_looper(Ball_group &O)
         // }
         ///////////////////////////////////////
         //////////////////////////////////////
-        if (contact)
+        if (contact and inital_contact)
         {
+            inital_contact = false;
             std::ofstream contact_write;
             contact_write.open(output_folder + "contact.csv", std::ofstream::app);
             contact_write << contactBuffer.rdbuf();  // Barf buffer to file.
@@ -710,56 +778,100 @@ sim_looper(Ball_group &O)
             contact_write.close();
         }
         //////////////////////////////////////
-        //////////////////////////////////////
-        std::ofstream vdwWrite;
-        vdwWrite.open(output_folder + output_prefix + "vdwData.csv", std::ofstream::app);
-        vdwWrite<<O.vdwForce[0][0]<<','<<O.vdwForce[0][1]<<','<<O.vdwForce[0][0]<<',';
-        for (int i = 1; i < O.num_particles; ++i)
+        if (O.write_all)
         {
-            vdwWrite<<','<<O.vdwForce[i][0]<<','<<O.vdwForce[i][1]<<','<<O.vdwForce[i][0];
-        }
-        vdwWrite << '\n';  
-        vdwWrite.close();
+            //////////////////////////////////////
+            std::ofstream vdwWrite;
+            vdwWrite.open(output_folder + output_prefix + "vdwData.csv", std::ofstream::app);
+            vdwWrite<<O.vdwForce[0][0]<<','<<O.vdwForce[0][1]<<','<<O.vdwForce[0][0];
+            for (int i = 1; i < O.num_particles; ++i)
+            {
+                vdwWrite<<','<<O.vdwForce[i][0]<<','<<O.vdwForce[i][1]<<','<<O.vdwForce[i][2];
+            }
+            vdwWrite << '\n';  
+            vdwWrite.close();
 
-        std::ofstream elasticWrite;
-        elasticWrite.open(output_folder + output_prefix + "elasticData.csv", std::ofstream::app);
-        elasticWrite<<O.elasticForce[0][0]<<','<<O.elasticForce[0][1]<<','<<O.elasticForce[0][0]<<',';
-        for (int i = 1; i < O.num_particles; ++i)
-        {
-            elasticWrite<<','<<O.elasticForce[i][0]<<','<<O.elasticForce[i][1]<<','<<O.elasticForce[i][0];
-        }
-        elasticWrite << '\n';  
-        elasticWrite.close();
+            std::ofstream distWrite;
+            distWrite.open(output_folder + output_prefix + "distData.csv", std::ofstream::app);
+            int dist_length = (O.num_particles * O.num_particles / 2) - (O.num_particles / 2);
+            distWrite<<O.distances[0];
+            for (int i = 1; i < dist_length; ++i)
+            {
+                distWrite<<','<<O.distances[i];
+            }
+            distWrite << '\n';  
+            distWrite.close();
 
-        std::ofstream slideWrite;
-        slideWrite.open(output_folder + output_prefix + "slideData.csv", std::ofstream::app);
-        slideWrite<<O.slideForce[0][0]<<','<<O.slideForce[0][1]<<','<<O.slideForce[0][0]<<',';
-        for (int i = 1; i < O.num_particles; ++i)
-        {
-            slideWrite<<','<<O.slideForce[i][0]<<','<<O.slideForce[i][1]<<','<<O.slideForce[i][0];
-        }
-        slideWrite << '\n';  
-        slideWrite.close();
+            // std::ofstream elasticWrite;
+            // elasticWrite.open(output_folder + output_prefix + "elasticData.csv", std::ofstream::app);
+            // elasticWrite<<O.elasticForce[0][0]<<','<<O.elasticForce[0][1]<<','<<O.elasticForce[0][2];
+            // for (int i = 1; i < O.num_particles; ++i)
+            // {
+            //     elasticWrite<<','<<O.elasticForce[i][0]<<','<<O.elasticForce[i][1]<<','<<O.elasticForce[i][2];
+            // }
+            // elasticWrite << '\n';  
+            // elasticWrite.close();
 
-        std::ofstream rollWrite;
-        rollWrite.open(output_folder + output_prefix + "rollData.csv", std::ofstream::app);
-        rollWrite<<O.rollForce[0][0]<<','<<O.rollForce[0][1]<<','<<O.rollForce[0][0]<<',';
-        for (int i = 1; i < O.num_particles; ++i)
-        {
-            rollWrite<<','<<O.rollForce[i][0]<<','<<O.rollForce[i][1]<<','<<O.rollForce[i][0];
-        }
-        rollWrite << '\n';  
-        rollWrite.close();
+            // std::ofstream slideWrite;
+            // slideWrite.open(output_folder + output_prefix + "slideData.csv", std::ofstream::app);
+            // slideWrite<<O.slideForce[0][0]<<','<<O.slideForce[0][1]<<','<<O.slideForce[0][2];
+            // for (int i = 1; i < O.num_particles*O.num_particles; ++i)
+            // {
+            //     slideWrite<<','<<O.slideForce[i][0]<<','<<O.slideForce[i][1]<<','<<O.slideForce[i][2];
+            // }
+            // slideWrite << '\n';  
+            // slideWrite.close();
 
-        std::ofstream torqueWrite;
-        torqueWrite.open(output_folder + output_prefix + "torqueData.csv", std::ofstream::app);
-        torqueWrite<<O.torqueForce[0][0]<<','<<O.torqueForce[0][1]<<','<<O.torqueForce[0][0]<<',';
-        for (int i = 1; i < O.num_particles; ++i)
-        {
-            torqueWrite<<','<<O.torqueForce[i][0]<<','<<O.torqueForce[i][1]<<','<<O.torqueForce[i][0];
+            // std::ofstream rollWrite;
+            // rollWrite.open(output_folder + output_prefix + "rollData.csv", std::ofstream::app);
+            // rollWrite<<O.rollForce[0][0]<<','<<O.rollForce[0][1]<<','<<O.rollForce[0][2];
+            // for (int i = 1; i < O.num_particles*O.num_particles; ++i)
+            // {
+            //     rollWrite<<','<<O.rollForce[i][0]<<','<<O.rollForce[i][1]<<','<<O.rollForce[i][2];
+            // }
+            // rollWrite << '\n';  
+            // rollWrite.close();
+
+            // std::ofstream torqueWrite;
+            // torqueWrite.open(output_folder + output_prefix + "torqueData.csv", std::ofstream::app);
+            // torqueWrite<<O.torqueForce[0][0]<<','<<O.torqueForce[0][1]<<','<<O.torqueForce[0][2];
+            // for (int i = 1; i < O.num_particles*O.num_particles; ++i)
+            // {
+            //     torqueWrite<<','<<O.torqueForce[i][0]<<','<<O.torqueForce[i][1]<<','<<O.torqueForce[i][2];
+            // }
+            // torqueWrite << '\n';  
+            // torqueWrite.close();
+
+            // std::ofstream wWrite;
+            // wWrite.open(output_folder + output_prefix + "wData.csv", std::ofstream::app);
+            // wWrite<<O.w[0][0]<<','<<O.w[0][1]<<','<<O.w[0][2];
+            // for (int i = 1; i < O.num_particles; ++i)
+            // {
+            //     wWrite<<','<<O.w[i][0]<<','<<O.w[i][1]<<','<<O.w[i][2];
+            // }
+            // wWrite << '\n';  
+            // wWrite.close();
+
+            // std::ofstream posWrite;
+            // posWrite.open(output_folder + output_prefix + "posData.csv", std::ofstream::app);
+            // posWrite<<O.pos[0][0]<<','<<O.pos[0][1]<<','<<O.pos[0][2];
+            // for (int i = 1; i < O.num_particles; ++i)
+            // {
+            //     posWrite<<','<<O.pos[i][0]<<','<<O.pos[i][1]<<','<<O.pos[i][2];
+            // }
+            // posWrite << '\n';  
+            // posWrite.close();
+
+            // std::ofstream velWrite;
+            // velWrite.open(output_folder + output_prefix + "velData.csv", std::ofstream::app);
+            // velWrite<<O.vel[0][0]<<','<<O.vel[0][1]<<','<<O.vel[0][2];
+            // for (int i = 1; i < O.num_particles; ++i)
+            // {
+            //     velWrite<<','<<O.vel[i][0]<<','<<O.vel[i][1]<<','<<O.vel[i][2];
+            // }
+            // velWrite << '\n';  
+            // velWrite.close();
         }
-        torqueWrite << '\n';  
-        torqueWrite.close();
         //////////////////////////////////////
         
 
@@ -899,3 +1011,8 @@ safetyChecks(Ball_group &O)
 //	kin = O.getMassMax() * vel * vel / (.1 * O.R[0] * .1 * O.R[0]);
 //	kout = cor * kin;
 //}
+
+inline int twoDtoOneD(const int row, const int col, const int width)
+{
+    return width * row + col;
+}
