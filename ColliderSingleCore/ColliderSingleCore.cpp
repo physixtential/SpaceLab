@@ -41,6 +41,8 @@ Ball_group
 make_group(const char *argv1,int* restart);
 inline int 
 twoDtoOneD(const int row, const int col, const int width);
+void 
+BPCA(Ball_group &O, int start, int num_balls, timey t);
 /// @brief The ballGroup run by the main sim looper.
 // Ball_group O(output_folder, projectileName, targetName, v_custom); // Collision
 // Ball_group O(path, targetName, 0);  // Continue
@@ -78,8 +80,9 @@ main(const int argc, char const* argv[])
     {
         num_balls = 100;
     }
-    Ball_group O = make_group(argv[1],restart);    
 
+    
+    Ball_group O = make_group(argv[1],restart);    
     // O.zeroAngVel();
     // O.pushApart();
     safetyChecks(O);
@@ -87,11 +90,28 @@ main(const int argc, char const* argv[])
     // Normal sim:
     // O.sim_init_write(output_prefix);
     // sim_looper();
+    // BPCA(O,*restart,num_balls,t);
+    collider();
 
+    
+    t.end_event("WholeThing");
+    t.print_events();
+    t.save_events(output_folder + "timing.txt");
+}  // end main
+//////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////
 
+void collider(Ball_group &O)
+{
+    return;
+}
+
+void BPCA(Ball_group &O, int start, int num_balls, timey t)
+{
     // Add projectile: For dust formation BPCA
     std::string ori_output_prefix = output_prefix;
-    for (int i = *restart; i < num_balls; i++) {
+    for (int i = start; i < num_balls; i++) {
     // for (int i = 0; i < 250; i++) {
         // O.zeroAngVel();
         // O.zeroVel();
@@ -104,13 +124,8 @@ main(const int argc, char const* argv[])
         sim_looper(O);
         simTimeElapsed = 0;
     }
-    t.end_event("WholeThing");
-    t.print_events();
-    t.save_events(output_folder + "timing.txt");
-}  // end main
-//////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////
+}
+
 
 //@brief sets Ball_group object based on the need for a restart or not
 Ball_group make_group(const char *argv1,int* restart)

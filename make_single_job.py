@@ -21,7 +21,7 @@ if __name__ == '__main__':
 		
 	job_set_name = "lognorm_radius_test"
 	job_set_name = "writeTest"
-	job_set_name = "calibrateTest"
+	job_set_name = "test"
 	# folder_name_scheme = "T_"
 
 	runs_at_once = 1
@@ -55,7 +55,7 @@ if __name__ == '__main__':
 				input_json['h_min'] = 0.5
 				input_json['u_s'] = 0.5
 				input_json['u_r'] = 0.5
-				input_json['note'] = "calibrate_dt(v)), "
+				input_json['note'] = "testing"
 				####################################
 
 				with open(job + "input.json",'w') as fp:
