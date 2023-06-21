@@ -76,7 +76,7 @@ public:
     double* R = nullptr;    ///< Radius
     double* m = nullptr;    ///< Mass
     double* moi = nullptr;  ///< Moment of inertia
-    double* u_scale = nullptr; ///ADD TO COPY CONSTRUCTOR, ETC
+    // double* u_scale = nullptr; ///ADD TO COPY CONSTRUCTOR, ETC
     
 
     ///////////////////////////
@@ -99,6 +99,8 @@ public:
     // vec3* torqueForce = nullptr;
     // }
     ///////////////////////////
+
+    Ball_group() = default;
 
     explicit Ball_group(const int nBalls);
     explicit Ball_group(const std::string& path, const std::string& filename, const double& customVel, int start_file_index);
@@ -136,9 +138,6 @@ public:
     Ball_group add_projectile();
     void merge_ball_group(const Ball_group& src);
     
-    Ball_group() = default;
-
-
 private:
     // String buffers to hold data in memory until worth writing to file:
     std::stringstream ballBuffer;
@@ -227,12 +226,14 @@ Ball_group::Ball_group(
     const std::string& path,
     const std::string& projectileName,
     const std::string& targetName,
-    const double& customVel)
+    const double& customVel=-1.)
 {
-    std::cerr<<path<<std::endl;
+    parse_input_file(path.c_str());
+    // std::cerr<<path<<std::endl;
     sim_init_two_cluster(path, projectileName, targetName);
     calc_v_collapse();
-    calibrate_dt(0, customVel);
+    if (customVel > 0){calibrate_dt(0, customVel);}
+    else {calibrate_dt(0, v_custom);}
     simInit_cond_and_center(true);
 }
 

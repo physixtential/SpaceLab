@@ -42,7 +42,9 @@ make_group(const char *argv1,int* restart);
 inline int 
 twoDtoOneD(const int row, const int col, const int width);
 void 
-BPCA(Ball_group &O, int start, int num_balls, timey t);
+BPCA(const char *path, int num_balls);
+void 
+collider(const char *path, const char *projectileName,const char *targetName);
 /// @brief The ballGroup run by the main sim looper.
 // Ball_group O(output_folder, projectileName, targetName, v_custom); // Collision
 // Ball_group O(path, targetName, 0);  // Continue
@@ -60,8 +62,7 @@ main(const int argc, char const* argv[])
     t.start_event("WholeThing");
     energyBuffer.precision(12);  // Need more precision on momentum.
     int num_balls;
-    int rest = -1;
-    int *restart = &rest;
+    
     
     
     // Runtime arguments:
@@ -81,18 +82,15 @@ main(const int argc, char const* argv[])
         num_balls = 100;
     }
 
-    
-    Ball_group O = make_group(argv[1],restart);    
+
     // O.zeroAngVel();
     // O.pushApart();
-    safetyChecks(O);
 
     // Normal sim:
     // O.sim_init_write(output_prefix);
     // sim_looper();
-    // BPCA(O,*restart,num_balls,t);
-    collider();
-
+    // BPCA(argv[1],num_balls);
+    collider(argv[1],argv[2],argv[3]);
     
     t.end_event("WholeThing");
     t.print_events();
@@ -102,16 +100,26 @@ main(const int argc, char const* argv[])
 //////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////
 
-void collider(Ball_group &O)
+void collider(const char *path, const char *projectileName,const char *targetName)
 {
+    t.start_event("collider");
+    Ball_group O = Ball_group(std::string(path),std::string(projectileName),std::string(targetName));
+    safetyChecks(O);
+    sim_looper(O);
+    t.end_event("collider");
+    O.freeMemory();
     return;
 }
 
-void BPCA(Ball_group &O, int start, int num_balls, timey t)
+void BPCA(const char *path, int num_balls)
 {
+    int rest = -1;
+    int *restart = &rest;
+    Ball_group O = make_group(path,restart);    
+    safetyChecks(O);
     // Add projectile: For dust formation BPCA
     std::string ori_output_prefix = output_prefix;
-    for (int i = start; i < num_balls; i++) {
+    for (int i = *restart; i < num_balls; i++) {
     // for (int i = 0; i < 250; i++) {
         // O.zeroAngVel();
         // O.zeroVel();
@@ -124,6 +132,8 @@ void BPCA(Ball_group &O, int start, int num_balls, timey t)
         sim_looper(O);
         simTimeElapsed = 0;
     }
+    O.freeMemory();
+    return;
 }
 
 
