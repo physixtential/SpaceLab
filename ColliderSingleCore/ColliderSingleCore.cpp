@@ -90,7 +90,9 @@ main(const int argc, char const* argv[])
     // O.sim_init_write(output_prefix);
     // sim_looper();
     // BPCA(argv[1],num_balls);
-    collider(argv[1],argv[2],argv[3]);
+    // collider(argv[1],argv[2],argv[3]);
+    const char* projTarget = "299_2_R4e-05_v4e-01_cor0.63_mu0.1_rho2.25_k4e+00_Ha5e-12_dt5e-10_";
+    collider(argv[1],projTarget,projTarget);
     
     t.end_event("WholeThing");
     t.print_events();
@@ -107,7 +109,7 @@ void collider(const char *path, const char *projectileName,const char *targetNam
     safetyChecks(O);
     sim_looper(O);
     t.end_event("collider");
-    O.freeMemory();
+    // O.freeMemory();
     return;
 }
 
@@ -132,7 +134,7 @@ void BPCA(const char *path, int num_balls)
         sim_looper(O);
         simTimeElapsed = 0;
     }
-    O.freeMemory();
+    // O.freeMemory();
     return;
 }
 

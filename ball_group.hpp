@@ -76,7 +76,7 @@ public:
     double* R = nullptr;    ///< Radius
     double* m = nullptr;    ///< Mass
     double* moi = nullptr;  ///< Moment of inertia
-    // double* u_scale = nullptr; ///ADD TO COPY CONSTRUCTOR, ETC
+    double* u_scale = nullptr; ///ADD TO COPY CONSTRUCTOR, ETC
     
 
     ///////////////////////////

@@ -21,7 +21,7 @@ if __name__ == '__main__':
 		
 	job_set_name = "lognorm_radius_test"
 	job_set_name = "writeTest"
-	job_set_name = "test"
+	job_set_name = "collideTest"
 	# folder_name_scheme = "T_"
 
 	runs_at_once = 1
