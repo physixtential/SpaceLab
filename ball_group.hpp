@@ -1,7 +1,7 @@
 #pragma once
 #include "dust_const_init.hpp"
 // #include "dust_const.hpp"
-#include "json/single_include/nlohmann/json.hpp"
+#include "external/single_include/nlohmann/json.hpp"
 #include "vec3.hpp"
 #include "linalg.hpp"
 #include "Utils.hpp"
@@ -33,6 +33,9 @@ public:
     std::string out_folder;
     int num_particles = 0;
     int num_particles_added = 0;
+
+    std::string targetName;
+    std::string projectileName;
 
     int seed = -1;
     int output_width = -1;
@@ -1646,6 +1649,7 @@ void Ball_group::parseSimData(std::string line)
     std::string lineElement;
     // Get number of balls in file
     int count = 54 / properties;
+    num_particles = static_cast<int>((static_cast<int>(std::count(line.begin(), line.end(), ',')) + 1)/11);
     if (num_particles > 0)
     {
         count = num_particles;
@@ -2145,6 +2149,10 @@ void Ball_group::sim_init_two_cluster(
     projectile.loadSim(path, projectileName);
     Ball_group target;
     target.loadSim(path, targetName);
+
+    num_particles = projectile.num_particles + target.num_particles;
+    
+    std::cerr<<"Total number of particles in sim: "<<num_particles<<std::endl;
 
     // DO YOU WANT TO STOP EVERYTHING?
     // projectile.zeroAngVel();

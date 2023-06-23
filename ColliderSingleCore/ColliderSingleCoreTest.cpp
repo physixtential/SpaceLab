@@ -82,16 +82,16 @@ main(const int argc, char const* argv[])
         num_balls = 100;
     }
 
-    // Ball_group dummy(1);
-    // dummy.parse_input_file(argv[1]);
+    Ball_group dummy(1);
+    dummy.parse_input_file(argv[1]);
     // O.zeroAngVel();
     // O.pushApart();
 
     // Normal sim:
     // O.sim_init_write(output_prefix);
     // sim_looper();
-    BPCA(argv[1],num_balls);
-    // collider(argv[1],dummy.projectileName,dummy.targetName);
+    // BPCA(argv[1],num_balls);
+    collider(argv[1],dummy.projectileName,dummy.targetName);
 
     // collider(argv[1],projTarget,projTarget);
     
@@ -108,7 +108,6 @@ void collider(const char *path, std::string projectileName, std::string targetNa
     t.start_event("collider");
     Ball_group O = Ball_group(std::string(path),std::string(projectileName),std::string(targetName));
     safetyChecks(O);
-    O.sim_init_write(output_prefix);
     sim_looper(O);
     t.end_event("collider");
     // O.freeMemory();
@@ -121,7 +120,7 @@ void BPCA(const char *path, int num_balls)
     int *restart = &rest;
     Ball_group O = make_group(path,restart);    
     safetyChecks(O);
-    // Add projectile: For dust formation BPCA
+    // Add projectile: For dust formation BPCA 
     std::string ori_output_prefix = output_prefix;
     for (int i = *restart; i < num_balls; i++) {
     // for (int i = 0; i < 250; i++) {
