@@ -297,7 +297,7 @@ sim_one_step(const bool write_step, Ball_group &O)
 
     /// SECOND PASS - Check for collisions, apply forces and torques:
     t.start_event("CalcForces/loopApplicablepairs");
-    for (int A = 1; A < O.num_particles; A++)  // cuda
+    for (int A = 1; A < O.num_particles; A++)  
     {
         /// DONT DO ANYTHING HERE. A STARTS AT 1.
         for (int B = 0; B < A; B++) {

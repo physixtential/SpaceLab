@@ -1,6 +1,4 @@
 import numpy as np
-import random
-from scipy.spatial.transform import Rotation as R
 import os,glob
 import sys
 import json
@@ -63,29 +61,14 @@ def plot(verts,center,radius):
 	# ax.plot_wireframe(x, y, z, color="r")
 	plt.show()
 
-def get_data_file(data_folder,data_index=-1):
-	files = os.listdir(data_folder)
-
-	try:
-		file_indicies = np.array([file.split('_')[0] for file in files\
-					if file.endswith("simData.csv")],dtype=np.int64)
- 
-	except: 
-		files = [file for file in files if file.endswith('simData.csv')]
-		files = [file for file in files if '_' in file]
-		file_indicies = np.array([int(file.split('_')[0]) for file in files],dtype=np.int64)
-	# 	file_indicies = 
-	# 	print(files)
-
-	if data_index == -1:
-		index = np.max(file_indicies)
-	else:
-		index = data_index
-
-	# print("index: {}".format(index))
+def get_data_file(data_folder):
+	files = os.listdir(data_folder) 
+	file_indicies = np.array([file.split("_")[0] for file in files\
+							if file.endswith('simData.csv')],dtype=np.int64)
+	max_index = np.max(file_indicies)
 
 	data_file = [file for file in files \
-				if file.endswith("simData.csv") and file.startswith(str(index))]
+				if file.endswith("simData.csv") and file.startswith(str(max_index))]
 	
 	if len(data_file) == 1:
 		return data_file[0]
@@ -94,20 +77,14 @@ def get_data_file(data_folder,data_index=-1):
 		print("Now exiting.")
 		exit(-1)
 
-def get_last_line_data(data_folder,data_index=-1):
+def get_last_line_data(data_folder):
 	# data_headers = np.loadtxt(data_folder + data_file,skiprows=0,dtype=str,delimiter=',')[0]
-	data_file = get_data_file(data_folder,data_index)
-	try:
-		data = np.loadtxt(data_folder + data_file,skiprows=1,dtype=float,delimiter=',')[-1]
-	except Exception as e:
-		print("ERROR CAUGHT in folder: {}".format(data_folder))
-		print(e)
-		return None
-	# print(data)
+	data_file = get_data_file(data_folder)
+	data = np.loadtxt(data_folder + data_file,skiprows=1,dtype=float,delimiter=',')[-1]
 	return format_data(data)
 
-def get_constants(data_folder,data_index=-1):
-	data_file = get_data_file(data_folder,data_index)
+def get_constants(data_folder):
+	data_file = get_data_file(data_folder)
 	data_file = data_file.replace('simData','constants')	
 	data_constants = np.loadtxt(data_folder+data_file,skiprows=0,dtype=float,delimiter=',')[0]
 	return data_constants[0],data_constants[1],data_constants[2]
@@ -117,27 +94,27 @@ def format_data(data):
 	data = data[:,:3]
 	return data
 
-def get_data(data_folder,data_index=-1):
+def get_data(data_folder):
 	if data_folder == '/home/kolanzl/Desktop/bin/merger.csv':
 		data = np.loadtxt(data_folder,delimiter=',')
 		radius = 1
 		mass = 1
 		moi = 1
 	else:
-		data_file = get_data_file(data_folder,data_index)
-		radius,mass,moi = get_constants(data_folder,data_index)
-		data = get_last_line_data(data_folder,data_index)
+		data_file = get_data_file(data_folder)
+		radius,mass,moi = get_constants(data_folder)
+		data = get_last_line_data(data_folder)
 	return data,radius,mass,moi
 
-def get_data_range(data_folder,data_index=-1):
+def get_data_range(data_folder):
 	if data_folder == '/home/kolanzl/Desktop/bin/merger.csv':
 		data = np.loadtxt(data_folder,delimiter=',')
 		radius = 1
 		mass = 1
 		moi = 1
 	else:
-		data = get_last_line_data(data_folder,data_index)
-		radius,m,moi = get_constants(data_folder,data_index)
+		data = get_last_line_data(data_folder)
+		radius,m,moi = get_constants(data_folder)
 
 	max_x = np.max(data[:,0]) + radius
 	min_x = np.min(data[:,0]) - radius
@@ -290,25 +267,21 @@ def dist(pt1,pt2):
 class datamgr(object):
 	"""docstring for datamgr"""
 	# def __init__(self, data_folder,voxel_buffer=5,ppb=3000):
-	def __init__(self, data_folder,index=-1,ppb=30000,Temp=-1):
+	def __init__(self, data_folder,ppb=30000):
 		super(datamgr, self).__init__()
 		self.data_folder = data_folder
-		self.index = index
-		if data_folder != '/home/kolanzl/Desktop/bin/merger.csv' and Temp < 0:
+		if data_folder != '/home/kolanzl/Desktop/bin/merger.csv':
 			self.Temp = int(self.data_folder.split('/')[-2].strip('T_'))
-		else:
-			self.Temp = Temp
 		#how many points in single ball pointcloud shell
 		self.ppb = ppb
-		self.data,self.radius,self.mass,self.moi = get_data(self.data_folder,self.index)
+		self.data,self.radius,self.mass,self.moi = get_data(self.data_folder)
 		self.nBalls = self.data.shape[0]
 		# self.buffer = voxel_buffer # how many extra voxels in each direction 
-		self.data_range = get_data_range(self.data_folder,self.index)
+		self.data_range = get_data_range(self.data_folder)
 
 	def shift_to_first_quad(self,data_range=None):
 		if data_range is None:
-			data_range = get_data_range(self.data_folder,self.index)
-		# print("SHIFTED")
+			data_range = get_data_range(self.data_folder)
 
 		self.data[:,0] -= data_range[1] 
 		self.data[:,1] -= data_range[3] 
@@ -322,50 +295,7 @@ class datamgr(object):
 		# print(self.vox_per_radius)
 		# self.vox_rep = np.zeros((num_vox+self.buffer*2,num_vox+self.buffer*2,num_vox+self.buffer*2))
 
-	#Function written by chatGPT
-	def rotation_matrix(v1, v2):
-	    """
-	    Returns the rotation matrix between two vectors v1 and v2.
-	    Both v1 and v2 must be numpy arrays with the same shape.
-
-	    :param v1: First vector
-	    :param v2: Second vector
-	    :return: Rotation matrix
-	    """
-	    v1 = np.array(v1)
-	    v2 = np.array(v2)
-	    if v1.shape != v2.shape:
-	        raise ValueError("Both vectors must have the same shape.")
-	    v1 = v1 / np.linalg.norm(v1)
-	    v2 = v2 / np.linalg.norm(v2)
-	    v = np.cross(v1, v2)
-	    s = np.linalg.norm(v)
-	    c = np.dot(v1, v2)
-	    vx = np.array([[0, -v[2], v[1]], [v[2], 0, -v[0]], [-v[1], v[0], 0]])
-	    rotation_matrix = np.eye(v1.shape[0]) + vx + np.dot(vx, vx) * ((1 - c) / (s ** 2))
-	    return rotation_matrix
-
-	def orient_data(self):
-		max_lengsq = -1
-		pt1 = []
-		pt2 = []
-		for i,p1 in enumerate(self.data):
-			for j,p2 in enumerate(self.data):
-				if i != j:
-					lengsq = (p1[0]-p2[0])**2 + (p1[1]-p2[1])**2 + (p1[2]-p2[2])**2
-					if max_lengsq < lengsq:
-						max_lengsq = lengsq
-						pt1 = p1
-						pt2 = p2
-		print(max_lengsq)
-		print(pt1)
-		print(pt2)
-
 	def gen_whole_pt_cloud(self):
-		# self.orient_data()
-		# exit(0)
-		self.shift_to_first_quad()
-
 		radii = np.linspace(self.radius/100,self.radius,100)
 
 		accum = [self.ppb*(radius**2/self.radius**2) for radius in radii]
@@ -405,8 +335,8 @@ class datamgr(object):
 class o3doctree(object):
 	"""docstring for o3doctree"""
 	def __init__(self, data_folder=None,ppb=30000,verbose=False,overwrite_data=False, \
-				visualize_pcd=False, visualize_octree=False, index=-1,Temp=-1):
 	# def __init__(self, data_folder, max_depth=8,ppb=600000,verbose=False):
+				visualize_pcd=False, visualize_octree=False):
 		super(o3doctree, self).__init__()
 		self.data_folder = data_folder
 		self.ppb = ppb
@@ -415,14 +345,11 @@ class o3doctree(object):
 		self.visualize_pcd = visualize_pcd
 		self.visualize_octree = visualize_octree
 		self.bestfitlen = 4
-		self.index = index
-		if Temp > 0:
-			self.Temp = Temp
 
 
 	def make_tree(self):
 
-		self.dm = datamgr(self.data_folder,self.index,self.ppb,Temp=self.Temp)
+		self.dm = datamgr(self.data_folder,self.ppb)
 
 		bounds = [self.dm.data_range[0]-self.dm.data_range[1],self.dm.data_range[2]-self.dm.data_range[3],self.dm.data_range[4]-self.dm.data_range[5]]
 		max_bound = max(bounds) + 2*self.dm.radius
@@ -439,42 +366,12 @@ class o3doctree(object):
 		oct_file = self.data_folder + "octree_ppb-{}".format(self.ppb)
 		fractdim_data_file = self.data_folder + "fractdim_ppb-{}.csv".format(self.ppb)
 		
-		make_data = False
-		try:
-			print("Loading FD data for :{}".format(fractdim_data_file))
-			d = np.loadtxt(fractdim_data_file, delimiter=',')
-			# print(d)
-			# print(np.sum(d[:,1]))
-			if np.sum(d[:,1]) == 0:
-				print("Data needs recomputing")
-				os.remove(fractdim_data_file)
-				make_data = True
-			else:
-				with open(fractdim_data_file,'r') as f:
-					header = f.readline()
-				self.octree_size = float(header.strip('\n').strip('# '))
-				self.s_data = d[:,0]
-				self.Ns_data = d[:,1]
-
-			# with open(fractdim_data_file,'r') as f:
-			# 	data = f.readlines()
-			# 	print(data)
-			# if len(data) == 0:
-			# 	make_data = True
-			# if np.sum(d[:,0]) == 0:
-		# except IOError:
-		except:
-			# print("Computing data for :{}".format(fractdim_data_file))
-			make_data = True
-
-		octree = []
-		if make_data or self.overwrite_data:
+		if not os.path.isfile(fractdim_data_file) or self.overwrite_data:
 			octverb = ''
-			print("Generating FD data for :{}".format(fractdim_data_file))
 			if os.path.isfile(oct_file) and not self.overwrite_data:
 				octstart = time.process_time()
 				octverb = 'Getting'
-				octree = o3d.io.read_octree(oct_file)
+				self.octree = o3d.io.read_octree(oct_file)
 				if self.visualize_octree:
 					self.show_octree(self.verbose)
 			else:
@@ -483,22 +380,11 @@ class o3doctree(object):
 				
 				pcdverb = ''
 				# if os.path.isfile(pcd_file):
-				pcd = []
-				make_pcd_data = False
-				try:
-					with open(pcd_file,'r') as f:
-						data = f.readlines()
-						if len(data) == 0:
-							make_pcd_data = True
-							os.remove(pcd_file)
-				# except IOError:
-				except:
-					make_pcd_data = True
-				if not make_pcd_data and not self.overwrite_data:
+				if os.path.isfile(pcd_file) and not self.overwrite_data:
 					pcdverb = 'Getting'
-					pcd = o3d.io.read_point_cloud(pcd_file)
+					self.pcd = o3d.io.read_point_cloud(pcd_file)
 					if self.visualize_pcd:
-						self.show_pcd(pcd,self.verbose)
+						self.show_pcd(self.verbose)
 				else:
 					pcdverb = 'Making'
 					# radii = np.linspace(self.dm.radius/100,self.dm.radius,100)
@@ -507,12 +393,13 @@ class o3doctree(object):
 					# accum = np.where(accum < 100, 100, accum)
 					point_cloud = self.dm.gen_whole_pt_cloud()
 					# point_cloud = point_cloud[:sum(accum)]
-					pcd = o3d.geometry.PointCloud()
-					pcd.points = o3d.utility.Vector3dVector(point_cloud)
-					pcd.colors = o3d.utility.Vector3dVector(np.random.uniform(0, 1, size=point_cloud.shape))
-					o3d.io.write_point_cloud(pcd_file, pcd)
+					self.pcd = o3d.geometry.PointCloud()
+					self.pcd.points = o3d.utility.Vector3dVector(point_cloud)
+					self.pcd.colors = o3d.utility.Vector3dVector(np.random.uniform(0, 1, size=point_cloud.shape))
+					o3d.io.write_point_cloud(pcd_file, self.pcd)
 					if self.visualize_pcd:
-						self.show_pcd(pcd,self.verbose)
+						self.show_pcd(self.verbose)
+					# o3d.visualization.draw_geometries([self.pcd])
 					# exit(0)
 			
 				if self.verbose:
@@ -522,12 +409,12 @@ class o3doctree(object):
 				octverb = 'Making'
 				octstart = time.process_time()
 
-				octree = o3d.geometry.Octree(max_depth=self.max_depth)
+				self.octree = o3d.geometry.Octree(max_depth=self.max_depth)
 				if self.visualize_octree:
-					self.show_octree(octree,self.verbose)
-				octree.convert_from_point_cloud(pcd, size_expand=0.01)
+					self.show_octree(self.verbose)
+				self.octree.convert_from_point_cloud(self.pcd, size_expand=0.01)
 
-				o3d.io.write_octree(oct_file, octree)
+				o3d.io.write_octree(oct_file, self.octree)
 
 
 			if self.verbose:
@@ -543,7 +430,7 @@ class o3doctree(object):
 			if self.verbose:
 				end = time.process_time()
 				print("Traversing octree took {:.2f}s".format(end-start))
-			octree.traverse(self.f_traverse)
+			self.octree.traverse(self.f_traverse)
 
 			self.s_data = np.zeros((self.max_depth))
 			self.Ns_data = np.zeros((self.max_depth))
@@ -553,39 +440,16 @@ class o3doctree(object):
 			save_data = np.zeros((self.max_depth,2))
 			save_data[:,0] = self.s_data
 			save_data[:,1] = self.Ns_data
-			np.savetxt(fractdim_data_file,save_data, delimiter=',',header=str(octree.size))
-			self.octree_size = octree.size
-		# else:
-			
-	#TODO  This function should find the orientation that minimizes 
-	#	   the original fractal dimension (depth of 1)
-	# def point_orientation(self,point_cloud):
-	# 	# print(point_cloud)
-	# 	# exit(0)
-	# 	i = 0
-	# 	best_i = 0
-	# 	rotations = []
-	# 	pcd = o3d.geometry.PointCloud()
-	# 	while (i < 10):
-	# 		xrot = random.uniform(0,360)
-	# 		yrot = random.uniform(0,360)
-	# 		zrot = random.uniform(0,360)
-	# 		rotation_matrix = R.from_euler('xyz',[xrot,yrot,zrot],degrees=True).as_matrix()
-	# 		rotations.append(rotation_matrix)
-	# 		temp_point_cloud[:] = rotation_matrix @ point_cloud[:]
-	# 		# temp_point_cloud = [rotation_matrix @ i for i in point_cloud]
-	# 		pcd.points = o3d.utility.Vector3dVector(temp_point_cloud)
-	# 		octree = o3d.geometry.Octree(max_depth=1)#check max_depth def
-	# 		octree.convert_from_point_cloud(pcd, size_expand=0.01)#check size_expand def
-	# 		self.tree_info = [0]
-			
-	# 		octree.traverse(self.f_traverse)
-	# 		print(self.tree_info)
-	# 		exit(0)
-	# 		i+=1
-	# 		# print(rotation_matrix.as_matrix())
-	# 	exit(0)
-	# 	return o3d.utility.Vector3dVector(point_cloud)
+			np.savetxt(fractdim_data_file,save_data, delimiter=',',header=str(self.octree.size))
+			self.octree_size = self.octree.size
+		else:
+			with open(fractdim_data_file,'r') as f:
+				header = f.readline()
+			self.octree_size = float(header.strip('\n').strip('# '))
+			d = np.loadtxt(fractdim_data_file, delimiter=',')
+			self.s_data = d[:,0]
+			self.Ns_data = d[:,1]
+
 
 	# def add_menger_points(self,data):
 	# 	dlen = data.shape
@@ -610,12 +474,12 @@ class o3doctree(object):
 		pcd.points = o3d.utility.Vector3dVector(menger_points)
 		pcd.colors = o3d.utility.Vector3dVector(np.random.uniform(0, 1, size=menger_points.shape))
 
-		octree = o3d.geometry.Octree(max_depth=max_depth)
-		octree.convert_from_point_cloud(pcd, size_expand=0.01)
-		# o3d.visualization.draw_geometries([octree])
+		self.octree = o3d.geometry.Octree(max_depth=max_depth)
+		self.octree.convert_from_point_cloud(pcd, size_expand=0.01)
+		# o3d.visualization.draw_geometries([self.octree])
 		# exit(0)
 
-		octree.traverse(self.f_traverse)
+		self.octree.traverse(self.f_traverse)
 		for i in range(max_depth):
 			self.s_data[i] = (2**-(i+1))
 			self.Ns_data[i] = self.tree_info[i]
@@ -625,23 +489,24 @@ class o3doctree(object):
 		print(np.log(self.Ns_data)/np.log(1/self.s_data))
 
 
-	def show_octree(self,octree,verbose):
+	def show_octree(self,verbose):
 		if verbose:
 			start = time.process_time()
-		o3d.visualization.draw_geometries([octree])
+		o3d.visualization.draw_geometries([self.octree])
 		if verbose:
 			end = time.process_time()
 			print("Visualizing octree took {}".format(end-start))
 
-	def show_pcd(self,pcd,verbose):
+	def show_pcd(self,verbose):
 		if verbose:
 			start = time.process_time()
-		o3d.visualization.draw_geometries([pcd])
+		o3d.visualization.draw_geometries([self.pcd])
 		if verbose:
 			end = time.process_time()
 			print("Visualizing pcd took {}".format(end-start))	
 
 	def bestfit(self,x_data,y_data,length,min_rang=None,max_range=None):
+
 		acceptable_indicies = []
 		if min_rang is not None and max_range is not None:
 			for i in range(len(x_data)):
@@ -690,6 +555,7 @@ class o3doctree(object):
 		
 		# x_IO = np.zeros((self.max_depth))
 		
+
 		fract_dim_fit = self.bestfit(self.s_data,self.Ns_data,self.bestfitlen)
 		# fract_dim_fit = self.bestfit(self.s_data,self.Ns_data,self.bestfitlen,1,self.dm.radius/OIsize)
 
