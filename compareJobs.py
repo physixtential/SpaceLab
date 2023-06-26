@@ -8,9 +8,9 @@ import porosity_FD as p
 
 def main():
 	base = os.getcwd() + "/jobs/"
-	folder1 = base + "accuracyTest1/"
+	folder1 = base + "accuracyTest5/"
 	# folder2 = base + "accuracyTest2/"
-	folder2 = "/home/lpkolanz/Desktop/SpaceLab_branch/SpaceLab/jobs/accuracyTest6/N_10/T_100/"
+	folder2 = "/home/lpkolanz/Desktop/SpaceLab_branch/SpaceLab/jobs/accuracyTest10/N_10/T_100/"
 
 	max_ind = -1
 	for file in os.listdir(folder1):
