@@ -324,12 +324,12 @@ sim_one_step(const bool write_step, Ball_group &O)
             // Check for collision between Ball and otherBall.
             if (overlap > 0) {
 
-                if (!contact && A == O.num_particles-1)
-                {
-                    // std::cout<<"CONTACT MADE"<<std::endl;
-                    contact = true;
-                    contactBuffer<<A<<','<<simTimeElapsed<<'\n';
-                }
+                // if (!contact && A == O.num_particles-1)
+                // {
+                //     // std::cout<<"CONTACT MADE"<<std::endl;
+                //     contact = true;
+                //     contactBuffer<<A<<','<<simTimeElapsed<<'\n';
+                // }
 
                 double k;
                 if (dist >= oldDist) {
@@ -729,14 +729,14 @@ sim_looper(Ball_group &O)
 
     for (int Step = 1; Step < steps; Step++)  // Steps start at 1 because the 0 step is initial conditions.
     {
-        simTimeElapsed += dt; //New code #1
+        // simTimeElapsed += dt; //New code #1
         // Check if this is a write step:
         if (Step % skip == 0) {
             t.start_event("writeProgressReport");
             writeStep = true;
 
             /////////////////////// Original code #1
-            // simTimeElapsed += dt * skip;
+            simTimeElapsed += dt * skip;
             ///////////////////////
 
             // Progress reporting:
@@ -925,8 +925,11 @@ sim_looper(Ball_group &O)
 
             // Data Export. Exports every 10 writeSteps (10 new lines of data) and also if the last write was
             // a long time ago.
-            if (time(nullptr) - lastWrite > 1800 || Step / skip % 10 == 0) {
+            // if (time(nullptr) - lastWrite > 1800 || Step / skip % 10 == 0) {
+            if (Step / skip % 10 == 0) {
                 // Report vMax:
+                std::cerr<<"Step: "<<Step<<std::endl;
+                std::cerr<<"skip: "<<skip<<std::endl;
                 std::cerr << "vMax = " << O.getVelMax() << " Steps recorded: " << Step / skip << '\n';
                 std::cerr << "Data Write to "<<output_folder<<"\n";
                 // std::cerr<<"output_prefix: "<<output_prefix<<std::endl;

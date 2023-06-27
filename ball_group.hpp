@@ -1,7 +1,7 @@
 #pragma once
 #include "dust_const_init.hpp"
 // #include "dust_const.hpp"
-#include "external/single_include/nlohmann/json.hpp"
+#include "external/json/single_include/nlohmann/json.hpp"
 #include "vec3.hpp"
 #include "linalg.hpp"
 #include "Utils.hpp"
@@ -205,8 +205,14 @@ Ball_group::Ball_group(const bool generate, const double& customVel, const char*
 
     m_total = getMass();
     calc_v_collapse();
-    calibrate_dt(0, customVel);
+    std::cerr<<"INIT VCUSTOM "<<v_custom<<std::endl;
+    calibrate_dt(0, v_custom);
     simInit_cond_and_center(true);
+    // std::cerr<<pos[0]<<std::endl;
+    // std::cerr<<vel[0]<<std::endl;
+
+    // std::cerr<<pos[1]<<std::endl;
+    // std::cerr<<vel[1]<<std::endl;
 }
 
 /// @brief For continuing a sim.
@@ -660,22 +666,36 @@ void Ball_group::calc_v_collapse()
     v_max = 0;
 
     // todo - make this a manual set true or false to use soc so we know if it is being used or not.
+    std::cerr<<"SOC: "<<soc<<std::endl;
     if (soc > 0) {
+        std::cerr<<"WE NOOOOT HERERER"<<std::endl;
         int counter = 0;
         for (int Ball = 0; Ball < num_particles; Ball++) {
-            // Only consider balls moving toward com and within 4x initial radius around it.
-            const vec3 fromCOM = pos[Ball] - getCOM();
-            if (acos(vel[Ball].normalized().dot(fromCOM.normalized())) > cone && fromCOM.norm() < soc) {
-                if (vel[Ball].norm() > v_max) { v_max = vel[Ball].norm(); }
-            } else {
-                counter++;
+            if (vel[Ball].norm() > v_max) 
+            { 
+                v_max = vel[Ball].norm();
+                std::cerr<<"V_MAX for ball "<<Ball<<" = "<<v_max<<std::endl; 
             }
+            /////////////////SECTION COMMENTED FOR ACCURACY TESTS
+            // Only consider balls moving toward com and within 4x initial radius around it.
+            // const vec3 fromCOM = pos[Ball] - getCOM();
+            // if (acos(vel[Ball].normalized().dot(fromCOM.normalized())) > cone && fromCOM.norm() < soc) {
+            //     if (vel[Ball].norm() > v_max) { v_max = vel[Ball].norm(); }
+            // } else {
+            //     counter++;
+            // }
         }
         std::cerr << '(' << counter << " spheres ignored"
                   << ") ";
     } else {
+        std::cerr<<"WE IN HERERER"<<std::endl;
         for (int Ball = 0; Ball < num_particles; Ball++) {
-            if (vel[Ball].norm() > v_max) { v_max = vel[Ball].norm(); }
+
+            if (vel[Ball].norm() > v_max) 
+            { 
+                v_max = vel[Ball].norm();
+                std::cerr<<"V_MAX for ball "<<Ball<<" = "<<v_max<<std::endl; 
+            }
         }
 
         // Is vMax for some reason unreasonably small? Don't proceed. Probably a finished sim.
@@ -702,6 +722,7 @@ void Ball_group::calc_helpfuls()
     m_total = getMass();
     initial_radius = get_radius(getCOM());
     soc = 4 * r_max + initial_radius;
+    // soc = -1;
 }   
 
 // Kick ballGroup (give the whole thing a velocity)
@@ -1312,7 +1333,16 @@ Ball_group Ball_group::add_projectile()
     new_group.init_conditions();
 
     new_group.to_origin();
-
+    if (true)
+    {
+        for (int i = 0; i < new_group.num_particles; i++)
+        {
+            std::cerr<<"=================="<<std::endl;
+            std::cerr<<new_group.pos[i]<<std::endl;
+            std::cerr<<new_group.vel[i]<<std::endl;
+            std::cerr<<"=================="<<std::endl;
+        }
+    }
     return new_group;
 }
 

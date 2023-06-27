@@ -75,7 +75,6 @@ def get_data_file(data_folder,data_index=-1):
 		files = [file for file in files if '_' in file]
 		file_indicies = np.array([int(file.split('_')[0]) for file in files],dtype=np.int64)
 	# 	file_indicies = 
-	# 	print(files)
 
 	if data_index == -1:
 		index = np.max(file_indicies)
@@ -86,10 +85,14 @@ def get_data_file(data_folder,data_index=-1):
 
 	data_file = [file for file in files \
 				if file.endswith("simData.csv") and file.startswith(str(index))]
-	
+	# print(data_file)
 	if len(data_file) == 1:
 		return data_file[0]
 	else:
+		data_file = [file for file in files \
+				if file.endswith("simData.csv") and file.startswith(str(index)+'_2')]
+		if len(data_file) == 1:
+			return data_file[0]
 		print("data file in folder '{}' not found.".format(data_folder))
 		print("Now exiting.")
 		exit(-1)
@@ -103,7 +106,7 @@ def get_last_line_data(data_folder,data_index=-1):
 		print("ERROR CAUGHT in folder: {}".format(data_folder))
 		print(e)
 		return None
-	# print(data)
+
 	return format_data(data)
 
 def get_constants(data_folder,data_index=-1):
