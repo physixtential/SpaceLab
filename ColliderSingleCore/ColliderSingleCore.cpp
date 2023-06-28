@@ -727,6 +727,8 @@ sim_looper(Ball_group &O)
 
     startProgress = time(nullptr);
 
+    std::cerr<<"Stepping through "<<steps<<" steps"<<std::endl;
+
     for (int Step = 1; Step < steps; Step++)  // Steps start at 1 because the 0 step is initial conditions.
     {
         // simTimeElapsed += dt; //New code #1
@@ -928,8 +930,7 @@ sim_looper(Ball_group &O)
             // if (time(nullptr) - lastWrite > 1800 || Step / skip % 10 == 0) {
             if (Step / skip % 10 == 0) {
                 // Report vMax:
-                std::cerr<<"Step: "<<Step<<std::endl;
-                std::cerr<<"skip: "<<skip<<std::endl;
+
                 std::cerr << "vMax = " << O.getVelMax() << " Steps recorded: " << Step / skip << '\n';
                 std::cerr << "Data Write to "<<output_folder<<"\n";
                 // std::cerr<<"output_prefix: "<<output_prefix<<std::endl;
@@ -959,6 +960,17 @@ sim_looper(Ball_group &O)
             if (dynamicTime) { O.calibrate_dt(Step, false); }
             t.end_event("writeStep");
         }  // writestep end
+    }
+
+    if (true)
+    {
+        for (int i = 0; i < O.num_particles; i++)
+        {
+            std::cerr<<"===================================="<<std::endl;
+            std::cerr<<O.pos[i]<<std::endl;
+            std::cerr<<O.vel[i]<<std::endl;
+            std::cerr<<"===================================="<<std::endl;
+        }
     }
 
     const time_t end = time(nullptr);

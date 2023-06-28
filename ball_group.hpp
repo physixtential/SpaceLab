@@ -205,7 +205,7 @@ Ball_group::Ball_group(const bool generate, const double& customVel, const char*
 
     m_total = getMass();
     calc_v_collapse();
-    std::cerr<<"INIT VCUSTOM "<<v_custom<<std::endl;
+    // std::cerr<<"INIT VCUSTOM "<<v_custom<<std::endl;
     calibrate_dt(0, v_custom);
     simInit_cond_and_center(true);
     // std::cerr<<pos[0]<<std::endl;
@@ -666,15 +666,12 @@ void Ball_group::calc_v_collapse()
     v_max = 0;
 
     // todo - make this a manual set true or false to use soc so we know if it is being used or not.
-    std::cerr<<"SOC: "<<soc<<std::endl;
     if (soc > 0) {
-        std::cerr<<"WE NOOOOT HERERER"<<std::endl;
         int counter = 0;
         for (int Ball = 0; Ball < num_particles; Ball++) {
             if (vel[Ball].norm() > v_max) 
             { 
                 v_max = vel[Ball].norm();
-                std::cerr<<"V_MAX for ball "<<Ball<<" = "<<v_max<<std::endl; 
             }
             /////////////////SECTION COMMENTED FOR ACCURACY TESTS
             // Only consider balls moving toward com and within 4x initial radius around it.
@@ -688,13 +685,11 @@ void Ball_group::calc_v_collapse()
         std::cerr << '(' << counter << " spheres ignored"
                   << ") ";
     } else {
-        std::cerr<<"WE IN HERERER"<<std::endl;
         for (int Ball = 0; Ball < num_particles; Ball++) {
 
             if (vel[Ball].norm() > v_max) 
             { 
                 v_max = vel[Ball].norm();
-                std::cerr<<"V_MAX for ball "<<Ball<<" = "<<v_max<<std::endl; 
             }
         }
 
@@ -1166,7 +1161,6 @@ Ball_group Ball_group::spawn_particles(const int count)
     // new_group.init_conditions();
 
     // new_group.to_origin();
-    std::cerr<<"MADE IT HERE"<<std::endl;
     return new_group;
 }
 
@@ -1221,7 +1215,8 @@ Ball_group Ball_group::dust_agglomeration_particle_init()
     if (radiiDistribution == constant)
     {
         // std::cout<<"radiiFraction: "<<radiiFraction<<std::endl;
-        projectile.R[0] = scaleBalls/radiiFraction;  //limit of 1.4// rand_between(1,3)*1e-5;
+        projectile.R[0] = scaleBalls;  //MAKE BOTH VERSIONS SAME
+        // projectile.R[0] = scaleBalls/radiiFraction;  //limit of 1.4// rand_between(1,3)*1e-5;
         // std::cout<<"(constant) Particle added with radius of "<<projectile.R[0]<<std::endl;
     }
     else
@@ -1240,6 +1235,7 @@ Ball_group Ball_group::dust_agglomeration_particle_init()
                 <<temp<<" degrees K."<<std::endl; 
     }
     projectile.vel[0] = -v_custom * projectile_direction;
+
     // projectile.R[0] = 1e-5;  // rand_between(1,3)*1e-5;
     projectile.moi[0] = calc_moi(projectile.R[0], projectile.m[0]);
 
@@ -1312,6 +1308,7 @@ Ball_group Ball_group::add_projectile()
         projectile.vel[0].norm());
 
     std::cerr << '\n';
+
     projectile.calc_momentum("Projectile");
     calc_momentum("Target");
     Ball_group new_group{projectile.num_particles + num_particles};
@@ -1333,16 +1330,7 @@ Ball_group Ball_group::add_projectile()
     new_group.init_conditions();
 
     new_group.to_origin();
-    if (true)
-    {
-        for (int i = 0; i < new_group.num_particles; i++)
-        {
-            std::cerr<<"=================="<<std::endl;
-            std::cerr<<new_group.pos[i]<<std::endl;
-            std::cerr<<new_group.vel[i]<<std::endl;
-            std::cerr<<"=================="<<std::endl;
-        }
-    }
+   
     return new_group;
 }
 
