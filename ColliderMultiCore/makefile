@@ -1,8 +1,8 @@
 # CC=g++-10
 # std=c++2a
 # CFLAGS=-I.
-# CPP=g++
-CPP=CC
+CPP=g++
+# CPP=CC
 CPPflags=-O3 -std=c++2a -fopenmp
 
 ColliderMultiCore.x: ColliderMultiCore.cpp ../dust_const.hpp ball_group_multi_core.hpp ../timing/timing.hpp

@@ -25,7 +25,7 @@ if __name__ == '__main__':
 
 	runs_at_once = 1
 	# attempts = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20] 
-	attempts = [1] 
+	attempts = [2] 
 	N = [30]
 	Temps = [100]
 	folders = []
@@ -57,7 +57,7 @@ if __name__ == '__main__':
 				# input_json['u_r'] = 0.5
 				# input_json['projectileName'] = "299_2_R4e-05_v4e-01_cor0.63_mu0.1_rho2.25_k4e+00_Ha5e-12_dt5e-10_"
 				# input_json['targetName'] = "299_2_R4e-05_v4e-01_cor0.63_mu0.1_rho2.25_k4e+00_Ha5e-12_dt5e-10_"
-				input_json['note'] = "testing"
+				input_json['note'] = "compare parallel jobs to me"
 				####################################
 
 				with open(job + "input.json",'w') as fp:
@@ -74,9 +74,9 @@ if __name__ == '__main__':
 	inputs = list(zip(folders,N))
 	print(inputs)
 
-	# for i in range(0,len(folders),runs_at_once):
-	# 	with mp.Pool(processes=runs_at_once) as pool:
-	# 		pool.starmap(run_job,inputs[i:i+runs_at_once]) 
+	for i in range(0,len(folders),runs_at_once):
+		with mp.Pool(processes=runs_at_once) as pool:
+			pool.starmap(run_job,inputs[i:i+runs_at_once]) 
 
 
 	

@@ -5,7 +5,7 @@ import subprocess
 import os
 
 def run_job(location,num_balls):
-	cmd = ["python3", "{}run_sim.py".format(location), location, str(num_balls)]
+	cmd = ["python3", "{}run_multicore_sim.py".format(location), location, str(num_balls)]
 	# print(cmd)
 	subprocess.run(cmd)
 
@@ -57,14 +57,14 @@ if __name__ == '__main__':
 				# input_json['u_r'] = 0.5
 				# input_json['projectileName'] = "299_2_R4e-05_v4e-01_cor0.63_mu0.1_rho2.25_k4e+00_Ha5e-12_dt5e-10_"
 				# input_json['targetName'] = "299_2_R4e-05_v4e-01_cor0.63_mu0.1_rho2.25_k4e+00_Ha5e-12_dt5e-10_"
-				input_json['note'] = "Collapse manually, parallel omp."
+				input_json['note'] = "Collapse manually, serial."
 				####################################
 
 				with open(job + "input.json",'w') as fp:
 					json.dump(input_json,fp,indent=4)
 
 				#add run script and executable to folders
-				os.system("cp default_files/run_sim.py {}run_sim.py".format(job))
+				os.system("cp default_files/run_multicore_sim.py {}run_multicore_sim.py".format(job))
 				os.system("cp ColliderMultiCore/ColliderMultiCore.x {}ColliderMultiCore.x".format(job))
 				folders.append(job)
 	# print(folders)
@@ -74,9 +74,9 @@ if __name__ == '__main__':
 	inputs = list(zip(folders,N))
 	print(inputs)
 
-	# for i in range(0,len(folders),runs_at_once):
-	# 	with mp.Pool(processes=runs_at_once) as pool:
-	# 		pool.starmap(run_job,inputs[i:i+runs_at_once]) 
+	for i in range(0,len(folders),runs_at_once):
+		with mp.Pool(processes=runs_at_once) as pool:
+			pool.starmap(run_job,inputs[i:i+runs_at_once]) 
 
 
 	

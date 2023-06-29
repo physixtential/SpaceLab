@@ -1,10 +1,10 @@
 #pragma once
-#include "../dust_const_init.hpp"
+#include "dust_const_init.hpp"
 // #include "dust_const.hpp"
-#include "../external/json/single_include/nlohmann/json.hpp"
-#include "../vec3.hpp"
-#include "../linalg.hpp"
-#include "../Utils.hpp"
+#include "external/json/single_include/nlohmann/json.hpp"
+#include "vec3.hpp"
+#include "linalg.hpp"
+#include "Utils.hpp"
 
 #include <cmath>
 #include <iostream>

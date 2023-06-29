@@ -91,6 +91,7 @@ def get_data_file(data_folder,data_index=-1):
 	else:
 		data_file = [file for file in files \
 				if file.endswith("simData.csv") and file.startswith(str(index)+'_2')]
+		# print(data_file)
 		if len(data_file) == 1:
 			return data_file[0]
 		print("data file in folder '{}' not found.".format(data_folder))
@@ -112,8 +113,8 @@ def get_last_line_data(data_folder,data_index=-1):
 		print(e)
 		# return None
 
-	print("DATA LEN: {} for file {}{}".format(data.size,data_folder,data_file))
-	print("FOR {} Balls".format(data.size/11))
+	# print("DATA LEN: {} for file {}{}".format(data.size,data_folder,data_file))
+	# print("FOR {} Balls".format(data.size/11))
 	return format_data(data)
 
 def get_constants(data_folder,data_index=-1):
