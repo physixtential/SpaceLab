@@ -8,10 +8,10 @@ import porosity_FD as p
 
 def main():
 	base = os.getcwd() + "/jobs/"
-	folder1 = base + "accuracyTest8/"
-	# folder2 = base + "accuracyTest7/"
+	folder1 = base + "singleCoreComparison1/"
+	folder2 = base + "multiCoreTest2/"
 	# folder1 = "/home/lpkolanz/Desktop/SpaceLab_branch/SpaceLab/jobs/accuracyTest11/N_10/T_100/"
-	folder2 = "/home/lpkolanz/Desktop/SpaceLab_branch/SpaceLab/jobs/accuracyTest15/N_10/T_100/"
+	# folder2 = "/home/lpkolanz/Desktop/SpaceLab_branch/SpaceLab/jobs/accuracyTest15/N_10/T_100/"
 
 	max_ind = -1
 	for file in os.listdir(folder1):
@@ -25,30 +25,32 @@ def main():
 				continue
 
 	# file1 = str(max_ind)+'_'+'_'.join(body)+"_simData.csv"
+	file1 = str(max_ind)+'_'+'_'.join(body)+"_simData_COPY.csv"
 	# # file1 = "9_simData.csv"
 
-	# max_ind = -1
-	# for file in os.listdir(folder2):
-	# 	if file[-4:] == ".csv":
-	# 		try:
-	# 			ind = int(file.split('_')[0])
-	# 			if ind > max_ind:
-	# 				max_ind = ind
-	# 				body = file.split('_')[1:-1]
-	# 		except ValueError:
-	# 			continue
+	max_ind = -1
+	for file in os.listdir(folder2):
+		if file[-4:] == ".csv":
+			try:
+				ind = int(file.split('_')[0])
+				if ind > max_ind:
+					max_ind = ind
+					body = file.split('_')[1:-1]
+			except ValueError:
+				continue
 
-	# file2 = str(max_ind)+'_'+'_'.join(body)+"_simData.csv"
+	file2 = str(max_ind)+'_'+'_'.join(body)+"_simData.csv"
 	# file2 = "9_simData.csv"
 
 	
 
-	N = 10
+	N = 30
 	temp = 100
 	show_FD_plots = False
-	for ind in [9]:
+	for ind in [N-1]:
 		f1 = "{}_{}_simData.csv".format(ind,'_'.join(body))
-		f2 = "{}_simData.csv".format(ind)
+		f2 = "{}_{}_simData.csv".format(ind,'_'.join(body))
+		# f2 = "{}_simData.csv".format(ind)
 		porositiesabc=[]
 		porositiesKBM=[]
 		contacts=[]

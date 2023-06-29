@@ -5,7 +5,7 @@ import os,glob
 import sys
 import json
 import matplotlib.pyplot as plt
-from treelib import Node, Tree
+#from treelib import Node, Tree
 import time
 from itertools import combinations
 # cwd = os.getcwd()
@@ -103,10 +103,17 @@ def get_last_line_data(data_folder,data_index=-1):
 	try:
 		data = np.loadtxt(data_folder + data_file,skiprows=1,dtype=float,delimiter=',')[-1]
 	except Exception as e:
+		with open(data_folder + data_file) as f:
+		    for line in f:
+		        pass
+		    last_line = line
+		data = np.array([last_line.split(',')],dtype=np.float64)
 		print("ERROR CAUGHT in folder: {}".format(data_folder))
 		print(e)
-		return None
+		# return None
 
+	print("DATA LEN: {} for file {}{}".format(data.size,data_folder,data_file))
+	print("FOR {} Balls".format(data.size/11))
 	return format_data(data)
 
 def get_constants(data_folder,data_index=-1):
