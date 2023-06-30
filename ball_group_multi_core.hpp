@@ -1236,6 +1236,7 @@ Ball_group Ball_group::dust_agglomeration_particle_init()
     }
     projectile.vel[0] = -v_custom * projectile_direction;
 
+    
     // projectile.R[0] = 1e-5;  // rand_between(1,3)*1e-5;
     projectile.moi[0] = calc_moi(projectile.R[0], projectile.m[0]);
 
@@ -1262,6 +1263,7 @@ Ball_group Ball_group::dust_agglomeration_particle_init()
     const double3x3 local_coords = local_coordinates(to_double3(projectile_direction));
     
     projectile.pos[0] = dust_agglomeration_offset(local_coords,projectile.pos[0],projectile.vel[0],projectile.R[0]);
+    std::cerr<<"pos, dir: "<<projectile.pos[0]<<", "<<projectile_direction<<std::endl;
     //////////////////////////////////
     //TURN ON above LINE AND OFF REST FOR REAL SIM
     // if (num_particles == 3)

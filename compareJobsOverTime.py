@@ -46,7 +46,7 @@ def main():
 	# file2 = str(max_ind)+'_'+'_'.join(body)+"_simData.csv"
 	# file2 = "9_simData.csv"
 
-	inds = np.arange(1,10)
+	inds = np.arange(1,13)
 	# inds = np.arange(1,3)
 
 	porositiesabc=np.zeros((2,inds.size))

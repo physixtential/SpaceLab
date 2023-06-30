@@ -295,6 +295,10 @@ sim_one_step(const bool write_step, Ball_group &O)
     }
     t.end_event("UpdateKinPar");
 
+    std::ofstream accWrite, aaccWrite;
+    accWrite.open(output_folder+"accWrite_"+std::to_string(O.num_particles)+".txt",std::ios::app);
+    aaccWrite.open(output_folder+"aaccWrite_"+std::to_string(O.num_particles)+".txt",std::ios::app);
+
     /// SECOND PASS - Check for collisions, apply forces and torques:
     t.start_event("CalcForces/loopApplicablepairs");
     for (int A = 1; A < O.num_particles; A++)  
@@ -510,6 +514,8 @@ sim_one_step(const bool write_step, Ball_group &O)
                 // Total torque a and b:
                 torqueA = r_a.cross(slideForceOnA + rollForceA);
                 torqueB = r_b.cross(-slideForceOnA + rollForceA); // original code
+
+                aaccWrite<<"["<<A<<';'<<B<<";("<<torqueA<<");("<<torqueB<<")],";
                 //////////////////////////////////////
                 // torqueB = r_b.cross(slideForceOnA + rollForceA); // test code
                 //////////////////////////////////////
@@ -597,6 +603,8 @@ sim_one_step(const bool write_step, Ball_group &O)
             O.acc[A] += totalForceOnA / O.m[A];
             O.acc[B] -= totalForceOnA / O.m[B];
 
+            accWrite<<"["<<A<<';'<<B<<";("<<totalForceOnA<<")],";
+
             // So last distance can be known for COR:
             O.distances[e] = dist;
             //////////////////////////
@@ -608,6 +616,9 @@ sim_one_step(const bool write_step, Ball_group &O)
         }
         // DONT DO ANYTHING HERE. A STARTS AT 1.
     }
+
+    aaccWrite<<'\n';
+    accWrite<<'\n';
 
     //////////////////////////////
     // Write out sliding/rolling fric
