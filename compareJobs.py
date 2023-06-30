@@ -8,11 +8,11 @@ import porosity_FD as p
 
 def main():
 	base = os.getcwd() + "/jobs/"
-	# folder1 = base + "multiCoreTest1/"
-	folder1 = base + "singleCoreComparison1/"
-	folder2 = base + "singleCoreComp/"
-	# folder2 = base + "multiCoreTest2/"
-	# folder2 = base + "multiCoreTest3/"
+	# folder1 = base + "multiCoreTest4/"
+	folder1 = base + "singleCoreComp/"
+	# folder2 = base + "singleCoreComparison2/"
+	folder2 = base + "multiCoreTest2/"
+	# folder2 = base + "multiCoreTest4/"
 	# folder1 = "/home/lpkolanz/Desktop/SpaceLab_branch/SpaceLab/jobs/accuracyTest11/N_10/T_100/"
 	# folder2 = "/home/lpkolanz/Desktop/SpaceLab_branch/SpaceLab/jobs/accuracyTest15/N_10/T_100/"
 
@@ -50,7 +50,7 @@ def main():
 	N = 5
 	temp = 100
 	show_FD_plots = False
-	for ind in [15]:
+	for ind in [20]:
 		f1 = "{}_{}_simData.csv".format(ind,'_'.join(body))
 		f2 = "{}_{}_simData.csv".format(ind,'_'.join(body))
 		# f2 = "{}_simData.csv".format(ind)

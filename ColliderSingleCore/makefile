@@ -3,7 +3,9 @@
 # CFLAGS=-I.
 # CPP=CC
 CPP=g++
-CPPflags=-O3 -std=c++2a -fopenmp
+# CPPflags=-O3 -std=c++2a -fopenmp
+# CPPflags=-O3 -std=c++2a 
+CPPflags=-std=c++2a 
 
 ColliderSingleCore.x: ColliderSingleCore.cpp ../dust_const.hpp ../ball_group.hpp ../timing/timing.hpp
 	${CPP} ${CPPflags} -o ColliderSingleCore.x ColliderSingleCore.cpp
@@ -13,3 +15,4 @@ test: ColliderSingleCore.cpp
 
 clean:
 	rm -f *.o
+	rm -f *.x
