@@ -85,13 +85,13 @@ def get_data_file(data_folder,data_index=-1):
 
 	data_file = [file for file in files \
 				if file.endswith("simData.csv") and file.startswith(str(index))]
-	# print(data_file)
+
 	if len(data_file) == 1:
 		return data_file[0]
 	else:
 		data_file = [file for file in files \
 				if file.endswith("simData.csv") and file.startswith(str(index)+'_2')]
-		# print(data_file)
+		# print(files)
 		if len(data_file) == 1:
 			return data_file[0]
 		print("data file in folder '{}' not found.".format(data_folder))

@@ -11,7 +11,8 @@ def main():
 	# folder1 = base + "multiCoreTest3/"
 	folder1 = base + "singleCoreComparison4/"
 	# folder2 = base + "singleCoreComparison3/"
-	folder2 = base + "multiCoreTest4/"
+	# folder2 = base + "multiCoreTest4/"
+	folder2 = base + "singleCoreComparison_COPY7/"
 	# folder2 = base + "multiCoreTest4/"
 	# folder1 = "/home/lpkolanz/Desktop/SpaceLab_branch/SpaceLab/jobs/accuracyTest11/N_10/T_100/"
 	# folder2 = "/home/lpkolanz/Desktop/SpaceLab_branch/SpaceLab/jobs/accuracyTest15/N_10/T_100/"
@@ -45,7 +46,7 @@ def main():
 	# file2 = str(max_ind)+'_'+'_'.join(body)+"_simData.csv"
 	# file2 = "9_simData.csv"
 
-	inds = np.arange(1,30)
+	inds = np.arange(1,10)
 	# inds = np.arange(1,3)
 
 	porositiesabc=np.zeros((2,inds.size))
@@ -97,15 +98,35 @@ def main():
 
 	# print(porositiesabc)
 	# print(np.subtract(porositiesabc[0],porositiesabc[1]))
-	fig2, ax2 = plt.subplots(1,1,figsize=(15,7))
-	ax2.plot(inds,np.subtract(porositiesabc[0],porositiesabc[1]),label='por abc')
-	ax2.plot(inds,np.subtract(porositiesKBM[0],porositiesKBM[1]),label='por KBM')
-	ax2.plot(inds,np.subtract(contacts[0],contacts[1]),label='contacts')
-	ax2.plot(inds,np.subtract(FD_data[0],FD_data[1]),label='FD')
-	ax2.set_title("folder: {}".format(folder2))
-	ax2.set_xlabel("ball")
-	ax2.set_ylabel("Value")
-	ax2.legend()
+	# fig2, ax2 = plt.subplots(1,1,figsize=(15,7))
+	# ax2.plot(inds,np.subtract(porositiesabc[0],porositiesabc[1])/porositiesabc[0],label='por abc')
+	# ax2.plot(inds,np.subtract(porositiesKBM[0],porositiesKBM[1])/porositiesKBM[0],label='por KBM')
+	# ax2.plot(inds,np.subtract(contacts[0],contacts[1])/contacts[0],label='contacts')
+	# ax2.plot(inds,np.subtract(FD_data[0],FD_data[1])/FD_data[0],label='FD')
+	# ax2.set_title("folder1: {}\nfolder2: {}".format(folder1,folder2))
+	# ax2.set_xlabel("ball")
+	# ax2.set_ylabel("Value")
+	# ax2.legend()
+
+	for m,method in enumerate([porositiesabc,porositiesKBM,contacts,FD_data]):
+		fig, ax = plt.subplots(1,1,figsize=(15,7))
+		ax.plot(inds,method[0],label='singleCoreComparison4')
+		ax.plot(inds,method[1],label='singleCoreComparison_COPY7')
+		title = ""
+		if m == 0:
+			title = "porositiesabc"
+		elif m == 1:
+			title = "porositiesKBM"
+		elif m == 2:
+			title = "contacts"
+		elif m == 3:
+			title = "FD"
+		ax.set_title(title)
+		ax.set_xlabel("ball")
+		ax.set_ylabel("Value")
+		ax.legend()
+		plt.savefig("figures/"+title+"OverTime_COPY.png")
+
 
 	plt.show()
 

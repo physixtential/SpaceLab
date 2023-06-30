@@ -10,8 +10,8 @@ CPPflags=-std=c++2a
 ColliderSingleCore.x: ColliderSingleCore.cpp ../dust_const.hpp ../ball_group.hpp ../timing/timing.hpp
 	${CPP} ${CPPflags} -o ColliderSingleCore.x ColliderSingleCore.cpp
 
-test: ColliderSingleCore.cpp 
-	${CPP} ${CPPflags} -o testSC.x ColliderSingleCore.cpp
+ColliderSingleCore_COPY.x: ColliderSingleCore_COPY.cpp ../dust_const.hpp ../ball_group_COPY.hpp ../timing/timing.hpp
+	${CPP} ${CPPflags} -o ColliderSingleCore_COPY.x ColliderSingleCore_COPY.cpp
 
 clean:
 	rm -f *.o
