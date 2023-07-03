@@ -10,6 +10,10 @@ CPPflags=-std=c++2a
 randomGen.x: randomGen.cpp ../Utils.hpp
 	${CPP} ${CPPflags} -o randomGen.x randomGen.cpp
 
+
+getRand.x: getRand.cpp ../Utils.hpp
+	${CPP} ${CPPflags} -o getRand.x getRand.cpp
+
 # test: ColliderSingleCore.cpp 
 # 	${CPP} ${CPPflags} -o testSC.x ColliderSingleCore.cpp
 
