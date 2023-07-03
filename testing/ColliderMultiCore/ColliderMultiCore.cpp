@@ -1,5 +1,5 @@
 #include "../ball_group.hpp"
-#include "../timing/timing.hpp"
+// #include "../timing/timing.hpp"
 
 #include <cmath>
 #include <iostream>
@@ -51,7 +51,7 @@ collider(const char *path, std::string projectileName,std::string targetName);
 // std::cerr<<"genBalls: "<<genBalls<<std::endl;
 // Ball_group O(20, true, v_custom); // Generate
 // Ball_group O(genBalls, true, v_custom); // Generate
-timey t;
+// timey t;
 
 //////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////
@@ -59,7 +59,7 @@ timey t;
 int
 main(const int argc, char const* argv[])
 {
-    t.start_event("WholeThing");
+    // t.start_event("WholeThing");
     energyBuffer.precision(12);  // Need more precision on momentum.
     int num_balls;
     
@@ -95,9 +95,9 @@ main(const int argc, char const* argv[])
 
     // collider(argv[1],projTarget,projTarget);
     
-    t.end_event("WholeThing");
-    t.print_events();
-    t.save_events(output_folder + "timing.txt");
+    // t.end_event("WholeThing");
+    // t.print_events();
+    // t.save_events(output_folder + "timing.txt");
 }  // end main
 //////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////
@@ -105,12 +105,12 @@ main(const int argc, char const* argv[])
 
 void collider(const char *path, std::string projectileName, std::string targetName)
 {
-    t.start_event("collider");
+    // t.start_event("collider");
     Ball_group O = Ball_group(std::string(path),std::string(projectileName),std::string(targetName));
     safetyChecks(O);
     O.sim_init_write(output_prefix);
     sim_looper(O);
-    t.end_event("collider");
+    // t.end_event("collider");
     // O.freeMemory();
     return;
 }
@@ -129,9 +129,9 @@ void BPCA(const char *path, int num_balls)
         // O.zeroVel();
         contact = false;
         inital_contact = true;
-        t.start_event("add_projectile");
+        // t.start_event("add_projectile");
         O = O.add_projectile();
-        t.end_event("add_projectile");
+        // t.end_event("add_projectile");
         O.sim_init_write(ori_output_prefix, i);
         sim_looper(O);
         simTimeElapsed = 0;
@@ -276,7 +276,7 @@ void
 sim_one_step(const bool write_step, Ball_group &O)
 {
     /// FIRST PASS - Update Kinematic Parameters:
-    t.start_event("UpdateKinPar");
+    // t.start_event("UpdateKinPar");
     for (int Ball = 0; Ball < O.num_particles; Ball++) {
         // Update velocity half step:
         O.velh[Ball] = O.vel[Ball] + .5 * O.acc[Ball] * dt;
@@ -293,14 +293,14 @@ sim_one_step(const bool write_step, Ball_group &O)
         // Reinitialize angular acceleration to be recalculated:
         O.aacc[Ball] = {0, 0, 0};
     }
-    t.end_event("UpdateKinPar");
+    // t.end_event("UpdateKinPar");
 
     // std::ofstream accWrite, aaccWrite;
     // accWrite.open(output_folder+"accWrite_"+std::to_string(O.num_particles)+".txt",std::ios::app);
     // aaccWrite.open(output_folder+"aaccWrite_"+std::to_string(O.num_particles)+".txt",std::ios::app);
 
     /// SECOND PASS - Check for collisions, apply forces and torques:
-    t.start_event("CalcForces/loopApplicablepairs");
+    // t.start_event("CalcForces/loopApplicablepairs");
     for (int A = 1; A < O.num_particles; A++)  
     {
         /// DONT DO ANYTHING HERE. A STARTS AT 1.
@@ -568,11 +568,11 @@ sim_one_step(const bool write_step, Ball_group &O)
                                          rVecab.normalized();
                 // const vec3 vdwForceOnA = {0.0,0.0,0.0};
                 /////////////////////////////
-                if (O.write_all)
-                {
-                    O.vdwForce[A] += vdwForceOnA;
-                    O.vdwForce[B] -= vdwForceOnA;
-                }
+                // if (O.write_all)
+                // {
+                //     O.vdwForce[A] += vdwForceOnA;
+                //     O.vdwForce[B] -= vdwForceOnA;
+                // }
                 /////////////////////////////
                 /////////////////////////////
                 totalForceOnA = vdwForceOnA + gravForceOnA;
@@ -689,7 +689,7 @@ sim_one_step(const bool write_step, Ball_group &O)
     
     //////////////////////////////
 
-    t.end_event("CalcForces/loopApplicablepairs");
+    // t.end_event("CalcForces/loopApplicablepairs");
 
     if (write_step) {
         ballBuffer << '\n';  // Prepares a new line for incoming data.
@@ -697,7 +697,7 @@ sim_one_step(const bool write_step, Ball_group &O)
     }
 
     // THIRD PASS - Calculate velocity for next step:
-    t.start_event("CalcVelocityforNextStep");
+    // t.start_event("CalcVelocityforNextStep");
     for (int Ball = 0; Ball < O.num_particles; Ball++) {
         // Velocity for next step:
         O.vel[Ball] = O.velh[Ball] + .5 * O.acc[Ball] * dt;
@@ -727,7 +727,7 @@ sim_one_step(const bool write_step, Ball_group &O)
             O.ang_mom += O.m[Ball] * O.pos[Ball].cross(O.vel[Ball]) + O.moi[Ball] * O.w[Ball];
         }
     }  // THIRD PASS END
-    t.end_event("CalcVelocityforNextStep");
+    // t.end_event("CalcVelocityforNextStep");
 }  // one Step end
 
 
@@ -745,7 +745,7 @@ sim_looper(Ball_group &O)
         // simTimeElapsed += dt; //New code #1
         // Check if this is a write step:
         if (Step % skip == 0) {
-            t.start_event("writeProgressReport");
+            // t.start_event("writeProgressReport");
             writeStep = true;
 
             /////////////////////// Original code #1
@@ -772,7 +772,7 @@ sim_looper(Ball_group &O)
             // progress, eta, real, simmed, real / simmed);
             fflush(stdout);
             startProgress = time(nullptr);
-            t.end_event("writeProgressReport");
+            // t.end_event("writeProgressReport");
         } else {
             writeStep = O.debug;
         }
@@ -918,7 +918,7 @@ sim_looper(Ball_group &O)
         
 
         if (writeStep) {
-            t.start_event("writeStep");
+            // t.start_event("writeStep");
             // Write energy to stream:
             ////////////////////////////////////
             //TURN THIS ON FOR REAL RUNS!!!
@@ -969,7 +969,7 @@ sim_looper(Ball_group &O)
 
 
             if (dynamicTime) { O.calibrate_dt(Step, false); }
-            t.end_event("writeStep");
+            // t.end_event("writeStep");
         }  // writestep end
     }
 

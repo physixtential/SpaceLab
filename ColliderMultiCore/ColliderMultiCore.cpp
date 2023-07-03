@@ -1,4 +1,4 @@
-#include "../ball_group_multi_core.hpp"
+#include "../ball_group.hpp"
 #include "../timing/timing.hpp"
 
 #include <cmath>
