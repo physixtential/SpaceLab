@@ -406,7 +406,7 @@ void Ball_group::parse_input_file(char const* location)
     // KEfactor = inputs["KEfactor"];
     // if (inputs["v_custom"] == std::string("default"))
     // {
-    v_custom = 1;
+    v_custom = 1.075;
     // }
     // else
     // {
@@ -1216,14 +1216,14 @@ Ball_group Ball_group::add_projectile()
 
     // Hack - if v_custom is less than 1 there are problems if dt is calibrated to this
     //        if v_custom is greater than 1 you need to calibrate dt to that v_custom
-    // if (v_custom < 1)
-    // {
-    new_group.calibrate_dt(0, 1);
-    // }
-    // else
-    // {
-    //     new_group.calibrate_dt(0, v_custom);
-    // }
+    if (v_custom < 1)
+    {
+        new_group.calibrate_dt(0, 1);
+    }
+    else
+    {
+        new_group.calibrate_dt(0, v_custom);
+    }
     new_group.init_conditions();
 
     new_group.to_origin();

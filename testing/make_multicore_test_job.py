@@ -29,7 +29,7 @@ if __name__ == '__main__':
 
 	runs_at_once = 1
 	# attempts = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20] 
-	attempts = [1] 
+	attempts = [4] 
 	N = [30]
 	Temps = [100]
 	folders = []
@@ -44,7 +44,7 @@ if __name__ == '__main__':
 				else:
 					print("Job '{}' already exists.".format(job))
 
-				# os.system("cp {}/jobs/collidable_aggregate/* {}".format(curr_folder,job))
+				os.system("cp {}/jobs/startingAgg/* {}".format(curr_folder,job))
 
 				#load default input file
 				# with open(curr_folder+"default_files/default_input.json",'r') as fp:
