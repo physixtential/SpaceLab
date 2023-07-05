@@ -406,7 +406,7 @@ void Ball_group::parse_input_file(char const* location)
     // KEfactor = inputs["KEfactor"];
     // if (inputs["v_custom"] == std::string("default"))
     // {
-    //     v_custom = 0.36301555459799423;
+    v_custom = 1;
     // }
     // else
     // {
@@ -418,7 +418,7 @@ void Ball_group::parse_input_file(char const* location)
     // impactParameter = inputs["impactParameter"];
     Ha = 4.7e-12;
     // double temp_h_min = inputs["h_min"];
-    h_min = 0.1 * scaleBalls;
+    h_min = 0.5 * scaleBalls;
     // if (inputs["cone"] == std::string("default"))
     // {
     //     cone = pi/2;

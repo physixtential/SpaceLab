@@ -17,8 +17,8 @@ using linalg::aliases::double3x3;
 std::random_device rd;
 std::mt19937 random_generator(rd());
 
-std::string rand_file = "/home/lpkolanz/Desktop/SpaceLab_branch_copy/SpaceLab/random/rand.txt";
-std::string gaus_file = "/home/lpkolanz/Desktop/SpaceLab_branch_copy/SpaceLab/random/randomGaussian.txt";
+std::string rand_file = "/global/homes/l/lpkolanz/SpaceLab/random/rand.txt";
+std::string gaus_file = "/global/homes/l/lpkolanz/SpaceLab/random/randomGaussian.txt";
 
 std::ifstream rando(rand_file,std::ios::in);
 std::ifstream gauss(gaus_file,std::ios::in);
@@ -33,7 +33,7 @@ double get_gaus()
         std::ifstream gauss(gaus_file,std::ios::in);
         std::getline(gauss,line);
     }
-    // std::cerr<<line<<std::endl;
+    std::cerr<<"GAUS RAND: "<<line<<std::endl;
     std::stringstream ss;  
     ss << line;  
     ss >> ret; 
@@ -50,7 +50,7 @@ int get_rand()
         std::ifstream rando(rand_file,std::ios::in);
         std::getline(rando,line);
     }
-    // std::cerr<<line<<std::endl;
+    std::cerr<<"RAND RAND: "<<line<<std::endl;
     std::stringstream ss;  
     ss << line;  
     ss >> ret; 

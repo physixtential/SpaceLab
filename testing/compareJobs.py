@@ -2,16 +2,17 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 import sys
-sys.path.append("/home/lpkolanz/Desktop/SpaceLab_branch/SpaceLab")
+sys.path.append("/global/homes/l/lpkolanz/SpaceLab_branch/SpaceLab")
+# sys.path.append("/home/lpkolanz/Desktop/SpaceLab_branch/SpaceLab")
 import utils as u
 import porosity_FD as p
 
 def main():
 	base = os.getcwd() + "/jobs/"
 	# folder1 = base + "multiCoreTest4/"
-	folder1 = base + "multiCoreTest6/"
+	folder1 = base + "multiCoreTest1/"
 	# folder2 = base + "singleCoreComparison2/"
-	folder2 = base + "multiCore2Test6/"
+	folder2 = base + "multiCore2Test1/"
 	# folder2 = base + "singleCoreComparison_COPY7/"
 	# folder1 = "/home/lpkolanz/Desktop/SpaceLab_branch/SpaceLab/jobs/accuracyTest11/N_10/T_100/"
 	# folder2 = "/home/lpkolanz/Desktop/SpaceLab_branch/SpaceLab/jobs/accuracyTest15/N_10/T_100/"
@@ -50,7 +51,7 @@ def main():
 	N = 5
 	temp = 100
 	show_FD_plots = False
-	for ind in [8]:
+	for ind in [1]:
 		f1 = "{}_{}_simData.csv".format(ind,'_'.join(body))
 		f2 = "{}_{}_simData.csv".format(ind,'_'.join(body))
 		# f2 = "{}_simData.csv".format(ind)

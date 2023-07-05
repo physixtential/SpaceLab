@@ -90,8 +90,10 @@ main(const int argc, char const* argv[])
     // Normal sim:
     // O.sim_init_write(output_prefix);
     // sim_looper();
-    BPCA(argv[1],num_balls);
-    // collider(argv[1],dummy.projectileName,dummy.targetName);
+    // BPCA(argv[1],num_balls);
+    std::string proj = "15_2_R2e-05_v0e+00_cor0.63_mu0.1_rho2.25_k3e-15_Ha5e-12_dt5e-10_";
+    std::string targ = "15_2_R2e-05_v0e+00_cor0.63_mu0.1_rho2.25_k3e-15_Ha5e-12_dt5e-10_"; 
+    collider(argv[1],proj,targ);
 
     // collider(argv[1],projTarget,projTarget);
     
@@ -106,6 +108,8 @@ main(const int argc, char const* argv[])
 void collider(const char *path, std::string projectileName, std::string targetName)
 {
     // t.start_event("collider");
+    // path = "";
+    // proje
     Ball_group O = Ball_group(std::string(path),std::string(projectileName),std::string(targetName));
     safetyChecks(O);
     O.sim_init_write(output_prefix);
@@ -305,6 +309,25 @@ sim_one_step(const bool write_step, Ball_group &O)
     {
         /// DONT DO ANYTHING HERE. A STARTS AT 1.
         for (int B = 0; B < A; B++) {
+            
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
             const double sumRaRb = O.R[A] + O.R[B];
             const vec3 rVecab = O.pos[B] - O.pos[A];  // Vector from a to b.
             const vec3 rVecba = -rVecab;

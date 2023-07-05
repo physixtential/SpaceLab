@@ -7,7 +7,7 @@ CPP=g++
 # CPPflags=-O3 -std=c++2a 
 CPPflags=-std=c++2a 
 
-ColliderMultiCore2.x: ColliderMultiCore2.cpp ../ball_group.hpp
+ColliderMultiCore2.x: ColliderMultiCore2.cpp ../ball_group.hpp ../Utils.hpp
 	${CPP} ${CPPflags} -o ColliderMultiCore2.x ColliderMultiCore2.cpp
 
 # test: ColliderSingleCore.cpp 

@@ -23,6 +23,8 @@ RenderOption*
 **/*.pcd
 *.pcd
 
+slurm*.out
+
 #venv
 py3.7venv/
 
