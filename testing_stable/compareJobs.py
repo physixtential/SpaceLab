@@ -50,7 +50,7 @@ def main():
 	N = 5
 	temp = 100
 	show_FD_plots = False
-	for ind in [8]:
+	for ind in [5]:
 		f1 = "{}_{}_simData.csv".format(ind,'_'.join(body))
 		f2 = "{}_{}_simData.csv".format(ind,'_'.join(body))
 		# f2 = "{}_simData.csv".format(ind)
