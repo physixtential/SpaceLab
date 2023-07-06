@@ -5,7 +5,7 @@
 #include <iostream>
 #include <fstream>
 #include <ctime>
-#include <sstream>
+// #include <sstream>
 #include <string>
 #include <iomanip>
 #include <filesystem>
@@ -13,9 +13,9 @@ namespace fs = std::filesystem;
 
 
 // String buffers to hold data in memory until worth writing to file:
-std::stringstream ballBuffer;
-std::stringstream energyBuffer;
-std::stringstream contactBuffer;
+// std::stringstream ballBuffer;
+// std::stringstream energyBuffer;
+// std::stringstream contactBuffer;
 
 
 // These are used within simOneStep to keep track of time.
@@ -60,7 +60,7 @@ int
 main(const int argc, char const* argv[])
 {
     // t.start_event("WholeThing");
-    energyBuffer.precision(12);  // Need more precision on momentum.
+    // O.energyBuffer.precision(12);  // Need more precision on momentum.
     int num_balls;
     
     
@@ -90,10 +90,10 @@ main(const int argc, char const* argv[])
     // Normal sim:
     // O.sim_init_write(output_prefix);
     // sim_looper();
-    // BPCA(argv[1],num_balls);
-    std::string proj = "15_2_R2e-05_v0e+00_cor0.63_mu0.1_rho2.25_k3e-15_Ha5e-12_dt5e-10_";
-    std::string targ = "15_2_R2e-05_v0e+00_cor0.63_mu0.1_rho2.25_k3e-15_Ha5e-12_dt5e-10_"; 
-    collider(argv[1],proj,targ);
+    BPCA(argv[1],num_balls);
+    // std::string proj = "15_2_R2e-05_v0e+00_cor0.63_mu0.1_rho2.25_k3e-15_Ha5e-12_dt5e-10_";
+    // std::string targ = "15_2_R2e-05_v0e+00_cor0.63_mu0.1_rho2.25_k3e-15_Ha5e-12_dt5e-10_"; 
+    // collider(argv[1],proj,targ);
 
     // collider(argv[1],projTarget,projTarget);
     
@@ -108,6 +108,8 @@ main(const int argc, char const* argv[])
 void collider(const char *path, std::string projectileName, std::string targetName)
 {
     // t.start_event("collider");
+    // path = "";
+    // proje
     Ball_group O = Ball_group(std::string(path),std::string(projectileName),std::string(targetName));
     safetyChecks(O);
     O.sim_init_write(output_prefix);
@@ -303,28 +305,28 @@ sim_one_step(const bool write_step, Ball_group &O)
 
     /// SECOND PASS - Check for collisions, apply forces and torques:
     // t.start_event("CalcForces/loopApplicablepairs");
-    // for (int A = 1; A < O.num_particles; A++)  
-    // {
-        /// DONT DO ANYTHING HERE. A STARTS AT 1.
-        // for (int B = 0; B < A; B++) {
-    long long A;
-    long long B;
-    long long pc;
-    long long lllen = O.num_particles;
-
-    for (pc = 1; pc <= (((lllen*lllen)-lllen)/2); pc++)
+    for (int A = 1; A < O.num_particles; A++)  
     {
-            // pc = (((lllen*lllen)-lllen)/2)+1;
-            // std::cout<<"pc: "<<pc<<std::endl;
-            long double pd = (long double)pc;
-            // std::cout<<"pd: "<<pd<<std::endl;
-            pd = (sqrt(pd*8.0L+1.0L)+1.0L)*0.5L;
-            // std::cout<<"pd w sqrt: "<<pd<<std::endl;
-            pd -= 0.00001L;
-            // std::cout<<"pd final: "<<pd<<std::endl;
-            A = (long long)pd;
-            // std::cout<<"i: "<<i<<std::endl;
-            B = (long long)((long double)pc-(long double)A*((long double)A-1.0L)*.5L-1.0L);
+        /// DONT DO ANYTHING HERE. A STARTS AT 1.
+        for (int B = 0; B < A; B++) {
+            
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
             const double sumRaRb = O.R[A] + O.R[B];
             const vec3 rVecab = O.pos[B] - O.pos[A];  // Vector from a to b.
@@ -634,9 +636,9 @@ sim_one_step(const bool write_step, Ball_group &O)
             //     O.distB3[B] += dist;
             // }
             //////////////////////////
+        }
+        // DONT DO ANYTHING HERE. A STARTS AT 1.
     }
-    // DONT DO ANYTHING HERE. A STARTS AT 1.
-    // }
 
     // aaccWrite<<'\n';
     // accWrite<<'\n';
@@ -713,7 +715,7 @@ sim_one_step(const bool write_step, Ball_group &O)
     // t.end_event("CalcForces/loopApplicablepairs");
 
     if (write_step) {
-        ballBuffer << '\n';  // Prepares a new line for incoming data.
+        O.ballBuffer << '\n';  // Prepares a new line for incoming data.
         // std::cerr<<"Writing "<<O.num_particles<<" balls"<<std::endl;
     }
 
@@ -731,12 +733,12 @@ sim_one_step(const bool write_step, Ball_group &O)
             // Send positions and rotations to buffer:
             // std::cerr<<"Write ball "<<Ball<<std::endl;
             if (Ball == 0) {
-                ballBuffer << O.pos[Ball][0] << ',' << O.pos[Ball][1] << ',' << O.pos[Ball][2] << ','
+                O.ballBuffer << O.pos[Ball][0] << ',' << O.pos[Ball][1] << ',' << O.pos[Ball][2] << ','
                            << O.w[Ball][0] << ',' << O.w[Ball][1] << ',' << O.w[Ball][2] << ','
                            << O.w[Ball].norm() << ',' << O.vel[Ball].x << ',' << O.vel[Ball].y << ','
                            << O.vel[Ball].z << ',' << 0;
             } else {
-                ballBuffer << ',' << O.pos[Ball][0] << ',' << O.pos[Ball][1] << ',' << O.pos[Ball][2] << ','
+                O.ballBuffer << ',' << O.pos[Ball][0] << ',' << O.pos[Ball][1] << ',' << O.pos[Ball][2] << ','
                            << O.w[Ball][0] << ',' << O.w[Ball][1] << ',' << O.w[Ball][2] << ','
                            << O.w[Ball].norm() << ',' << O.vel[Ball].x << ',' << O.vel[Ball].y << ','
                            << O.vel[Ball].z << ',' << 0;
@@ -805,7 +807,7 @@ sim_looper(Ball_group &O)
             O.zeroSaveVals();
         }
         ///////////
-        sim_one_step(writeStep,O);
+        O.sim_one_step(writeStep);
 
         ///////////////////////////////////////
         //TAKE THIS OUT FOR REAL RUNS
@@ -831,15 +833,15 @@ sim_looper(Ball_group &O)
         // }
         ///////////////////////////////////////
         //////////////////////////////////////
-        if (contact and inital_contact)
-        {
-            inital_contact = false;
-            std::ofstream contact_write;
-            contact_write.open(output_folder + "contact.csv", std::ofstream::app);
-            contact_write << contactBuffer.rdbuf();  // Barf buffer to file.
-            contactBuffer.str("");               // Empty the stream for next filling.
-            contact_write.close();
-        }
+        // if (contact and inital_contact)
+        // {
+        //     inital_contact = false;
+        //     std::ofstream contact_write;
+        //     contact_write.open(output_folder + "contact.csv", std::ofstream::app);
+        //     contact_write << contactBuffer.rdbuf();  // Barf buffer to file.
+        //     contactBuffer.str("");               // Empty the stream for next filling.
+        //     contact_write.close();
+        // }
         //////////////////////////////////////
         if (O.write_all)
         {
@@ -943,7 +945,7 @@ sim_looper(Ball_group &O)
             // Write energy to stream:
             ////////////////////////////////////
             //TURN THIS ON FOR REAL RUNS!!!
-            energyBuffer << '\n'
+            O.energyBuffer << '\n'
                          << simTimeElapsed << ',' << O.PE << ',' << O.KE << ',' << O.PE + O.KE << ','
                          << O.mom.norm() << ','
                          << O.ang_mom.norm();  // the two zeros are bound and unbound mass
@@ -971,8 +973,8 @@ sim_looper(Ball_group &O)
                 // Write simData to file and clear buffer.
                 std::ofstream ballWrite;
                 ballWrite.open(output_folder + output_prefix + "simData.csv", std::ofstream::app);
-                ballWrite << ballBuffer.rdbuf();  // Barf buffer to file.
-                ballBuffer.str("");               // Empty the stream for next filling.
+                ballWrite << O.ballBuffer.rdbuf();  // Barf buffer to file.
+                O.ballBuffer.str("");               // Empty the stream for next filling.
                 ballWrite.close();
 
                 // Write Energy data to file and clear buffer.
@@ -980,8 +982,8 @@ sim_looper(Ball_group &O)
                 //TURN ON FOR REAL SIM
                 std::ofstream energyWrite;
                 energyWrite.open(output_folder + output_prefix + "energy.csv", std::ofstream::app);
-                energyWrite << energyBuffer.rdbuf();
-                energyBuffer.str("");  // Empty the stream for next filling.
+                energyWrite << O.energyBuffer.rdbuf();
+                O.energyBuffer.str("");  // Empty the stream for next filling.
                 energyWrite.close();
                 // ////////////////////////////////////////////
 

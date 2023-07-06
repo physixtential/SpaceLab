@@ -17,11 +17,11 @@ using linalg::aliases::double3x3;
 std::random_device rd;
 std::mt19937 random_generator(rd());
 
-std::string rand_file = "/global/homes/l/lpkolanz/SpaceLab/random/rand.txt";
-std::string gaus_file = "/global/homes/l/lpkolanz/SpaceLab/random/randomGaussian.txt";
+// std::string rand_file = "/global/homes/l/lpkolanz/SpaceLab/random/rand.txt";
+// std::string gaus_file = "/global/homes/l/lpkolanz/SpaceLab/random/randomGaussian.txt";
 
-std::ifstream rando(rand_file,std::ios::in);
-std::ifstream gauss(gaus_file,std::ios::in);
+// std::ifstream rando(rand_file,std::ios::in);
+// std::ifstream gauss(gaus_file,std::ios::in);
 
 double get_gaus()
 {
@@ -196,8 +196,8 @@ input(const std::string& question)
 inline double
 rand_between(const double min, const double max)
 {
-    // double f = (double)rand() / RAND_MAX;
-    double f = (double)get_rand() / RAND_MAX;
+    double f = (double)rand() / RAND_MAX;
+    // double f = (double)get_rand() / RAND_MAX;
     return min + f * (max - min);
 }
 
@@ -205,8 +205,8 @@ rand_between(const double min, const double max)
 vec3
 rand_unit_vec3()
 {
-    // return vec3(random_gaussian(), random_gaussian(), random_gaussian()).normalized();
-    return vec3(get_gaus(), get_gaus(), get_gaus()).normalized();
+    return vec3(random_gaussian(), random_gaussian(), random_gaussian()).normalized();
+    // return vec3(get_gaus(), get_gaus(), get_gaus()).normalized();
 }
 
 // // Returns a vector within the desired radius, and optionally outside an inner radius (shell).

@@ -5,6 +5,7 @@
 #include "../vec3.hpp"
 #include "../linalg.hpp"
 #include "../Utils.hpp"
+#include "../timing/timing.hpp"
 
 #include <cmath>
 #include <iostream>
@@ -26,6 +27,9 @@ using json = nlohmann::json;
 class Ball_group
 {
 public:
+    std::stringstream ballBuffer;
+    std::stringstream energyBuffer;
+    std::stringstream contactBuffer;
     double radiiFraction = -1;
     bool debug = false;
     bool write_all = false;
@@ -140,11 +144,13 @@ public:
     Ball_group dust_agglomeration_particle_init();
     Ball_group add_projectile();
     void merge_ball_group(const Ball_group& src);
+
+
     
 private:
     // String buffers to hold data in memory until worth writing to file:
-    std::stringstream ballBuffer;
-    std::stringstream energyBuffer;
+    // std::stringstream ballBuffer;
+    // std::stringstream energyBuffer;
 
     void allocate_group(const int nBalls);
     void freeMemory() const;
@@ -173,6 +179,7 @@ private:
 /// @param nBalls Number of balls to allocate.
 Ball_group::Ball_group(const int nBalls)
 {
+    energyBuffer.precision(12);  // Need more precision on momentum.
     allocate_group(nBalls);
     for (size_t i = 0; i < nBalls; i++) {
         R[i] = 1;
@@ -187,6 +194,7 @@ Ball_group::Ball_group(const int nBalls)
 /// @param customVel To condition for specific vMax.
 Ball_group::Ball_group(const bool generate, const double& customVel, const char* path)
 {
+    energyBuffer.precision(12);  // Need more precision on momentum.
     parse_input_file(path);
     generate_ball_field(genBalls);
     // Hack - Override and creation just 2 balls position and velocity.
@@ -202,6 +210,7 @@ Ball_group::Ball_group(const bool generate, const double& customVel, const char*
     {
         calc_mu_scale_factor();
     }
+    std::cerr<<initial_radius<<std::endl;
 
     m_total = getMass();
     calc_v_collapse();
@@ -220,6 +229,7 @@ Ball_group::Ball_group(const bool generate, const double& customVel, const char*
 /// @param customVel To condition for specific vMax.
 Ball_group::Ball_group(const std::string& path, const std::string& filename, const double& customVel, int start_file_index=0)
 {
+    energyBuffer.precision(12);  // Need more precision on momentum.
     parse_input_file(path.c_str());
     sim_continue(path, filename,start_file_index);
     calc_v_collapse();
@@ -1236,6 +1246,7 @@ Ball_group Ball_group::dust_agglomeration_particle_init()
     }
     projectile.vel[0] = -v_custom * projectile_direction;
 
+    
     // projectile.R[0] = 1e-5;  // rand_between(1,3)*1e-5;
     projectile.moi[0] = calc_moi(projectile.R[0], projectile.m[0]);
 
@@ -1262,6 +1273,7 @@ Ball_group Ball_group::dust_agglomeration_particle_init()
     const double3x3 local_coords = local_coordinates(to_double3(projectile_direction));
     
     projectile.pos[0] = dust_agglomeration_offset(local_coords,projectile.pos[0],projectile.vel[0],projectile.R[0]);
+    std::cerr<<"pos, dir: "<<projectile.pos[0]<<", "<<projectile_direction<<std::endl;
     //////////////////////////////////
     //TURN ON above LINE AND OFF REST FOR REAL SIM
     // if (num_particles == 3)
@@ -1478,17 +1490,18 @@ void Ball_group::init_conditions()
 
             // Distance array element: 1,0    2,0    2,1    3,0    3,1    3,2 ...
             int e = static_cast<int>(A * (A - 1) * .5) + B;  // a^2-a is always even, so this works.
-            double oldDist = distances[e];
+            // double oldDist = distances[e];
 
             // Check for collision between Ball and otherBall.
             if (overlap > 0) {
                 double k;
+                k = kin;
                 // Apply coefficient of restitution to balls leaving collision.
-                if (dist >= oldDist) {
-                    k = kout;
-                } else {
-                    k = kin;
-                }
+                // if (dist >= oldDist) {
+                //     k = kout;
+                // } else {
+                //     k = kin;
+                // }
 
                 // Cohesion (in contact) h must always be h_min:
                 // constexpr double h = h_min;

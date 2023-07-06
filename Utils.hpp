@@ -17,45 +17,45 @@ using linalg::aliases::double3x3;
 std::random_device rd;
 std::mt19937 random_generator(rd());
 
-std::string rand_file = "/home/lpkolanz/Desktop/SpaceLab_branch_copy/SpaceLab/random/rand.txt";
-std::string gaus_file = "/home/lpkolanz/Desktop/SpaceLab_branch_copy/SpaceLab/random/randomGaussian.txt";
+// std::string rand_file = "/home/lpkolanz/Desktop/SpaceLab_branch_copy/SpaceLab/random/rand.txt";
+// std::string gaus_file = "/home/lpkolanz/Desktop/SpaceLab_branch_copy/SpaceLab/random/randomGaussian.txt";
 
-std::ifstream rando(rand_file,std::ios::in);
-std::ifstream gauss(gaus_file,std::ios::in);
+// std::ifstream rando(rand_file,std::ios::in);
+// std::ifstream gauss(gaus_file,std::ios::in);
 
-double get_gaus()
-{
-    double ret;
-    std::string line;
-    if (!std::getline(gauss,line))
-    {
-        gauss.close();
-        std::ifstream gauss(gaus_file,std::ios::in);
-        std::getline(gauss,line);
-    }
-    // std::cerr<<line<<std::endl;
-    std::stringstream ss;  
-    ss << line;  
-    ss >> ret; 
-    return ret;
-}
+// double get_gaus()
+// {
+//     double ret;
+//     std::string line;
+//     if (!std::getline(gauss,line))
+//     {
+//         gauss.close();
+//         std::ifstream gauss(gaus_file,std::ios::in);
+//         std::getline(gauss,line);
+//     }
+//     // std::cerr<<line<<std::endl;
+//     std::stringstream ss;  
+//     ss << line;  
+//     ss >> ret; 
+//     return ret;
+// }
 
-int get_rand()
-{
-    int ret;
-    std::string line;
-    if (!std::getline(rando,line))
-    {
-        rando.close();
-        std::ifstream rando(rand_file,std::ios::in);
-        std::getline(rando,line);
-    }
-    // std::cerr<<line<<std::endl;
-    std::stringstream ss;  
-    ss << line;  
-    ss >> ret; 
-    return ret;
-}
+// int get_rand()
+// {
+//     int ret;
+//     std::string line;
+//     if (!std::getline(rando,line))
+//     {
+//         rando.close();
+//         std::ifstream rando(rand_file,std::ios::in);
+//         std::getline(rando,line);
+//     }
+//     // std::cerr<<line<<std::endl;
+//     std::stringstream ss;  
+//     ss << line;  
+//     ss >> ret; 
+//     return ret;
+// }
 
 // Convert from vec3 to double3
 double3
@@ -196,8 +196,8 @@ input(const std::string& question)
 inline double
 rand_between(const double min, const double max)
 {
-    // double f = (double)rand() / RAND_MAX;
-    double f = (double)get_rand() / RAND_MAX;
+    double f = (double)rand() / RAND_MAX;
+    // double f = (double)get_rand() / RAND_MAX;
     return min + f * (max - min);
 }
 
@@ -205,8 +205,8 @@ rand_between(const double min, const double max)
 vec3
 rand_unit_vec3()
 {
-    // return vec3(random_gaussian(), random_gaussian(), random_gaussian()).normalized();
-    return vec3(get_gaus(), get_gaus(), get_gaus()).normalized();
+    return vec3(random_gaussian(), random_gaussian(), random_gaussian()).normalized();
+    // return vec3(get_gaus(), get_gaus(), get_gaus()).normalized();
 }
 
 // // Returns a vector within the desired radius, and optionally outside an inner radius (shell).

@@ -4,8 +4,8 @@ import multiprocessing as mp
 import subprocess
 
 def run_job(location,num_balls):
-	cmd = ["python3", "{}run_multicore_sim.py".format(location), location, str(num_balls)]
-	# cmd = ["python3", "{}run_multicore_sim2.py".format(location), location, str(num_balls)]
+	# cmd = ["python3", "{}run_multicore_sim.py".format(location), location, str(num_balls)]
+	cmd = ["python3", "{}run_multicore_sim2.py".format(location), location, str(num_balls)]
 	# print(cmd)
 	subprocess.run(cmd)
 
@@ -15,14 +15,14 @@ if __name__ == '__main__':
 
 	try:
 		# os.chdir("{}ColliderSingleCore".format(curr_folder))
-		subprocess.run(["make","-C","ColliderMultiCore"], check=True)
-		# subprocess.run(["make","-C","ColliderMultiCore2electricBugaloo"], check=True)
+		# subprocess.run(["make","-C","ColliderMultiCore"], check=True)
+		subprocess.run(["make","-C","ColliderMultiCore2electricBugaloo"], check=True)
 	except:
 		print('compilation failed')
 		exit(-1)
 		
-	job_set_name = "multiCoreCollideTest"
-	# job_set_name = "multiCoreCollide2Test"
+	# job_set_name = "multiCoreCollideTest"
+	job_set_name = "multiCoreCollide2Test"
 	# job_set_name = "multiCoreTest"
 	# job_set_name = "multiCore2Test"
 	# folder_name_scheme = "T_"
@@ -68,10 +68,10 @@ if __name__ == '__main__':
 					json.dump(input_json,fp,indent=4)
 
 				#add run script and executable to folders
-				os.system("cp ../default_files/run_multicore_sim.py {}run_multicore_sim.py".format(job))
-				os.system("cp ColliderMultiCore/ColliderMultiCore.x {}ColliderMultiCore.x".format(job))
-				# os.system("cp ../default_files/run_multicore_sim2.py {}run_multicore_sim2.py".format(job))
-				# os.system("cp ColliderMultiCore2electricBugaloo/ColliderMultiCore2.x {}ColliderMultiCore2.x".format(job))
+				# os.system("cp ../default_files/run_multicore_sim.py {}run_multicore_sim.py".format(job))
+				# os.system("cp ColliderMultiCore/ColliderMultiCore.x {}ColliderMultiCore.x".format(job))
+				os.system("cp ../default_files/run_multicore_sim2.py {}run_multicore_sim2.py".format(job))
+				os.system("cp ColliderMultiCore2electricBugaloo/ColliderMultiCore2.x {}ColliderMultiCore2.x".format(job))
 				folders.append(job)
 	# print(folders)
 	if len(N) != len(folders):

@@ -5,6 +5,7 @@
 #include "vec3.hpp"
 #include "linalg.hpp"
 #include "Utils.hpp"
+#include "timing/timing.hpp"
 
 #include <cmath>
 #include <iostream>
@@ -140,6 +141,8 @@ public:
     Ball_group dust_agglomeration_particle_init();
     Ball_group add_projectile();
     void merge_ball_group(const Ball_group& src);
+
+
     
 private:
     // String buffers to hold data in memory until worth writing to file:
@@ -202,6 +205,7 @@ Ball_group::Ball_group(const bool generate, const double& customVel, const char*
     {
         calc_mu_scale_factor();
     }
+    std::cerr<<initial_radius<<std::endl;
 
     m_total = getMass();
     calc_v_collapse();
@@ -1480,17 +1484,18 @@ void Ball_group::init_conditions()
 
             // Distance array element: 1,0    2,0    2,1    3,0    3,1    3,2 ...
             int e = static_cast<int>(A * (A - 1) * .5) + B;  // a^2-a is always even, so this works.
-            double oldDist = distances[e];
+            // double oldDist = distances[e];
 
             // Check for collision between Ball and otherBall.
             if (overlap > 0) {
                 double k;
+                k = kin;
                 // Apply coefficient of restitution to balls leaving collision.
-                if (dist >= oldDist) {
-                    k = kout;
-                } else {
-                    k = kin;
-                }
+                // if (dist >= oldDist) {
+                //     k = kout;
+                // } else {
+                //     k = kin;
+                // }
 
                 // Cohesion (in contact) h must always be h_min:
                 // constexpr double h = h_min;
