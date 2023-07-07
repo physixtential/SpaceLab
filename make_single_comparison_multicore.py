@@ -25,8 +25,8 @@ if __name__ == '__main__':
 
 	runs_at_once = 1
 	# attempts = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20] 
-	attempts = [1] 
-	N = [15]
+	attempts = [2] 
+	N = [1]
 	Temps = [100]
 	folders = []
 	for attempt in attempts:
@@ -66,6 +66,7 @@ if __name__ == '__main__':
 				#add run script and executable to folders
 				os.system("cp default_files/run_sim.py {}run_sim.py".format(job))
 				os.system("cp ColliderSingleCore/ColliderSingleCore.x {}ColliderSingleCore.x".format(job))
+				os.system("cp sbatchMulti.bash {}sbatchMulti.bash".format(job))
 				folders.append(job)
 	# print(folders)
 	if len(N) != len(folders):

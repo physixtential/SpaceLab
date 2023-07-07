@@ -9,13 +9,17 @@ import porosity_FD as p
 def main():
 	base = os.getcwd() + "/jobs/"
 	# folder1 = base + "multiCoreTest3/"
-	folder1 = base + "singleCoreComparison4/"
+	folder1 = base + "singleCoreComparison/"
 	# folder2 = base + "singleCoreComparison3/"
 	# folder2 = base + "multiCoreTest4/"
-	folder2 = base + "singleCoreComparison_COPY7/"
-	# folder2 = base + "multiCoreTest4/"
+	folder2 = base + "multiCoreTest7/"
+	# folder2 = base + "singleCoreComparison_COPY7/"
 	# folder1 = "/home/lpkolanz/Desktop/SpaceLab_branch/SpaceLab/jobs/accuracyTest11/N_10/T_100/"
 	# folder2 = "/home/lpkolanz/Desktop/SpaceLab_branch/SpaceLab/jobs/accuracyTest15/N_10/T_100/"
+
+
+	
+
 
 	# max_ind = -1
 	# for file in os.listdir(folder1):
@@ -46,7 +50,7 @@ def main():
 	# file2 = str(max_ind)+'_'+'_'.join(body)+"_simData.csv"
 	# file2 = "9_simData.csv"
 
-	inds = np.arange(1,13)
+	inds = np.arange(1,15)
 	# inds = np.arange(1,3)
 
 	porositiesabc=np.zeros((2,inds.size))
@@ -108,24 +112,52 @@ def main():
 	# ax2.set_ylabel("Value")
 	# ax2.legend()
 
+
+	realname=""
+	if folder2.split('/')[-2] == "multiCoreTest7":
+		realname = "backwardsLoop"
+	elif folder2.split('/')[-2] == "multiCoreTest8" or folder2.split('/')[-2] == "multiCoreTest9":
+		realname = "parallel"
+	else:
+		realname = folder2.split('/')[-2]
+
 	for m,method in enumerate([porositiesabc,porositiesKBM,contacts,FD_data]):
 		fig, ax = plt.subplots(1,1,figsize=(15,7))
-		ax.plot(inds,method[0],label='singleCoreComparison4')
-		ax.plot(inds,method[1],label='singleCoreComparison_COPY7')
+		ax.plot(inds,method[0],label='singleCoreComparison')
+		ax.plot(inds,method[1],label=realname)
 		title = ""
 		if m == 0:
-			title = "porositiesabc"
+			title = "Porositiesabc"
 		elif m == 1:
-			title = "porositiesKBM"
+			title = "PorositiesKBM"
 		elif m == 2:
-			title = "contacts"
+			title = "Contacts"
 		elif m == 3:
 			title = "FD"
 		ax.set_title(title)
 		ax.set_xlabel("ball")
 		ax.set_ylabel("Value")
 		ax.legend()
-		plt.savefig("figures/"+title+"OverTime_COPY.png")
+		plt.savefig("figures/{}".format(realname)+title+"OverTime.png")
+
+	for m,method in enumerate([porositiesabc,porositiesKBM,contacts,FD_data]):
+		fig, ax = plt.subplots(1,1,figsize=(15,7))
+		ax.plot(inds,method[0]-method[1],label='single - {}'.format(realname))
+		# ax.plot(inds,,label='multiCoreTest7')
+		title = ""
+		if m == 0:
+			title = "Porositiesabc_difference"
+		elif m == 1:
+			title = "PorositiesKBM_difference"
+		elif m == 2:
+			title = "Contacts_difference"
+		elif m == 3:
+			title = "FD_difference"
+		ax.set_title(title)
+		ax.set_xlabel("ball")
+		ax.set_ylabel("Value")
+		ax.legend()
+		plt.savefig("figures/{}".format(realname)+title+"OverTime.png")
 
 
 	plt.show()
