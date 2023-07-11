@@ -7,8 +7,8 @@ CPP=g++
 # CPPflags=-O3 -std=c++2a 
 CPPflags=-std=c++2a -fopenmp
 
-ColliderMultiCore.x: ColliderMultiCore.cpp ../dust_const.hpp ../Utils.hpp ball_group_multi_core.hpp ../timing/timing.hpp
-	${CPP} ${CPPflags} -o ColliderMultiCore.x ColliderMultiCore.cpp
+grid_test.x: grid_test.cpp ../grid.hpp ../Utils.hpp ../vec3.hpp
+	${CPP} ${CPPflags} -o grid_test.x grid_test.cpp
 
 # test: ColliderSingleCore.cpp 
 # 	${CPP} ${CPPflags} -o testSC.x ColliderSingleCore.cpp

@@ -1,11 +1,11 @@
 #pragma once
-#include "../dust_const_init.hpp"
+#include "dust_const_init.hpp"
 // #include "dust_const.hpp"
-#include "../external/json/single_include/nlohmann/json.hpp"
-#include "../vec3.hpp"
-#include "../linalg.hpp"
-#include "../Utils.hpp"
-#include "../timing/timing.hpp"
+#include "external/json/single_include/nlohmann/json.hpp"
+#include "vec3.hpp"
+#include "linalg.hpp"
+#include "Utils.hpp"
+#include "timing/timing.hpp"
 
 #include <cmath>
 #include <iostream>
@@ -18,7 +18,6 @@
 #include <cstring>
 #include <typeinfo>
 #include <random>
-#include <omp.h>
 
 using std::numbers::pi;
 using json = nlohmann::json;
@@ -28,9 +27,6 @@ using json = nlohmann::json;
 class Ball_group
 {
 public:
-    std::stringstream ballBuffer;
-    std::stringstream energyBuffer;
-    std::stringstream contactBuffer;
     double radiiFraction = -1;
     bool debug = false;
     bool write_all = false;
@@ -146,12 +142,12 @@ public:
     Ball_group add_projectile();
     void merge_ball_group(const Ball_group& src);
 
-    void sim_one_step(const bool write_step);
 
+    
 private:
     // String buffers to hold data in memory until worth writing to file:
-    // std::stringstream ballBuffer;
-    // std::stringstream energyBuffer;
+    std::stringstream ballBuffer;
+    std::stringstream energyBuffer;
 
     void allocate_group(const int nBalls);
     void freeMemory() const;
@@ -180,7 +176,6 @@ private:
 /// @param nBalls Number of balls to allocate.
 Ball_group::Ball_group(const int nBalls)
 {
-    energyBuffer.precision(12);  // Need more precision on momentum.
     allocate_group(nBalls);
     for (size_t i = 0; i < nBalls; i++) {
         R[i] = 1;
@@ -195,7 +190,6 @@ Ball_group::Ball_group(const int nBalls)
 /// @param customVel To condition for specific vMax.
 Ball_group::Ball_group(const bool generate, const double& customVel, const char* path)
 {
-    energyBuffer.precision(12);  // Need more precision on momentum.
     parse_input_file(path);
     generate_ball_field(genBalls);
     // Hack - Override and creation just 2 balls position and velocity.
@@ -230,7 +224,6 @@ Ball_group::Ball_group(const bool generate, const double& customVel, const char*
 /// @param customVel To condition for specific vMax.
 Ball_group::Ball_group(const std::string& path, const std::string& filename, const double& customVel, int start_file_index=0)
 {
-    energyBuffer.precision(12);  // Need more precision on momentum.
     parse_input_file(path.c_str());
     sim_continue(path, filename,start_file_index);
     calc_v_collapse();
@@ -837,7 +830,162 @@ void Ball_group::sim_init_write(std::string filename, int counter = 0)
 
     output_prefix = filename;
 
-    
+    //////////////////////////
+    if (write_all)
+    {
+        // Force writes
+        std::ofstream vdwWrite;
+        vdwWrite.open(output_folder + filename + "vdwData.csv", std::ofstream::app);
+        for (int A = 0; A < num_particles; ++A)
+        {
+            vdwWrite <<"vdw("<<A<<"x)"<<"vdw("<<A<<"y)"<<"vdw("<<A<<"z)";
+            if (A != num_particles-1)
+            {
+                vdwWrite << ',';
+            }
+        }
+        vdwWrite<<'\n';
+        vdwWrite.close();
+
+        // std::ofstream elasticWrite;
+        // elasticWrite.open(output_folder + filename + "elasticData.csv", std::ofstream::app);
+        // for (int A = 0; A < num_particles; ++A)
+        // {
+        //     elasticWrite <<"ela("<<A<<')';
+        //     if (A != num_particles-1)
+        //     {
+        //         elasticWrite << ',';
+        //     }
+        // }
+        // elasticWrite<<'\n';
+        // elasticWrite.close();
+
+        // std::ofstream slideWrite;
+        // slideWrite.open(output_folder + filename + "slideData.csv", std::ofstream::app);
+        // for (int A = 0; A < num_particles; ++A)
+        // {
+        //     for (int B = 0; B < num_particles; ++B)
+        //     {
+        //         slideWrite <<"sli("<<A<<';'<<B<<')';
+        //         if ((B != num_particles-1) && (A != num_particles-1))
+        //         {
+        //             slideWrite << ',';
+        //         }
+        //     }
+        // }
+        // slideWrite<<'\n';
+        // slideWrite.close();
+
+        // std::ofstream rollWrite;
+        // rollWrite.open(output_folder + filename + "rollData.csv", std::ofstream::app);
+        // for (int A = 0; A < num_particles; ++A)
+        // {
+        //     for (int B = 0; B < num_particles; ++B)
+        //     {
+        //         rollWrite <<"rol("<<A<<';'<<B<<')';
+        //         if ((B != num_particles-1) && (A != num_particles-1))
+        //         {
+        //             rollWrite << ',';
+        //         }
+        //     }
+        // }
+        // rollWrite<<'\n';
+        // rollWrite.close();
+        
+        // std::ofstream torqueWrite;
+        // torqueWrite.open(output_folder + filename + "torqueData.csv", std::ofstream::app);
+        // for (int A = 0; A < num_particles; ++A)
+        // {
+        //     for (int B = 0; B < num_particles; ++B)
+        //     {
+        //         torqueWrite <<"tor("<<A<<';'<<B<<')';
+        //         if ((B != num_particles-1) && (A != num_particles-1))
+        //         {
+        //             torqueWrite << ',';
+        //         }
+        //     }
+        // }
+        // torqueWrite<<'\n';
+        // torqueWrite.close();
+
+        // std::ofstream wWrite;
+        // wWrite.open(output_folder + filename + "wData.csv", std::ofstream::app);
+        // wWrite<<"w(0)";
+        // for (int A = 1; A < num_particles; ++A)
+        // {
+        //     wWrite<<','<<"w("<<A<<')';
+        // }
+        // wWrite<<'\n';
+        // wWrite.close();
+
+        // std::ofstream posWrite;
+        // posWrite.open(output_folder + filename + "posData.csv", std::ofstream::app);
+        // posWrite<<"pos(0)";
+        // for (int A = 1; A < num_particles; ++A)
+        // {
+        //     posWrite<<','<<"pos("<<A<<')';
+        // }
+        // posWrite<<'\n';
+        // posWrite.close();
+
+        // std::ofstream velWrite;
+        // velWrite.open(output_folder + filename + "velData.csv", std::ofstream::app);
+        // velWrite<<"vel(0)";
+        // for (int A = 1; A < num_particles; ++A)
+        // {
+        //     velWrite<<','<<"vel("<<A<<')';
+        // }
+        // velWrite<<'\n';
+        // velWrite.close();
+        // std::ofstream fricWrite;
+        // fricWrite.open(output_folder + filename + "fricData.csv", std::ofstream::app);
+        // for (int i = 0; i < num_particles; ++i)
+        // {
+        //     fricWrite << "b"<<i<<"xroll,"<<"b"<<i<<"yroll,"<<"b"<<i<<"zroll,"<<
+        //     "b"<<i<<"xslide,"<<"b"<<i<<"yslide,"<<"b"<<i<<"zslide";
+        //     if (i != num_particles-1)
+        //     {
+        //         fricWrite << ',';
+        //     }
+        // }
+        // fricWrite.close();
+        // std::ofstream fricB3Write;
+        // fricB3Write.open(output_folder + filename + "fricB3Data.csv", std::ofstream::app);
+        // for (int i = 0; i < num_particles; ++i)
+        // {
+        //     fricB3Write << "Fx3"<<i<<"roll,"<<"Fy3"<<i<<"roll,"<<"Fz3"<<i<<"roll,"<<
+        //     "Fx3"<<i<<"slide,"<<"Fy3"<<i<<"slide,"<<"Fz3"<<i<<"slide";
+        //     if (i != num_particles-1)
+        //     {
+        //         fricB3Write << ',';
+        //     }
+        // }
+        // fricB3Write.close();
+        // std::ofstream dirB3Write;
+        // dirB3Write.open(output_folder + filename + "dirB3Data.csv", std::ofstream::app);
+        // for (int i = 0; i < num_particles; ++i)
+        // {
+        //     dirB3Write << "xhat3"<<i<<"roll,"<<"yhat3"<<i<<"roll,"<<"zhat3"<<i<<"roll,"<<
+        //     "xhat3"<<i<<"slide,"<<"yhat3"<<i<<"slide,"<<"zhat3"<<i<<"slide";
+        //     if (i != num_particles-1)
+        //     {
+        //         dirB3Write << ',';
+        //     }
+        // }
+        // dirB3Write.close();
+        // std::ofstream distB3Write;
+        // distB3Write.open(output_folder + filename + "distB3Data.csv", std::ofstream::app);
+        // for (int i = 0; i < num_particles-1; ++i)
+        // {
+        //     distB3Write << "dist3"<<i;
+        //     if (i != num_particles-2)
+        //     {
+        //         distB3Write << ',';
+        //     }
+        // }
+        // distB3Write.close();
+        //////////////////////////
+    }
     // Complete file names:
     std::string simDataFilename = output_folder + filename + "simData.csv";
     std::string energyFilename = output_folder + filename + "energy.csv";
@@ -1197,8 +1345,8 @@ Ball_group Ball_group::add_projectile()
 void Ball_group::merge_ball_group(const Ball_group& src)
 {
     // Copy incoming data to the end of the currently loaded data.
-    // std::memcpy(
-    //     &distances[num_particles_added], src.distances, sizeof(src.distances[0]) * (src.num_particles*src.num_particles-src.num_particles)/2);
+    std::memcpy(
+        &distances[num_particles_added], src.distances, sizeof(src.distances[0]) * src.num_particles);
     std::memcpy(&pos[num_particles_added], src.pos, sizeof(src.pos[0]) * src.num_particles);
     std::memcpy(&vel[num_particles_added], src.vel, sizeof(src.vel[0]) * src.num_particles);
     std::memcpy(&velh[num_particles_added], src.velh, sizeof(src.velh[0]) * src.num_particles);
@@ -1929,7 +2077,6 @@ void Ball_group::updateDTK(const double& velocity)
     // dt = .02 * sqrt((fourThirdsPiRho / regime_adjust) * r_min * r_min * r_min);
     dt = .01 * sqrt((fourThirdsPiRho / regime_adjust) * r_min * r_min * r_min); //NORMAL ONE
     // dt = .005 * sqrt((fourThirdsPiRho / regime_adjust) * r_min * r_min * r_min);
-    // dt = .0025 * sqrt((fourThirdsPiRho / regime_adjust) * r_min * r_min * r_min); //NORMAL ONE
     std::cerr << "==================" << '\n';
     std::cerr << "dt set to: " << dt << '\n';
     std::cerr << "kin set to: " << kin << '\n';
@@ -2083,321 +2230,3 @@ void Ball_group::sim_init_two_cluster(
                     scientific(vBig) + "_vSmall" + scientific(vSmall) + "_IP" +
                     rounder(impactParameter * 180 / 3.14159, 2) + "_rho" + rounder(density, 4);
 }
-
-void Ball_group::sim_one_step(const bool write_step)
-{
-    /// FIRST PASS - Update Kinematic Parameters:
-    // t.start_event("UpdateKinPar");
-    for (int Ball = 0; Ball < num_particles; Ball++) {
-        // Update velocity half step:
-        velh[Ball] = vel[Ball] + .5 * acc[Ball] * dt;
-
-        // Update angular velocity half step:
-        wh[Ball] = w[Ball] + .5 * aacc[Ball] * dt;
-
-        // Update position:
-        pos[Ball] += velh[Ball] * dt;
-
-        // Reinitialize acceleration to be recalculated:
-        acc[Ball] = {0, 0, 0};
-
-        // Reinitialize angular acceleration to be recalculated:
-        aacc[Ball] = {0, 0, 0};
-    }
-    // t.end_event("UpdateKinPar");
-
-    /// SECOND PASS - Check for collisions, apply forces and torques:
-    // t.start_event("CalcForces/loopApplicablepairs");
-    // int A,B;
-    // #pragma omp declare reduction(vec3_sum : vec3 : omp_out += omp_in)
-    // #pragma omp parallel for num_threads(4) reduction(vec3_sum:acc[:num_particles],aacc[:num_particles]) reduction(+:PE) default(none) /*private(A,B)*/ shared(Ha,write_step,R,pos,vel,m,w,u_r,u_s,moi,kin,kout,distances,h_min,dt)
-    // #pragma omp parallel for num_threads(2) //reduction(+:PE) private(A,B) shared(Ha,write_step,R,pos,vel,m,w,u_r,u_s,moi,kin,kout,distances,h_min,dt)
-    // for (int A0 = 1; A0 < num_particles; A0++)  
-    // {
-    //     // #pragma omp critical
-    //     // {
-    //     /// DONT DO ANYTHING HERE. A STARTS AT 1.
-    //     int A = A0;//(A0 - 1) ^ 2 + 1;
-    //     for (int B = 0; B < A; B++) 
-    //     {
-    // #pragma omp parallel master
-    // std::cerr<<"Using "<<omp_get_num_threads()<<" threads"<<std::endl;
-    // omp_lock_t writelock;
-    // omp_init_lock(&writelock);
-
-    long long A;
-    long long B;
-    long long pc;
-    long long lllen = num_particles;
-    // // #pragma omp parallel for reduction(+:PE) default(none) private(A,B,pc) shared(Ha,write_step,lllen,R,pos,vel,m,w,u_r,u_s,moi,kin,kout,distances,h_min)
-    // // #pragma omp parallel for num_threads(3) reduction(+:PE) default(none) private(A,B,pc) shared(writelock,acc,aacc,Ha,write_step,lllen,R,pos,vel,m,w,u_r,u_s,moi,kin,kout,distances,h_min)
-    // for (pc = (((lllen*lllen)-lllen)/2); pc >= 1; pc--)
-    #pragma omp declare reduction(vec3_sum : vec3 : omp_out += omp_in)
-    #pragma omp parallel for num_threads(3) reduction(vec3_sum:acc[:num_particles],aacc[:num_particles]) reduction(+:PE) default(none) private(A,B,pc) shared(Ha,write_step,lllen,R,pos,vel,m,w,u_r,u_s,moi,kin,kout,distances,h_min,dt)
-    for (pc = 1; pc <= (((lllen*lllen)-lllen)/2); pc++)
-    {
-        long double pd = (long double)pc;
-        pd = (sqrt(pd*8.0L+1.0L)+1.0L)*0.5L;
-        pd -= 0.00001L;
-        A = (long long)pd;
-        B = (long long)((long double)pc-(long double)A*((long double)A-1.0L)*.5L-1.0L);
-
-            const double sumRaRb = R[A] + R[B];
-            const vec3 rVecab = pos[B] - pos[A];  // Vector from a to b.
-            const vec3 rVecba = -rVecab;
-            const double dist = (rVecab).norm();
-
-            //////////////////////
-            // const double grav_scale = 3.0e21;
-            //////////////////////
-
-            // Check for collision between Ball and otherBall:
-            double overlap = sumRaRb - dist;
-
-            vec3 totalForceOnA{0, 0, 0};
-
-            // Distance array element: 1,0    2,0    2,1    3,0    3,1    3,2 ...
-            int e = static_cast<unsigned>(A * (A - 1) * .5) + B;  // a^2-a is always even, so this works.
-            double oldDist = distances[e];
-
-            // Check for collision between Ball and otherBall.
-            if (overlap > 0) {
-
-
-                double k;
-                if (dist >= oldDist) {
-                    k = kout;
-                } else {
-                    k = kin;
-                }
-
-                // Cohesion (in contact) h must always be h_min:
-                // constexpr double h = h_min;
-                const double h = h_min;
-                const double Ra = R[A];
-                const double Rb = R[B];
-                const double h2 = h * h;
-                // constexpr double h2 = h * h;
-                const double twoRah = 2 * Ra * h;
-                const double twoRbh = 2 * Rb * h;
-                const vec3 vdwForceOnA = Ha / 6 * 64 * Ra * Ra * Ra * Rb * Rb * Rb *
-                                         ((h + Ra + Rb) / ((h2 + twoRah + twoRbh) * (h2 + twoRah + twoRbh) *
-                                                           (h2 + twoRah + twoRbh + 4 * Ra * Rb) *
-                                                           (h2 + twoRah + twoRbh + 4 * Ra * Rb))) *
-                                         rVecab.normalized();
-                
-
-                const vec3 elasticForceOnA = -k * overlap * .5 * (rVecab / dist);
-
-                ///////////////////////////////
-                ///////material parameters for silicate composite from Reissl 2023
-                // const double Estar = 1e5*169; //in Pa
-                // const double nu2 = 0.27*0.27; // nu squared (unitless)
-                // const double prevoverlap = sumRaRb - oldDist;
-                // const double rij = sqrt(std::pow(Ra,2)-std::pow((Ra-overlap/2),2));
-                // const double Tvis = 15e-12; //Viscoelastic timescale (15ps)
-                // // const double Tvis = 5e-12; //Viscoelastic timescale (5ps)
-                // const vec3 viscoelaticforceOnA = -(2*Estar/nu2) * 
-                //                                  ((overlap - prevoverlap)/dt) * 
-                //                                  rij * Tvis * (rVecab / dist);
-                const vec3 viscoelaticforceOnA = {0,0,0};
-                ///////////////////////////////
-
-                // Gravity force:
-                // const vec3 gravForceOnA = (G * m[A] * m[B] * grav_scale / (dist * dist)) * (rVecab / dist); //SCALE MASS
-                const vec3 gravForceOnA = {0,0,0};
-                // const vec3 gravForceOnA = (G * m[A] * m[B] / (dist * dist)) * (rVecab / dist);
-
-                // Sliding and Rolling Friction:
-                vec3 slideForceOnA{0, 0, 0};
-                vec3 rollForceA{0, 0, 0};
-                vec3 torqueA{0, 0, 0};
-                vec3 torqueB{0, 0, 0};
-
-                // Shared terms:
-                const double elastic_force_A_mag = elasticForceOnA.norm();
-                const vec3 r_a = rVecab * R[A] / sumRaRb;  // Center to contact point
-                const vec3 r_b = rVecba * R[B] / sumRaRb;
-                const vec3 w_diff = w[A] - w[B];
-
-                // Sliding friction terms:
-                const vec3 d_vel = vel[B] - vel[A];
-                const vec3 frame_A_vel_B = d_vel - d_vel.dot(rVecab) * (rVecab / (dist * dist)) -
-                                           w[A].cross(r_a) - w[B].cross(r_a);
-
-                // Compute sliding friction force:
-                const double rel_vel_mag = frame_A_vel_B.norm();
-
-                if (rel_vel_mag > 1e-13)  // NORMAL ONE Divide by zero protection.
-                {
-                    slideForceOnA = u_s * elastic_force_A_mag * (frame_A_vel_B / rel_vel_mag);
-                }
-
-
-
-                // Compute rolling friction force:
-                const double w_diff_mag = w_diff.norm();
-                // if (w_diff_mag > 1e-20)  // Divide by zero protection.
-                // if (w_diff_mag > 1e-8)  // Divide by zero protection.
-                if (w_diff_mag > 1e-13)  // NORMAL ONE Divide by zero protection.
-                {
-                    rollForceA = 
-                            -u_r * elastic_force_A_mag * (w_diff).cross(r_a) / 
-                            (w_diff).cross(r_a).norm();
-                }
-
-                // Total forces on a:
-                // totalForceOnA = gravForceOnA + elasticForceOnA + slideForceOnA + vdwForceOnA;
-                ////////////////////////////////
-                totalForceOnA = viscoelaticforceOnA + gravForceOnA + elasticForceOnA + slideForceOnA + vdwForceOnA;
-                ////////////////////////////////
-
-                // Total torque a and b:
-                torqueA = r_a.cross(slideForceOnA + rollForceA);
-                torqueB = r_b.cross(-slideForceOnA + rollForceA); // original code
-
-                // omp_set_lock(&writelock);
-                // #pragma omp critical
-                // {
-                    aacc[A] += torqueA / moi[A];
-                    aacc[B] += torqueB / moi[B];
-                // }
-                // omp_unset_lock(&writelock);
-
-
-                if (write_step) {
-                    // No factor of 1/2. Includes both spheres:
-                    // PE += -G * m[A] * m[B] * grav_scale / dist + 0.5 * k * overlap * overlap;
-                    // PE += -G * m[A] * m[B] / dist + 0.5 * k * overlap * overlap;
-
-                    // Van Der Waals + elastic:
-                    const double diffRaRb = R[A] - R[B];
-                    const double z = sumRaRb + h;
-                    const double two_RaRb = 2 * R[A] * R[B];
-                    const double denom_sum = z * z - (sumRaRb * sumRaRb);
-                    const double denom_diff = z * z - (diffRaRb * diffRaRb);
-                    const double U_vdw =
-                        -Ha / 6 *
-                        (two_RaRb / denom_sum + two_RaRb / denom_diff + 
-                        log(denom_sum / denom_diff));
-                    // #pragma omp critical
-                    PE += U_vdw + 0.5 * k * overlap * overlap; ///TURN ON FOR REAL SIM
-                }
-            } else  // Non-contact forces:
-            {
-
-                // No collision: Include gravity and vdw:
-                // const vec3 gravForceOnA = (G * m[A] * m[B] * grav_scale / (dist * dist)) * (rVecab / dist);
-                const vec3 gravForceOnA = {0.0,0.0,0.0};
-                // Cohesion (non-contact) h must be positive or h + Ra + Rb becomes catastrophic cancellation:
-                double h = std::fabs(overlap);
-                if (h < h_min)  // If h is closer to 0 (almost touching), use hmin.
-                {
-                    h = h_min;
-                }
-                const double Ra = R[A];
-                const double Rb = R[B];
-                const double h2 = h * h;
-                const double twoRah = 2 * Ra * h;
-                const double twoRbh = 2 * Rb * h;
-                const vec3 vdwForceOnA = Ha / 6 * 64 * Ra * Ra * Ra * Rb * Rb * Rb *
-                                         ((h + Ra + Rb) / ((h2 + twoRah + twoRbh) * (h2 + twoRah + twoRbh) *
-                                                           (h2 + twoRah + twoRbh + 4 * Ra * Rb) *
-                                                           (h2 + twoRah + twoRbh + 4 * Ra * Rb))) *
-                                         rVecab.normalized();
-                // const vec3 vdwForceOnA = {0.0,0.0,0.0};
-                /////////////////////////////
-                totalForceOnA = vdwForceOnA + gravForceOnA;
-                // totalForceOnA = vdwForceOnA;
-                // totalForceOnA = gravForceOnA;
-                /////////////////////////////
-                if (write_step) {
-                    // PE += -G * m[A] * m[B] * grav_scale / dist; // Gravitational
-
-                    const double diffRaRb = R[A] - R[B];
-                    const double z = sumRaRb + h;
-                    const double two_RaRb = 2 * R[A] * R[B];
-                    const double denom_sum = z * z - (sumRaRb * sumRaRb);
-                    const double denom_diff = z * z - (diffRaRb * diffRaRb);
-                    const double U_vdw =
-                        -Ha / 6 *
-                        (two_RaRb / denom_sum + two_RaRb / denom_diff + log(denom_sum / denom_diff));
-                    // #pragma omp critical
-                    PE += U_vdw;  // Van Der Waals TURN ON FOR REAL SIM
-                }
-
-                // todo this is part of push_apart. Not great like this.
-                // For pushing apart overlappers:
-                // vel[A] = { 0,0,0 };
-                // vel[B] = { 0,0,0 };
-            }
-
-            // Newton's equal and opposite forces applied to acceleration of each ball:
-            // omp_set_lock(&writelock);
-            // #pragma omp critical
-            // {
-                acc[A] += totalForceOnA / m[A];
-                acc[B] -= totalForceOnA / m[B];
-            // }
-
-            //std::cout << A << " " << B << std::endl;
-            //std::cout << "totalForceOnA: " << totalForceOnA / m[A] << std::endl;
-            //std::cout << "totalForceOnB: " << totalForceOnA / m[B] << std::endl;
-
-            distances[e] = dist;
-            // omp_unset_lock(&writelock);
-
-            // accWrite<<"["<<A<<';'<<B<<";("<<totalForceOnA<<")],";
-
-            // So last distance can be known for COR:
-
-        // }
-        // }   // DONT DO ANYTHING HERE. A STARTS AT 1.
-    }
-
-    // for(int Ball = 0; Ball < num_particles; ++Ball) {
-    //     std::cout << std::setprecision((std::numeric_limits<double>::digits10 + 1))<< acc[Ball] << " ";
-    // }
-    // std::cout << std::endl;
-
-    // omp_destroy_lock(&writelock);
-    // t.end_event("CalcForces/loopApplicablepairs");
-
-    if (write_step) {
-        ballBuffer << '\n';  // Prepares a new line for incoming data.
-        // std::cerr<<"Writing "<<num_particles<<" balls"<<std::endl;
-    }
-
-    // THIRD PASS - Calculate velocity for next step:
-    // t.start_event("CalcVelocityforNextStep");
-    for (int Ball = 0; Ball < num_particles; Ball++) {
-        // Velocity for next step:
-        vel[Ball] = velh[Ball] + .5 * acc[Ball] * dt;
-        w[Ball] = wh[Ball] + .5 * aacc[Ball] * dt;
-
-        /////////////////////////////////
-        // if (true) {
-        /////////////////////////////////
-        if (write_step) {
-            // Send positions and rotations to buffer:
-            // std::cerr<<"Write ball "<<Ball<<std::endl;
-            if (Ball == 0) {
-                ballBuffer << pos[Ball][0] << ',' << pos[Ball][1] << ',' << pos[Ball][2] << ','
-                           << w[Ball][0] << ',' << w[Ball][1] << ',' << w[Ball][2] << ','
-                           << w[Ball].norm() << ',' << vel[Ball].x << ',' << vel[Ball].y << ','
-                           << vel[Ball].z << ',' << 0;
-            } else {
-                ballBuffer << ',' << pos[Ball][0] << ',' << pos[Ball][1] << ',' << pos[Ball][2] << ','
-                           << w[Ball][0] << ',' << w[Ball][1] << ',' << w[Ball][2] << ','
-                           << w[Ball].norm() << ',' << vel[Ball].x << ',' << vel[Ball].y << ','
-                           << vel[Ball].z << ',' << 0;
-            }
-
-            KE += .5 * m[Ball] * vel[Ball].normsquared() +
-                    .5 * moi[Ball] * w[Ball].normsquared();  // Now includes rotational kinetic energy.
-            mom += m[Ball] * vel[Ball];
-            ang_mom += m[Ball] * pos[Ball].cross(vel[Ball]) + moi[Ball] * w[Ball];
-        }
-    }  // THIRD PASS END
-    // t.end_event("CalcVelocityforNextStep");
-}  // one Step end

@@ -1929,7 +1929,6 @@ void Ball_group::updateDTK(const double& velocity)
     // dt = .02 * sqrt((fourThirdsPiRho / regime_adjust) * r_min * r_min * r_min);
     dt = .01 * sqrt((fourThirdsPiRho / regime_adjust) * r_min * r_min * r_min); //NORMAL ONE
     // dt = .005 * sqrt((fourThirdsPiRho / regime_adjust) * r_min * r_min * r_min);
-    // dt = .0025 * sqrt((fourThirdsPiRho / regime_adjust) * r_min * r_min * r_min); //NORMAL ONE
     std::cerr << "==================" << '\n';
     std::cerr << "dt set to: " << dt << '\n';
     std::cerr << "kin set to: " << kin << '\n';
