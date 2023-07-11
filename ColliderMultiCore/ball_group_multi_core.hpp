@@ -2088,6 +2088,7 @@ void Ball_group::sim_one_step(const bool write_step)
 {
     /// FIRST PASS - Update Kinematic Parameters:
     // t.start_event("UpdateKinPar");
+    // #pragma omp parallel for default(none) shared(velh,vel,acc,wh,w,aacc,pos,dt)
     for (int Ball = 0; Ball < num_particles; Ball++) {
         // Update velocity half step:
         velh[Ball] = vel[Ball] + .5 * acc[Ball] * dt;
@@ -2133,7 +2134,7 @@ void Ball_group::sim_one_step(const bool write_step)
     // // #pragma omp parallel for num_threads(3) reduction(+:PE) default(none) private(A,B,pc) shared(writelock,acc,aacc,Ha,write_step,lllen,R,pos,vel,m,w,u_r,u_s,moi,kin,kout,distances,h_min)
     // for (pc = (((lllen*lllen)-lllen)/2); pc >= 1; pc--)
     #pragma omp declare reduction(vec3_sum : vec3 : omp_out += omp_in)
-    #pragma omp parallel for num_threads(3) reduction(vec3_sum:acc[:num_particles],aacc[:num_particles]) reduction(+:PE) default(none) private(A,B,pc) shared(Ha,write_step,lllen,R,pos,vel,m,w,u_r,u_s,moi,kin,kout,distances,h_min,dt)
+    #pragma omp parallel for reduction(vec3_sum:acc[:num_particles],aacc[:num_particles]) reduction(+:PE) default(none) private(A,B,pc) shared(Ha,write_step,lllen,R,pos,vel,m,w,u_r,u_s,moi,kin,kout,distances,h_min,dt)
     for (pc = 1; pc <= (((lllen*lllen)-lllen)/2); pc++)
     {
         long double pd = (long double)pc;
@@ -2157,7 +2158,8 @@ void Ball_group::sim_one_step(const bool write_step)
             vec3 totalForceOnA{0, 0, 0};
 
             // Distance array element: 1,0    2,0    2,1    3,0    3,1    3,2 ...
-            int e = static_cast<unsigned>(A * (A - 1) * .5) + B;  // a^2-a is always even, so this works.
+            // int e = static_cast<unsigned>(A * (A - 1) * .5) + B;  // a^2-a is always even, so this works.
+            int e = pc-1;
             double oldDist = distances[e];
 
             // Check for collision between Ball and otherBall.
@@ -2180,11 +2182,20 @@ void Ball_group::sim_one_step(const bool write_step)
                 // constexpr double h2 = h * h;
                 const double twoRah = 2 * Ra * h;
                 const double twoRbh = 2 * Rb * h;
-                const vec3 vdwForceOnA = Ha / 6 * 64 * Ra * Ra * Ra * Rb * Rb * Rb *
-                                         ((h + Ra + Rb) / ((h2 + twoRah + twoRbh) * (h2 + twoRah + twoRbh) *
-                                                           (h2 + twoRah + twoRbh + 4 * Ra * Rb) *
-                                                           (h2 + twoRah + twoRbh + 4 * Ra * Rb))) *
-                                         rVecab.normalized();
+
+                // ==========================================
+                // Test new vdw force equation with less division
+                const double d1 = h2 + twoRah + twoRbh;
+                const double d2 = d1 + 4 * Ra * Rb;
+                const double numer = 64*Ha*Ra*Ra*Ra*Rb*Rb*Rb*(h+Ra+Rb);
+                const double denomrecip = 1/(6*d1*d1*d2*d2);
+                const vec3 vdwForceOnA = (numer*denomrecip)*rVecab.normalized();
+                // ==========================================
+                // const vec3 vdwForceOnA = Ha / 6 * 64 * Ra * Ra * Ra * Rb * Rb * Rb *
+                //                          ((h + Ra + Rb) / ((h2 + twoRah + twoRbh) * (h2 + twoRah + twoRbh) *
+                //                                            (h2 + twoRah + twoRbh + 4 * Ra * Rb) *
+                //                                            (h2 + twoRah + twoRbh + 4 * Ra * Rb))) *
+                //                          rVecab.normalized();
                 
 
                 const vec3 elasticForceOnA = -k * overlap * .5 * (rVecab / dist);
@@ -2259,8 +2270,8 @@ void Ball_group::sim_one_step(const bool write_step)
                 // omp_set_lock(&writelock);
                 // #pragma omp critical
                 // {
-                    aacc[A] += torqueA / moi[A];
-                    aacc[B] += torqueB / moi[B];
+                    aacc[A] += (1/moi[A])*torqueA;
+                    aacc[B] += (1/moi[B])*torqueB;
                 // }
                 // omp_unset_lock(&writelock);
 
@@ -2300,11 +2311,19 @@ void Ball_group::sim_one_step(const bool write_step)
                 const double h2 = h * h;
                 const double twoRah = 2 * Ra * h;
                 const double twoRbh = 2 * Rb * h;
-                const vec3 vdwForceOnA = Ha / 6 * 64 * Ra * Ra * Ra * Rb * Rb * Rb *
-                                         ((h + Ra + Rb) / ((h2 + twoRah + twoRbh) * (h2 + twoRah + twoRbh) *
-                                                           (h2 + twoRah + twoRbh + 4 * Ra * Rb) *
-                                                           (h2 + twoRah + twoRbh + 4 * Ra * Rb))) *
-                                         rVecab.normalized();
+                // ==========================================
+                // Test new vdw force equation with less division
+                const double d1 = h2 + twoRah + twoRbh;
+                const double d2 = d1 + 4 * Ra * Rb;
+                const double numer = 64*Ha*Ra*Ra*Ra*Rb*Rb*Rb*(h+Ra+Rb);
+                const double denomrecip = 1/(6*d1*d1*d2*d2);
+                const vec3 vdwForceOnA = (numer*denomrecip)*rVecab.normalized();
+                // ==========================================
+                // const vec3 vdwForceOnA = Ha / 6 * 64 * Ra * Ra * Ra * Rb * Rb * Rb *
+                //                          ((h + Ra + Rb) / ((h2 + twoRah + twoRbh) * (h2 + twoRah + twoRbh) *
+                //                                            (h2 + twoRah + twoRbh + 4 * Ra * Rb) *
+                //                                            (h2 + twoRah + twoRbh + 4 * Ra * Rb))) *
+                //                          rVecab.normalized();
                 // const vec3 vdwForceOnA = {0.0,0.0,0.0};
                 /////////////////////////////
                 totalForceOnA = vdwForceOnA + gravForceOnA;
@@ -2336,8 +2355,8 @@ void Ball_group::sim_one_step(const bool write_step)
             // omp_set_lock(&writelock);
             // #pragma omp critical
             // {
-                acc[A] += totalForceOnA / m[A];
-                acc[B] -= totalForceOnA / m[B];
+                acc[A] +=  (1/m[A])*totalForceOnA;
+                acc[B] -= (1/m[B])*totalForceOnA;
             // }
 
             //std::cout << A << " " << B << std::endl;
@@ -2366,10 +2385,12 @@ void Ball_group::sim_one_step(const bool write_step)
     if (write_step) {
         ballBuffer << '\n';  // Prepares a new line for incoming data.
         // std::cerr<<"Writing "<<num_particles<<" balls"<<std::endl;
+        
     }
 
     // THIRD PASS - Calculate velocity for next step:
     // t.start_event("CalcVelocityforNextStep");
+    // #pragma omp parallel for default(none) shared(write_step,vel,w,wh,velh,acc,aacc,dt,pos,moi)
     for (int Ball = 0; Ball < num_particles; Ball++) {
         // Velocity for next step:
         vel[Ball] = velh[Ball] + .5 * acc[Ball] * dt;
@@ -2379,8 +2400,6 @@ void Ball_group::sim_one_step(const bool write_step)
         // if (true) {
         /////////////////////////////////
         if (write_step) {
-            // Send positions and rotations to buffer:
-            // std::cerr<<"Write ball "<<Ball<<std::endl;
             if (Ball == 0) {
                 ballBuffer << pos[Ball][0] << ',' << pos[Ball][1] << ',' << pos[Ball][2] << ','
                            << w[Ball][0] << ',' << w[Ball][1] << ',' << w[Ball][2] << ','
@@ -2392,7 +2411,8 @@ void Ball_group::sim_one_step(const bool write_step)
                            << w[Ball].norm() << ',' << vel[Ball].x << ',' << vel[Ball].y << ','
                            << vel[Ball].z << ',' << 0;
             }
-
+            // Send positions and rotations to buffer:
+            // std::cerr<<"Write ball "<<Ball<<std::endl;
             KE += .5 * m[Ball] * vel[Ball].normsquared() +
                     .5 * moi[Ball] * w[Ball].normsquared();  // Now includes rotational kinetic energy.
             mom += m[Ball] * vel[Ball];

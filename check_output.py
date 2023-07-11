@@ -2,8 +2,8 @@
 
 def main():
 	path = "/home/lpkolanz/Desktop/SpaceLab/jobs/singleCoreComparison1/"
-	path = "/home/lpkolanz/Desktop/SpaceLab/jobs/multiCoreTest2/"
-	file = "25_2_R4e-05_v4e-01_cor0.63_mu0.1_rho2.25_k4e+00_Ha5e-12_dt5e-10_simData.csv"
+	path = "/global/homes/l/lpkolanz/SpaceLab/jobs/piplineImprovements1/"
+	file = "10_2_R4e-05_v4e-01_cor0.63_mu0.1_rho2.25_k4e+00_Ha5e-12_dt5e-10_simData.csv"
 
 	print("Line, elements, balls")
 	count = 1

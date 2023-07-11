@@ -98,6 +98,41 @@ def get_data_file(data_folder,data_index=-1):
 		print("Now exiting.")
 		exit(-1)
 
+def get_energy_file(data_folder,data_index=-1):
+	files = os.listdir(data_folder)
+
+	try:
+		file_indicies = np.array([file.split('_')[0] for file in files\
+					if file.endswith("energy.csv")],dtype=np.int64)
+ 
+	except: 
+		files = [file for file in files if file.endswith('energy.csv')]
+		files = [file for file in files if '_' in file]
+		file_indicies = np.array([int(file.split('_')[0]) for file in files],dtype=np.int64)
+	# 	file_indicies = 
+
+	if data_index == -1:
+		index = np.max(file_indicies)
+	else:
+		index = data_index
+
+	# print("index: {}".format(index))
+
+	data_file = [file for file in files \
+				if file.endswith("energy.csv") and file.startswith(str(index))]
+
+	if len(data_file) == 1:
+		return data_file[0]
+	else:
+		data_file = [file for file in files \
+				if file.endswith("energy.csv") and file.startswith(str(index)+'_2')]
+		# print(files)
+		if len(data_file) == 1:
+			return data_file[0]
+		print("data file in folder '{}' not found.".format(data_folder))
+		print("Now exiting.")
+		exit(-1)
+
 def get_last_line_data(data_folder,data_index=-1):
 	# data_headers = np.loadtxt(data_folder + data_file,skiprows=0,dtype=str,delimiter=',')[0]
 	data_file = get_data_file(data_folder,data_index)
@@ -109,7 +144,7 @@ def get_last_line_data(data_folder,data_index=-1):
 		        pass
 		    last_line = line
 		data = np.array([last_line.split(',')],dtype=np.float64)
-		print("ERROR CAUGHT in folder: {}".format(data_folder))
+		print("ERROR CAUGHT getting data in folder: {}".format(data_folder))
 		print(e)
 		# return None
 
@@ -117,16 +152,52 @@ def get_last_line_data(data_folder,data_index=-1):
 	# print("FOR {} Balls".format(data.size/11))
 	return format_data(data)
 
+def get_last_line_energy(data_folder,data_index=-1):
+	energy_file = get_energy_file(data_folder,data_index)
+	try:
+		energy = np.loadtxt(data_folder + energy_file,skiprows=1,dtype=float,delimiter=',')[-1]
+	except Exception as e:
+		with open(data_folder + energy_file) as f:
+		    for line in f:
+		        pass
+		    last_line = line
+		energy = np.array([last_line.split(',')],dtype=np.float64)
+		print("ERROR CAUGHT getting energy in folder: {}".format(data_folder))
+		print(e)
+		# return None
+
+	# print("DATA LEN: {} for file {}{}".format(data.size,data_folder,data_file))
+	# print("FOR {} Balls".format(data.size/11))
+	return energy
+
 def get_constants(data_folder,data_index=-1):
 	data_file = get_data_file(data_folder,data_index)
 	data_file = data_file.replace('simData','constants')	
 	data_constants = np.loadtxt(data_folder+data_file,skiprows=0,dtype=float,delimiter=',')[0]
 	return data_constants[0],data_constants[1],data_constants[2]
 
+def get_all_constants(data_folder,data_index=-1):
+	data_file = get_data_file(data_folder,data_index)
+	data_file = data_file.replace('simData','constants')	
+	data_constants = np.loadtxt(data_folder+data_file,skiprows=0,dtype=float,delimiter=',')
+	return data_constants
+
 def format_data(data):
 	data = np.reshape(data,(int(data.size/data_columns),data_columns))
 	data = data[:,:3]
 	return data
+
+def COM(data_folder,data_index=-1):
+	data = get_last_line_data(data_folder,data_index)
+	consts = get_all_constants(data_folder,data_index)
+	com = np.array([0,0,0],dtype=np.float64)
+	mtot = 0
+
+	for ball in range(data.shape[0]):
+		com += consts[ball][0]*data[ball]
+		mtot += consts[ball][0]
+
+	return mtot*com
 
 def get_data(data_folder,data_index=-1):
 	if data_folder == '/home/kolanzl/Desktop/bin/merger.csv':

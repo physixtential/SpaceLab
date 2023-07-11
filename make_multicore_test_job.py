@@ -19,13 +19,16 @@ if __name__ == '__main__':
 		print('compilation failed')
 		exit(-1)
 		
-	job_set_name = "smallerDt"
+	# job_set_name = "openMPallLoops"
+	job_set_name = "pipeAndOpenmp"
+	# job_set_name = "smallerDt"
+	# job_set_name = "forceTest"
 	# folder_name_scheme = "T_"
 
 	runs_at_once = 1
 	# attempts = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20] 
 	attempts = [2]
-	N = [30]
+	N = [15]
 	Temps = [100]
 	folders = []
 	for attempt in attempts:
@@ -56,16 +59,33 @@ if __name__ == '__main__':
 				# input_json['u_r'] = 0.5
 				# input_json['projectileName'] = "299_2_R4e-05_v4e-01_cor0.63_mu0.1_rho2.25_k4e+00_Ha5e-12_dt5e-10_"
 				# input_json['targetName'] = "299_2_R4e-05_v4e-01_cor0.63_mu0.1_rho2.25_k4e+00_Ha5e-12_dt5e-10_"
-				input_json['note'] = "dt=dt/2"
+				# input_json['note'] = "Uses openmp and loop unwinding to parallelize sim_one_step."
+				input_json['note'] = "Pipline improvemnets and parallel second loop in sim_one_step."
 				####################################
 
 				with open(job + "input.json",'w') as fp:
 					json.dump(input_json,fp,indent=4)
 
+				sbatchfile = ""
+				sbatchfile += "#!/bin/bash\n"
+				sbatchfile += "#SBATCH -A m4189\n"
+				sbatchfile += "#SBATCH -C cpu\n"
+				sbatchfile += "#SBATCH -q regular\n"
+				sbatchfile += "#SBATCH -t 1:00:00\n"
+				sbatchfile += "#SBATCH -n 1\n"
+				sbatchfile += "#SBATCH -c 16\n\n"
+				sbatchfile += 'export OMP_NUM_THREADS=8\n'
+				sbatchfile += 'export SLURM_CPU_BIND="cores"\n'
+				sbatchfile += "srun ./ColliderMultiCore.x {} {} 2>sim_err.log 1>sim_out.log".format(job,n)
+				
+				with open(job+"sbatchMulti.bash",'w') as sfp:
+					sfp.write(sbatchfile)
+
 				#add run script and executable to folders
 				os.system("cp default_files/run_multicore_sim.py {}run_multicore_sim.py".format(job))
-				os.system("cp sbatchMulti.bash {}sbatchMulti.bash".format(job))
 				os.system("cp ColliderMultiCore/ColliderMultiCore.x {}ColliderMultiCore.x".format(job))
+				os.system("cp ColliderMultiCore/ColliderMultiCore.cpp {}ColliderMultiCore.cpp".format(job))
+				os.system("cp ColliderMultiCore/ball_group_multi_core.hpp {}ball_group_multi_core.hpp".format(job))
 				folders.append(job)
 	# print(folders)
 	if len(N) != len(folders):
