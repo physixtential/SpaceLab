@@ -740,7 +740,7 @@ sim_looper(Ball_group &O)
     bool writeStep;
     time_t startProgress = time(nullptr);                // For progress reporting (gets reset)
     time_t lastWrite;                    // For write control (gets reset)
-
+    
     for (int Step = 1; Step < steps; Step++)  // Steps start at 1 because the 0 step is initial conditions.
     {
         // simTimeElapsed += dt; //New code #1
@@ -843,6 +843,10 @@ sim_looper(Ball_group &O)
             // t.end_event("writeStep");
         }  // writestep end
     }
+
+    timeWrite.open(timeFileName, std::ofstream::app);
+    timeWrite << O.num_particles << ',' <<O.update_time << std::endl;
+    
 
     if (true)
     {

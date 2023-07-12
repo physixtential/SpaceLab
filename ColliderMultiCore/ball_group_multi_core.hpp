@@ -31,6 +31,7 @@ public:
     std::stringstream ballBuffer;
     std::stringstream energyBuffer;
     std::stringstream contactBuffer;
+
     double radiiFraction = -1;
     bool debug = false;
     bool write_all = false;
@@ -38,6 +39,9 @@ public:
     std::string out_folder;
     int num_particles = 0;
     int num_particles_added = 0;
+
+    int OMPthreads = 8;
+    double update_time = 0.0
 
     std::string targetName;
     std::string projectileName;
@@ -391,6 +395,8 @@ void Ball_group::parse_input_file(char const* location)
         random_generator.seed(seed);
     }
     srand(seed);
+
+    OMPthreads = inputs["OMPthreads"];
 
     std::string temp_distribution = inputs["radiiDistribution"];
     if (temp_distribution == "logNormal")
@@ -842,18 +848,21 @@ void Ball_group::sim_init_write(std::string filename, int counter = 0)
     std::string simDataFilename = output_folder + filename + "simData.csv";
     std::string energyFilename = output_folder + filename + "energy.csv";
     std::string constantsFilename = output_folder + filename + "constants.csv";
+    std::string timeFileName = output_folder + filename + "time.csv";
 
     std::cerr << "New file tag: " << filename;
 
     // Open all file streams:
-    std::ofstream energyWrite, ballWrite, constWrite;
+    std::ofstream energyWrite, ballWrite, constWrite,timeWrite;
     energyWrite.open(energyFilename, std::ofstream::app);
     ballWrite.open(simDataFilename, std::ofstream::app);
     constWrite.open(constantsFilename, std::ofstream::app);
+    timeWrite.open(timeFileName, std::ofstream::app);
 
     // Make column headers:
     energyWrite << "Time,PE,KE,E,p,L";
     ballWrite << "x0,y0,z0,wx0,wy0,wz0,wmag0,vx0,vy0,vz0,bound0";
+    timeWrite << "ball,update time"
     // std::cout << "x0,y0,z0,wx0,wy0,wz0,wmag0,vx0,vy0,vz0,bound0";
     // std::cout<<simDataFilename<<std::endl;
     // std::cout<<num_particles<<std::endl;
@@ -1319,6 +1328,7 @@ void Ball_group::freeMemory() const
 // Initialize accelerations and energy calculations:
 void Ball_group::init_conditions()
 {
+    update_time = 0.0;
     // SECOND PASS - Check for collisions, apply forces and torques:
     for (int A = 1; A < num_particles; A++)  // cuda
     {
@@ -2133,8 +2143,9 @@ void Ball_group::sim_one_step(const bool write_step)
     // // #pragma omp parallel for reduction(+:PE) default(none) private(A,B,pc) shared(Ha,write_step,lllen,R,pos,vel,m,w,u_r,u_s,moi,kin,kout,distances,h_min)
     // // #pragma omp parallel for num_threads(3) reduction(+:PE) default(none) private(A,B,pc) shared(writelock,acc,aacc,Ha,write_step,lllen,R,pos,vel,m,w,u_r,u_s,moi,kin,kout,distances,h_min)
     // for (pc = (((lllen*lllen)-lllen)/2); pc >= 1; pc--)
+    double t0 = omp_get_wtime();
     #pragma omp declare reduction(vec3_sum : vec3 : omp_out += omp_in)
-    #pragma omp parallel for reduction(vec3_sum:acc[:num_particles],aacc[:num_particles]) reduction(+:PE) default(none) private(A,B,pc) shared(Ha,write_step,lllen,R,pos,vel,m,w,u_r,u_s,moi,kin,kout,distances,h_min,dt)
+    #pragma omp parallel for num_threads(OMPthreads) reduction(vec3_sum:acc[:num_particles],aacc[:num_particles]) reduction(+:PE) default(none) private(A,B,pc) shared(Ha,write_step,lllen,R,pos,vel,m,w,u_r,u_s,moi,kin,kout,distances,h_min,dt)
     for (pc = 1; pc <= (((lllen*lllen)-lllen)/2); pc++)
     {
         long double pd = (long double)pc;
@@ -2373,7 +2384,8 @@ void Ball_group::sim_one_step(const bool write_step)
         // }
         // }   // DONT DO ANYTHING HERE. A STARTS AT 1.
     }
-
+    double t1 = omp_get_wtime();
+    update_time += t1-t0;
     // for(int Ball = 0; Ball < num_particles; ++Ball) {
     //     std::cout << std::setprecision((std::numeric_limits<double>::digits10 + 1))<< acc[Ball] << " ";
     // }

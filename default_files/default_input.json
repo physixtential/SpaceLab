@@ -1,5 +1,6 @@
 {
 	"note": "",
+	"OMPthreads": 8,
 	"radiiFraction": 1,
 	"radiiDistribution": "constant",
 	"dynamicTime": false,

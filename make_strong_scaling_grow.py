@@ -20,7 +20,8 @@ if __name__ == '__main__':
 		exit(-1)
 		
 	# job_set_name = "openMPallLoops"
-	job_set_name = "pipeAndOpenmp"
+	# job_set_name = "strongScaleCollide"
+	job_set_name = "strongScaleGrowthT_"
 	# job_set_name = "pipeAndOpenmp"
 	# job_set_name = "smallerDt"
 	# job_set_name = "forceTest"
@@ -28,8 +29,8 @@ if __name__ == '__main__':
 
 	runs_at_once = 1
 	# attempts = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20] 
-	attempts = [2]
-	N = [15]
+	attempts = [2,4,8,16,32,64]
+	N = [30]
 	Temps = [100]
 	folders = []
 	for attempt in attempts:

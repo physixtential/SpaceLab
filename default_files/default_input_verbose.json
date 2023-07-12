@@ -4,6 +4,8 @@
 ////////////////////////////////////
 	//What is this sim for?
 	"note": "",
+	//How many openMP threads do you want?
+	"OMPthreads": 8,
 	//for constant distribution, added balls will have ri/radiiFraction sized 
 	//radii where ri is the radius of the inital balls (scaleBalls)
 	"radiiFraction": 1,
