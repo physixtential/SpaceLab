@@ -79,16 +79,33 @@ main(const int argc, char const* argv[])
         num_balls = 100;
     }
 
-    // Ball_group dummy(1);
-    // dummy.parse_input_file(argv[1]);
     // O.zeroAngVel();
     // O.pushApart();
 
     // Normal sim:
     // O.sim_init_write(output_prefix);
+    Ball_group dummy(1);
+    dummy.parse_input_file(argv[1]);
+    if (dummy.typeSim == dummy.collider)
+    {
+        collider(argv[1],dummy.projectileName,dummy.targetName);
+    }
+    else if (dummy.typeSim == dummy.BPCA)
+    {
+        if (dummy.total_balls_to_add >= 0)
+        {
+            BPCA(argv[1],dummy.total_balls_to_add);
+        }
+        else
+        {
+            std::cerr<<"ERROR: if simType is BPCA, N >= 0 must be true."<<std::endl;
+        }
+    }
+    else
+    {
+        std::cerr<<"ERROR: input file needs to specify a simulation type (simType)."<<std::endl;
+    }
     // sim_looper();
-    BPCA(argv[1],num_balls);
-    // collider(argv[1],dummy.projectileName,dummy.targetName);
 
     // collider(argv[1],projTarget,projTarget);
     
@@ -844,9 +861,9 @@ sim_looper(Ball_group &O)
         }  // writestep end
     }
 
-    timeWrite.open(timeFileName, std::ofstream::app);
+    std::ofstream timeWrite;
+    timeWrite.open("time.csv", std::ofstream::app);
     timeWrite << O.num_particles << ',' <<O.update_time << std::endl;
-    
 
     if (true)
     {

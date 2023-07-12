@@ -39,9 +39,10 @@ public:
     std::string out_folder;
     int num_particles = 0;
     int num_particles_added = 0;
+    int total_balls_to_add = 0;
 
     int OMPthreads = 8;
-    double update_time = 0.0
+    double update_time = 0.0;
 
     std::string targetName;
     std::string projectileName;
@@ -50,6 +51,8 @@ public:
     int output_width = -1;
     enum distributions {constant, logNorm};
     distributions radiiDistribution;
+    enum simType {BPCA, collider};
+    simType typeSim;
     double lnSigma = 0.2; //sigma for log normal distribution 
 
     // Useful values:
@@ -397,7 +400,16 @@ void Ball_group::parse_input_file(char const* location)
     srand(seed);
 
     OMPthreads = inputs["OMPthreads"];
-
+    total_balls_to_add = inputs["N"];
+    std::string temp_typeSim = inputs["simType"];
+    if (temp_typeSim == "BPCA")
+    {
+        typeSim = BPCA;
+    }
+    else
+    {
+        typeSim = collider;
+    }
     std::string temp_distribution = inputs["radiiDistribution"];
     if (temp_distribution == "logNormal")
     {
@@ -848,7 +860,7 @@ void Ball_group::sim_init_write(std::string filename, int counter = 0)
     std::string simDataFilename = output_folder + filename + "simData.csv";
     std::string energyFilename = output_folder + filename + "energy.csv";
     std::string constantsFilename = output_folder + filename + "constants.csv";
-    std::string timeFileName = output_folder + filename + "time.csv";
+    std::string timeFileName = output_folder + "time.csv";
 
     std::cerr << "New file tag: " << filename;
 
@@ -862,7 +874,7 @@ void Ball_group::sim_init_write(std::string filename, int counter = 0)
     // Make column headers:
     energyWrite << "Time,PE,KE,E,p,L";
     ballWrite << "x0,y0,z0,wx0,wy0,wz0,wmag0,vx0,vy0,vz0,bound0";
-    timeWrite << "ball,update time"
+    timeWrite << "ball,update time\n";
     // std::cout << "x0,y0,z0,wx0,wy0,wz0,wmag0,vx0,vy0,vz0,bound0";
     // std::cout<<simDataFilename<<std::endl;
     // std::cout<<num_particles<<std::endl;
