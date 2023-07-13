@@ -22,7 +22,7 @@ if __name__ == '__main__':
 		
 	# job_set_name = "openMPallLoops"
 	# job_set_name = "strongScaleCollide"
-	job_set_name = "weakScaleGrowthT_"
+	job_set_name = "weakScaleGrowth"
 	# job_set_name = "pipeAndOpenmp"
 	# job_set_name = "smallerDt"
 	# job_set_name = "forceTest"
@@ -30,16 +30,18 @@ if __name__ == '__main__':
 
 	runs_at_once = 1
 	# attempts = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20] 
-	attempts = [1,2,4,8,16,32]
-	N = [1,2,3,4,6,8]
+	attempts = [1]
+	threads = [1,2,4,8,16,32,64]
+	Nsquare = [32,64,128,256,512,1024,2048]
+	N = [6,8,11,16,23,32,45]
 	Temps = [100]
 	folders = []
 	for a,attempt in enumerate(attempts):
 		# for n in N:
 		for Temp in Temps:
-			job = curr_folder + 'jobs/' + job_set_name + str(attempt) + '/'
 			# job = curr_folder + 'jobs/' + job_set_name + str(attempt) + '/'
-						# + 'N_' + str(n) + '/' + 'T_' + str(Temp) + '/'
+			job = curr_folder + 'jobs/' + job_set_name + str(attempt) + '/'\
+							+ 'thread_' + str(thread) + '/'
 			if not os.path.exists(job):
 				os.makedirs(job)
 			else:
@@ -53,14 +55,14 @@ if __name__ == '__main__':
 
 			####################################
 			######Change input values here######
-			input_json['temp'] = Temp
+			input_json['temp'] = Temps[0]
 			input_json['seed'] = 101
 			input_json['radiiDistribution'] = 'constant'
 			input_json['N'] = N[a]
 			input_json['simType'] = "BPCA"
+			input_json['OMPthreads'] = attempt
 			# input_json['kConsts'] = 3e3
 			input_json['h_min'] = 0.5
-			input_json['OMPthreads'] = attempt
 			# input_json['u_s'] = 0.5
 			# input_json['u_r'] = 0.5
 			# input_json['projectileName'] = "299_2_R4e-05_v4e-01_cor0.63_mu0.1_rho2.25_k4e+00_Ha5e-12_dt5e-10_"
@@ -82,11 +84,11 @@ if __name__ == '__main__':
 			sbatchfile += "#SBATCH -q regular\n"
 			sbatchfile += "#SBATCH -t {}:00:00\n".format(int(time))
 			sbatchfile += "#SBATCH -n 1\n"
-			sbatchfile += "#SBATCH -c 64\n\n"
+			# sbatchfile += "#SBATCH -c 64\n\n"
 			sbatchfile += 'module load gpu\n'
-			sbatchfile += 'export OMP_NUM_THREADS=128\n'
+			batchfile += 'export OMP_NUM_THREADS={}\n'.format(thread)
 			sbatchfile += 'export SLURM_CPU_BIND="cores"\n'
-			sbatchfile += "srun ./ColliderMultiCore.x {} 2>sim_err.log 1>sim_out.log".format(job)
+			sbatchfile += "srun -c {} --cpu-bind=cores ./ColliderMultiCore.x {} 2>sim_err.log 1>sim_out.log".format(thread*2,job)
 			
 			with open(job+"sbatchMulti.bash",'w') as sfp:
 				sfp.write(sbatchfile)

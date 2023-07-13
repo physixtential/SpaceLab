@@ -57,7 +57,9 @@ if __name__ == '__main__':
 				input_json['radiiDistribution'] = 'constant'
 				# input_json['kConsts'] = 3e3
 				input_json['h_min'] = 0.5
-				input_json['OMPthreads'] = 8
+				input_json['N'] = n
+				input_json['simType'] = "BPCA"
+				input_json['OMPthreads'] = attempt
 				# input_json['u_s'] = 0.5
 				# input_json['u_r'] = 0.5
 				# input_json['projectileName'] = "299_2_R4e-05_v4e-01_cor0.63_mu0.1_rho2.25_k4e+00_Ha5e-12_dt5e-10_"
