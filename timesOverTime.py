@@ -11,10 +11,10 @@ def main():
 	# folder1 = base + "forceTest1/"
 	folders = []
 	folders.append(base + "singleCoreComparison/")
-	folders.append(base + "OpenMpParallel1/")
 	folders.append(base + "piplineImprovements1/")
+	folders.append(base + "OpenMpParallel1/")
 	folders.append(base + "pipeAndOpenmp1/")
-	folders.append(base + "openMPallLoops1/")
+	# folders.append(base + "openMPallLoops1/")
 	# folder2 = base + "smallerDt2/"
 	# folder2 = base + "singleCoreComparison3/"
 	# folder2 = base + "multiCoreTest4/"
@@ -109,20 +109,39 @@ def main():
 	# 	realname2 = folder2.split('/')[-2]
 
 	fig, ax = plt.subplots(1,1,figsize=(15,7))
+	plt.rcParams.update({'font.size': 20})
+	# plt.rcParams.update({'xtick.labelsize': 20})
+	# plt.rcParams.update({'ytick.labelsize': 20})
+	# plt.rcParams.update({'axes.labelsize': 20})
 	for f,folder in enumerate(folders):
 		realname=""
-		if folder.split('/')[-2] == "multiCoreTest7":
-			realname = "backwardsLoop"
-		elif folder.split('/')[-2] == "multiCoreTest8" or folder.split('/')[-2] == "multiCoreTest9":
-			realname = "parallel"
+		if folder.split('/')[-2] == "singleCoreComparison":
+			realname = "Single core"
+			mark = '-.'
+		elif folder.split('/')[-2] == "OpenMpParallel1":# or folder.split('/')[-2] == "multiCoreTest9":
+			realname = "OpenMP for"
+			mark = '-'
+		elif folder.split('/')[-2] == "piplineImprovements1":# or folder.split('/')[-2] == "multiCoreTest9":
+			realname = "Pipeline improvements"
+			mark = '--'
+		elif folder.split('/')[-2] == "pipeAndOpenmp1":# or folder.split('/')[-2] == "multiCoreTest9":
+			realname = "OpenMP for and pipeline improvements"
+			mark = ':'
 		else:
 			realname = folder.split('/')[-2]
-		ax.plot(inds,times[f],label=realname)
+		ax.plot(inds,times[f],label=realname,linestyle=mark)
 
+	ax.tick_params(axis='x',labelsize=20)
+	ax.tick_params(axis='y',labelsize=20)
+	# ax.set_yticklabels(fontsize=20)
+
+	# plt.rc('axes', labelsize=20)    # fontsize of the x and y labels
+	# plt.rc('xtick', labelsize=20)    # fontsize of the tick labels
+	# plt.rc('ytick', labelsize=20)
 	title = "Execution time vs ball number"
-	ax.set_title(title)
-	ax.set_xlabel("ball")
-	ax.set_ylabel("Time (s)")
+	# ax.set_title(title)
+	ax.set_xlabel("Balls added",fontsize=20)
+	ax.set_ylabel("Time (s)",fontsize=20)
 	ax.legend()
 	plt.savefig("figures/exTimeVsBall.png")
 

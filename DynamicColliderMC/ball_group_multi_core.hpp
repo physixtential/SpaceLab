@@ -1,11 +1,11 @@
 #pragma once
 #include "../dust_const_init.hpp"
 // #include "dust_const.hpp"
-#include "../../external/json/single_include/nlohmann/json.hpp"
+#include "../external/json/single_include/nlohmann/json.hpp"
 #include "../vec3.hpp"
 #include "../linalg.hpp"
 #include "../Utils.hpp"
-#include "../../timing/timing.hpp"
+#include "../timing/timing.hpp"
 
 #include <cmath>
 #include <iostream>
@@ -64,8 +64,6 @@ public:
     double v_max = -1;
     double v_max_prev = HUGE_VAL;
     double soc = -1;
-
-    const time_t start = time(nullptr);  // For end of program analysis
 
     /////////////////////////////////
     const double h_min_physical = 2.1e-8; //prolly should make this a parameter/calculation
@@ -156,7 +154,6 @@ public:
     void merge_ball_group(const Ball_group& src);
 
     void sim_one_step(const bool write_step);
-    void sim_looper();
 
 private:
     // String buffers to hold data in memory until worth writing to file:
@@ -2159,9 +2156,9 @@ void Ball_group::sim_one_step(const bool write_step)
     // // #pragma omp parallel for num_threads(3) reduction(+:PE) default(none) private(A,B,pc) shared(writelock,acc,aacc,Ha,write_step,lllen,R,pos,vel,m,w,u_r,u_s,moi,kin,kout,distances,h_min)
     // for (pc = (((lllen*lllen)-lllen)/2); pc >= 1; pc--)
     double t0 = omp_get_wtime();
+    #pragma omp declare reduction(vec3_sum : vec3 : omp_out += omp_in)
     // #pragma omp parallel for schedule(dynamic, 32) num_threads(OMPthreads) reduction(vec3_sum:acc[:num_particles],aacc[:num_particles]) reduction(+:PE) default(none) private(A,B,pc) shared(Ha,write_step,lllen,R,pos,vel,m,w,u_r,u_s,moi,kin,kout,distances,h_min,dt)
-    // #pragma omp declare reduction(vec3_sum : vec3 : omp_out += omp_in)
-    #pragma omp for 
+    #pragma omp parallel for schedule(dynamic, 32) num_threads(OMPthreads) reduction(vec3_sum:acc[:num_particles],aacc[:num_particles]) reduction(+:PE) default(none) private(A,B,pc) shared(Ha,write_step,lllen,R,pos,vel,m,w,u_r,u_s,moi,kin,kout,distances,h_min,dt)
     for (pc = 1; pc <= (((lllen*lllen)-lllen)/2); pc++)
     {
         long double pd = (long double)pc;
@@ -2449,154 +2446,3 @@ void Ball_group::sim_one_step(const bool write_step)
     }  // THIRD PASS END
     // t.end_event("CalcVelocityforNextStep");
 }  // one Step end
-
-
-
-void Ball_group::sim_looper()
-{
-    std::cerr << "Beginning simulation...\n";
-
-    // startProgress = ;
-
-    std::cerr<<"Stepping through "<<steps<<" steps"<<std::endl;
-
-    bool writeStep;
-    time_t startProgress = time(nullptr);                // For progress reporting (gets reset)
-    time_t lastWrite;                    // For write control (gets reset)
-    
-    #pragma omp declare reduction(vec3_sum : vec3 : omp_out += omp_in)
-    //private(A,B,pc)write_step,lllen
-    #pragma omp parallel num_threads(OMPthreads) reduction(vec3_sum:acc[:num_particles],aacc[:num_particles]) reduction(+:PE) default(none) shared(lastWrite,dynamicTime,startProgress,steps,stdout,std::cerr,output_folder,output_prefix,simTimeElapsed,skip,stderr,Ha,writeStep,R,pos,vel,m,w,u_r,u_s,moi,kin,kout,distances,h_min,dt)
-    {
-        #pragma omp single
-        {
-            for (int Step = 1; Step < steps; Step++)  // Steps start at 1 because the 0 step is initial conditions.
-            {
-                // simTimeElapsed += dt; //New code #1
-                // Check if this is a write step:
-                if (Step % skip == 0) {
-                    // t.start_event("writeProgressReport");
-                    writeStep = true;
-
-                    /////////////////////// Original code #1
-                    simTimeElapsed += dt * skip;
-                    ///////////////////////
-
-                    // Progress reporting:
-                    float eta = ((time(nullptr) - startProgress) / static_cast<float>(skip) *
-                                 static_cast<float>(steps - Step)) /
-                                3600.f;  // Hours.
-                    float real = (time(nullptr) - start) / 3600.f;
-                    float simmed = static_cast<float>(simTimeElapsed / 3600.f);
-                    float progress = (static_cast<float>(Step) / static_cast<float>(steps) * 100.f);
-                    fprintf(
-                        stderr,
-                        "%u\t%2.0f%%\tETA: %5.2lf\tReal: %5.2f\tSim: %5.2f hrs\tR/S: %5.2f\n",
-                        Step,
-                        progress,
-                        eta,
-                        real,
-                        simmed,
-                        real / simmed);
-                    // fprintf(stdout, "%u\t%2.0f%%\tETA: %5.2lf\tReal: %5.2f\tSim: %5.2f hrs\tR/S: %5.2f\n", Step,
-                    // progress, eta, real, simmed, real / simmed);
-                    fflush(stdout);
-                    startProgress = time(nullptr);
-                    // t.end_event("writeProgressReport");
-                } else {
-                    writeStep = debug;
-                }
-
-                // Physics integration step:
-                ///////////
-                // if (write_all)
-                // {
-                //     zeroSaveVals();
-                // }
-                ///////////
-                // sim_one_step(writeStep,O);
-                sim_one_step(writeStep);
-
-                if (writeStep) {
-                    // t.start_event("writeStep");
-                    // Write energy to stream:
-                    ////////////////////////////////////
-                    //TURN THIS ON FOR REAL RUNS!!!
-                    energyBuffer << '\n'
-                                 << simTimeElapsed << ',' << PE << ',' << KE << ',' << PE + KE << ','
-                                 << mom.norm() << ','
-                                 << ang_mom.norm();  // the two zeros are bound and unbound mass
-
-                    // Reinitialize energies for next step:
-                    KE = 0;
-                    PE = 0;
-                    mom = {0, 0, 0};
-                    ang_mom = {0, 0, 0};
-                    //unboundMass = 0;
-                    //boundMass = massTotal;
-                    ////////////////////////////////////
-
-                    // Data Export. Exports every 10 writeSteps (10 new lines of data) and also if the last write was
-                    // a long time ag
-                    // if (time(nullptr) - lastWrite > 1800 || Step / skip % 10 == 0) {
-                    if (Step / skip % 10 == 0) {
-                        // Report vMax:
-
-                        std::cerr << "vMax = " << getVelMax() << " Steps recorded: " << Step / skip << '\n';
-                        std::cerr << "Data Write to "<<output_folder<<"\n";
-                        // std::cerr<<"output_prefix: "<<output_prefix<<std::endl;
-
-
-                        // Write simData to file and clear buffer.
-                        std::ofstream ballWrite;
-                        ballWrite.open(output_folder + output_prefix + "simData.csv", std::ofstream::app);
-                        ballWrite << ballBuffer.rdbuf();  // Barf buffer to file.
-                        ballBuffer.str("");               // Empty the stream for next filling.
-                        ballWrite.close();
-
-                        // Write Energy data to file and clear buffer.
-                        ////////////////////////////////////////////
-                        //TURN ON FOR REAL SIM
-                        std::ofstream energyWrite;
-                        energyWrite.open(output_folder + output_prefix + "energy.csv", std::ofstream::app);
-                        energyWrite << energyBuffer.rdbuf();
-                        energyBuffer.str("");  // Empty the stream for next filling.
-                        energyWrite.close();
-                        // ////////////////////////////////////////////
-
-                        lastWrite = time(nullptr);
-                    }  // Data export end
-
-
-                    if (dynamicTime) { calibrate_dt(Step, false); }
-                    // t.end_event("writeStep");
-                }  // writestep end
-            }
-
-            std::ofstream timeWrite;
-            std::cerr<<"TIME WRITE"<<std::endl;
-            std::cerr<<num_particles << ',' <<update_time<<std::endl;
-            timeWrite.open("time.csv", std::ofstream::app);
-            timeWrite << num_particles << ',' <<update_time << std::endl;
-
-            if (true)
-            {
-                for (int i = 0; i < num_particles; i++)
-                {
-                    std::cerr<<"===================================="<<std::endl;
-                    std::cerr<<pos[i]<<std::endl;
-                    std::cerr<<vel[i]<<std::endl;
-                    std::cerr<<"===================================="<<std::endl;
-                }
-            }
-
-            const time_t end = time(nullptr);
-
-            std::cerr << "Simulation complete!\n"
-                      << num_particles << " Particles and " << steps << " Steps.\n"
-                      << "Simulated time: " << steps * dt << " seconds\n"
-                      << "Computation time: " << end - start << " seconds\n";
-            std::cerr << "\n===============================================================\n";
-        }
-    }
-}  // end simLooper

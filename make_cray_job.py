@@ -20,12 +20,12 @@ if __name__ == '__main__':
 		print('compilation failed')
 		exit(-1)
 		
-	job_set_name = "cray"
+	job_set_name = "crayParallel"
 	# folder_name_scheme = "T_"
 
 	runs_at_once = 1
 	# attempts = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20] 
-	attempts = [2] 
+	attempts = [1] 
 	N = [30]
 	Temps = [10]
 	folders = []
@@ -74,9 +74,9 @@ if __name__ == '__main__':
 	inputs = list(zip(folders,N))
 	print(inputs)
 
-	#for i in range(0,len(folders),runs_at_once):
-	#	with mp.Pool(processes=runs_at_once) as pool:
-	#		pool.starmap(run_job,inputs[i:i+runs_at_once]) 
+	for i in range(0,len(folders),runs_at_once):
+		with mp.Pool(processes=runs_at_once) as pool:
+			pool.starmap(run_job,inputs[i:i+runs_at_once]) 
 
 
 	

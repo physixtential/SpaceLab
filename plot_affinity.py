@@ -37,7 +37,8 @@ def main():
 
 	inds = np.arange(1,20)
 	# threads = [1,2,4,8,16,32,64]
-	folders = ["strongScaleGrowth1/thread_1/","affinityTests_th2_1/","affinityTests_th4_1/","affinityTests_th8_1/"]
+	# folders = ["strongScaleGrowth1/thread_1/","affinityTests_th2_1/","affinityTests_th4_1/","affinityTests_th8_1/"]
+	folders = ["strongScaleGrowth_O2_1/thread_1/","affinityTests_th2_O2_1/","affinityTests_th4_O2_1/","affinityTests_th8_O2_1/"]
 	# inds = np.arange(1,3)
 
 	times = [] 
@@ -93,7 +94,8 @@ def main():
 	ax.set_xlabel("Affinity")
 	ax.set_ylabel("sim_one_step time (s)")
 	# ax.legend()
-	plt.savefig("figures/affinity.png")
+	# plt.savefig("figures/affinity.png")
+	plt.savefig("figures/affinity_O2.png")
 
 
 	# plt.show()

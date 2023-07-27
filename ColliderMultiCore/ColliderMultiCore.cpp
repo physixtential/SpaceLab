@@ -171,7 +171,9 @@ Ball_group make_group(const char *argv1,int* restart)
     {
         if (*restart > 1)
         {//TESTED
+            /////////////
             (*restart)--;
+            /////////////
             // filename = std::to_string(*restart) + filename;
             filename = filename.substr(1,filename.length());
             O = Ball_group(argv1,filename,v_custom,*restart);
@@ -307,6 +309,7 @@ std::string check_restart(std::string folder,int* restart)
         std::string file1 = folder + remove_file + "constants.csv";
         std::string file2 = folder + remove_file + "energy.csv";
         std::string file3 = folder + remove_file + "simData.csv";
+        
         int status1 = remove(file1.c_str());
         int status2 = remove(file2.c_str());
         int status3 = remove(file3.c_str());

@@ -21,10 +21,8 @@ if __name__ == '__main__':
 		exit(-1)
 		
 	# job_set_name = "openMPallLoops"
-	# job_set_name = "strongScaleCollide"
-	job_set_name = "crayParallel"
-	# job_set_name = "affinityTests_th2_O2_"
-	# job_set_name = "strongScaleGrowth"
+	# job_set_name = "strongScaleGrow"
+	job_set_name = "strongScaleCollide_O2_1200_"
 	# job_set_name = "pipeAndOpenmp"
 	# job_set_name = "smallerDt"
 	# job_set_name = "forceTest"
@@ -32,20 +30,19 @@ if __name__ == '__main__':
 
 	runs_at_once = 1
 	# attempts = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20] 
-	# attempts = [2,3,4,5]
+	attempts = [2,3,4,5]
 	attempts = [1]
-	# affinities = ["0,1","0,8"]
-	affinities = ["0,8"]
-	threads = [2]
-	N = [29]
+	threads = [1,2,4,8,16,32,64,128]
+	# threads = [128]
+	N = [30]
 	Temps = [100]
 	folders = []
 	for attempt in attempts:
-		for affinity in affinities:
+		for n in N:
 			for thread in threads:
 				# job = curr_folder + 'jobs/' + job_set_name + str(attempt) + '/'
 				job = curr_folder + 'jobs/' + job_set_name + str(attempt) + '/'\
-							+ 'affinity_' + affinity.replace(',','-') + '/'
+							+ 'thread_' + str(thread) + '/'
 				if not os.path.exists(job):
 					os.makedirs(job)
 				else:
@@ -63,16 +60,17 @@ if __name__ == '__main__':
 				input_json['seed'] = 101
 				input_json['radiiDistribution'] = 'constant'
 				# input_json['kConsts'] = 3e3
-				input_json['N'] = N[0]
-				input_json['simType'] = "BPCA"
+				input_json['N'] = n
+				input_json['simType'] = "collider"
 				input_json['h_min'] = 0.5
 				input_json['OMPthreads'] = thread
+				input_json['simTimeSeconds'] = 0.5e-6 #Shorter sim time. Don't need whole time
 				# input_json['u_s'] = 0.5
 				# input_json['u_r'] = 0.5
-				# input_json['projectileName'] = "299_2_R4e-05_v4e-01_cor0.63_mu0.1_rho2.25_k4e+00_Ha5e-12_dt5e-10_"
-				# input_json['targetName'] = "299_2_R4e-05_v4e-01_cor0.63_mu0.1_rho2.25_k4e+00_Ha5e-12_dt5e-10_"
+				input_json['projectileName'] = "599_2_R4e-05_v4e-01_cor0.63_mu0.1_rho2.25_k4e+00_Ha5e-12_dt5e-10_"
+				input_json['targetName'] = "599_2_R4e-05_v4e-01_cor0.63_mu0.1_rho2.25_k4e+00_Ha5e-12_dt5e-10_"
 				# input_json['note'] = "Uses openmp and loop unwinding to parallelize sim_one_step."
-				input_json['note'] = "Testing affinity {} with {} OMP threads.".format(affinity,thread)
+				input_json['note'] = "Strong scaling with {} OMP threads, -O2, 600 particle aggs.".format(thread)
 				####################################
 
 				with open(job + "input.json",'w') as fp:
@@ -86,14 +84,14 @@ if __name__ == '__main__':
 				sbatchfile += "#SBATCH -A m2651\n"
 				sbatchfile += "#SBATCH -C cpu\n"
 				sbatchfile += "#SBATCH -q regular\n"
-				sbatchfile += "#SBATCH -t 0:30:00\n"#.format(int(time))
+				sbatchfile += "#SBATCH -t 0:03:00\n"
 				sbatchfile += "#SBATCH -N 1\n"
 				# sbatchfile += "#SBATCH -c {}\n\n".foramt(2*thread)
-				# sbatchfile += 'module load cpu\n'
-				sbatchfile += 'export OMP_NUM_THREADS={}\n'.format(thread)
-				sbatchfile += 'export GOMP_CPU_AFFINITY="{}"\n'.format(affinity)
+				# sbatchfile += 'module load gpu\n'
+				# sbatchfile += 'export OMP_NUM_THREADS={}\n'.format(thread)
 				sbatchfile += 'export SLURM_CPU_BIND="cores"\n'
-				sbatchfile += "srun -n 1 -c {} --cpu-bind=cores ./ColliderMultiCore.x {} 2>sim_err.log 1>sim_out.log".format(thread*2,job)
+				sbatchfile += "srun -n 1 -c {} --cpu-bind=cores numactl --interleave=all ./ColliderMultiCore.x {} 2>sim_err.log 1>sim_out.log".format(thread*2,job)
+				# sbatchfile += "srun -n 1 -c {} --cpu-bind=cores ./ColliderMultiCore.x {} 2>sim_err.log 1>sim_out.log".format(thread*2,job)
 				
 				with open(job+"sbatchMulti.bash",'w') as sfp:
 					sfp.write(sbatchfile)
@@ -103,31 +101,25 @@ if __name__ == '__main__':
 				os.system("cp ColliderMultiCore/ColliderMultiCore.x {}ColliderMultiCore.x".format(job))
 				os.system("cp ColliderMultiCore/ColliderMultiCore.cpp {}ColliderMultiCore.cpp".format(job))
 				os.system("cp ColliderMultiCore/ball_group_multi_core.hpp {}ball_group_multi_core.hpp".format(job))
-				os.system("cp jobs/particle30starter/* {}".format(job))
+				os.system("cp jobs/collidable_aggregate_600/* {}".format(job))
 
 				folders.append(job)
-
-
-	print(folders)
-
-	# cwd = os.getcwd()
-	# for folder in folders:
-	# 	os.chdir(folder)
-	# 	os.system("sbatch sbatchMulti.bash")
-	# os.chdir(cwd)
-
-
 	# print(folders)
 	# if len(N) != len(folders):
 	# 	N = [str(N[0]) for i in range(len(folders))]
 
 	# inputs = list(zip(folders,N))
+	
+	cwd = os.getcwd()
+	print(folders)
+	for folder in folders:
+		os.chdir(folder)
+		os.system("sbatch sbatchMulti.bash")
+	os.chdir(cwd)
 
 	# for i in range(0,len(folders),runs_at_once):
 	# 	with mp.Pool(processes=runs_at_once) as pool:
 	# 		pool.starmap(run_job,folders[i:i+runs_at_once]) 
-
-
 
 
 	

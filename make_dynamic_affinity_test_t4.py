@@ -15,15 +15,14 @@ if __name__ == '__main__':
 
 	try:
 		# os.chdir("{}ColliderSingleCore".format(curr_folder))
-		subprocess.run(["make","-C","ColliderMultiCore"], check=True)
+		subprocess.run(["make","-C","DynamicColliderMC"], check=True)
 	except:
 		print('compilation failed')
 		exit(-1)
 		
 	# job_set_name = "openMPallLoops"
 	# job_set_name = "strongScaleCollide"
-	job_set_name = "crayParallel"
-	# job_set_name = "affinityTests_th2_O2_"
+	job_set_name = "dynamicAffinityTests_th4_"
 	# job_set_name = "strongScaleGrowth"
 	# job_set_name = "pipeAndOpenmp"
 	# job_set_name = "smallerDt"
@@ -34,9 +33,8 @@ if __name__ == '__main__':
 	# attempts = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20] 
 	# attempts = [2,3,4,5]
 	attempts = [1]
-	# affinities = ["0,1","0,8"]
-	affinities = ["0,8"]
-	threads = [2]
+	affinities = ["0,1,2,3","0,1,8,9","0,8,16,24"]
+	threads = [4]
 	N = [29]
 	Temps = [100]
 	folders = []
@@ -83,13 +81,13 @@ if __name__ == '__main__':
 
 				sbatchfile = ""
 				sbatchfile += "#!/bin/bash\n"
-				sbatchfile += "#SBATCH -A m2651\n"
-				sbatchfile += "#SBATCH -C cpu\n"
+				sbatchfile += "#SBATCH -A m4189\n"
+				sbatchfile += "#SBATCH -C gpu\n"
 				sbatchfile += "#SBATCH -q regular\n"
 				sbatchfile += "#SBATCH -t 0:30:00\n"#.format(int(time))
 				sbatchfile += "#SBATCH -N 1\n"
 				# sbatchfile += "#SBATCH -c {}\n\n".foramt(2*thread)
-				# sbatchfile += 'module load cpu\n'
+				sbatchfile += 'module load gpu\n'
 				sbatchfile += 'export OMP_NUM_THREADS={}\n'.format(thread)
 				sbatchfile += 'export GOMP_CPU_AFFINITY="{}"\n'.format(affinity)
 				sbatchfile += 'export SLURM_CPU_BIND="cores"\n'
@@ -100,9 +98,9 @@ if __name__ == '__main__':
 
 				#add run script and executable to folders
 				os.system("cp default_files/run_multicore_sim.py {}run_multicore_sim.py".format(job))
-				os.system("cp ColliderMultiCore/ColliderMultiCore.x {}ColliderMultiCore.x".format(job))
-				os.system("cp ColliderMultiCore/ColliderMultiCore.cpp {}ColliderMultiCore.cpp".format(job))
-				os.system("cp ColliderMultiCore/ball_group_multi_core.hpp {}ball_group_multi_core.hpp".format(job))
+				os.system("cp DynamicColliderMC/ColliderMultiCore.x {}ColliderMultiCore.x".format(job))
+				os.system("cp DynamicColliderMC/ColliderMultiCore.cpp {}ColliderMultiCore.cpp".format(job))
+				os.system("cp DynamicColliderMC/ball_group_multi_core.hpp {}ball_group_multi_core.hpp".format(job))
 				os.system("cp jobs/particle30starter/* {}".format(job))
 
 				folders.append(job)
@@ -110,11 +108,11 @@ if __name__ == '__main__':
 
 	print(folders)
 
-	# cwd = os.getcwd()
-	# for folder in folders:
-	# 	os.chdir(folder)
-	# 	os.system("sbatch sbatchMulti.bash")
-	# os.chdir(cwd)
+	cwd = os.getcwd()
+	for folder in folders:
+		os.chdir(folder)
+		os.system("sbatch sbatchMulti.bash")
+	os.chdir(cwd)
 
 
 	# print(folders)

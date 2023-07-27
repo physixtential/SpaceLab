@@ -20,8 +20,8 @@ if __name__ == '__main__':
 		exit(-1)
 		
 	# job_set_name = "openMPallLoops"
-	job_set_name = "parSec"
 	job_set_name = "TEST"
+	job_set_name = "parSec"
 	# job_set_name = "pipeAndOpenmp"
 	# job_set_name = "pipeAndOpenmp"
 	# job_set_name = "smallerDt"
@@ -30,16 +30,17 @@ if __name__ == '__main__':
 
 	runs_at_once = 1
 	# attempts = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20] 
-	attempts = [1]
-	N = [15]
+	attempts = [3]
+	N = [29]
 	Temps = [100]
 	folders = []
+	threads = [1,8]
 	for attempt in attempts:
 		for n in N:
-			for Temp in Temps:
-				job = curr_folder + 'jobs/' + job_set_name + str(attempt) + '/'
+			for thread in threads:
 				# job = curr_folder + 'jobs/' + job_set_name + str(attempt) + '/'
-							# + 'N_' + str(n) + '/' + 'T_' + str(Temp) + '/'
+				job = curr_folder + 'jobs/' + job_set_name + str(attempt) + '/'\
+							+ 'thread_' + str(thread) + '/' 
 				if not os.path.exists(job):
 					os.makedirs(job)
 				else:
@@ -53,20 +54,20 @@ if __name__ == '__main__':
 
 				####################################
 				######Change input values here######
-				input_json['temp'] = Temp
+				input_json['temp'] = Temps[0]
 				input_json['seed'] = 101
 				input_json['radiiDistribution'] = 'constant'
 				# input_json['kConsts'] = 3e3
 				input_json['h_min'] = 0.5
 				input_json['N'] = n
 				input_json['simType'] = "BPCA"
-				input_json['OMPthreads'] = attempt
+				input_json['OMPthreads'] = thread
 				# input_json['u_s'] = 0.5
 				# input_json['u_r'] = 0.5
 				# input_json['projectileName'] = "299_2_R4e-05_v4e-01_cor0.63_mu0.1_rho2.25_k4e+00_Ha5e-12_dt5e-10_"
 				# input_json['targetName'] = "299_2_R4e-05_v4e-01_cor0.63_mu0.1_rho2.25_k4e+00_Ha5e-12_dt5e-10_"
 				# input_json['note'] = "Uses openmp and loop unwinding to parallelize sim_one_step."
-				input_json['note'] = "Pipline improvemnets and parallel second loop in sim_one_step."
+				input_json['note'] = "Trying to not make the thread teams everytime."
 				####################################
 
 				with open(job + "input.json",'w') as fp:
@@ -74,15 +75,15 @@ if __name__ == '__main__':
 
 				sbatchfile = ""
 				sbatchfile += "#!/bin/bash\n"
-				sbatchfile += "#SBATCH -A m4189\n"
+				sbatchfile += "#SBATCH -A m2651\n"
 				sbatchfile += "#SBATCH -C cpu\n"
 				sbatchfile += "#SBATCH -q regular\n"
-				sbatchfile += "#SBATCH -t 1:00:00\n"
-				sbatchfile += "#SBATCH -n 1\n"
-				sbatchfile += "#SBATCH -c 16\n\n"
-				sbatchfile += 'export OMP_NUM_THREADS=8\n'
+				sbatchfile += "#SBATCH -t 0:30:00\n"
+				sbatchfile += "#SBATCH -N 1\n"
+				# sbatchfile += "#SBATCH -c 16\n\n"
+				sbatchfile += 'export OMP_NUM_THREADS={}\n'.format(thread)
 				sbatchfile += 'export SLURM_CPU_BIND="cores"\n'
-				sbatchfile += "srun ./ColliderMultiCore.x {} {} 2>sim_err.log 1>sim_out.log".format(job,n)
+				sbatchfile += "srun -n 1 -c {} --cpu-bind=cores ./ColliderMultiCore.x {} 2>sim_err.log 1>sim_out.log".format(thread*2,job)
 				
 				with open(job+"sbatchMulti.bash",'w') as sfp:
 					sfp.write(sbatchfile)
@@ -92,6 +93,8 @@ if __name__ == '__main__':
 				os.system("cp ColliderMultiCore/ColliderMultiCore.x {}ColliderMultiCore.x".format(job))
 				os.system("cp ColliderMultiCore/ColliderMultiCore.cpp {}ColliderMultiCore.cpp".format(job))
 				os.system("cp ColliderMultiCore/ball_group_multi_core.hpp {}ball_group_multi_core.hpp".format(job))
+				os.system("cp ../jobs/particle30starter/* {}".format(job))
+
 				folders.append(job)
 	# print(folders)
 	if len(N) != len(folders):

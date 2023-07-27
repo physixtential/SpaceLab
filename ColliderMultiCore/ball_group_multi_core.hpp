@@ -386,6 +386,9 @@ void Ball_group::parse_input_file(char const* location)
     std::string s_location(location);
     std::string json_file = s_location + "input.json";
     std::ifstream ifs(json_file);
+    // std::cerr<<json_file<<std::endl;
+    //// CANNOT USE json::parse() IF YOU RDBUF TOO
+    // std::cerr<<ifs.rdbuf()<<std::endl;
     json inputs = json::parse(ifs);
 
     if (inputs["seed"] == std::string("default"))

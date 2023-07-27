@@ -33,9 +33,9 @@ if __name__ == '__main__':
 	runs_at_once = 1
 	# attempts = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20] 
 	# attempts = [2,3,4,5]
-	attempts = [1]
-	# affinities = ["0,1","0,8"]
-	affinities = ["0,8"]
+	attempts = [2]
+	affinities = ["0,1","0,8"]
+	# affinities = ["0,8"]
 	threads = [2]
 	N = [29]
 	Temps = [100]
@@ -93,7 +93,9 @@ if __name__ == '__main__':
 				sbatchfile += 'export OMP_NUM_THREADS={}\n'.format(thread)
 				sbatchfile += 'export GOMP_CPU_AFFINITY="{}"\n'.format(affinity)
 				sbatchfile += 'export SLURM_CPU_BIND="cores"\n'
-				sbatchfile += "srun -n 1 -c {} --cpu-bind=cores ./ColliderMultiCore.x {} 2>sim_err.log 1>sim_out.log".format(thread*2,job)
+				sbatchfile += 'module load perftools\n'
+				sbatchfile += 'pat_build ColliderMultiCore.x\n'
+				sbatchfile += "srun -n 1 -c {} --cpu-bind=cores ./ColliderMultiCore.x+pat {} 2>sim_err.log 1>sim_out.log".format(thread*2,job)
 				
 				with open(job+"sbatchMulti.bash",'w') as sfp:
 					sfp.write(sbatchfile)
@@ -107,14 +109,13 @@ if __name__ == '__main__':
 
 				folders.append(job)
 
-
 	print(folders)
 
-	# cwd = os.getcwd()
-	# for folder in folders:
-	# 	os.chdir(folder)
-	# 	os.system("sbatch sbatchMulti.bash")
-	# os.chdir(cwd)
+	cwd = os.getcwd()
+	for folder in folders:
+		os.chdir(folder)
+		os.system("sbatch sbatchMulti.bash")
+	os.chdir(cwd)
 
 
 	# print(folders)

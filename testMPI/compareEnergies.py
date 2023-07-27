@@ -2,7 +2,7 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 import sys
-sys.path.append("/home/lpkolanz/Desktop/SpaceLab_branch/SpaceLab")
+sys.path.append("/global/homes/l/lpkolanz/SpaceLab")
 import utils as u
 import porosity_FD as p
 
@@ -10,7 +10,7 @@ def main():
 	base = os.getcwd() + "/jobs/"
 	# folder1 = base + "multiCoreTest4/"
 	# folder1 = base + "singleCoreComparison/"
-	folder1 = base + "oneThreadReference/thread_1/"
+	folder1 = "/global/homes/l/lpkolanz/SpaceLab/jobs/singleNodeComp1000steps1/"
 	# folder1 = base + "multiCoreTest1/"
 	# folder2 = base + "singleCoreComparison2/"
 	# folder2 = base + "multiCoreTest9/"
@@ -22,7 +22,7 @@ def main():
 	# folder2 = base + "affinityTests_th2_1/affinity_0-1/"
 	# folder2 = base + "affinityTests_th2_1/affinity_0-8/"
 	# folder2 = base + "affinityTests_th8_1/affinity_0-1-2-3-4-5-6-7-8/"
-	folder2 = "/global/u2/l/lpkolanz/SpaceLab/jobs/TESTE2/"
+	folder2 = "/global/homes/l/lpkolanz/SpaceLab/testMPI/jobs/test1/"
 	# folder2 = base + "singleCoreComparison_COPY7/"
 	# folder1 = "/home/lpkolanz/Desktop/SpaceLab_branch/SpaceLab/jobs/accuracyTest11/N_10/T_100/"
 	# folder2 = "/home/lpkolanz/Desktop/SpaceLab_branch/SpaceLab/jobs/accuracyTest15/N_10/T_100/"
@@ -52,7 +52,7 @@ def main():
 					body = file.split('_')[1:-1]
 			except ValueError:
 				continue
-
+	print(ind)
 	# file2 = str(max_ind)+'_'+'_'.join(body)+"_simData.csv"
 	# file2 = "9_simData.csv"
 
@@ -61,9 +61,11 @@ def main():
 	N = 5
 	temp = 100
 	show_FD_plots = False
-	for ind in [1]:
-		f1 = "{}_{}_simData.csv".format(ind,'_'.join(body))
-		f2 = "{}_{}_simData.csv".format(ind,'_'.join(body))
+	for ind in [max_ind]:
+		# f1 = "{}_{}_simData.csv".format(ind,'_'.join(body))
+		# f2 = "{}_{}_simData.csv".format(ind,'_'.join(body))
+		# print(f1)
+		# print(f2)
 		# f2 = "{}_simData.csv".format(ind)
 		KE=[]
 		PE=[]

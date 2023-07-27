@@ -37,7 +37,7 @@ def main():
 
 	inds = np.arange(1,20)
 	# threads = [1,2,4,8,16,32,64]
-	folders = ["strongScaleGrowth1/thread_1/","affinityTests_th2_1/","dynamicAffinityTests_th2_1"]
+	folders = ["strongScaleGrowth1/thread_1/","affinityTests_th2_1/","dynamicAffinityTests_th2_1/"]
 	# inds = np.arange(1,3)
 
 	times = [] 
@@ -71,6 +71,7 @@ def main():
 					lab += fixLabel(affinity)
 					xlabels.append(lab)
 					try:
+						# print(base+folder+directory+"/time.csv")
 						with open(base+folder+directory+"/time.csv",'r') as tF:
 							lines = tF.readlines()
 					except FileNotFoundError:

@@ -22,7 +22,7 @@ if __name__ == '__main__':
 		
 	# job_set_name = "openMPallLoops"
 	# job_set_name = "strongScaleCollide"
-	job_set_name = "affinityTests_th4_"
+	job_set_name = "affinityTests_th4_O2_"
 	# job_set_name = "strongScaleGrowth"
 	# job_set_name = "pipeAndOpenmp"
 	# job_set_name = "smallerDt"
@@ -32,7 +32,7 @@ if __name__ == '__main__':
 	runs_at_once = 1
 	# attempts = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20] 
 	# attempts = [2,3,4,5]
-	attempts = [1]
+	attempts = [2]
 	affinities = ["0,1,2,3","0,1,8,9","0,8,16,24"]
 	threads = [4]
 	N = [29]
@@ -81,8 +81,8 @@ if __name__ == '__main__':
 
 				sbatchfile = ""
 				sbatchfile += "#!/bin/bash\n"
-				sbatchfile += "#SBATCH -A m4189\n"
-				sbatchfile += "#SBATCH -C gpu\n"
+				sbatchfile += "#SBATCH -A m2651\n"
+				sbatchfile += "#SBATCH -C cpu\n"
 				sbatchfile += "#SBATCH -q regular\n"
 				sbatchfile += "#SBATCH -t 0:30:00\n"#.format(int(time))
 				sbatchfile += "#SBATCH -N 1\n"

@@ -94,13 +94,18 @@ def get_data_file(data_folder,data_index=-1):
 		# print(files)
 		if len(data_file) == 1:
 			return data_file[0]
+		elif len(data_file) == 2:
+			if len(data_file[0]) > len(data_file[1]):
+				return data_file[0]
+			else:
+				return data_file[1]
 		print("data file in folder '{}' not found.".format(data_folder))
 		print("Now exiting.")
 		exit(-1)
 
 def get_energy_file(data_folder,data_index=-1):
 	files = os.listdir(data_folder)
-
+	# print(files)
 	try:
 		file_indicies = np.array([file.split('_')[0] for file in files\
 					if file.endswith("energy.csv")],dtype=np.int64)
@@ -126,18 +131,25 @@ def get_energy_file(data_folder,data_index=-1):
 	else:
 		data_file = [file for file in files \
 				if file.endswith("energy.csv") and file.startswith(str(index)+'_2')]
-		# print(files)
 		if len(data_file) == 1:
 			return data_file[0]
-		print("data file in folder '{}' not found.".format(data_folder))
+		elif len(data_file) == 2:
+			if len(data_file[0]) > len(data_file[1]):
+				return data_file[0]
+			else:
+				return data_file[1]
+		print("energy file in folder '{}' not found.".format(data_folder))
 		print("Now exiting.")
 		exit(-1)
 
 def get_last_line_data(data_folder,data_index=-1):
 	# data_headers = np.loadtxt(data_folder + data_file,skiprows=0,dtype=str,delimiter=',')[0]
 	data_file = get_data_file(data_folder,data_index)
+	print(data_file)
 	try:
-		data = np.loadtxt(data_folder + data_file,skiprows=1,dtype=float,delimiter=',')[-1]
+		data = np.loadtxt(data_folder + data_file,skiprows=1,dtype=float,delimiter=',')
+		print(data[0])
+		print(data_folder + data_file)
 	except Exception as e:
 		with open(data_folder + data_file) as f:
 		    for line in f:
@@ -147,7 +159,6 @@ def get_last_line_data(data_folder,data_index=-1):
 		print("ERROR CAUGHT getting data in folder: {}".format(data_folder))
 		print(e)
 		# return None
-
 	# print("DATA LEN: {} for file {}{}".format(data.size,data_folder,data_file))
 	# print("FOR {} Balls".format(data.size/11))
 	return format_data(data)

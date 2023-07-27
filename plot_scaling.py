@@ -7,8 +7,8 @@ import utils as u
 import porosity_FD as p
 
 def main():
-	base = os.getcwd() + "/jobs/initialScaling/"
-	base = "/global/homes/l/lpkolanz/SpaceLab/jobs/"
+	base = os.getcwd() + "/jobs/"
+	# base = "/global/homes/l/lpkolanz/SpaceLab/jobs/"
 	# folder1 = base + "forceTest1/"
 	# folder1 = base + "singleCoreComparison/"
 	# folder2 = base + "smallerDt3/"
@@ -55,7 +55,8 @@ def main():
 
 	inds = np.arange(1,20)
 	threads = [1,2,4,8,16,32,64]
-	folders = ["strongScaleGrowth1","weakScaleGrowth1"]
+	# folders = ["strongScaleGrowth1","weakScaleGrowth1"]
+	folders = ["strongScaleGrowth1"]#,"weakScaleGrowth1"]
 	# inds = np.arange(1,3)
 
 	times = np.zeros((len(folders),len(threads)),dtype=np.float64)
@@ -66,8 +67,8 @@ def main():
 	for f_i,folder in enumerate(folders):
 		# lowest_index = 100
 		th = threads
-		if folder == folders[1]:
-			th = th[:-1]
+		# if folder == folders[1]:
+		# 	th = th[:-1]
 		for t_i,t in enumerate(th):
 			timeFile = base + folder + "/thread_{}/time.csv".format(t,t)
 			print("========================================")
@@ -109,12 +110,16 @@ def main():
 		# print(inds)
 		# print(speedups[f_i,:len(inds)])
 		fig, ax = plt.subplots(1,1,figsize=(15,7))
-		ax.plot(inds,speedups[f_i,:len(inds)])
+		plt.rcParams.update({'font.size': 20})
+		ax.tick_params(axis='x',labelsize=20)
+		ax.tick_params(axis='y',labelsize=20)
+		ax.loglog(inds,speedups[f_i,:len(inds)])
 		# ax.plot(inds,,label='multiCoreTest7')
-		ax.set_title(title)
-		ax.set_xlabel("Number of Threads")
-		ax.set_ylabel("Time (s)")
+		# ax.set_title(title)
+		ax.set_xlabel("Number of Threads",fontsize=20)
+		ax.set_ylabel("Time (s)",fontsize=20)
 		# ax.legend()
+		plt.tight_layout()
 		plt.savefig("figures/{}Scaling.png".format(title.split(' ')[0]))
 
 

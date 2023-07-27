@@ -33,7 +33,7 @@
 	//Coefficient of restitution
 	"cor": 0.4,
 	//Total(??) sim time in seconds
-	"simTimeSeconds": 0.5e-3, 
+	"simTimeSeconds": 0.5e-3,
 	//Duration between exported steps in seconds
 	"timeResolution": 1e-5,
 	//base radius of ball in cm.

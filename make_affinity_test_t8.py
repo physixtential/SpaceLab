@@ -22,7 +22,7 @@ if __name__ == '__main__':
 		
 	# job_set_name = "openMPallLoops"
 	# job_set_name = "strongScaleCollide"
-	job_set_name = "affinityTests_th8_"
+	job_set_name = "affinityTests_th8_O2_"
 	# job_set_name = "strongScaleGrowth"
 	# job_set_name = "pipeAndOpenmp"
 	# job_set_name = "smallerDt"
@@ -82,8 +82,8 @@ if __name__ == '__main__':
 
 				sbatchfile = ""
 				sbatchfile += "#!/bin/bash\n"
-				sbatchfile += "#SBATCH -A m4189\n"
-				sbatchfile += "#SBATCH -C gpu\n"
+				sbatchfile += "#SBATCH -A m2651\n"
+				sbatchfile += "#SBATCH -C cpu\n"
 				sbatchfile += "#SBATCH -q regular\n"
 				sbatchfile += "#SBATCH -t 0:30:00\n"#.format(int(time))
 				sbatchfile += "#SBATCH -N 1\n"

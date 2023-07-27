@@ -15,7 +15,7 @@ if __name__ == '__main__':
 
 	try:
 		# os.chdir("{}ColliderSingleCore".format(curr_folder))
-		subprocess.run(["make","-C","ColliderMultiCore"], check=True)
+		subprocess.run(["make","-C","DynamicColliderMC"], check=True)
 	except:
 		print('compilation failed')
 		exit(-1)
@@ -98,9 +98,9 @@ if __name__ == '__main__':
 
 				#add run script and executable to folders
 				os.system("cp default_files/run_multicore_sim.py {}run_multicore_sim.py".format(job))
-				os.system("cp ColliderMultiCore/ColliderMultiCore.x {}ColliderMultiCore.x".format(job))
-				os.system("cp ColliderMultiCore/ColliderMultiCore.cpp {}ColliderMultiCore.cpp".format(job))
-				os.system("cp ColliderMultiCore/ball_group_multi_core.hpp {}ball_group_multi_core.hpp".format(job))
+				os.system("cp DynamicColliderMC/ColliderMultiCore.x {}ColliderMultiCore.x".format(job))
+				os.system("cp DynamicColliderMC/ColliderMultiCore.cpp {}ColliderMultiCore.cpp".format(job))
+				os.system("cp DynamicColliderMC/ball_group_multi_core.hpp {}ball_group_multi_core.hpp".format(job))
 				os.system("cp jobs/particle30starter/* {}".format(job))
 
 				folders.append(job)
