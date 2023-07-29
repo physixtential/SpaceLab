@@ -2,6 +2,10 @@
 ////////////////////////////////////
 // Initialization (Units are CGS) //
 ////////////////////////////////////
+	//How many MPI processes do you want? Note: This value doesn't get read
+	//by the simulation and is only used to make the sbatch file. It is here
+	//so there is a record of how many nodes a job asked for. 
+	"MPInodes": 1,
 	//What is this sim for?
 	"note": "",
 	//How many openMP threads do you want?

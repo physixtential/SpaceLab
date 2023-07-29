@@ -29,7 +29,7 @@ if __name__ == '__main__':
 
 	runs_at_once = 1
 	# attempts = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20] 
-	attempts = [1]
+	attempts = [4]
 	threads = [32]
 	N = [300]
 	Temps = [100]
@@ -59,7 +59,7 @@ if __name__ == '__main__':
 				# input_json['kConsts'] = 3e3
 				input_json['h_min'] = 0.5
 				input_json['N'] = n
-				input_json['simTimeSeconds'] = 1.1e-6 #Shorter sim time. Don't need whole time
+				input_json['simTimeSeconds'] = 1.5e-5 #Shorter sim time. Don't need whole time
 				input_json['simType'] = "collide"
 				input_json['OMPthreads'] = thread
 				# input_json['u_s'] = 0.5
@@ -78,7 +78,7 @@ if __name__ == '__main__':
 				sbatchfile += "#SBATCH -A m2651\n"
 				sbatchfile += "#SBATCH -C cpu\n"
 				sbatchfile += "#SBATCH -q regular\n"
-				sbatchfile += "#SBATCH -t 00:30:00\n"
+				sbatchfile += "#SBATCH -t 02:00:00\n"
 				sbatchfile += "#SBATCH -N 1\n"
 				# sbatchfile += "#SBATCH -c 32\n\n"
 				sbatchfile += 'export OMP_NUM_THREADS={}\n'.format(thread)

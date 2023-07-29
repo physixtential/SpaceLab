@@ -33,13 +33,13 @@ const time_t start = time(nullptr);  // For end of program analysis
 void 
 bufferBarf(Ball_group &O);
 void
-sim_looper(Ball_group &O,int world_rank, int world_size);
+sim_looper(Ball_group &O);
 void
 safetyChecks(Ball_group &O);
 std::string 
 check_restart(std::string folder,int* restart);
 Ball_group 
-make_group(const char *argv1,int* restart,int world_rank,int world_size);
+make_group(const char *argv1,int* restart);
 inline int 
 twoDtoOneD(const int row, const int col, const int width);
 int 
@@ -47,9 +47,9 @@ determine_index(std::string s, char del);
 bool 
 isNumber(const std::string& str);
 void 
-BPCA(const char *path, int num_balls,int world_rank,int world_size);
+BPCA(const char *path, int num_balls);
 void 
-collider(const char *path, std::string projectileName,std::string targetName,int world_rank,int world_size);
+collider(const char *path, std::string projectileName,std::string targetName);
 /// @brief The ballGroup run by the main sim looper.
 // Ball_group O(output_folder, projectileName, targetName, v_custom); // Collision
 // Ball_group O(path, targetName, 0);  // Continue
@@ -62,36 +62,47 @@ collider(const char *path, std::string projectileName,std::string targetName,int
 //////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////
 int
-main(const int argc, char const* argv[])
+main(int argc, char* argv[])
 {
 
     // MPI Initialization
-    MPI_Init(NULL, NULL);
     int world_rank, world_size;
-    MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
-    MPI_Comm_size(MPI_COMM_WORLD, &world_size);
+    #ifdef MPI_ENABLE
+        MPI_Init(&argc, &argv);
+        MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
+        MPI_Comm_size(MPI_COMM_WORLD, &world_size);
+    #else
+        world_rank = 0;
+        world_size = 1;
+    #endif
+
+    //Verify we have all the nodes we asked for
+    fprintf(
+        stderr,
+        "Hello from rank %d\n",
+        world_rank);
+    fflush(stderr);
     
     // t.start_event("WholeThing");
-    int num_balls;
     
     
     
     // Runtime arguments:
-    if (argc > 2) 
-    {
-        std::stringstream s(argv[2]);
-        // s << argv[2];
-        s >> num_balls;
-        // numThreads = atoi(argv[1]);
-        // fprintf(stderr,"\nThread count set to %i.\n", numThreads);
-        // projectileName = argv[2];
-        // targetName = argv[3];
-        // KEfactor = atof(argv[4]);
-    }
-    else
-    {
-        num_balls = 100;
-    }
+    // if (argc > 2) 
+    // {
+    //     std::stringstream s(argv[2]);
+    //     // s << argv[2];
+    //     s >> num_balls;
+    //     // numThreads = atoi(argv[1]);
+    //     // fprintf(stderr,"\nThread count set to %i.\n", numThreads);
+    //     // projectileName = argv[2];
+    //     // targetName = argv[3];
+    //     // KEfactor = atof(argv[4]);
+    // }
+    // else
+    // {
+    //     num_balls = 100;
+    // }
 
     // O.zeroAngVel();
     // O.pushApart();
@@ -102,15 +113,19 @@ main(const int argc, char const* argv[])
     dummy.parse_input_file(argv[1]);
     if (dummy.typeSim == dummy.collider)
     {
-        MPI_Barrier(MPI_COMM_WORLD);
-        collider(argv[1],dummy.projectileName,dummy.targetName,world_rank,world_size);
+        #ifdef MPI_ENABLE
+            MPI_Barrier(MPI_COMM_WORLD);
+        #endif
+        collider(argv[1],dummy.projectileName,dummy.targetName);
     }
     else if (dummy.typeSim == dummy.BPCA)
     {
         if (dummy.total_balls_to_add >= 0)
         {
-            MPI_Barrier(MPI_COMM_WORLD);
-            BPCA(argv[1],dummy.total_balls_to_add,world_rank,world_size);
+            #ifdef MPI_ENABLE
+                MPI_Barrier(MPI_COMM_WORLD);
+            #endif
+            BPCA(argv[1],dummy.total_balls_to_add);
         }
         else
         {
@@ -128,33 +143,41 @@ main(const int argc, char const* argv[])
     // t.end_event("WholeThing");
     // t.print_events();
     // t.save_events(output_folder + "timing.txt");
-    MPI_Barrier(MPI_COMM_WORLD);
-    MPI_Finalize();
+    #ifdef MPI_ENABLE
+        MPI_Barrier(MPI_COMM_WORLD);
+        MPI_Finalize();
+    #endif
 }  // end main
 //////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////
 
-void collider(const char *path, std::string projectileName, std::string targetName,int world_rank,int world_size)
+void collider(const char *path, std::string projectileName, std::string targetName)
 {
+
+    int world_rank = getRank();
+
     // t.start_event("collider");
-    Ball_group O = Ball_group(std::string(path),std::string(projectileName),std::string(targetName),world_rank,world_size);
-    safetyChecks(O);
+    Ball_group O = Ball_group(std::string(path),std::string(projectileName),std::string(targetName));
     if (world_rank == 0)
     {
+        safetyChecks(O);
         O.sim_init_write(output_prefix);
     }
-    sim_looper(O,world_rank,world_size);
+    MPI_Barrier(MPI_COMM_WORLD);
+    sim_looper(O);
     // t.end_event("collider");
     // O.freeMemory();
     return;
 }
 
-void BPCA(const char *path,int num_balls,int world_rank,int world_size)
+void BPCA(const char *path,int num_balls)
 {
+    int world_rank = getRank();
+
     int rest = -1;
     int *restart = &rest;
-    Ball_group O = make_group(path,restart,world_rank,world_size);    
+    Ball_group O = make_group(path,restart);    
     safetyChecks(O);
     // Add projectile: For dust formation BPCA
     std::string ori_output_prefix = output_prefix;
@@ -171,7 +194,7 @@ void BPCA(const char *path,int num_balls,int world_rank,int world_size)
         {
             O.sim_init_write(ori_output_prefix, i);
         }
-        sim_looper(O,world_rank,world_size);
+        sim_looper(O);
         simTimeElapsed = 0;
     }
     // O.freeMemory();
@@ -180,7 +203,7 @@ void BPCA(const char *path,int num_balls,int world_rank,int world_size)
 
 
 //@brief sets Ball_group object based on the need for a restart or not
-Ball_group make_group(const char *argv1,int* restart,int world_rank,int world_size)
+Ball_group make_group(const char *argv1,int* restart)
 {
     Ball_group O;
     
@@ -195,25 +218,25 @@ Ball_group make_group(const char *argv1,int* restart,int world_rank,int world_si
             /////////////
             // filename = std::to_string(*restart) + filename;
             filename = filename.substr(1,filename.length());
-            O = Ball_group(argv1,filename,v_custom,*restart,world_rank,world_size);
+            O = Ball_group(argv1,filename,v_custom,*restart);
         }
         else if (*restart == 1) //restart from first write (different naming convension for first write)
         {//TESTED
             (*restart)--;
             filename = filename.substr(1,filename.length());
             // exit(EXIT_SUCCESS);
-            O = Ball_group(argv1,filename,v_custom,*restart,world_rank,world_size);
+            O = Ball_group(argv1,filename,v_custom,*restart);
         }
         else //if restart is 0, need to rerun whole thing
         {//TESTED
-            O = Ball_group(true, v_custom, argv1,world_rank,world_size); // Generate new group
+            O = Ball_group(true, v_custom, argv1); // Generate new group
         }
 
     }
     else if (*restart == -1) // Make new ball group
     {
         *restart = 0;
-        O = Ball_group(true, v_custom, argv1,world_rank,world_size); // Generate new group
+        O = Ball_group(true, v_custom, argv1); // Generate new group
     }
     else
     {
@@ -359,8 +382,10 @@ std::string check_restart(std::string folder,int* restart)
 
 
 void
-sim_looper(Ball_group &O,int world_rank, int world_size)
+sim_looper(Ball_group &O)
 {
+    int world_rank = getRank();
+
     if (world_rank == 0)
     {    
         std::cerr << "Beginning simulation...\n";
@@ -424,17 +449,39 @@ sim_looper(Ball_group &O,int world_rank, int world_size)
         // sim_one_step(writeStep,O);
         O.sim_one_step(writeStep);
 
-        if (writeStep && world_rank == 0) {
-            std::cout<<"WRITE STEP TRUE"<<std::endl;
-            // t.start_event("writeStep");
-            // Write energy to stream:
-            ////////////////////////////////////
-            //TURN THIS ON FOR REAL RUNS!!!
-            O.energyBuffer << '\n'
-                         << simTimeElapsed << ',' << O.PE << ',' << O.KE << ',' << O.PE + O.KE << ','
-                         << O.mom.norm() << ','
-                         << O.ang_mom.norm();  // the two zeros are bound and unbound mass
+        if (writeStep) 
+        {
+            if (world_rank == 0)
+            {
+                // t.start_event("writeStep");
+                // Write energy to stream:
+                ////////////////////////////////////
+                //TURN THIS ON FOR REAL RUNS!!!
+                O.energyBuffer << '\n'
+                             << simTimeElapsed << ',' << O.PE << ',' << O.KE << ',' << O.PE + O.KE << ','
+                             << O.mom.norm() << ','
+                             << O.ang_mom.norm();  // the two zeros are bound and unbound mass
 
+
+                // Data Export. Exports every 10 writeSteps (10 new lines of data) and also if the last write was
+                // a long time ago.
+                // if (time(nullptr) - lastWrite > 1800 || Step / skip % 10 == 0) {
+                if (Step / skip % 10 == 0) {
+                    // Report vMax:
+
+                    std::cerr << "vMax = " << O.getVelMax() << " Steps recorded: " << Step / skip << '\n';
+                    std::cerr << "Data Write to "<<output_folder<<"\n";
+                    // std::cerr<<"output_prefix: "<<output_prefix<<std::endl;
+
+
+                    bufferBarf(O);
+
+                    lastWrite = time(nullptr);
+                }  // Data export end
+
+
+                if (dynamicTime) { O.calibrate_dt(Step, false); }
+            }
             // Reinitialize energies for next step:
             O.KE = 0;
             O.PE = 0;
@@ -443,28 +490,9 @@ sim_looper(Ball_group &O,int world_rank, int world_size)
             //unboundMass = 0;
             //boundMass = massTotal;
             ////////////////////////////////////
-
-            // Data Export. Exports every 10 writeSteps (10 new lines of data) and also if the last write was
-            // a long time ago.
-            // if (time(nullptr) - lastWrite > 1800 || Step / skip % 10 == 0) {
-            if (Step / skip % 10 == 0) {
-                std::cout<<"WRITE to file"<<std::endl;
-                // Report vMax:
-
-                std::cerr << "vMax = " << O.getVelMax() << " Steps recorded: " << Step / skip << '\n';
-                std::cerr << "Data Write to "<<output_folder<<"\n";
-                // std::cerr<<"output_prefix: "<<output_prefix<<std::endl;
-
-
-                bufferBarf(O);
-
-                lastWrite = time(nullptr);
-            }  // Data export end
-
-
-            if (dynamicTime) { O.calibrate_dt(Step, false); }
-            // t.end_event("writeStep");
+                // t.end_event("writeStep");
         }  // writestep end
+
     }
 
     if (world_rank == 0)
@@ -474,16 +502,16 @@ sim_looper(Ball_group &O,int world_rank, int world_size)
         timeWrite << O.num_particles << ',' <<O.update_time << std::endl;
     
 
-        if (true)
-        {
-            for (int i = 0; i < O.num_particles; i++)
-            {
-                std::cerr<<"===================================="<<std::endl;
-                std::cerr<<O.pos[i]<<std::endl;
-                std::cerr<<O.vel[i]<<std::endl;
-                std::cerr<<"===================================="<<std::endl;
-            }
-        }
+        // if (true)
+        // {
+        //     for (int i = 0; i < O.num_particles; i++)
+        //     {
+        //         std::cerr<<"===================================="<<std::endl;
+        //         std::cerr<<O.pos[i]<<std::endl;
+        //         std::cerr<<O.vel[i]<<std::endl;
+        //         std::cerr<<"===================================="<<std::endl;
+        //     }
+        // }
 
         const time_t end = time(nullptr);
 
@@ -493,8 +521,10 @@ sim_looper(Ball_group &O,int world_rank, int world_size)
                   << "Computation time: " << end - start << " seconds\n";
         std::cerr << "\n===============================================================\n";
     }
-    if (O.ballBuffer.tellp() != std::streampos(0))
+    if (!O.ballBuffer.str().empty())
     {
+        O.ballBuffer<<'\n';
+        O.energyBuffer<<'\n';
         bufferBarf(O);
     }
 }  // end simLooper

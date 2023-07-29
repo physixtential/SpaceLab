@@ -7,10 +7,16 @@ import utils as u
 import porosity_FD as p
 
 def main():
+	# compare single 3 and MPI 3 (full time, MPI 5 nodes)
+	# compare single 1 and MPI 4 (short, MPI 15 nodes)
+	# compare single 1 and MPI 2 (short, MPI 1 node) agrees
+
+
+
 	base = os.getcwd() + "/jobs/"
 	# folder1 = base + "multiCoreTest4/"
 	# folder1 = base + "singleCoreComparison/"
-	folder1 = "/global/homes/l/lpkolanz/SpaceLab/jobs/singleNodeComp1000steps1/"
+	folder2 = "/global/homes/l/lpkolanz/SpaceLab/jobs/singleNodeComp1000steps4/"
 	# folder1 = base + "multiCoreTest1/"
 	# folder2 = base + "singleCoreComparison2/"
 	# folder2 = base + "multiCoreTest9/"
@@ -22,7 +28,7 @@ def main():
 	# folder2 = base + "affinityTests_th2_1/affinity_0-1/"
 	# folder2 = base + "affinityTests_th2_1/affinity_0-8/"
 	# folder2 = base + "affinityTests_th8_1/affinity_0-1-2-3-4-5-6-7-8/"
-	folder2 = "/global/homes/l/lpkolanz/SpaceLab/testMPI/jobs/test1/"
+	folder1 = "/global/homes/l/lpkolanz/SpaceLab/testMPI/jobs/long15nodePEfix4/"
 	# folder2 = base + "singleCoreComparison_COPY7/"
 	# folder1 = "/home/lpkolanz/Desktop/SpaceLab_branch/SpaceLab/jobs/accuracyTest11/N_10/T_100/"
 	# folder2 = "/home/lpkolanz/Desktop/SpaceLab_branch/SpaceLab/jobs/accuracyTest15/N_10/T_100/"

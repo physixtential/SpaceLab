@@ -28,8 +28,10 @@ const time_t start = time(nullptr);  // For end of program analysis
 
 
 // Prototypes
-void
-sim_one_step(const bool write_step, Ball_group &O);
+// void
+// sim_one_step(const bool write_step, Ball_group &O);
+void 
+bufferBarf(Ball_group &O);
 void
 sim_looper(Ball_group &O);
 void
@@ -887,22 +889,7 @@ sim_looper(Ball_group &O)
                 // std::cerr<<"output_prefix: "<<output_prefix<<std::endl;
 
 
-                // Write simData to file and clear buffer.
-                std::ofstream ballWrite;
-                ballWrite.open(output_folder + output_prefix + "simData.csv", std::ofstream::app);
-                ballWrite << O.ballBuffer.rdbuf();  // Barf buffer to file.
-                O.ballBuffer.str("");               // Empty the stream for next filling.
-                ballWrite.close();
-
-                // Write Energy data to file and clear buffer.
-                ////////////////////////////////////////////
-                //TURN ON FOR REAL SIM
-                std::ofstream energyWrite;
-                energyWrite.open(output_folder + output_prefix + "energy.csv", std::ofstream::app);
-                energyWrite << O.energyBuffer.rdbuf();
-                O.energyBuffer.str("");  // Empty the stream for next filling.
-                energyWrite.close();
-                // ////////////////////////////////////////////
+                bufferBarf(O);
 
                 lastWrite = time(nullptr);
             }  // Data export end
@@ -935,8 +922,35 @@ sim_looper(Ball_group &O)
               << "Simulated time: " << steps * dt << " seconds\n"
               << "Computation time: " << end - start << " seconds\n";
     std::cerr << "\n===============================================================\n";
+    
+    if (!O.ballBuffer.str().empty())
+    {
+        O.ballBuffer<<'\n';
+        O.energyBuffer<<'\n';
+        bufferBarf(O);
+    }
+
 }  // end simLooper
 
+void bufferBarf(Ball_group &O)
+{
+    // Write simData to file and clear buffer.
+    std::ofstream ballWrite;
+    ballWrite.open(output_folder + output_prefix + "simData.csv", std::ofstream::app);
+    ballWrite << O.ballBuffer.rdbuf();  // Barf buffer to file.
+    O.ballBuffer.str("");               // Empty the stream for next filling.
+    ballWrite.close();
+
+    // Write Energy data to file and clear buffer.
+    ////////////////////////////////////////////
+    //TURN ON FOR REAL SIM
+    std::ofstream energyWrite;
+    energyWrite.open(output_folder + output_prefix + "energy.csv", std::ofstream::app);
+    energyWrite << O.energyBuffer.rdbuf();
+    O.energyBuffer.str("");  // Empty the stream for next filling.
+    energyWrite.close();
+    // ////////////////////////////////////////////
+}
 
 void
 safetyChecks(Ball_group &O)

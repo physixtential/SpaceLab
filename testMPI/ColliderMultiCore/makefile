@@ -6,7 +6,7 @@ CPP=CC
 # CPP=CC
 # CPPflags=-O3 -std=c++2a -fopenmp
 # CPPflags=-O3 -std=c++2a 
-CPPflags=-std=c++2a -fopenmp -O2
+CPPflags=-std=c++2a -fopenmp -O2 -DMPI_ENABLE
 
 ColliderMultiCore.x: ColliderMultiCore.cpp ../dust_const_init.hpp ../Utils.hpp ball_group_multi_core.hpp ../../timing/timing.hpp
 	${CPP} ${CPPflags} -o ColliderMultiCore.x ColliderMultiCore.cpp

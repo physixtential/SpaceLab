@@ -147,7 +147,7 @@ def get_last_line_data(data_folder,data_index=-1):
 	data_file = get_data_file(data_folder,data_index)
 	print(data_file)
 	try:
-		data = np.loadtxt(data_folder + data_file,skiprows=1,dtype=float,delimiter=',')
+		data = np.loadtxt(data_folder + data_file,skiprows=1,dtype=float,delimiter=',')[-1]
 		print(data[0])
 		print(data_folder + data_file)
 	except Exception as e:
@@ -161,6 +161,7 @@ def get_last_line_data(data_folder,data_index=-1):
 		# return None
 	# print("DATA LEN: {} for file {}{}".format(data.size,data_folder,data_file))
 	# print("FOR {} Balls".format(data.size/11))
+	
 	return format_data(data)
 
 def get_last_line_energy(data_folder,data_index=-1):
