@@ -109,7 +109,6 @@ def get_energy_file(data_folder,data_index=-1):
 	try:
 		file_indicies = np.array([file.split('_')[0] for file in files\
 					if file.endswith("energy.csv")],dtype=np.int64)
- 
 	except: 
 		files = [file for file in files if file.endswith('energy.csv')]
 		files = [file for file in files if '_' in file]
@@ -125,7 +124,6 @@ def get_energy_file(data_folder,data_index=-1):
 
 	data_file = [file for file in files \
 				if file.endswith("energy.csv") and file.startswith(str(index))]
-
 	if len(data_file) == 1:
 		return data_file[0]
 	else:
@@ -152,9 +150,9 @@ def get_last_line_data(data_folder,data_index=-1):
 		print(data_folder + data_file)
 	except Exception as e:
 		with open(data_folder + data_file) as f:
-		    for line in f:
-		        pass
-		    last_line = line
+			for line in f:
+				pass
+			last_line = line
 		data = np.array([last_line.split(',')],dtype=np.float64)
 		print("ERROR CAUGHT getting data in folder: {}".format(data_folder))
 		print(e)
@@ -170,9 +168,9 @@ def get_last_line_energy(data_folder,data_index=-1):
 		energy = np.loadtxt(data_folder + energy_file,skiprows=1,dtype=float,delimiter=',')[-1]
 	except Exception as e:
 		with open(data_folder + energy_file) as f:
-		    for line in f:
-		        pass
-		    last_line = line
+			for line in f:
+				pass
+			last_line = line
 		energy = np.array([last_line.split(',')],dtype=np.float64)
 		print("ERROR CAUGHT getting energy in folder: {}".format(data_folder))
 		print(e)
@@ -418,26 +416,26 @@ class datamgr(object):
 
 	#Function written by chatGPT
 	def rotation_matrix(v1, v2):
-	    """
-	    Returns the rotation matrix between two vectors v1 and v2.
-	    Both v1 and v2 must be numpy arrays with the same shape.
+		"""
+		Returns the rotation matrix between two vectors v1 and v2.
+		Both v1 and v2 must be numpy arrays with the same shape.
 
-	    :param v1: First vector
-	    :param v2: Second vector
-	    :return: Rotation matrix
-	    """
-	    v1 = np.array(v1)
-	    v2 = np.array(v2)
-	    if v1.shape != v2.shape:
-	        raise ValueError("Both vectors must have the same shape.")
-	    v1 = v1 / np.linalg.norm(v1)
-	    v2 = v2 / np.linalg.norm(v2)
-	    v = np.cross(v1, v2)
-	    s = np.linalg.norm(v)
-	    c = np.dot(v1, v2)
-	    vx = np.array([[0, -v[2], v[1]], [v[2], 0, -v[0]], [-v[1], v[0], 0]])
-	    rotation_matrix = np.eye(v1.shape[0]) + vx + np.dot(vx, vx) * ((1 - c) / (s ** 2))
-	    return rotation_matrix
+		:param v1: First vector
+		:param v2: Second vector
+		:return: Rotation matrix
+		"""
+		v1 = np.array(v1)
+		v2 = np.array(v2)
+		if v1.shape != v2.shape:
+			raise ValueError("Both vectors must have the same shape.")
+		v1 = v1 / np.linalg.norm(v1)
+		v2 = v2 / np.linalg.norm(v2)
+		v = np.cross(v1, v2)
+		s = np.linalg.norm(v)
+		c = np.dot(v1, v2)
+		vx = np.array([[0, -v[2], v[1]], [v[2], 0, -v[0]], [-v[1], v[0], 0]])
+		rotation_matrix = np.eye(v1.shape[0]) + vx + np.dot(vx, vx) * ((1 - c) / (s ** 2))
+		return rotation_matrix
 
 	def orient_data(self):
 		max_lengsq = -1

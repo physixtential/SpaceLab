@@ -22,7 +22,8 @@ if __name__ == '__main__':
 		
 	# job_set_name = "openMPallLoops"
 	# job_set_name = "strongScaleGrow"
-	job_set_name = "strongScaleCollide_O2_1200_"
+	# job_set_name = "strongScaleCollide_O2_1200_"
+	job_set_name = "strongScaleCollide_O2_2400_"
 	# job_set_name = "pipeAndOpenmp"
 	# job_set_name = "smallerDt"
 	# job_set_name = "forceTest"
@@ -33,6 +34,7 @@ if __name__ == '__main__':
 	attempts = [2,3,4,5]
 	attempts = [1]
 	threads = [1,2,4,8,16,32,64,128]
+	threads = [16]
 	# threads = [128]
 	N = [30]
 	Temps = [100]
@@ -67,8 +69,8 @@ if __name__ == '__main__':
 				input_json['simTimeSeconds'] = 0.5e-6 #Shorter sim time. Don't need whole time
 				# input_json['u_s'] = 0.5
 				# input_json['u_r'] = 0.5
-				input_json['projectileName'] = "599_2_R4e-05_v4e-01_cor0.63_mu0.1_rho2.25_k4e+00_Ha5e-12_dt5e-10_"
-				input_json['targetName'] = "599_2_R4e-05_v4e-01_cor0.63_mu0.1_rho2.25_k4e+00_Ha5e-12_dt5e-10_"
+				input_json['projectileName'] = "1199_2_R4e-05_v4e-01_cor0.63_mu0.1_rho2.25_k4e+00_Ha5e-12_dt5e-10_"
+				input_json['targetName'] = "1199_2_R4e-05_v4e-01_cor0.63_mu0.1_rho2.25_k4e+00_Ha5e-12_dt5e-10_"
 				# input_json['note'] = "Uses openmp and loop unwinding to parallelize sim_one_step."
 				input_json['note'] = "Strong scaling with {} OMP threads, -O2, 600 particle aggs.".format(thread)
 				####################################
@@ -101,7 +103,7 @@ if __name__ == '__main__':
 				os.system("cp ColliderMultiCore/ColliderMultiCore.x {}ColliderMultiCore.x".format(job))
 				os.system("cp ColliderMultiCore/ColliderMultiCore.cpp {}ColliderMultiCore.cpp".format(job))
 				os.system("cp ColliderMultiCore/ball_group_multi_core.hpp {}ball_group_multi_core.hpp".format(job))
-				os.system("cp jobs/collidable_aggregate_600/* {}".format(job))
+				os.system("cp jobs/collidable_aggregate_1200/* {}".format(job))
 
 				folders.append(job)
 	# print(folders)

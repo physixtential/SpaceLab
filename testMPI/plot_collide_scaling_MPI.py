@@ -5,7 +5,7 @@ import matplotlib as mpl
 # from matplotlib.ticker import AutoMinorLocator
 
 import sys
-sys.path.append("/home/lpkolanz/Desktop/SpaceLab_branch/SpaceLab")
+sys.path.append("/global/homes/l/lpkolanz/SpaceLab/")
 import utils as u
 import porosity_FD as p
 from matplotlib import ticker
@@ -25,15 +25,17 @@ def log_2_minor_ticks(min_val, max_val, num_per_major=4):
 
 def main():
 	fontsize = 25
-	base = os.getcwd() + "/jobs/initialScaling/"
-	base = "/global/homes/l/lpkolanz/SpaceLab/jobs/"
+	# base = os.getcwd() + "/jobs/initialScaling/"
+	base = "/global/homes/l/lpkolanz/SpaceLab/testMPI/jobs/"
 	
 	inds = np.arange(1,20)
 	threads = [1,2,4,8,16,32,64,128]
+	threads = [1,2,4,8,16,32]
+
 	folders = ["strongScaleCollide1"]#,"weakScaleGrowth1"]
 	folders = ["strongScaleCollide_O2_1"]#,"weakScaleGrowth1"]
-	folders = ["strongScaleCollide_O2_1200_1"]#,"weakScaleGrowth1"]
-	folders = ["strongScaleCollide_O2_2400_1"]#,"weakScaleGrowth1"]
+	folders = ["strongScaleCollideMPI1"]#,"weakScaleGrowth1"]
+	# folders = ["strongScaleCollideMPIonethread1"]#,"weakScaleGrowth1"]
 	# inds = np.arange(1,3)
 
 	times = np.zeros((len(folders),len(threads)),dtype=np.float64)
@@ -46,7 +48,7 @@ def main():
 		#if folder == folders[1]:
 		#	th = th[:-1]
 		for t_i,t in enumerate(th):
-			timeFile = base + folder + "/thread_{}/time.csv".format(t,t)
+			timeFile = base + folder + "/node_{}/time.csv".format(t,t)
 			print("========================================")
 			print(timeFile)
 			try:
@@ -79,25 +81,28 @@ def main():
 	print(speedups)	
 	print(threads)		
 
-	b = speedups[0,2]*threads[2]
+	firstnonnan = 0
+	b = speedups[0,firstnonnan]*threads[firstnonnan]
 
 	# ideal = np.power(2,-1*np.log(threads)+b)
 	ideal = b/threads
-	ideal[0:2] = np.nan
+	print("ideal")
+	print(ideal)
+	# ideal[0:2] = np.nan
 
-	efficiency = (speedups[0,6])/(speedups[0,2]/threads[2])
-	print(efficiency)
-	print((speedups[0,5])/(speedups[0,2]/threads[2]))
-	print((speedups[0,3]/threads[3])/(speedups[0,2]/threads[2]))
+	# efficiency = (speedups[0,6])/(speedups[0,2]/threads[2])
+	# print(efficiency)
+	# print((speedups[0,5])/(speedups[0,2]/threads[2]))
+	# print((speedups[0,3]/threads[3])/(speedups[0,2]/threads[2]))
 
 
 	for f_i,folder in enumerate(folders):
 		if folder == folders[0]:
 			inds = threads
-			title = "Strong Scaling of sim_one_step"
+			title = "MPI Strong Scaling of sim_one_step"
 		else:
 			inds = threads[:-1]
-			title = "Weak Scaling of sim_one_step"
+			title = "MPI Weak Scaling of sim_one_step"
 		# print(inds)
 		# print(speedups[f_i,:len(inds)])
 		fig, ax = plt.subplots(1,1,figsize=(15,7))
@@ -108,7 +113,7 @@ def main():
 		ax.set_yscale('log', base=2)
 		ax.minorticks_on()
 
-		ax.plot(inds,speedups[f_i,:len(inds)],label='Strong scaling',color='green')
+		ax.plot(inds,speedups[f_i,:len(inds)],label='Strong scaling',color='green',marker='*')
 		ax.plot(inds,ideal,label="Ideal strong scaling")
 		
 		# ax.xaxis.set_minor_locator(AutoMinorLocator(4))
@@ -138,14 +143,14 @@ def main():
 
 		# ax.loglog(inds,speedups[f_i,:len(inds)])
 		# ax.plot(inds,,label='multiCoreTest7')
-		# ax.set_title(title)
-		ax.set_xlabel("Number of Threads",fontsize=fontsize)
+		ax.set_title(title)
+		ax.set_xlabel("Number of Nodes (each 32 threads)",fontsize=fontsize)
 		ax.set_ylabel("Time (s)",fontsize=fontsize)
 		ax.legend()
 		plt.tight_layout()
 		# plt.savefig("figures/{}loglogCollideScaling.png".format(title.split(' ')[0]))
 		# plt.savefig("figures/{}loglogCollideScaling_O2.png".format(title.split(' ')[0]))
-		plt.savefig("figures/{}loglogCollideScaling_O2_2400.png".format(title.split(' ')[0]))
+		plt.savefig("figures/{}MPIloglogCollideScaling.png".format(title.split(' ')[0]))
 
 
 	plt.show()
