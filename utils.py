@@ -120,6 +120,9 @@ def get_energy_file(data_folder,data_index=-1):
 	else:
 		index = data_index
 
+	# print(file_indicies)
+	# print(np.max(file_indicies))
+
 	# print("index: {}".format(index))
 
 	data_file = [file for file in files \
@@ -154,6 +157,7 @@ def get_last_line_data(data_folder,data_index=-1):
 				pass
 			last_line = line
 		data = np.array([last_line.split(',')],dtype=np.float64)
+		# print(data)
 		print("ERROR CAUGHT getting data in folder: {}".format(data_folder))
 		print(e)
 		# return None
@@ -165,7 +169,10 @@ def get_last_line_data(data_folder,data_index=-1):
 def get_last_line_energy(data_folder,data_index=-1):
 	energy_file = get_energy_file(data_folder,data_index)
 	try:
-		energy = np.loadtxt(data_folder + energy_file,skiprows=1,dtype=float,delimiter=',')[-1]
+		energy = np.loadtxt(data_folder + energy_file,skiprows=1,dtype=float,delimiter=',')
+		if energy.ndim > 1:
+			energy = energy[-1]
+		print(energy)
 	except Exception as e:
 		with open(data_folder + energy_file) as f:
 			for line in f:

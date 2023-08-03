@@ -16,7 +16,8 @@ def main():
 	base = os.getcwd() + "/jobs/"
 	# folder1 = base + "multiCoreTest4/"
 	# folder1 = base + "singleCoreComparison/"
-	folder2 = "/global/homes/l/lpkolanz/SpaceLab/jobs/singleCoreComparison/"
+	# folder2 = "/global/homes/l/lpkolanz/SpaceLab/jobs/singleCoreComparison/"
+	folder2 = "/global/homes/l/lpkolanz/SpaceLab/testMPI/jobs/strongScaleCollideMPI3/node_4/"
 	# folder1 = base + "multiCoreTest1/"
 	# folder2 = base + "singleCoreComparison2/"
 	# folder2 = base + "multiCoreTest9/"
@@ -28,7 +29,7 @@ def main():
 	# folder2 = base + "affinityTests_th2_1/affinity_0-1/"
 	# folder2 = base + "affinityTests_th2_1/affinity_0-8/"
 	# folder2 = base + "affinityTests_th8_1/affinity_0-1-2-3-4-5-6-7-8/"
-	folder1 = "/global/homes/l/lpkolanz/SpaceLab/testMPI/jobs/growTest1/"
+	folder1 = "/global/homes/l/lpkolanz/SpaceLab/testMPIGPU/jobs/test2/node_4/"
 	# folder2 = "/global/homes/l/lpkolanz/SpaceLab/testMPI/jobs/long15nodePEActualfix1/"
 	# folder2 = base + "singleCoreComparison_COPY7/"
 	# folder1 = "/home/lpkolanz/Desktop/SpaceLab_branch/SpaceLab/jobs/accuracyTest11/N_10/T_100/"
@@ -78,7 +79,7 @@ def main():
 	N = 5
 	temp = 100
 	show_FD_plots = False
-	for ind in [max_ind-1]:
+	for ind in [1199]:#[max_ind-1]:
 		# f1 = "{}_{}_simData.csv".format(ind,'_'.join(body))
 		# f2 = "{}_{}_simData.csv".format(ind,'_'.join(body))
 		# print(f1)
@@ -98,6 +99,7 @@ def main():
 			#     count += len(files)
 			# if count/3 > N:
 			energy = u.get_last_line_energy(data_folder,ind)
+			# print(energy)
 			COM.append(u.COM(data_folder,ind))
 			PE.append(energy[1])
 			KE.append(energy[2])

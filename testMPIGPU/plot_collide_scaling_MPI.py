@@ -26,7 +26,7 @@ def log_2_minor_ticks(min_val, max_val, num_per_major=4):
 def main():
 	fontsize = 25
 	# base = os.getcwd() + "/jobs/initialScaling/"
-	base = "/global/homes/l/lpkolanz/SpaceLab/testMPI/jobs/"
+	base = "/global/homes/l/lpkolanz/SpaceLab/testMPIGPU/jobs/"
 	
 	inds = np.arange(1,20)
 	threads = [1,2,4,8,16,32,64,128]
@@ -34,7 +34,7 @@ def main():
 
 	folders = ["strongScaleCollide1"]#,"weakScaleGrowth1"]
 	folders = ["strongScaleCollide_O2_1"]#,"weakScaleGrowth1"]
-	folders = ["strongScaleCollideMPI1"]#,"weakScaleGrowth1"]
+	folders = ["strongScaleCollideMPIGPU1"]#,"weakScaleGrowth1"]
 	# folders = ["strongScaleCollideMPIonethread1"]#,"weakScaleGrowth1"]
 	# inds = np.arange(1,3)
 
@@ -144,13 +144,13 @@ def main():
 		# ax.loglog(inds,speedups[f_i,:len(inds)])
 		# ax.plot(inds,,label='multiCoreTest7')
 		ax.set_title(title)
-		ax.set_xlabel("Number of Nodes (each 32 threads)",fontsize=fontsize)
+		ax.set_xlabel("Number of Nodes (each w/ 1 GPU)",fontsize=fontsize)
 		ax.set_ylabel("Time (s)",fontsize=fontsize)
 		ax.legend()
 		plt.tight_layout()
 		# plt.savefig("figures/{}loglogCollideScaling.png".format(title.split(' ')[0]))
 		# plt.savefig("figures/{}loglogCollideScaling_O2.png".format(title.split(' ')[0]))
-		plt.savefig("figures/{}MPIloglogCollideScaling.png".format(title.split(' ')[0]))
+		plt.savefig("figures/{}MPIGPUloglogCollideScaling.png".format(title.split(' ')[0]))
 
 
 	plt.show()

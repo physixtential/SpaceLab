@@ -20,7 +20,7 @@ if __name__ == '__main__':
 		exit(-1)
 		
 	# job_set_name = "openMPallLoops"
-	job_set_name = "growTest"
+	job_set_name = "test"
 	# job_set_name = "pipeAndOpenmp"
 	# job_set_name = "pipeAndOpenmp"
 	# job_set_name = "smallerDt"

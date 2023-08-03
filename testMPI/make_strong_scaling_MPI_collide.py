@@ -30,7 +30,7 @@ if __name__ == '__main__':
 
 	runs_at_once = 1
 	# attempts = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20] 
-	attempts = [2]
+	attempts = [3]
 	threads = [32]
 	# nodes = [1,2,4,8,16,32]
 	nodes = [1,2,4,8,16,32]
@@ -69,7 +69,7 @@ if __name__ == '__main__':
 				input_json['simType'] = "collider"
 				input_json['h_min'] = 0.5
 				input_json['OMPthreads'] = thread
-				input_json['simTimeSeconds'] = 0.5e-6 #Shorter sim time. Don't need whole time
+				input_json['simTimeSeconds'] = 1.5e-5 #Shorter sim time. Don't need whole time
 				# input_json['u_s'] = 0.5
 				# input_json['u_r'] = 0.5
 				input_json['projectileName'] = "1199_2_R4e-05_v4e-01_cor0.63_mu0.1_rho2.25_k4e+00_Ha5e-12_dt5e-10_"

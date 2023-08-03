@@ -8,9 +8,11 @@
 #include <sstream>
 #include <string>
 #include <iomanip>
-#include <filesystem>
 #include <string.h>
-namespace fs = std::filesystem;
+/////////////////////////////////
+// #include <filesystem>
+// namespace fs = std::filesystem;
+/////////////////////////////////
 
 
 // String buffers to hold data in memory until worth writing to file:
@@ -292,99 +294,101 @@ std::string check_restart(std::string folder,int* restart)
     int largest_file_index = -1;
     int file_index;
     std::string largest_index_name;
-    for (const auto & entry : fs::directory_iterator(folder))
-    {
-        file = entry.path();
-        if (file.substr(0,file.size()-4) == "timing")
-        {
-            *restart = -2;
-            return "";
-        }
 
-        size_t pos = file.find_last_of("/");
-        file = file.erase(0,pos+1);
-        // std::cerr<<"file1: "<<file<<std::endl;
-        // tot_count++;
-        if (file.substr(file.size()-4,file.size()) == ".csv")
-        {
-            // file_count++;
-            // std::cerr<<"file1: "<<file<<std::endl;
+    return 0;
+    // for (const auto & entry : fs::directory_iterator(folder))
+    // {
+    //     file = entry.path();
+    //     if (file.substr(0,file.size()-4) == "timing")
+    //     {
+    //         *restart = -2;
+    //         return "";
+    //     }
+
+    //     size_t pos = file.find_last_of("/");
+    //     file = file.erase(0,pos+1);
+    //     // std::cerr<<"file1: "<<file<<std::endl;
+    //     // tot_count++;
+    //     if (file.substr(file.size()-4,file.size()) == ".csv")
+    //     {
+    //         // file_count++;
+    //         // std::cerr<<"file1: "<<file<<std::endl;
             
-            // if (file[3] == '_')
-            // {
-            //     std::cerr<<stoi(file.substr(0,file.find("_")))<<std::endl;
-            //     std::cerr<<file.substr(0,file.find("_"))<<std::endl;
-            //     file_index = stoi(file.substr(0,file.find("_")));
-            // }
-            // else if (file[1] == '_' and file[3] != '_')
-            // {
-            //     file_index = 0;
-            // }
-            file_index = determine_index(file,'_');
-            if (file_index > largest_file_index)
-            {
-                largest_file_index = file_index;
-                largest_index_name = file;
-            }
-        }
-    }
-    *restart = largest_file_index;
-    // std::cerr<<largest_file_index<<std::endl;
-    if (*restart != -1)
-    {
-        size_t sta,end;
-        sta = largest_index_name.find('_');
-        end = largest_index_name.find_last_of('_');
-        //Delete most recent save file as this is likely only partially 
-        //complete if we are restarting
+    //         // if (file[3] == '_')
+    //         // {
+    //         //     std::cerr<<stoi(file.substr(0,file.find("_")))<<std::endl;
+    //         //     std::cerr<<file.substr(0,file.find("_"))<<std::endl;
+    //         //     file_index = stoi(file.substr(0,file.find("_")));
+    //         // }
+    //         // else if (file[1] == '_' and file[3] != '_')
+    //         // {
+    //         //     file_index = 0;
+    //         // }
+    //         file_index = determine_index(file,'_');
+    //         if (file_index > largest_file_index)
+    //         {
+    //             largest_file_index = file_index;
+    //             largest_index_name = file;
+    //         }
+    //     }
+    // }
+    // *restart = largest_file_index;
+    // // std::cerr<<largest_file_index<<std::endl;
+    // if (*restart != -1)
+    // {
+    //     size_t sta,end;
+    //     sta = largest_index_name.find('_');
+    //     end = largest_index_name.find_last_of('_');
+    //     //Delete most recent save file as this is likely only partially 
+    //     //complete if we are restarting
 
-        std::string remove_file;
+    //     std::string remove_file;
 
-        if (*restart == 0)
-        {
-            remove_file = largest_index_name.substr(0,end+1);
-        }
-        else
-        {
-            remove_file = std::to_string(*restart) + largest_index_name.substr(sta,end-sta+1);
-        }
+    //     if (*restart == 0)
+    //     {
+    //         remove_file = largest_index_name.substr(0,end+1);
+    //     }
+    //     else
+    //     {
+    //         remove_file = std::to_string(*restart) + largest_index_name.substr(sta,end-sta+1);
+    //     }
 
-        std::string file1 = folder + remove_file + "constants.csv";
-        std::string file2 = folder + remove_file + "energy.csv";
-        std::string file3 = folder + remove_file + "simData.csv";
+    //     std::string file1 = folder + remove_file + "constants.csv";
+    //     std::string file2 = folder + remove_file + "energy.csv";
+    //     std::string file3 = folder + remove_file + "simData.csv";
         
-        #ifdef MPI_ENABLE
-            MPI_Barrier(MPI_COMM_WORLD);
-        #endif
-        if (world_rank == 0)
-        {
-            int status1 = remove(file1.c_str());
-            int status2 = remove(file2.c_str());
-            int status3 = remove(file3.c_str());
+    //     #ifdef MPI_ENABLE
+    //         MPI_Barrier(MPI_COMM_WORLD);
+    //     #endif
+    //     if (world_rank == 0)
+    //     {
+    //         int status1 = remove(file1.c_str());
+    //         int status2 = remove(file2.c_str());
+    //         int status3 = remove(file3.c_str());
 
-            if (status1 != 0)
-            {
-                std::cout<<"File: "<<file1<<" could not be removed, now exiting with failure."<<std::endl;
-                exit(EXIT_FAILURE);
-            }
-            else if (status2 != 0)
-            {
-                std::cout<<"File: "<<file2<<" could not be removed, now exiting with failure."<<std::endl;
-                exit(EXIT_FAILURE);
-            }
-            else if (status3 != 0)
-            {
-                std::cout<<"File: "<<file3<<" could not be removed, now exiting with failure."<<std::endl;
-                exit(EXIT_FAILURE);
-            }
-        }
+    //         if (status1 != 0)
+    //         {
+    //             std::cout<<"File: "<<file1<<" could not be removed, now exiting with failure."<<std::endl;
+    //             exit(EXIT_FAILURE);
+    //         }
+    //         else if (status2 != 0)
+    //         {
+    //             std::cout<<"File: "<<file2<<" could not be removed, now exiting with failure."<<std::endl;
+    //             exit(EXIT_FAILURE);
+    //         }
+    //         else if (status3 != 0)
+    //         {
+    //             std::cout<<"File: "<<file3<<" could not be removed, now exiting with failure."<<std::endl;
+    //             exit(EXIT_FAILURE);
+    //         }
+    //     }
 
-        return largest_index_name.substr(sta,end-sta+1);
-    }
-    else
-    {
-        return "";
-    }
+    //     return largest_index_name.substr(sta,end-sta+1);
+    // }
+    // else
+    // {
+    //     return "";
+    // }
 }
 
 
