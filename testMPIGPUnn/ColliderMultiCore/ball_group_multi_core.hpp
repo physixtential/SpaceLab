@@ -19,10 +19,13 @@
 #include <typeinfo>
 #include <random>
 #include <omp.h>
-#include <mpi.h>
+
+#ifdef MPI_ENABLE
+    #include <mpi.h>
+#endif
 
 // using std::numbers::pi;
-double pi = 3.14159265358979311599796346854;
+const double pi = 3.14159265358979311599796346854;
 using json = nlohmann::json;
 
 int getSize()
@@ -31,7 +34,7 @@ int getSize()
     #ifdef MPI_ENABLE
         MPI_Comm_size(MPI_COMM_WORLD,&world_size);
     #else
-        world_size = 0;
+        world_size = 1;
     #endif
     return world_size;
 }
@@ -108,14 +111,17 @@ public:
     vec3* pos = nullptr;
     vec3* vel = nullptr;
     vec3* velh = nullptr;  ///< Velocity half step for integration purposes.
-    vec3* acc = nullptr;
     vec3* w = nullptr;
     vec3* wh = nullptr;  ///< Angular velocity half step for integration purposes.
-    vec3* aacc = nullptr;
     double* R = nullptr;    ///< Radius
     double* m = nullptr;    ///< Mass
     double* moi = nullptr;  ///< Moment of inertia
     double* u_scale = nullptr; ///ADD TO COPY CONSTRUCTOR, ETC
+
+    double* acc = nullptr;
+    double* aacc = nullptr;
+    vec3* accum = nullptr;
+    vec3* aaccum = nullptr;
     
 
     ///////////////////////////
@@ -432,7 +438,9 @@ void Ball_group::parse_input_file(char const* location)
         }
 
     }
-    MPI_Bcast(&seed,1,MPI_INT,0,MPI_COMM_WORLD);
+    #ifdef MPI_ENABLE
+        MPI_Bcast(&seed,1,MPI_INT,0,MPI_COMM_WORLD);
+    #endif
 
     srand(seed);
     random_generator.seed(seed);
@@ -677,76 +685,76 @@ void Ball_group::calibrate_dt(int const Step, const double& customSpeed = -1.)
 
 // todo - make bigger balls favor the middle, or, smaller balls favor the outside.
 /// @brief Push balls apart until no overlaps
-void Ball_group::pushApart() const
-{
-    int world_rank = getRank();
+// void Ball_group::pushApart() const
+// {
+//     int world_rank = getRank();
 
-    if (world_rank == 0)
-    {
-        std::cerr << "Separating spheres - Current max overlap:\n";
-    }
-    /// Using acc array as storage for accumulated position change.
-    int* counter = new int[num_particles];
-    for (int Ball = 0; Ball < num_particles; Ball++) {
-        acc[Ball] = {0, 0, 0};
-        counter[Ball] = 0;
-    }
+//     if (world_rank == 0)
+//     {
+//         std::cerr << "Separating spheres - Current max overlap:\n";
+//     }
+//     /// Using acc array as storage for accumulated position change.
+//     int* counter = new int[num_particles];
+//     for (int Ball = 0; Ball < num_particles; Ball++) {
+//         acc[Ball] = {0, 0, 0};
+//         counter[Ball] = 0;
+//     }
 
-    double overlapMax = -1;
-    const double pseudoDT = r_min * .1;
-    int step = 0;
+//     double overlapMax = -1;
+//     const double pseudoDT = r_min * .1;
+//     int step = 0;
 
-    while (true) {
-        // if (step % 10 == 0)
-        //{
-        //  simDataWrite("pushApart_");
-        //}
+//     while (true) {
+//         // if (step % 10 == 0)
+//         //{
+//         //  simDataWrite("pushApart_");
+//         //}
 
-        for (int A = 0; A < num_particles; A++) {
-            for (int B = A + 1; B < num_particles; B++) {
-                // Check for Ball overlap.
-                vec3 rVecab = pos[B] - pos[A];
-                vec3 rVecba = -1 * rVecab;
-                const double dist = (rVecab).norm();
-                const double sumRaRb = R[A] + R[B];
-                const double overlap = sumRaRb - dist;
+//         for (int A = 0; A < num_particles; A++) {
+//             for (int B = A + 1; B < num_particles; B++) {
+//                 // Check for Ball overlap.
+//                 vec3 rVecab = pos[B] - pos[A];
+//                 vec3 rVecba = -1 * rVecab;
+//                 const double dist = (rVecab).norm();
+//                 const double sumRaRb = R[A] + R[B];
+//                 const double overlap = sumRaRb - dist;
 
-                if (overlapMax < overlap) { overlapMax = overlap; }
+//                 if (overlapMax < overlap) { overlapMax = overlap; }
 
-                if (overlap > 0) {
-                    acc[A] += overlap * (rVecba / dist);
-                    acc[B] += overlap * (rVecab / dist);
-                    counter[A] += 1;
-                    counter[B] += 1;
-                }
-            }
-        }
+//                 if (overlap > 0) {
+//                     acc[A] += overlap * (rVecba / dist);
+//                     acc[B] += overlap * (rVecab / dist);
+//                     counter[A] += 1;
+//                     counter[B] += 1;
+//                 }
+//             }
+//         }
 
-        for (int Ball = 0; Ball < num_particles; Ball++) {
-            if (counter[Ball] > 0) {
-                pos[Ball] += acc[Ball].normalized() * pseudoDT;
-                acc[Ball] = {0, 0, 0};
-                counter[Ball] = 0;
-            }
-        }
+//         for (int Ball = 0; Ball < num_particles; Ball++) {
+//             if (counter[Ball] > 0) {
+//                 pos[Ball] += acc[Ball].normalized() * pseudoDT;
+//                 acc[Ball] = {0, 0, 0};
+//                 counter[Ball] = 0;
+//             }
+//         }
 
-        if (overlapMax > 0) {
-            if (world_rank == 0)
-            {
-                std::cerr << overlapMax << "                        \r";
-            }
-        } else {
-            if (world_rank == 0)
-            {
-                std::cerr << "\nSuccess!\n";
-            }
-            break;
-        }
-        overlapMax = -1;
-        step++;
-    }
-    delete[] counter;
-}
+//         if (overlapMax > 0) {
+//             if (world_rank == 0)
+//             {
+//                 std::cerr << overlapMax << "                        \r";
+//             }
+//         } else {
+//             if (world_rank == 0)
+//             {
+//                 std::cerr << "\nSuccess!\n";
+//             }
+//             break;
+//         }
+//         overlapMax = -1;
+//         step++;
+//     }
+//     delete[] counter;
+// }
 
 void Ball_group::calc_v_collapse()
 {
@@ -1366,13 +1374,16 @@ void Ball_group::allocate_group(const int nBalls)
     try {
         distances = new double[(num_particles * num_particles / 2) - (num_particles / 2)];
 
+        accum = new vec3[num_particles*num_particles];
+        aaccum = new vec3[num_particles*num_particles];
+        acc = new double[num_particles*3];
+        aacc = new double[num_particles*3];
+
         pos = new vec3[num_particles];
         vel = new vec3[num_particles];
         velh = new vec3[num_particles];
-        acc = new vec3[num_particles];
         w = new vec3[num_particles];
         wh = new vec3[num_particles];
-        aacc = new vec3[num_particles];
         R = new double[num_particles];
         m = new double[num_particles];
         moi = new double[num_particles];
@@ -1405,6 +1416,9 @@ void Ball_group::allocate_group(const int nBalls)
 /// @brief Deallocate arrays to recover memory.
 void Ball_group::freeMemory() const
 {
+    delete[] accum;
+    delete[] aaccum;
+
     delete[] distances;
     delete[] pos;
     delete[] vel;
@@ -1536,9 +1550,19 @@ void Ball_group::init_conditions()
                 torqueA = r_a.cross(slideForceOnA + rollForceA);
                 torqueB = r_b.cross(-slideForceOnA + rollForceA);
 
-                aacc[A] += torqueA / moi[A];
-                aacc[B] += torqueB / moi[B];
 
+                vec3 aaccA,aaccB;
+                aaccA = torqueA / moi[A];
+                aaccB = torqueB / moi[B];
+                
+                aacc[A] += aaccA[0];
+                aacc[A+num_particles] += aaccA[1];
+                aacc[A+2*num_particles] += aaccA[2];
+
+                aacc[B] += aaccB[0];
+                aacc[B+num_particles] += aaccB[1];
+                aacc[B+2*num_particles] += aaccB[2];
+                
 
                 // No factor of 1/2. Includes both spheres:
                 // PE += -G * m[A] * m[B] / dist + 0.5 * k * overlap * overlap;
@@ -1599,8 +1623,21 @@ void Ball_group::init_conditions()
             }
 
             // Newton's equal and opposite forces applied to acceleration of each ball:
-            acc[A] += totalForceOnA / m[A];
-            acc[B] -= totalForceOnA / m[B];
+            // acc[A] += totalForceOnA / m[A];
+            // acc[B] -= totalForceOnA / m[B];
+
+            vec3 accA,accB;
+            accA = totalForceOnA / m[A];
+            accB = -totalForceOnA / m[B];
+            // aaccB = torqueB / moi[B];
+            
+            acc[A] += accA[0];
+            acc[A+num_particles] += accA[1];
+            acc[A+2*num_particles] += accA[2];
+
+            acc[B] += accB[0];
+            acc[B+num_particles] += accB[1];
+            acc[B+2*num_particles] += accB[2];
 
             // So last distance can be known for COR:
             distances[e] = dist;
@@ -2305,21 +2342,30 @@ void Ball_group::sim_one_step(const bool write_step)
     /// FIRST PASS - Update Kinematic Parameters:
     // t.start_event("UpdateKinPar");
     // #pragma omp parallel for default(none) shared(velh,vel,acc,wh,w,aacc,pos,dt)
+    vec3 accel,aaccel;
     for (int Ball = 0; Ball < num_particles; Ball++) {
         // Update velocity half step:
-        velh[Ball] = vel[Ball] + .5 * acc[Ball] * dt;
+        accel = {acc[Ball],acc[num_particles_added+Ball],acc[2*num_particles_added+Ball]};
+        aaccel = {aacc[Ball],aacc[num_particles_added+Ball],aacc[2*num_particles_added+Ball]};
+        
+        velh[Ball] = vel[Ball] + .5 * accel * dt;
 
         // Update angular velocity half step:
-        wh[Ball] = w[Ball] + .5 * aacc[Ball] * dt;
+        wh[Ball] = w[Ball] + .5 * aaccel * dt;
 
         // Update position:
         pos[Ball] += velh[Ball] * dt;
 
         // Reinitialize acceleration to be recalculated:
-        acc[Ball] = {0, 0, 0};
+        acc[Ball] = 0.0;
+        acc[num_particles_added+Ball] = 0.0;
+        acc[2*num_particles_added+Ball] = 0.0;
 
         // Reinitialize angular acceleration to be recalculated:
-        aacc[Ball] = {0, 0, 0};
+        aacc[Ball] = 0.0;
+        aacc[num_particles_added+Ball] = 0.0;
+        aacc[2*num_particles_added+Ball] = 0.0;
+
     }
     // t.end_event("UpdateKinPar");
 
@@ -2357,10 +2403,9 @@ void Ball_group::sim_one_step(const bool write_step)
     double t0 = omp_get_wtime();
     // #pragma omp declare reduction(vec3_sum : vec3 : omp_out += omp_in)
     // #pragma omp parallel for schedule(dynamic, 32) num_threads(OMPthreads) reduction(vec3_sum:acc[:num_particles],aacc[:num_particles]) reduction(+:PE) default(none) private(A,B,pc) shared(Ha,write_step,lllen,R,pos,vel,m,w,u_r,u_s,moi,kin,kout,distances,h_min,dt)
-    #pragma omp target map(tofrom:acc[0:num_particles],aacc[0:num_particles],PE) map(to:write_step)
+    #pragma omp target map(tofrom:accum[0:num_particles*num_particles],aaccum[0:num_particles*num_particles],PE) map(to:write_step)
     {
-        #pragma omp teams num_teams(64)
-        #pragma omp distribute parallel for reduction(+:PE) default(none) private(A,B,pc) shared(acc,aacc,world_rank,world_size,Ha,write_step,lllen,R,pos,vel,m,w,u_r,u_s,moi,kin,kout,distances,h_min,dt)
+        #pragma omp parallel for reduction(+:PE) default(none) private(A,B,pc) shared(num_particles,accum,aaccum,world_rank,world_size,Ha,write_step,lllen,R,pos,vel,m,w,u_r,u_s,moi,kin,kout,distances,h_min,dt)
         for (pc = world_rank + 1; pc <= (((lllen*lllen)-lllen)/2); pc += world_size)
         {
             // long double pd = (long double)pc;
@@ -2504,24 +2549,14 @@ void Ball_group::sim_one_step(const bool write_step)
                 vec3 aaccA = (1/moi[A])*torqueA;
                 vec3 aaccB = (1/moi[B])*torqueB;
 
-                for (int i = 0; i < 3; i ++)
-                {
-                    #pragma omp atomic
-                        aacc[A][i] += aaccA[i];
-                    #pragma omp atomic
-                        aacc[B][i] += aaccB[i];
+                aaccum[A*num_particles+B][0] = aaccA[0];     
+                aaccum[A*num_particles+B][1] = aaccA[1];     
+                aaccum[A*num_particles+B][2] = aaccA[2];
 
-                }
-                // #pragma omp atomic
-                //     aacc[A][1] += aaccA[1];
-                // #pragma omp atomic
-                //     aacc[A][2] += aaccA[2];
-                // #pragma omp atomic
-                //     aacc[B][0] += aaccB[0];
-                // #pragma omp atomic
-                //     aacc[B][1] += aaccB[1];
-                // #pragma omp atomic
-                //     aacc[B][2] += aaccB[2];
+                aaccum[B*num_particles+A][0] = aaccB[0];     
+                aaccum[B*num_particles+A][1] = aaccB[1];     
+                aaccum[B*num_particles+A][2] = aaccB[2];     
+
                 // }
                 // omp_unset_lock(&writelock);
 
@@ -2604,22 +2639,35 @@ void Ball_group::sim_one_step(const bool write_step)
 
             vec3 accA = (1/m[A])*totalForceOnA; 
             vec3 accB = (1/m[B])*totalForceOnA; 
-            #pragma omp atomic
-                acc[A][0] += accA[0];
-            #pragma omp atomic
-                acc[A][1] += accA[1];
-            #pragma omp atomic
-                acc[A][2] += accA[2];
-            #pragma omp atomic
-                acc[B][0] -= accB[0];
-            #pragma omp atomic
-                acc[B][1] -= accB[1];
-            #pragma omp atomic
-                acc[B][2] -= accB[2];
+            accum[A*num_particles+B][0] = accA[0];     
+            accum[A*num_particles+B][1] = accA[1];     
+            accum[A*num_particles+B][2] = accA[2];
+            
+            accum[B*num_particles+A][0] = accB[0];     
+            accum[B*num_particles+A][1] = accB[1];     
+            accum[B*num_particles+A][2] = accB[2];
 
 
             distances[e] = dist;
 
+        }
+    }
+
+    #pragma omp parallel for shared(accum,aaccum,num_particles,acc,aacc) //reduction(+:acc[:2416*2416],aacc[:2416*2416]) 
+    for (int g = 0; g < num_particles; g++)
+    {
+        for (int h = 0; h < num_particles; h++)
+        {
+            if (g != h)
+            {
+                acc[g]                 += accum[g*num_particles+h][0];
+                acc[g+num_particles]   += accum[g*num_particles+h][1];
+                acc[g+2*num_particles] += accum[g*num_particles+h][2];
+
+                aacc[g]                 += aaccum[g*num_particles+h][0];
+                aacc[g+num_particles]   += aaccum[g*num_particles+h][1];
+                aacc[g+2*num_particles] += aaccum[g*num_particles+h][2];
+            }
         }
     }
 
@@ -2653,8 +2701,11 @@ void Ball_group::sim_one_step(const bool write_step)
     // #pragma omp parallel for default(none) shared(write_step,vel,w,wh,velh,acc,aacc,dt,pos,moi)
     for (int Ball = 0; Ball < num_particles; Ball++) {
         // Velocity for next step:
-        vel[Ball] = velh[Ball] + .5 * acc[Ball] * dt;
-        w[Ball] = wh[Ball] + .5 * aacc[Ball] * dt;
+        accel = {acc[Ball],acc[num_particles_added+Ball],acc[2*num_particles_added+Ball]};
+        aaccel = {aacc[Ball],aacc[num_particles_added+Ball],aacc[2*num_particles_added+Ball]};
+        
+        vel[Ball] = velh[Ball] + .5 * accel * dt;
+        w[Ball] = wh[Ball] + .5 * aaccel * dt;
 
         /////////////////////////////////
         // if (true) {

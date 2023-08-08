@@ -22,7 +22,7 @@ if __name__ == '__main__':
 		
 	# job_set_name = "openMPallLoops"
 	# job_set_name = "strongScaleGrow"
-	job_set_name = "test"
+	job_set_name = "profiling"
 	# job_set_name = "pipeAndOpenmp"
 	# job_set_name = "smallerDt"
 	# job_set_name = "forceTest"
@@ -30,11 +30,11 @@ if __name__ == '__main__':
 
 	runs_at_once = 1
 	# attempts = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20] 
-	attempts = [2]
+	attempts = [1]
 	threads = [32]
 	# nodes = [1,2,4,8,16,32]
-	nodes = [1,2,4,8,16,32]
-	# nodes = [4]
+	# nodes = [1,2,4,8,16,32]
+	nodes = [1]
 	# nodes = [1]
 	# threads = [128]
 	N = [30]
@@ -97,7 +97,8 @@ if __name__ == '__main__':
 				# sbatchfile += 'module load gpu\n'
 				# sbatchfile += 'export OMP_NUM_THREADS={}\n'.format(thread)
 				sbatchfile += 'export SLURM_CPU_BIND="cores"\n'
-				sbatchfile += "srun -n {} -c {} --cpu-bind=cores numactl --interleave=all ./ColliderMultiCore.x {} 2>sim_err.log 1>sim_out.log".format(node,thread*2,job)
+				# sbatchfile += "srun -n {} -c {} --cpu-bind=cores numactl --interleave=all ./ColliderMultiCore.x {} 2>sim_err.log 1>sim_out.log".format(node,thread*2,job)
+				sbatchfile += "srun -n {} -c {} --cpu-bind=cores numactl --interleave=all nsys profile -o prof ./ColliderMultiCore.x {} 2>sim_err.log 1>sim_out.log".format(node,thread*2,job)
 				# sbatchfile += "srun -n 1 -c {} --cpu-bind=cores ./ColliderMultiCore.x {} 2>sim_err.log 1>sim_out.log".format(thread*2,job)
 				
 				with open(job+"sbatchMulti.bash",'w') as sfp:
@@ -117,8 +118,8 @@ if __name__ == '__main__':
 
 	# inputs = list(zip(folders,N))
 	
-	cwd = os.getcwd()
 	print(folders)
+	cwd = os.getcwd()
 	for folder in folders:
 		os.chdir(folder)
 		os.system("sbatch sbatchMulti.bash")

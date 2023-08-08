@@ -28,6 +28,7 @@ def main():
 	base = os.getcwd() + "/jobs/initialScaling/"
 	base = "/global/homes/l/lpkolanz/SpaceLab/jobs/"
 	MPIbase = "/global/homes/l/lpkolanz/SpaceLab/testMPI/jobs/"
+	MPIGPUbase = "/global/homes/l/lpkolanz/SpaceLab/testMPIGPU/jobs/"
 	
 	inds = np.arange(1,20)
 	threads = [1,2,4,8,16,32,64,128]
@@ -36,7 +37,7 @@ def main():
 	folders = ["strongScaleCollide1"]#,"weakScaleGrowth1"]
 	folders = ["strongScaleCollide_O2_1"]#,"weakScaleGrowth1"]
 	folders = ["strongScaleCollide_O2_1200_1"]#,"weakScaleGrowth1"]
-	folders = [base+"strongScaleCollide_O2_2400_1",MPIbase+"strongScaleCollideMPI2"]
+	folders = [base+"strongScaleCollide_O2_2400_1",MPIbase+"strongScaleCollideMPI2",MPIGPUbase+"strongScaleCollideMPIGPU1"]
 	# inds = np.arange(1,3)
 
 	times = np.zeros((len(folders),len(threads)),dtype=np.float64)

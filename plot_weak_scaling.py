@@ -3,7 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 import sys
-sys.path.append("/home/lpkolanz/Desktop/SpaceLab_branch/SpaceLab")
+sys.path.append("/global/homes/l/lpkolanz/SpaceLab")
 import utils as u
 import porosity_FD as p
 from matplotlib import ticker
@@ -35,7 +35,8 @@ def main():
 
 	inds = np.arange(1,20)
 	threads = [4,16,64]
-	folders = ["weakScaleCollide1/thread_4/","weakScaleCollide1/thread_16/","strongScaleCollide1/thread_64/"]
+	# folders = ["weakScaleCollide1/thread_4/","weakScaleCollide1/thread_16/","strongScaleCollide1/thread_64/"]
+	folders = ["weakScaleCollide1/thread_4/","weakScaleCollide1/thread_16/","weakScaleCollide1/thread_64/"]#,"strongScaleCollide1/thread_64/"]
 	# inds = np.arange(1,3)
 
 	times = np.zeros((1,len(threads)),dtype=np.float64)
