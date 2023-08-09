@@ -2357,10 +2357,11 @@ void Ball_group::sim_one_step(const bool write_step)
     double t0 = omp_get_wtime();
     // #pragma omp declare reduction(vec3_sum : vec3 : omp_out += omp_in)
     // #pragma omp parallel for schedule(dynamic, 32) num_threads(OMPthreads) reduction(vec3_sum:acc[:num_particles],aacc[:num_particles]) reduction(+:PE) default(none) private(A,B,pc) shared(Ha,write_step,lllen,R,pos,vel,m,w,u_r,u_s,moi,kin,kout,distances,h_min,dt)
-    #pragma omp target map(tofrom:acc[0:num_particles],aacc[0:num_particles],PE) map(to:write_step)
+    #pragma omp target defaultmap(none) map(tofrom:acc[0:num_particles],aacc[0:num_particles],PE) map(to:write_step,vel[0:num_particles],m[0:num_particles],moi[0:num_particles],pos[0:num_particles],distances[(((lllen*lllen)-lllen)/2)])
     {
-        #pragma omp teams num_teams(64)
-        #pragma omp distribute parallel for reduction(+:PE) default(none) private(A,B,pc) shared(acc,aacc,world_rank,world_size,Ha,write_step,lllen,R,pos,vel,m,w,u_r,u_s,moi,kin,kout,distances,h_min,dt)
+        // #pragma omp teams num_teams(64)
+        // #pragma omp distribute parallel for reduction(+:PE) default(none) private(A,B,pc) shared(acc,aacc,world_rank,world_size,Ha,write_step,lllen,R,pos,vel,m,w,u_r,u_s,moi,kin,kout,distances,h_min,dt)
+        #pragma omp parallel for reduction(+:PE) default(none) private(A,B,pc) shared(acc,aacc,world_rank,world_size,Ha,write_step,lllen,R,pos,vel,m,w,u_r,u_s,moi,kin,kout,distances,h_min,dt)
         for (pc = world_rank + 1; pc <= (((lllen*lllen)-lllen)/2); pc += world_size)
         {
             // long double pd = (long double)pc;
