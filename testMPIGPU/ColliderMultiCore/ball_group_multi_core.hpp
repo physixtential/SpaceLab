@@ -22,7 +22,7 @@
 #include <mpi.h>
 
 // using std::numbers::pi;
-double pi = 3.14159265358979311599796346854;
+const double pi = 3.14159265358979311599796346854;
 using json = nlohmann::json;
 
 int getSize()
@@ -2361,7 +2361,7 @@ void Ball_group::sim_one_step(const bool write_step)
     {
         // #pragma omp teams num_teams(64)
         // #pragma omp distribute parallel for reduction(+:PE) default(none) private(A,B,pc) shared(acc,aacc,world_rank,world_size,Ha,write_step,lllen,R,pos,vel,m,w,u_r,u_s,moi,kin,kout,distances,h_min,dt)
-        #pragma omp parallel for reduction(+:PE) default(none) private(A,B,pc) shared(acc,aacc,world_rank,world_size,Ha,write_step,lllen,R,pos,vel,m,w,u_r,u_s,moi,kin,kout,distances,h_min,dt)
+        #pragma omp parallel for reduction(+:PE) default(none) private(A,B,pc) shared(acc,aacc,world_rank,world_size,Ha,write_step,lllen,R,pos,vel,m,w,u_r,u_s,moi,kin,kout,distances,h_min,dt) //defaultmap(none) map(tofrom:acc[0:num_particles],aacc[0:num_particles],PE) map(to:write_step,vel[0:num_particles],m[0:num_particles],moi[0:num_particles],pos[0:num_particles],distances[(((lllen*lllen)-lllen)/2)])
         for (pc = world_rank + 1; pc <= (((lllen*lllen)-lllen)/2); pc += world_size)
         {
             // long double pd = (long double)pc;
