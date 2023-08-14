@@ -1,9 +1,9 @@
 #pragma once
-#include "../dust_const_init.hpp"
+// #include "../dust_const_init.hpp"
 // #include "dust_const.hpp"
 #include "../../external/json/single_include/nlohmann/json.hpp"
 #include "../vec3.hpp"
-#include "../linalg.hpp"
+// #include "../linalg.hpp"
 #include "../Utils.hpp"
 #include "../../timing/timing.hpp"
 
@@ -22,7 +22,6 @@
 #include <mpi.h>
 
 // using std::numbers::pi;
-const double pi = 3.14159265358979311599796346854;
 using json = nlohmann::json;
 
 int getSize()
@@ -52,6 +51,65 @@ int getRank()
 class Ball_group
 {
 public:
+
+
+    //////////////////////////////////////////////////////////
+    const double pi = 3.14159265358979311599796346854;
+
+    bool dynamicTime;
+    const double Kb = 1.380649e-16; //in erg/K
+
+    // using std::numbers::pi;
+    double G;  // Gravitational constant
+    double density;
+    double u_s;                // Coeff of sliding friction
+    double u_r;               // Coeff of rolling friction
+    double sigma;              // Poisson ratio for rolling friction.
+    double Y;               // Young's modulus in erg/cm3
+    double cor;                // Coeff of restitution
+    double simTimeSeconds;  // Seconds
+    double timeResolution;    // Seconds - This is duration between exported steps.
+    double fourThirdsPiRho;  // for fraction of smallest sphere radius.
+    double scaleBalls;                         // base radius of ball.
+    double maxOverlap;                           // of scaleBalls
+    double KEfactor;                              // Determines collision velocity based on KE/PE
+    double v_custom;  // Velocity cm/s
+    double temp;          //tempurature of simulation in Kelvin
+    double kConsts;
+    double impactParameter;  // Impact angle radians
+    double Ha;         // Hamaker constant for vdw force
+    double h_min;  // 1e8 * std::numeric_limits<double>::epsilon(), // 2.22045e-10 (epsilon is 2.22045e-16)
+    double cone;  // Cone of particles ignored moving away from center of mass. Larger angle ignores more.
+
+    // Simulation Structure
+    int properties;  // Number of columns in simData file per ball
+    int genBalls;
+    int attempts;  // How many times to try moving every ball touching another in generator.
+
+    int skip;  // Steps thrown away before recording a step to the buffer. 500*.04 is every 20 seconds in sim.
+    int steps;
+
+    double dt;
+    double kin;  // Spring constant
+    double kout;
+    double spaceRange;  // Rough minimum space required
+    double spaceRangeIncrement;
+    double z0Rot;  // Cluster one z axis rotation
+    double y0Rot;  // Cluster one y axis rotation
+    double z1Rot;  // Cluster two z axis rotation
+    double y1Rot;  // Cluster two y axis rotation
+    double simTimeElapsed;
+
+    // File from which to proceed with further simulations
+    std::string project_path;
+    std::string output_folder;
+    // std::string projectileName;
+    // std::string targetName;
+    std::string output_prefix;
+    //////////////////////////////////////////////////////////
+
+
+
     std::stringstream ballBuffer;
     std::stringstream energyBuffer;
     std::stringstream contactBuffer;
@@ -172,10 +230,11 @@ public:
     double calc_mass(const double& radius, const double& density);
     double calc_moi(const double& radius, const double& mass);
     Ball_group spawn_particles(const int count);
-    vec3 dust_agglomeration_offset(const double3x3 local_coords,vec3 projectile_pos,vec3 projectile_vel,const double projectile_rad);
+    vec3 dust_agglomeration_offset(vec3* local_coords,vec3 projectile_pos,vec3 projectile_vel,const double projectile_rad);
     Ball_group dust_agglomeration_particle_init();
     Ball_group add_projectile();
     void merge_ball_group(const Ball_group& src);
+    void set_group_variables(Ball_group& dst);
 
     void sim_one_step(const bool write_step);
 
@@ -327,6 +386,58 @@ Ball_group& Ball_group::operator=(const Ball_group& rhs)
     radiiDistribution = rhs.radiiDistribution;
     radiiFraction = rhs.radiiFraction;
 
+
+    /////////////////////////////////////////////////////////////
+    dynamicTime = rhs.dynamicTime;
+
+    G = rhs.G;  // Gravitational constant
+    density = rhs.density;
+    u_s = rhs.u_s;       // Coeff of sliding friction
+    u_r = rhs.u_r;               // Coeff of rolling friction
+    sigma = rhs.sigma;              // Poisson ratio for rolling friction.
+    Y = rhs.Y;               // Young's modulus in erg/cm3
+    cor = rhs.cor;                // Coeff of restitution
+    simTimeSeconds = rhs.simTimeSeconds;  // Seconds
+    timeResolution = rhs.timeResolution;    // Seconds - This is duration between exported steps.
+    fourThirdsPiRho = rhs.fourThirdsPiRho;  // for fraction of smallest sphere radius.
+    scaleBalls = rhs.scaleBalls;                         // base radius of ball.
+    maxOverlap = rhs.maxOverlap;                           // of scaleBalls
+    KEfactor = rhs.KEfactor;                              // Determines collision velocity based on KE/PE
+    v_custom = rhs.v_custom;  // Velocity cm/s
+    temp = rhs.temp;          //tempurature of simulation in Kelvin
+    kConsts = rhs.kConsts;
+    impactParameter = rhs.impactParameter;  // Impact angle radians
+    Ha = rhs.Ha;         // Hamaker constant for vdw force
+    h_min = rhs.h_min;  // 1e8 * std::numeric_limits<double>::epsilon(), // 2.22045e-10 (epsilon is 2.22045e-16)
+    cone = rhs.cone;  // Cone of particles ignored moving away from center of mass. Larger angle ignores more.
+
+    // Simulation Structure
+    properties = rhs.properties;  // Number of columns in simData file per ball
+    genBalls = rhs.genBalls;
+    attempts = rhs.attempts;  // How many times to try moving every ball touching another in generator.
+
+    skip = rhs.skip;  // Steps thrown away before recording a step to the buffer. 500*.04 is every 20 seconds in sim.
+    steps = rhs.steps;
+
+    dt = rhs.dt;
+    kin = rhs.kin;  // Spring constant
+    kout = rhs.kout;
+    spaceRange = rhs.spaceRange;  // Rough minimum space required
+    spaceRangeIncrement = rhs.spaceRangeIncrement;
+    z0Rot = rhs.z0Rot;  // Cluster one z axis rotation
+    y0Rot = rhs.y0Rot;  // Cluster one y axis rotation
+    z1Rot = rhs.z1Rot;  // Cluster two z axis rotation
+    y1Rot = rhs.y1Rot;  // Cluster two y axis rotation
+    simTimeElapsed = rhs.simTimeElapsed;
+
+    // File from which to proceed with further simulations
+    project_path = rhs.project_path;
+    output_folder = rhs.output_folder;
+    // projectileName;
+    // targetName;
+    output_prefix = rhs.output_prefix;
+    /////////////////////////////////////////////////////////////
+
     /////////////////////////////////////
     if (write_all)
     {
@@ -387,6 +498,59 @@ Ball_group::Ball_group(const Ball_group& rhs)
 
     radiiDistribution = rhs.radiiDistribution;
     radiiFraction = rhs.radiiFraction;
+
+
+    /////////////////////////////////////////////////////////////
+    dynamicTime = rhs.dynamicTime;
+
+    G = rhs.G;  // Gravitational constant
+    density = rhs.density;
+    u_s = rhs.u_s;       // Coeff of sliding friction
+    u_r = rhs.u_r;               // Coeff of rolling friction
+    sigma = rhs.sigma;              // Poisson ratio for rolling friction.
+    Y = rhs.Y;               // Young's modulus in erg/cm3
+    cor = rhs.cor;                // Coeff of restitution
+    simTimeSeconds = rhs.simTimeSeconds;  // Seconds
+    timeResolution = rhs.timeResolution;    // Seconds - This is duration between exported steps.
+    fourThirdsPiRho = rhs.fourThirdsPiRho;  // for fraction of smallest sphere radius.
+    scaleBalls = rhs.scaleBalls;                         // base radius of ball.
+    maxOverlap = rhs.maxOverlap;                           // of scaleBalls
+    KEfactor = rhs.KEfactor;                              // Determines collision velocity based on KE/PE
+    v_custom = rhs.v_custom;  // Velocity cm/s
+    temp = rhs.temp;          //tempurature of simulation in Kelvin
+    kConsts = rhs.kConsts;
+    impactParameter = rhs.impactParameter;  // Impact angle radians
+    Ha = rhs.Ha;         // Hamaker constant for vdw force
+    h_min = rhs.h_min;  // 1e8 * std::numeric_limits<double>::epsilon(), // 2.22045e-10 (epsilon is 2.22045e-16)
+    cone = rhs.cone;  // Cone of particles ignored moving away from center of mass. Larger angle ignores more.
+
+    // Simulation Structure
+    properties = rhs.properties;  // Number of columns in simData file per ball
+    genBalls = rhs.genBalls;
+    attempts = rhs.attempts;  // How many times to try moving every ball touching another in generator.
+
+    skip = rhs.skip;  // Steps thrown away before recording a step to the buffer. 500*.04 is every 20 seconds in sim.
+    steps = rhs.steps;
+
+    dt = rhs.dt;
+    kin = rhs.kin;  // Spring constant
+    kout = rhs.kout;
+    spaceRange = rhs.spaceRange;  // Rough minimum space required
+    spaceRangeIncrement = rhs.spaceRangeIncrement;
+    z0Rot = rhs.z0Rot;  // Cluster one z axis rotation
+    y0Rot = rhs.y0Rot;  // Cluster one y axis rotation
+    z1Rot = rhs.z1Rot;  // Cluster two z axis rotation
+    y1Rot = rhs.y1Rot;  // Cluster two y axis rotation
+    simTimeElapsed = rhs.simTimeElapsed;
+
+    // File from which to proceed with further simulations
+    project_path = rhs.project_path;
+    output_folder = rhs.output_folder;
+    // projectileName;
+    // targetName;
+    output_prefix = rhs.output_prefix;
+    /////////////////////////////////////////////////////////////
+
 
     /////////////////////////////////////
     // slidDir = rhs.slidDir;
@@ -1080,53 +1244,53 @@ double Ball_group::calc_mass(const double& radius, const double& density)
 double Ball_group::calc_moi(const double& radius, const double& mass) { return .4 * mass * radius * radius; }
 
 //Not used anywhere at the moment
-Ball_group Ball_group::spawn_particles(const int count)
-{
-    // Load file data:
-    std::cerr << "Add Particle\n";
+// Ball_group Ball_group::spawn_particles(const int count)
+// {
+//     // Load file data:
+//     std::cerr << "Add Particle\n";
 
-    // Random particle to origin
-    Ball_group projectile(count);
-    // Particle random position at twice radius of target:
-    // We want the farthest from origin since we are offsetting form origin. Not com.
-    const auto cluster_radius = 3;
+//     // Random particle to origin
+//     Ball_group projectile(count);
+//     // Particle random position at twice radius of target:
+//     // We want the farthest from origin since we are offsetting form origin. Not com.
+//     const auto cluster_radius = 3;
 
-    const vec3 projectile_direction = rand_vec3(1).normalized();
-    projectile.pos[0] = projectile_direction * (cluster_radius + scaleBalls * 4);
-    projectile.w[0] = {0, 0, 0};
-    // Velocity toward origin:
-    projectile.vel[0] = -v_custom * projectile_direction;
-    projectile.R[0] = 1e-5;  // rand_between(1,3)*1e-5;
-    projectile.m[0] = density * 4. / 3. * pi * std::pow(projectile.R[0], 3);
-    projectile.moi[0] = calc_moi(projectile.R[0], projectile.m[0]);
+//     const vec3 projectile_direction = rand_vec3(1).normalized();
+//     projectile.pos[0] = projectile_direction * (cluster_radius + scaleBalls * 4);
+//     projectile.w[0] = {0, 0, 0};
+//     // Velocity toward origin:
+//     projectile.vel[0] = -v_custom * projectile_direction;
+//     projectile.R[0] = 1e-5;  // rand_between(1,3)*1e-5;
+//     projectile.m[0] = density * 4. / 3. * pi * std::pow(projectile.R[0], 3);
+//     projectile.moi[0] = calc_moi(projectile.R[0], projectile.m[0]);
 
-    const double3x3 local_coords = local_coordinates(to_double3(projectile_direction));
-    // to_vec3(local_coords.y).print();
-    // to_vec3(local_coords.z).print();
-    // projectile.pos[0].print();
-    for (int i = 1; i < projectile.num_particles - 3; i++) {
-        const auto rand_y = rand_between(-cluster_radius, cluster_radius);
-        const auto rand_z = rand_between(-cluster_radius, cluster_radius);
-        // projectile.pos[i] = projectile.pos[0] + perpendicular_shift(local_coords, rand_y, rand_z);
-        projectile.pos[i] = projectile.pos[0] + perpendicular_shift(local_coords, rand_y, rand_z);
-        // std::cout << rand_y << '\t' << to_vec3(local_coords.y * rand_y) <<'\t'<< projectile.pos[i] <<
-        // '\n';
-    }
-    projectile.pos[projectile.num_particles - 3] = projectile_direction * 2;
-    projectile.pos[projectile.num_particles - 2] = projectile_direction * 4;
-    projectile.pos[projectile.num_particles - 1] = projectile_direction * 6;
+//     const vec3 local_coords[3] = local_coordinates(projectile_direction);
+//     // to_vec3(local_coords.y).print();
+//     // to_vec3(local_coords.z).print();
+//     // projectile.pos[0].print();
+//     for (int i = 1; i < projectile.num_particles - 3; i++) {
+//         const auto rand_y = rand_between(-cluster_radius, cluster_radius);
+//         const auto rand_z = rand_between(-cluster_radius, cluster_radius);
+//         // projectile.pos[i] = projectile.pos[0] + perpendicular_shift(local_coords, rand_y, rand_z);
+//         projectile.pos[i] = projectile.pos[0] + perpendicular_shift(local_coords, rand_y, rand_z);
+//         // std::cout << rand_y << '\t' << to_vec3(local_coords.y * rand_y) <<'\t'<< projectile.pos[i] <<
+//         // '\n';
+//     }
+//     projectile.pos[projectile.num_particles - 3] = projectile_direction * 2;
+//     projectile.pos[projectile.num_particles - 2] = projectile_direction * 4;
+//     projectile.pos[projectile.num_particles - 1] = projectile_direction * 6;
 
-    Ball_group new_group{projectile.num_particles + num_particles};
+//     Ball_group new_group{projectile.num_particles + num_particles};
 
-    new_group.merge_ball_group(*this);
-    new_group.merge_ball_group(projectile);
+//     new_group.merge_ball_group(*this);
+//     new_group.merge_ball_group(projectile);
 
-    // new_group.calibrate_dt(0, 1);
-    // new_group.init_conditions();
+//     // new_group.calibrate_dt(0, 1);
+//     // new_group.init_conditions();
 
-    // new_group.to_origin();
-    return new_group;
-}
+//     // new_group.to_origin();
+//     return new_group;
+// }
 
 //@brief returns new position of particle after it is given random offset
 //@param local_coords is plane perpendicular to direction of projectile
@@ -1134,7 +1298,7 @@ Ball_group Ball_group::spawn_particles(const int count)
 //@param projectile_vel is projectile's velocity
 //@param projectile_rad is projectile's radius
 vec3 Ball_group::dust_agglomeration_offset(
-    const double3x3 local_coords,
+    vec3* local_coords,
     vec3 projectile_pos,
     vec3 projectile_vel,
     const double projectile_rad)
@@ -1146,7 +1310,10 @@ vec3 Ball_group::dust_agglomeration_offset(
     do {
         const auto rand_y = rand_between(-cluster_radius, cluster_radius);
         const auto rand_z = rand_between(-cluster_radius, cluster_radius);
+        std::cerr<<"SFJD:SFJDS:FJ "<<local_coords[0][0]<<std::endl;
+        std::cerr<<"SFJD:SFJDS:FJ "<<local_coords[2][1]<<std::endl;
         auto test_pos = projectile_pos + perpendicular_shift(local_coords, rand_y, rand_z);
+        std::cerr<<"SFJD:SFJDS:FJ11"<<std::endl;
 
         count++;
         for (size_t i = 0; i < num_particles; i++) {
@@ -1227,10 +1394,13 @@ Ball_group Ball_group::dust_agglomeration_particle_init()
         // projectile.torqueForce[0] = {0,0,0};
     }
     //////////////////////////////////
-
-    const double3x3 local_coords = local_coordinates(to_double3(projectile_direction));
-    
+    vec3* local_coords = new vec3[3];
+    local_coords = local_coordinates(projectile_direction,local_coords);
+    std::cerr<<"HERERERERERERERE: "<<local_coords[2][2]<<std::endl;
     projectile.pos[0] = dust_agglomeration_offset(local_coords,projectile.pos[0],projectile.vel[0],projectile.R[0]);
+    std::cerr<<"HERERERERERERERE111"<<std::endl;
+    delete[] local_coords;
+
     if (world_rank == 0)
     {
         std::cerr<<"pos, dir: "<<projectile.pos[0]<<", "<<projectile_direction<<std::endl;
@@ -1251,6 +1421,58 @@ Ball_group Ball_group::dust_agglomeration_particle_init()
 
     
     return projectile;
+}
+
+void Ball_group::set_group_variables(Ball_group& dst)
+{
+    dst.dynamicTime = dynamicTime;
+
+    dst.G = G;  // Gravitational constant
+    dst.density = density;
+    dst.u_s = u_s;       // Coeff of sliding friction
+    dst.u_r = u_r;               // Coeff of rolling friction
+    dst.sigma = sigma;              // Poisson ratio for rolling friction.
+    dst.Y = Y;               // Young's modulus in erg/cm3
+    dst.cor = cor;                // Coeff of restitution
+    dst.simTimeSeconds = simTimeSeconds;  // Seconds
+    dst.timeResolution = timeResolution;    // Seconds - This is duration between exported steps.
+    dst.fourThirdsPiRho = fourThirdsPiRho;  // for fraction of smallest sphere radius.
+    dst.scaleBalls = scaleBalls;                         // base radius of ball.
+    dst.maxOverlap = maxOverlap;                           // of scaleBalls
+    dst.KEfactor = KEfactor;                              // Determines collision velocity based on KE/PE
+    dst.v_custom = v_custom;  // Velocity cm/s
+    dst.temp = temp;          //tempurature of simulation in Kelvin
+    dst.kConsts = kConsts;
+    dst.impactParameter = impactParameter;  // Impact angle radians
+    dst.Ha = Ha;         // Hamaker constant for vdw force
+    dst.h_min = h_min;  // 1e8 * std::numeric_limits<double>::epsilon(), // 2.22045e-10 (epsilon is 2.22045e-16)
+    dst.cone = cone;  // Cone of particles ignored moving away from center of mass. Larger angle ignores more.
+
+    // Simulation Structure
+    dst.properties = properties;  // Number of columns in simData file per ball
+    dst.genBalls = genBalls;
+    dst.attempts = attempts;  // How many times to try moving every ball touching another in generator.
+
+    dst.skip = skip;  // Steps thrown away before recording a step to the buffer. 500*.04 is every 20 seconds in sim.
+    dst.steps = steps;
+
+    dst.dt = dt;
+    dst.kin = kin;  // Spring constant
+    dst.kout = kout;
+    dst.spaceRange = spaceRange;  // Rough minimum space required
+    dst.spaceRangeIncrement = spaceRangeIncrement;
+    dst.z0Rot = z0Rot;  // Cluster one z axis rotation
+    dst.y0Rot = y0Rot;  // Cluster one y axis rotation
+    dst.z1Rot = z1Rot;  // Cluster two z axis rotation
+    dst.y1Rot = y1Rot;  // Cluster two y axis rotation
+    dst.simTimeElapsed = simTimeElapsed;
+
+    // File from which to proceed with further simulations
+    dst.project_path = project_path;
+    dst.output_folder = output_folder;
+    // projectileName;
+    // targetName;
+    dst.output_prefix = output_prefix;
 }
 
 // Uses previous O as target and adds one particle to hit it:
@@ -1292,6 +1514,11 @@ Ball_group Ball_group::add_projectile()
     projectile.calc_momentum("Projectile");
     calc_momentum("Target");
     Ball_group new_group{projectile.num_particles + num_particles};
+
+    // std::cerr<<"EXISTING dt pre set: "<<dt<<std::endl;
+    // std::cerr<<"NEW dt pre set: "<<new_group.dt<<std::endl;
+    set_group_variables(new_group);
+    // std::cerr<<"NEW dt after set: "<<new_group.dt<<std::endl;
 
     new_group.merge_ball_group(*this);
     new_group.merge_ball_group(projectile);
@@ -1355,6 +1582,59 @@ void Ball_group::merge_ball_group(const Ball_group& src)
     num_particles_added += src.num_particles;
     radiiDistribution = src.radiiDistribution;
     radiiFraction = src.radiiFraction;
+
+    //////////////////////////////////////////////////////
+    // dynamicTime = src.dynamicTime;
+
+    // G = src.G;  // Gravitational constant
+    // density = src.density;
+    // u_s = src.u_s;       // Coeff of sliding friction
+    // u_r = src.u_r;               // Coeff of rolling friction
+    // sigma = src.sigma;              // Poisson ratio for rolling friction.
+    // Y = src.Y;               // Young's modulus in erg/cm3
+    // cor = src.cor;                // Coeff of restitution
+    // simTimeSeconds = src.simTimeSeconds;  // Seconds
+    // timeResolution = src.timeResolution;    // Seconds - This is duration between exported steps.
+    // fourThirdsPiRho = src.fourThirdsPiRho;  // for fraction of smallest sphere radius.
+    // scaleBalls = src.scaleBalls;                         // base radius of ball.
+    // maxOverlap = src.maxOverlap;                           // of scaleBalls
+    // KEfactor = src.KEfactor;                              // Determines collision velocity based on KE/PE
+    // v_custom = src.v_custom;  // Velocity cm/s
+    // temp = src.temp;          //tempurature of simulation in Kelvin
+    // kConsts = src.kConsts;
+    // impactParameter = src.impactParameter;  // Impact angle radians
+    // Ha = src.Ha;         // Hamaker constant for vdw force
+    // h_min = src.h_min;  // 1e8 * std::numeric_limits<double>::epsilon(), // 2.22045e-10 (epsilon is 2.22045e-16)
+    // cone = src.cone;  // Cone of particles ignored moving away from center of mass. Larger angle ignores more.
+
+    // // Simulation Structure
+    // properties = src.properties;  // Number of columns in simData file per ball
+    // genBalls = src.genBalls;
+    // attempts = src.attempts;  // How many times to try moving every ball touching another in generator.
+
+    // skip = src.skip;  // Steps thrown away before recording a step to the buffer. 500*.04 is every 20 seconds in sim.
+    // steps = src.steps;
+
+    // dt = src.dt;
+    // kin = src.kin;  // Spring constant
+    // kout = src.kout;
+    // spaceRange = src.spaceRange;  // Rough minimum space required
+    // spaceRangeIncrement = src.spaceRangeIncrement;
+    // z0Rot = src.z0Rot;  // Cluster one z axis rotation
+    // y0Rot = src.y0Rot;  // Cluster one y axis rotation
+    // z1Rot = src.z1Rot;  // Cluster two z axis rotation
+    // y1Rot = src.y1Rot;  // Cluster two y axis rotation
+    // simTimeElapsed = src.simTimeElapsed;
+
+    // // File from which to proceed with further simulations
+    // project_path = src.project_path;
+    // output_folder = src.output_folder;
+    // // projectileName;
+    // // targetName;
+    // output_prefix = src.output_prefix;
+    //////////////////////////////////////////////////////
+    
+
     calc_helpfuls();
 }
 
@@ -2288,6 +2568,7 @@ void Ball_group::sim_init_two_cluster(
     target.calc_momentum("Target");
 
     allocate_group(projectile.num_particles + target.num_particles);
+
 
     merge_ball_group(target);
     merge_ball_group(projectile);  // projectile second so smallest ball at end and largest ball at front

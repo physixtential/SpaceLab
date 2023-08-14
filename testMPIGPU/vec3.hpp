@@ -28,9 +28,9 @@ public:
     {
     }
 
-    // vec3(const vec3& v) : x(v.x), y(v.y), z(v.z)
-    //{
-    //}
+    vec3(const vec3& v) : x(v.x), y(v.y), z(v.z)
+    {
+    }
 
     // vec3& operator=(const vec3& v)
     //{
