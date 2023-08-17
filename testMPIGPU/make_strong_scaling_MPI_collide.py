@@ -21,8 +21,8 @@ if __name__ == '__main__':
 		exit(-1)
 		
 	# job_set_name = "openMPallLoops"
-	# job_set_name = "strongScaleGrow"
-	job_set_name = "profiling"
+	# job_set_name = "profiling"
+	job_set_name = "strongScaleCollide"
 	# job_set_name = "pipeAndOpenmp"
 	# job_set_name = "smallerDt"
 	# job_set_name = "forceTest"
@@ -30,11 +30,11 @@ if __name__ == '__main__':
 
 	runs_at_once = 1
 	# attempts = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20] 
-	attempts = [17]
+	attempts = [1]
 	threads = [32]
 	# nodes = [1,2,4,8,16,32]
-	# nodes = [1,2,4,8,16,32]
-	nodes = [1]
+	nodes = [1,2,4,8,16,32]
+	# nodes = [1]
 	# nodes = [1]
 	# threads = [128]
 	N = [30]
@@ -93,6 +93,7 @@ if __name__ == '__main__':
 				sbatchfile += "#SBATCH -t 0:05:00\n"
 				sbatchfile += "#SBATCH -J {}\n".format(job_set_name)
 				sbatchfile += "#SBATCH -N {}\n".format(node)
+				sbatchfile += "#SBATCH -G {}\n".format(node)
 				# sbatchfile += "#SBATCH -c {}\n\n".foramt(2*thread)
 				# sbatchfile += 'module load gpu\n'
 				# sbatchfile += 'export OMP_NUM_THREADS={}\n'.format(thread)

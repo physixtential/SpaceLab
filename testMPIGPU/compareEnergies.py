@@ -17,7 +17,7 @@ def main():
 	# folder1 = base + "multiCoreTest4/"
 	# folder1 = base + "singleCoreComparison/"
 	# folder2 = "/global/homes/l/lpkolanz/SpaceLab/jobs/singleCoreComparison/"
-	folder2 = "/global/homes/l/lpkolanz/SpaceLab/testMPI/jobs/strongScaleCollideMPI3/node_4/"
+	folder2 = "/pscratch/sd/l/lpkolanz/SpaceLab/testMPIGPU/jobs/strongScaleCollide/node_1/"
 	# folder1 = base + "multiCoreTest1/"
 	# folder2 = base + "singleCoreComparison2/"
 	# folder2 = base + "multiCoreTest9/"

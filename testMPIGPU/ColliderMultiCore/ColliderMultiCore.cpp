@@ -8,11 +8,9 @@
 #include <sstream>
 #include <string>
 #include <iomanip>
-#include <string.h>
-/////////////////////////////////
 // #include <filesystem>
+#include <string.h>
 // namespace fs = std::filesystem;
-/////////////////////////////////
 
 
 // String buffers to hold data in memory until worth writing to file:
@@ -164,7 +162,7 @@ void collider(const char *path, std::string projectileName, std::string targetNa
     if (world_rank == 0)
     {
         safetyChecks(O);
-        O.sim_init_write(O.output_prefix);
+        O.sim_init_write(output_prefix);
     }
     MPI_Barrier(MPI_COMM_WORLD);
     sim_looper(O);
@@ -182,7 +180,7 @@ void BPCA(const char *path,int num_balls)
     Ball_group O = make_group(path,restart);    
     safetyChecks(O);
     // Add projectile: For dust formation BPCA
-    std::string ori_output_prefix = O.output_prefix;
+    std::string ori_output_prefix = output_prefix;
     for (int i = *restart; i < num_balls; i++) {
     // for (int i = 0; i < 250; i++) {
         // O.zeroAngVel();
@@ -197,7 +195,7 @@ void BPCA(const char *path,int num_balls)
             O.sim_init_write(ori_output_prefix, i);
         }
         sim_looper(O);
-        O.simTimeElapsed = 0;
+        simTimeElapsed = 0;
     }
     // O.freeMemory();
     return;
@@ -208,6 +206,7 @@ void BPCA(const char *path,int num_balls)
 Ball_group make_group(const char *argv1,int* restart)
 {
     Ball_group O;
+    
     //See if run has already been started
     std::string filename = check_restart(argv1,restart);
     if (*restart > -1) //Restart is necessary unless only first write has happended so far
@@ -219,25 +218,25 @@ Ball_group make_group(const char *argv1,int* restart)
             /////////////
             // filename = std::to_string(*restart) + filename;
             filename = filename.substr(1,filename.length());
-            O = Ball_group(argv1,filename,O.v_custom,*restart);
+            O = Ball_group(argv1,filename,v_custom,*restart);
         }
         else if (*restart == 1) //restart from first write (different naming convension for first write)
         {//TESTED
             (*restart)--;
             filename = filename.substr(1,filename.length());
             // exit(EXIT_SUCCESS);
-            O = Ball_group(argv1,filename,O.v_custom,*restart);
+            O = Ball_group(argv1,filename,v_custom,*restart);
         }
         else //if restart is 0, need to rerun whole thing
         {//TESTED
-            O = Ball_group(true, O.v_custom, argv1); // Generate new group
+            O = Ball_group(true, v_custom, argv1); // Generate new group
         }
 
     }
     else if (*restart == -1) // Make new ball group
     {
         *restart = 0;
-        O = Ball_group(true, O.v_custom, argv1); // Generate new group
+        O = Ball_group(true, v_custom, argv1); // Generate new group
     }
     else
     {
@@ -286,15 +285,14 @@ int determine_index(std::string s, char del)
 // @brief checks if this is new job or restart
 std::string check_restart(std::string folder,int* restart)
 {
-    int world_rank = getRank();
-    std::string file;
-    // int tot_count = 0;
-    // int file_count = 0;
-    int largest_file_index = -1;
-    int file_index;
-    std::string largest_index_name;
-
     return "0";
+    // int world_rank = getRank();
+    // std::string file;
+    // // int tot_count = 0;
+    // // int file_count = 0;
+    // int largest_file_index = -1;
+    // int file_index;
+    // std::string largest_index_name;
     // for (const auto & entry : fs::directory_iterator(folder))
     // {
     //     file = entry.path();
@@ -402,34 +400,34 @@ sim_looper(Ball_group &O)
 
         // startProgress = ;
 
-        std::cerr<<"Stepping through "<<O.steps<<" steps"<<std::endl;
+        std::cerr<<"Stepping through "<<steps<<" steps"<<std::endl;
     }
 
     bool writeStep;
     time_t startProgress = time(nullptr);                // For progress reporting (gets reset)
     time_t lastWrite;                    // For write control (gets reset)
     
-    for (int Step = 1; Step < O.steps; Step++)  // Steps start at 1 because the 0 step is initial conditions.
+    for (int Step = 1; Step < steps; Step++)  // Steps start at 1 because the 0 step is initial conditions.
     {
         // simTimeElapsed += dt; //New code #1
         // Check if this is a write step:
-        if (Step % O.skip == 0) {
+        if (Step % skip == 0) {
             // t.start_event("writeProgressReport");
             writeStep = true;
 
             /////////////////////// Original code #1
-            O.simTimeElapsed += O.dt * O.skip;
+            simTimeElapsed += dt * skip;
             ///////////////////////
 
             // Progress reporting:
             if (world_rank == 0)
             {
-                float eta = ((time(nullptr) - startProgress) / static_cast<float>(O.skip) *
-                             static_cast<float>(O.steps - Step)) /
+                float eta = ((time(nullptr) - startProgress) / static_cast<float>(skip) *
+                             static_cast<float>(steps - Step)) /
                             3600.f;  // Hours.
                 float real = (time(nullptr) - start) / 3600.f;
-                float simmed = static_cast<float>(O.simTimeElapsed / 3600.f);
-                float progress = (static_cast<float>(Step) / static_cast<float>(O.steps) * 100.f);
+                float simmed = static_cast<float>(simTimeElapsed / 3600.f);
+                float progress = (static_cast<float>(Step) / static_cast<float>(steps) * 100.f);
                 fprintf(
                     stderr,
                     "%u\t%2.0f%%\tETA: %5.2lf\tReal: %5.2f\tSim: %5.2f hrs\tR/S: %5.2f\n",
@@ -468,7 +466,7 @@ sim_looper(Ball_group &O)
                 ////////////////////////////////////
                 //TURN THIS ON FOR REAL RUNS!!!
                 O.energyBuffer << '\n'
-                             << O.simTimeElapsed << ',' << O.PE << ',' << O.KE << ',' << O.PE + O.KE << ','
+                             << simTimeElapsed << ',' << O.PE << ',' << O.KE << ',' << O.PE + O.KE << ','
                              << O.mom.norm() << ','
                              << O.ang_mom.norm();  // the two zeros are bound and unbound mass
 
@@ -476,11 +474,11 @@ sim_looper(Ball_group &O)
                 // Data Export. Exports every 10 writeSteps (10 new lines of data) and also if the last write was
                 // a long time ago.
                 // if (time(nullptr) - lastWrite > 1800 || Step / skip % 10 == 0) {
-                if (Step / O.skip % 10 == 0) {
+                if (Step / skip % 10 == 0) {
                     // Report vMax:
 
-                    std::cerr << "vMax = " << O.getVelMax() << " Steps recorded: " << Step / O.skip << '\n';
-                    std::cerr << "Data Write to "<<O.output_folder<<"\n";
+                    std::cerr << "vMax = " << O.getVelMax() << " Steps recorded: " << Step / skip << '\n';
+                    std::cerr << "Data Write to "<<output_folder<<"\n";
                     // std::cerr<<"output_prefix: "<<output_prefix<<std::endl;
 
 
@@ -490,7 +488,7 @@ sim_looper(Ball_group &O)
                 }  // Data export end
 
 
-                if (O.dynamicTime) { O.calibrate_dt(Step, false); }
+                if (dynamicTime) { O.calibrate_dt(Step, false); }
             }
             // Reinitialize energies for next step:
             O.KE = 0;
@@ -526,8 +524,8 @@ sim_looper(Ball_group &O)
         const time_t end = time(nullptr);
 
         std::cerr << "Simulation complete!\n"
-                  << O.num_particles << " Particles and " << O.steps << " Steps.\n"
-                  << "Simulated time: " << O.steps * O.dt << " seconds\n"
+                  << O.num_particles << " Particles and " << steps << " Steps.\n"
+                  << "Simulated time: " << steps * dt << " seconds\n"
                   << "Computation time: " << end - start << " seconds\n";
         std::cerr << "\n===============================================================\n";
     }
@@ -544,7 +542,7 @@ void bufferBarf(Ball_group &O)
 {
     // Write simData to file and clear buffer.
     std::ofstream ballWrite;
-    ballWrite.open(O.output_folder + O.output_prefix + "simData.csv", std::ofstream::app);
+    ballWrite.open(output_folder + output_prefix + "simData.csv", std::ofstream::app);
     ballWrite << O.ballBuffer.rdbuf();  // Barf buffer to file.
     O.ballBuffer.str("");               // Empty the stream for next filling.
     ballWrite.close();
@@ -553,7 +551,7 @@ void bufferBarf(Ball_group &O)
     ////////////////////////////////////////////
     //TURN ON FOR REAL SIM
     std::ofstream energyWrite;
-    energyWrite.open(O.output_folder + O.output_prefix + "energy.csv", std::ofstream::app);
+    energyWrite.open(output_folder + output_prefix + "energy.csv", std::ofstream::app);
     energyWrite << O.energyBuffer.rdbuf();
     O.energyBuffer.str("");  // Empty the stream for next filling.
     energyWrite.close();
@@ -581,22 +579,22 @@ safetyChecks(Ball_group &O)
         exit(EXIT_FAILURE);
     }
 
-    if (O.skip == 0) {
+    if (skip == 0) {
         fprintf(stderr, "\nSKIP NOT SET, rank %d\n",world_rank);
         exit(EXIT_FAILURE);
     }
 
-    if (O.kin < 0) {
+    if (kin < 0) {
         fprintf(stderr, "\nSPRING CONSTANT NOT SET, rank %d\n",world_rank);
         exit(EXIT_FAILURE);
     }
 
-    if (O.dt <= 0) {
+    if (dt <= 0) {
         fprintf(stderr, "\nDT NOT SET, rank %d\n",world_rank);
         exit(EXIT_FAILURE);
     }
 
-    if (O.steps == 0) {
+    if (steps == 0) {
         fprintf(stderr, "\nSTEPS NOT SET, rank %d\n",world_rank);
         exit(EXIT_FAILURE);
     }
@@ -632,14 +630,14 @@ safetyChecks(Ball_group &O)
 
 // void setGuidDT(const double& vel)
 //{
-//	// Guidos k and dt:
-//	dt = .01 * O.getRmin() / fabs(vel);
+//  // Guidos k and dt:
+//  dt = .01 * O.getRmin() / fabs(vel);
 //}
 //
 // void setGuidK(const double& vel)
 //{
-//	kin = O.getMassMax() * vel * vel / (.1 * O.R[0] * .1 * O.R[0]);
-//	kout = cor * kin;
+//  kin = O.getMassMax() * vel * vel / (.1 * O.R[0] * .1 * O.R[0]);
+//  kout = cor * kin;
 //}
 
 inline int twoDtoOneD(const int row, const int col, const int width)

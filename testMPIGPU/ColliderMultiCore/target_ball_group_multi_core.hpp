@@ -1392,7 +1392,7 @@ Ball_group Ball_group::dust_agglomeration_particle_init()
     const double3x3 local_coords = local_coordinates(to_double3(projectile_direction));
     
     projectile.pos[0] = dust_agglomeration_offset(local_coords,projectile.pos[0],projectile.vel[0],projectile.R[0]);
-    // std::cerr<<"pos, dir: "<<projectile.pos[0]<<", "<<projectile_direction<<std::endl;
+    std::cerr<<"pos, dir: "<<projectile.pos[0]<<", "<<projectile_direction<<std::endl;
     //////////////////////////////////
     //TURN ON above LINE AND OFF REST FOR REAL SIM
     // if (num_particles == 3)
@@ -2517,6 +2517,7 @@ void Ball_group::sim_init_two_cluster(
 
 void Ball_group::sim_one_step(const bool write_step)
 {
+    std::cerr<<"IN ONE STEP"<<std::endl;
     int world_rank = getRank();
     int world_size = getSize();
     /// FIRST PASS - Update Kinematic Parameters:
@@ -2568,15 +2569,18 @@ void Ball_group::sim_one_step(const bool write_step)
     int B;
     int pc;
     int num_pairs = (num_particles*num_particles-num_particles)*0.5;
+    // // #pragma omp parallel for reduction(+:PE) default(none) private(A,B,pc) shared(Ha,write_step,lllen,R,pos,vel,m,w,u_r,u_s,moi,kin,kout,distances,h_min)
+    // // #pragma omp parallel for num_threads(3) reduction(+:PE) default(none) private(A,B,pc) shared(writelock,acc,aacc,Ha,write_step,lllen,R,pos,vel,m,w,u_r,u_s,moi,kin,kout,distances,h_min)
+    // for (pc = (((lllen*lllen)-lllen)/2); pc >= 1; pc--)
     double t0 = omp_get_wtime();
-
-    #pragma acc data pcopy(this)
-    #pragma acc data pcopyin(PE,num_pairs,num_particles,PE,A,B,pc,Ha,k_in,k_out,h_min,u_s,u_r,write_step,world_rank,world_size) 
-    #pragma acc data pcopyin(m[0:num_particles],w[0:num_particles],vel[0:num_particles],pos[0:num_particles],R[0:num_particles],distances[0:num_pairs])
-    #pragma acc data pcopy(acc[0:num_particles],aacc[0:num_particles])
+    // #pragma omp declare reduction(vec3_sum : vec3 : omp_out += omp_in)
+    // #pragma omp parallel for schedule(dynamic, 32) num_threads(OMPthreads) reduction(vec3_sum:acc[:num_particles],aacc[:num_particles]) reduction(+:PE) default(none) private(A,B,pc) shared(Ha,write_step,lllen,R,pos,vel,m,w,u_r,u_s,moi,kin,kout,distances,h_min,dt)
+    std::cerr<<"WE OUT HERE"<<std::endl;
+    #pragma omp target defaultmap(none) map(tofrom:acc[0:num_particles],aacc[0:num_particles],PE) map(to:world_rank,world_size,Ha,write_step,u_r,u_s,kin,kout,h_min,dt,R[0:num_particles],vel[0:num_particles],m[0:num_particles],w[0:num_particles],moi[0:num_particles],pos[0:num_particles],distances[0:num_pairs])
     {
-
-        #pragma acc parallel loop gang private(pc,A,B) reduction(+:PE)
+        // #pragma omp teams num_teams(64)
+        // #pragma omp distribute parallel for reduction(+:PE) default(none) private(A,B,pc) shared(acc,aacc,world_rank,world_size,Ha,write_step,lllen,R,pos,vel,m,w,u_r,u_s,moi,kin,kout,distances,h_min,dt)
+        #pragma omp parallel for reduction(+:PE) default(none) private(A,B,pc) shared(acc,aacc,world_rank,world_size,Ha,write_step,num_pairs,R,pos,vel,m,w,u_r,u_s,moi,kin,kout,distances,h_min,dt) //defaultmap(none) map(tofrom:acc[0:num_particles],aacc[0:num_particles],PE) map(to:write_step,vel[0:num_particles],m[0:num_particles],moi[0:num_particles],pos[0:num_particles],distances[(((lllen*lllen)-lllen)/2)])
         for (pc = world_rank + 1; pc <= num_pairs; pc += world_size)
         {
             // long double pd = (long double)pc;
@@ -2728,17 +2732,17 @@ void Ball_group::sim_one_step(const bool write_step)
                 //         aacc[B][i] += aaccB[i];
 
                 // }
-                #pragma acc atomic
+                #pragma omp atomic
                     aacc[A].x += aaccA.x;
-                #pragma acc atomic
+                #pragma omp atomic
                     aacc[A].y += aaccA.y;
-                #pragma acc atomic
+                #pragma omp atomic
                     aacc[A].z += aaccA.z;
-                #pragma acc atomic
+                #pragma omp atomic
                     aacc[B].x += aaccB.x;
-                #pragma acc atomic
+                #pragma omp atomic
                     aacc[B].y += aaccB.y;
-                #pragma acc atomic
+                #pragma omp atomic
                     aacc[B].z += aaccB.z;
                 // }
                 // omp_unset_lock(&writelock);
@@ -2822,17 +2826,17 @@ void Ball_group::sim_one_step(const bool write_step)
 
             vec3 accA = (1/m[A])*totalForceOnA; 
             vec3 accB = (1/m[B])*totalForceOnA; 
-            #pragma acc atomic
+            #pragma omp atomic
                 acc[A].x += accA.x;
-            #pragma acc atomic
+            #pragma omp atomic
                 acc[A].y += accA.y;
-            #pragma acc atomic
+            #pragma omp atomic
                 acc[A].z += accA.z;
-            #pragma acc atomic
+            #pragma omp atomic
                 acc[B].x -= accB.x;
-            #pragma acc atomic
+            #pragma omp atomic
                 acc[B].y -= accB.y;
-            #pragma acc atomic
+            #pragma omp atomic
                 acc[B].z -= accB.z;
 
 

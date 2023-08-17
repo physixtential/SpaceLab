@@ -8,11 +8,11 @@
 #include <iostream>
 #include <sstream>
 
-// using namespace linalg;
-// using linalg::cross;
-// using linalg::normalize;
-// using linalg::aliases::double3;
-// using linalg::aliases::double3x3;
+using namespace linalg;
+using linalg::cross;
+using linalg::normalize;
+using linalg::aliases::double3;
+using linalg::aliases::double3x3;
 
 std::random_device rd;
 std::mt19937 random_generator(rd());
@@ -57,19 +57,19 @@ std::mt19937 random_generator(rd());
 //     return ret;
 // }
 
-// // Convert from vec3 to double3
-// double3
-// to_double3(const vec3& vec)
-// {
-//     return {vec.x, vec.y, vec.z};
-// }
+// Convert from vec3 to double3
+double3
+to_double3(const vec3& vec)
+{
+    return {vec.x, vec.y, vec.z};
+}
 
-// // Convert from double3 to vec3
-// vec3
-// to_vec3(const double3& vec)
-// {
-//     return {vec.x, vec.y, vec.z};
-// }
+// Convert from double3 to vec3
+vec3
+to_vec3(const double3& vec)
+{
+    return {vec.x, vec.y, vec.z};
+}
 
 double
 random_gaussian(const double mean = 0, const double standard_deviation = 1)
@@ -107,66 +107,40 @@ line_sphere_intersect(const vec3& position, const vec3& velocity, const vec3& ce
 
 
 // Generate a vector orthogonal to the given
-vec3*
-local_coordinates(const vec3& x,vec3* coords)
+double3x3
+local_coordinates(const double3& x)
 {
-    const auto& x_hat = x.normalized();
-    const auto& y_hat = x_hat.cross(vec3(0, 0, 1));
-    const auto& z_hat = y_hat.cross(x_hat);
+    const auto& x_hat = normalize(x);
+    const auto& y_hat = cross(x_hat, double3(0, 0, 1));
+    const auto& z_hat = cross(y_hat, x_hat);
 
-    coords[0][0] = x_hat[0];
-    coords[0][1] = x_hat[1];
-    coords[0][2] = x_hat[2];
-    std::cerr<<"HERER it is: "<<coords[0][0]<<std::endl;
-    coords[1] = y_hat.normalized();
-    std::cerr<<"HERER it istoo: "<<coords[1][0]<<std::endl;
-    coords[2] = z_hat.normalized();
+    return double3x3(x_hat, normalize(y_hat), normalize(z_hat));
 }
-// double3x3
-// local_coordinates(const double3& x)
-// {
-//     const auto& x_hat = normalize(x);
-//     const auto& y_hat = cross(x_hat, double3(0, 0, 1));
-//     const auto& z_hat = cross(y_hat, x_hat);
-
-//     return double3x3(x_hat, normalize(y_hat), normalize(z_hat));
-// }
 
 
 vec3
-perpendicular_shift(vec3* local_basis, const double y, const double z)
+perpendicular_shift(const double3x3 local_basis, const double y, const double z)
 {
-    std::cerr<<"PERP SHIFT: "<<local_basis[1][0]<<std::endl;
-    vec3 retme1 = {local_basis[1][0] * y,local_basis[1][1] * y,local_basis[1][2] * y};
-    vec3 retme2 = {local_basis[2][0] * z,local_basis[2][1] * z,local_basis[2][2] * z};
-    return retme1+retme2;
+    return to_vec3(local_basis.y * y + local_basis.z * z);
 
     // const auto basis33_transpose = transpose(local_basis);
     // return to_vec3(mul(basis33_transpose, double3(0, y, z)));
 }
-// vec3
-// perpendicular_shift(const double3x3 local_basis, const double y, const double z)
-// {
-//     return to_vec3(local_basis.y * y + local_basis.z * z);
 
-//     // const auto basis33_transpose = transpose(local_basis);
-//     // return to_vec3(mul(basis33_transpose, double3(0, y, z)));
-// }
+void
+print_m33(double3x3& m33)
+{
+    for (const auto& row : m33) {
+        for (const auto& el : row) { std::cout << '\t' << el; }
+        std::cout << "\n";
+    }
+}
 
-// void
-// print_m33(double3x3& m33)
-// {
-//     for (const auto& row : m33) {
-//         for (const auto& el : row) { std::cout << '\t' << el; }
-//         std::cout << "\n";
-//     }
-// }
-
-// std::string
-// vec_string(const double3 vec)
-// {
-//     return '(' + std::to_string(vec.x) + ',' + std::to_string(vec.y) + ',' + std::to_string(vec.z) + ')';
-// }
+std::string
+vec_string(const double3 vec)
+{
+    return '(' + std::to_string(vec.x) + ',' + std::to_string(vec.y) + ',' + std::to_string(vec.z) + ')';
+}
 
 // Rounding
 inline std::string

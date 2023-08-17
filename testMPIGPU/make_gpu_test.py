@@ -30,7 +30,7 @@ if __name__ == '__main__':
 
 	runs_at_once = 1
 	# attempts = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20] 
-	attempts = [34]
+	attempts = [38]
 	threads = [32]
 	# nodes = [1,2,4,8,16,32]
 	# nodes = [1,2,4,8,16,32]
@@ -65,7 +65,7 @@ if __name__ == '__main__':
 				input_json['seed'] = 101
 				input_json['radiiDistribution'] = 'constant'
 				# input_json['kConsts'] = 3e3
-				input_json['genBalls'] = 2
+				input_json['genBalls'] = 100
 				input_json['N'] = n
 				input_json['simType'] = "BPCA"
 				input_json['h_min'] = 0.5
@@ -95,6 +95,8 @@ if __name__ == '__main__':
 				sbatchfile += "#SBATCH -t 0:05:00\n"
 				sbatchfile += "#SBATCH -J {}\n".format(job_set_name)
 				sbatchfile += "#SBATCH -N {}\n".format(node)
+				sbatchfile += "#SBATCH -G 1\n"
+
 				# sbatchfile += "#SBATCH -c {}\n\n".foramt(2*thread)
 				# sbatchfile += 'module load gpu\n'
 				# sbatchfile += 'export OMP_NUM_THREADS={}\n'.format(thread)
