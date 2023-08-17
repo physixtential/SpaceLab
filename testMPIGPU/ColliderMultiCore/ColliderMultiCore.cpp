@@ -8,11 +8,9 @@
 #include <sstream>
 #include <string>
 #include <iomanip>
-#include <string.h>
-/////////////////////////////////
 // #include <filesystem>
+#include <string.h>
 // namespace fs = std::filesystem;
-/////////////////////////////////
 
 
 // String buffers to hold data in memory until worth writing to file:
@@ -287,15 +285,14 @@ int determine_index(std::string s, char del)
 // @brief checks if this is new job or restart
 std::string check_restart(std::string folder,int* restart)
 {
-    int world_rank = getRank();
-    std::string file;
-    // int tot_count = 0;
-    // int file_count = 0;
-    int largest_file_index = -1;
-    int file_index;
-    std::string largest_index_name;
-
-    return 0;
+    return "0";
+    // int world_rank = getRank();
+    // std::string file;
+    // // int tot_count = 0;
+    // // int file_count = 0;
+    // int largest_file_index = -1;
+    // int file_index;
+    // std::string largest_index_name;
     // for (const auto & entry : fs::directory_iterator(folder))
     // {
     //     file = entry.path();
@@ -633,14 +630,14 @@ safetyChecks(Ball_group &O)
 
 // void setGuidDT(const double& vel)
 //{
-//	// Guidos k and dt:
-//	dt = .01 * O.getRmin() / fabs(vel);
+//  // Guidos k and dt:
+//  dt = .01 * O.getRmin() / fabs(vel);
 //}
 //
 // void setGuidK(const double& vel)
 //{
-//	kin = O.getMassMax() * vel * vel / (.1 * O.R[0] * .1 * O.R[0]);
-//	kout = cor * kin;
+//  kin = O.getMassMax() * vel * vel / (.1 * O.R[0] * .1 * O.R[0]);
+//  kout = cor * kin;
 //}
 
 inline int twoDtoOneD(const int row, const int col, const int width)

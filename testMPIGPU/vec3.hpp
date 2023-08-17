@@ -6,7 +6,10 @@
 #include <random>
 #include <sstream>
 #include <iomanip>
+// #include <omp.h>
 
+// #pragma omp declare target
+// #pragma omp declare target
 class vec3
 {
 public:
@@ -21,12 +24,15 @@ public:
     {
     }
 
+    // #pragma omp declare target
+    // #pragma acc routine
     vec3(const double newx, const double newy, const double newz)
         : x(newx)
         , y(newy)
         , z(newz)
     {
     }
+    // #pragma omp end declare target
 
     // vec3(const vec3& v) : x(v.x), y(v.y), z(v.z)
     //{
@@ -40,11 +46,13 @@ public:
     //	return *this;
     //}
 
-
+    // #pragma acc routine
     vec3 operator-() const { return vec3(-x, -y, -z); }
 
+    // #pragma acc routine
     vec3 operator+(const vec3& v) const { return vec3(x + v.x, y + v.y, z + v.z); }
 
+    // #pragma acc routine
     vec3 operator+=(const vec3& v)
     {
         x += v.x;
@@ -53,9 +61,11 @@ public:
         return *this;
     }
 
-    vec3 operator-(const vec3& v) const { return vec3(x - v.x, y - v.y, z - v.z); }
+    // #pragma acc routine
+    vec3  operator-(const vec3& v) const { return vec3(x - v.x, y - v.y, z - v.z); }
 
-    vec3 operator-=(const vec3& v)
+    // #pragma acc routine
+    vec3  operator-=(const vec3& v)
     {
         x -= v.x;
         y -= v.y;
@@ -63,9 +73,11 @@ public:
         return *this;
     }
 
-    vec3 operator*(const double scalar) const { return vec3(scalar * x, scalar * y, scalar * z); }
+    // #pragma acc routine
+    vec3  operator*(const double scalar) const { return vec3(scalar * x, scalar * y, scalar * z); }
 
-    vec3 operator*=(const double scalar)
+    // #pragma acc routine
+    vec3  operator*=(const double scalar)
     {
         x *= scalar;
         y *= scalar;
@@ -73,9 +85,11 @@ public:
         return *this;
     }
 
-    vec3 operator/(const double scalar) const { return vec3(x / scalar, y / scalar, z / scalar); }
+    // #pragma acc routine
+    vec3  operator/(const double scalar) const { return vec3(x / scalar, y / scalar, z / scalar); }
 
-    vec3 operator/=(const double scalar)
+    // #pragma acc routine
+    vec3  operator/=(const double scalar)
     {
         x /= scalar;
         y /= scalar;
@@ -93,6 +107,7 @@ public:
     //	return !(*this == v);
     //}
 
+    // #pragma acc routine
     double& operator[](const int i)
     {
         switch (i) {
@@ -105,7 +120,10 @@ public:
         }
         assert(0);
     }
-    double operator[](const int i) const
+    // #pragma omp end declare target
+    
+    // #pragma acc routine
+    double  operator[](const int i) const
     {
         switch (i) {
         case 0:
@@ -117,17 +135,28 @@ public:
         }
         assert(0);
     }
+    // #pragma omp end declare target
 
-    [[nodiscard]] double dot(const vec3& v) const { return x * v.x + y * v.y + z * v.z; }
-    [[nodiscard]] vec3 cross(const vec3& v) const
+    // #pragma acc routine
+    [[nodiscard]] double  dot(const vec3& v) const { return x * v.x + y * v.y + z * v.z; }
+    
+    // #pragma acc routine
+    [[nodiscard]] vec3  cross(const vec3& v) const
     {
         return vec3(y * v.z - z * v.y, z * v.x - x * v.z, x * v.y - y * v.x);
     }
-    double norm() const { return sqrt(x * x + y * y + z * z); }
-    double normsquared() const { return x * x + y * y + z * z; }
-    vec3 normalized() const { return *this / this->norm(); }
+    
+    // #pragma acc routine
+    double  norm() const { return sqrt(x * x + y * y + z * z); }
+    
+    // #pragma acc routine
+    double  normsquared() const { return x * x + y * y + z * z; }
+    
+    // #pragma acc routine
+    vec3  normalized() const { return *this / this->norm(); }
 
-    vec3 normalized_safe() const
+    // #pragma acc routine
+    vec3  normalized_safe() const
     {
         if (fabs(this->norm()) < 1e-13) {
             std::cerr << "dividing by zero in unit vector calculation!!!!!!!!!!!!!!";
@@ -136,9 +165,9 @@ public:
         return *this / this->norm();
     }
 
-    void print() const { std::cout << x << ',' << y << ',' << z << "\n"; }
+    void  print() const { std::cout << x << ',' << y << ',' << z << "\n"; }
 
-    [[nodiscard]] vec3 rot(char axis, double angle) const
+    [[nodiscard]] vec3  rot(char axis, double angle) const
     {
         double rotx[3][3] = {{1, 0, 0}, {0, cos(angle), -sin(angle)}, {0, sin(angle), cos(angle)}},
                roty[3][3] = {{cos(angle), 0, sin(angle)}, {0, 1, 0}, {-sin(angle), 0, cos(angle)}},
@@ -167,7 +196,7 @@ public:
         return newVec;
     }
 
-    vec3 arbitrary_orthogonal() const
+    vec3  arbitrary_orthogonal() const
     {
         bool b0 = (x < y) && (x < z);
         bool b1 = (y <= x) && (y < z);
@@ -176,12 +205,17 @@ public:
         return this->cross(vec3(int(b0), int(b1), int(b2)));
     }
 };
+// #pragma omp end declare target
 
-inline vec3
+// #pragma omp declare target
+// #pragma acc routine
+#pragma acc routine seq
+inline vec3 
 operator*(const double scalar, const vec3& v)
 {
     return v * scalar;
 }
+// #pragma omp end declare target
 
 class rotation
 {
@@ -292,8 +326,8 @@ private:
 };
 
 // Output vec3 to console easily.
-std::ostream&
-operator<<(std::ostream& s, const vec3& v)
-{
-    return s << v.x << ',' << v.y << ',' << v.z;
-}
+// std::ostream&
+// operator<<(std::ostream& s, const vec3& v)
+// {
+//     return s << v.x << ',' << v.y << ',' << v.z;
+// }
