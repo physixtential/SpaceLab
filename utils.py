@@ -146,10 +146,12 @@ def get_energy_file(data_folder,data_index=-1):
 def get_last_line_data(data_folder,data_index=-1):
 	# data_headers = np.loadtxt(data_folder + data_file,skiprows=0,dtype=str,delimiter=',')[0]
 	data_file = get_data_file(data_folder,data_index)
-	print(data_file)
+	print("data file: {}".format(data_file))
 	try:
-		data = np.loadtxt(data_folder + data_file,skiprows=1,dtype=float,delimiter=',')[-1]
-		print(data[0])
+		data = np.loadtxt(data_folder + data_file,skiprows=1,dtype=float,delimiter=',')
+		if data.ndim > 1:
+				data = data[-1]
+		# print(data)
 		print(data_folder + data_file)
 	except Exception as e:
 		with open(data_folder + data_file) as f:
@@ -160,10 +162,9 @@ def get_last_line_data(data_folder,data_index=-1):
 		# print(data)
 		print("ERROR CAUGHT getting data in folder: {}".format(data_folder))
 		print(e)
-		# return None
+		return None
 	# print("DATA LEN: {} for file {}{}".format(data.size,data_folder,data_file))
 	# print("FOR {} Balls".format(data.size/11))
-	
 	return format_data(data)
 
 def get_last_line_energy(data_folder,data_index=-1):

@@ -34,7 +34,7 @@ def main():
 
 	folders = ["strongScaleCollide1"]#,"weakScaleGrowth1"]
 	folders = ["strongScaleCollide_O2_1"]#,"weakScaleGrowth1"]
-	folders = ["strongScaleCollideMPIGPU1"]#,"weakScaleGrowth1"]
+	folders = ["strongScaleCollide2"]#,"weakScaleGrowth1"]
 	# folders = ["strongScaleCollideMPIonethread1"]#,"weakScaleGrowth1"]
 	# inds = np.arange(1,3)
 

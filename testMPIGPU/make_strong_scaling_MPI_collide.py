@@ -22,7 +22,7 @@ if __name__ == '__main__':
 		
 	# job_set_name = "openMPallLoops"
 	# job_set_name = "profiling"
-	job_set_name = "strongScaleCollide"
+	job_set_name = "reduceWrites"
 	# job_set_name = "pipeAndOpenmp"
 	# job_set_name = "smallerDt"
 	# job_set_name = "forceTest"
@@ -30,11 +30,11 @@ if __name__ == '__main__':
 
 	runs_at_once = 1
 	# attempts = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20] 
-	attempts = [1]
+	attempts = [2]
 	threads = [32]
 	# nodes = [1,2,4,8,16,32]
 	nodes = [1,2,4,8,16,32]
-	# nodes = [1]
+	nodes = [1]
 	# nodes = [1]
 	# threads = [128]
 	N = [30]
@@ -69,14 +69,14 @@ if __name__ == '__main__':
 				input_json['simType'] = "collider"
 				input_json['h_min'] = 0.5
 				input_json['OMPthreads'] = thread
-				input_json['simTimeSeconds'] = 0.5e-6 #Shorter sim time. Don't need whole time
+				# input_json['simTimeSeconds'] = 0.5e-6 #Shorter sim time. Don't need whole time
 				# input_json['simTimeSeconds'] = 1.5e-5 #Shorter sim time. Don't need whole time
 				# input_json['u_s'] = 0.5
 				# input_json['u_r'] = 0.5
 				input_json['projectileName'] = "1199_2_R4e-05_v4e-01_cor0.63_mu0.1_rho2.25_k4e+00_Ha5e-12_dt5e-10_"
 				input_json['targetName'] = "1199_2_R4e-05_v4e-01_cor0.63_mu0.1_rho2.25_k4e+00_Ha5e-12_dt5e-10_"
 				# input_json['note'] = "Uses openmp and loop unwinding to parallelize sim_one_step."
-				input_json['note'] = "Strong scaling 2400 particle, {} thread job, {} node(s).[Shorter time]".format(thread,node)
+				input_json['note'] = "Strong scaling 2400 particle, {} thread job, {} node(s).[Shorter time]. Testing how to minimize data transfers".format(thread,node)
 				####################################
 
 				with open(job + "input.json",'w') as fp:
@@ -90,7 +90,7 @@ if __name__ == '__main__':
 				sbatchfile += "#SBATCH -A m2651\n"
 				sbatchfile += "#SBATCH -C gpu\n"
 				sbatchfile += "#SBATCH -q regular\n"
-				sbatchfile += "#SBATCH -t 0:05:00\n"
+				sbatchfile += "#SBATCH -t 0:10:00\n"
 				sbatchfile += "#SBATCH -J {}\n".format(job_set_name)
 				sbatchfile += "#SBATCH -N {}\n".format(node)
 				sbatchfile += "#SBATCH -G {}\n".format(node)

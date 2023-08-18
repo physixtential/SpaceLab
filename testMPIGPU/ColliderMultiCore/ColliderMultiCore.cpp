@@ -21,7 +21,8 @@
 
 // These are used within simOneStep to keep track of time.
 // They need to survive outside its scope, and I don't want to have to pass them all.
-const time_t start = time(nullptr);  // For end of program analysis
+// const time_t start = time(nullptr);  // For end of program analysis
+// #pragma acc enter data copyin(start)
 // bool writeStep;                      // This prevents writing to file every step (which is slow).
 // bool contact = false;
 // bool inital_contact = true;
@@ -30,8 +31,8 @@ const time_t start = time(nullptr);  // For end of program analysis
 // Prototypes
 // void
 // sim_one_step(const bool write_step, Ball_group &O);
-void 
-bufferBarf(Ball_group &O);
+// void 
+// bufferBarf(Ball_group &O);
 void
 sim_looper(Ball_group &O);
 void
@@ -139,7 +140,7 @@ main(int argc, char* argv[])
     // sim_looper();
 
     // collider(argv[1],projTarget,projTarget);
-    
+    // #pragma acc exit data delete(start)
     // t.end_event("WholeThing");
     // t.print_events();
     // t.save_events(output_folder + "timing.txt");
@@ -165,7 +166,7 @@ void collider(const char *path, std::string projectileName, std::string targetNa
         O.sim_init_write(output_prefix);
     }
     MPI_Barrier(MPI_COMM_WORLD);
-    sim_looper(O);
+    O.sim_looper();
     // t.end_event("collider");
     // O.freeMemory();
     return;
@@ -194,7 +195,7 @@ void BPCA(const char *path,int num_balls)
         {
             O.sim_init_write(ori_output_prefix, i);
         }
-        sim_looper(O);
+        O.sim_looper();
         simTimeElapsed = 0;
     }
     // O.freeMemory();
@@ -389,174 +390,27 @@ std::string check_restart(std::string folder,int* restart)
 }
 
 
-void
-sim_looper(Ball_group &O)
-{
-    int world_rank = getRank();
-
-    if (world_rank == 0)
-    {    
-        std::cerr << "Beginning simulation...\n";
-
-        // startProgress = ;
-
-        std::cerr<<"Stepping through "<<steps<<" steps"<<std::endl;
-    }
-
-    bool writeStep;
-    time_t startProgress = time(nullptr);                // For progress reporting (gets reset)
-    time_t lastWrite;                    // For write control (gets reset)
-    
-    for (int Step = 1; Step < steps; Step++)  // Steps start at 1 because the 0 step is initial conditions.
-    {
-        // simTimeElapsed += dt; //New code #1
-        // Check if this is a write step:
-        if (Step % skip == 0) {
-            // t.start_event("writeProgressReport");
-            writeStep = true;
-
-            /////////////////////// Original code #1
-            simTimeElapsed += dt * skip;
-            ///////////////////////
-
-            // Progress reporting:
-            if (world_rank == 0)
-            {
-                float eta = ((time(nullptr) - startProgress) / static_cast<float>(skip) *
-                             static_cast<float>(steps - Step)) /
-                            3600.f;  // Hours.
-                float real = (time(nullptr) - start) / 3600.f;
-                float simmed = static_cast<float>(simTimeElapsed / 3600.f);
-                float progress = (static_cast<float>(Step) / static_cast<float>(steps) * 100.f);
-                fprintf(
-                    stderr,
-                    "%u\t%2.0f%%\tETA: %5.2lf\tReal: %5.2f\tSim: %5.2f hrs\tR/S: %5.2f\n",
-                    Step,
-                    progress,
-                    eta,
-                    real,
-                    simmed,
-                    real / simmed);
-                // fprintf(stdout, "%u\t%2.0f%%\tETA: %5.2lf\tReal: %5.2f\tSim: %5.2f hrs\tR/S: %5.2f\n", Step,
-                // progress, eta, real, simmed, real / simmed);
-                fflush(stdout);
-            }
-            startProgress = time(nullptr);
-            // t.end_event("writeProgressReport");
-        } else {
-            writeStep = O.debug;
-        }
-
-        // Physics integration step:
-        ///////////
-        // if (O.write_all)
-        // {
-        //     O.zeroSaveVals();
-        // }
-        ///////////
-        // sim_one_step(writeStep,O);
-        O.sim_one_step(writeStep);
-
-        if (writeStep) 
-        {
-            if (world_rank == 0)
-            {
-                // t.start_event("writeStep");
-                // Write energy to stream:
-                ////////////////////////////////////
-                //TURN THIS ON FOR REAL RUNS!!!
-                O.energyBuffer << '\n'
-                             << simTimeElapsed << ',' << O.PE << ',' << O.KE << ',' << O.PE + O.KE << ','
-                             << O.mom.norm() << ','
-                             << O.ang_mom.norm();  // the two zeros are bound and unbound mass
 
 
-                // Data Export. Exports every 10 writeSteps (10 new lines of data) and also if the last write was
-                // a long time ago.
-                // if (time(nullptr) - lastWrite > 1800 || Step / skip % 10 == 0) {
-                if (Step / skip % 10 == 0) {
-                    // Report vMax:
+// void bufferBarf(Ball_group &O)
+// {
+//     // Write simData to file and clear buffer.
+//     std::ofstream ballWrite;
+//     ballWrite.open(output_folder + output_prefix + "simData.csv", std::ofstream::app);
+//     ballWrite << O.ballBuffer.rdbuf();  // Barf buffer to file.
+//     O.ballBuffer.str("");               // Empty the stream for next filling.
+//     ballWrite.close();
 
-                    std::cerr << "vMax = " << O.getVelMax() << " Steps recorded: " << Step / skip << '\n';
-                    std::cerr << "Data Write to "<<output_folder<<"\n";
-                    // std::cerr<<"output_prefix: "<<output_prefix<<std::endl;
-
-
-                    bufferBarf(O);
-
-                    lastWrite = time(nullptr);
-                }  // Data export end
-
-
-                if (dynamicTime) { O.calibrate_dt(Step, false); }
-            }
-            // Reinitialize energies for next step:
-            O.KE = 0;
-            O.PE = 0;
-            O.mom = {0, 0, 0};
-            O.ang_mom = {0, 0, 0};
-            //unboundMass = 0;
-            //boundMass = massTotal;
-            ////////////////////////////////////
-                // t.end_event("writeStep");
-        }  // writestep end
-
-    }
-
-    if (world_rank == 0)
-    {
-        std::ofstream timeWrite;
-        timeWrite.open("time.csv", std::ofstream::app);
-        timeWrite << O.num_particles << ',' <<O.update_time << std::endl;
-    
-
-        // if (true)
-        // {
-        //     for (int i = 0; i < O.num_particles; i++)
-        //     {
-        //         std::cerr<<"===================================="<<std::endl;
-        //         std::cerr<<O.pos[i]<<std::endl;
-        //         std::cerr<<O.vel[i]<<std::endl;
-        //         std::cerr<<"===================================="<<std::endl;
-        //     }
-        // }
-
-        const time_t end = time(nullptr);
-
-        std::cerr << "Simulation complete!\n"
-                  << O.num_particles << " Particles and " << steps << " Steps.\n"
-                  << "Simulated time: " << steps * dt << " seconds\n"
-                  << "Computation time: " << end - start << " seconds\n";
-        std::cerr << "\n===============================================================\n";
-    }
-    if (!O.ballBuffer.str().empty())
-    {
-        O.ballBuffer<<'\n';
-        O.energyBuffer<<'\n';
-        bufferBarf(O);
-    }
-}  // end simLooper
-
-
-void bufferBarf(Ball_group &O)
-{
-    // Write simData to file and clear buffer.
-    std::ofstream ballWrite;
-    ballWrite.open(output_folder + output_prefix + "simData.csv", std::ofstream::app);
-    ballWrite << O.ballBuffer.rdbuf();  // Barf buffer to file.
-    O.ballBuffer.str("");               // Empty the stream for next filling.
-    ballWrite.close();
-
-    // Write Energy data to file and clear buffer.
-    ////////////////////////////////////////////
-    //TURN ON FOR REAL SIM
-    std::ofstream energyWrite;
-    energyWrite.open(output_folder + output_prefix + "energy.csv", std::ofstream::app);
-    energyWrite << O.energyBuffer.rdbuf();
-    O.energyBuffer.str("");  // Empty the stream for next filling.
-    energyWrite.close();
-    // ////////////////////////////////////////////
-}
+//     // Write Energy data to file and clear buffer.
+//     ////////////////////////////////////////////
+//     //TURN ON FOR REAL SIM
+//     std::ofstream energyWrite;
+//     energyWrite.open(output_folder + output_prefix + "energy.csv", std::ofstream::app);
+//     energyWrite << O.energyBuffer.rdbuf();
+//     O.energyBuffer.str("");  // Empty the stream for next filling.
+//     energyWrite.close();
+//     // ////////////////////////////////////////////
+// }
 
 
 void

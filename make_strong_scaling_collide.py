@@ -23,7 +23,7 @@ if __name__ == '__main__':
 	# job_set_name = "openMPallLoops"
 	# job_set_name = "strongScaleGrow"
 	# job_set_name = "strongScaleCollide_O2_1200_"
-	job_set_name = "strongScaleCollide_O2_2400_"
+	job_set_name = "t1e-5sec"
 	# job_set_name = "pipeAndOpenmp"
 	# job_set_name = "smallerDt"
 	# job_set_name = "forceTest"
@@ -66,7 +66,7 @@ if __name__ == '__main__':
 				input_json['simType'] = "collider"
 				input_json['h_min'] = 0.5
 				input_json['OMPthreads'] = thread
-				input_json['simTimeSeconds'] = 0.5e-6 #Shorter sim time. Don't need whole time
+				input_json['simTimeSeconds'] = 1.5e-5 #Shorter sim time. Don't need whole time
 				# input_json['u_s'] = 0.5
 				# input_json['u_r'] = 0.5
 				input_json['projectileName'] = "1199_2_R4e-05_v4e-01_cor0.63_mu0.1_rho2.25_k4e+00_Ha5e-12_dt5e-10_"
@@ -86,7 +86,7 @@ if __name__ == '__main__':
 				sbatchfile += "#SBATCH -A m2651\n"
 				sbatchfile += "#SBATCH -C cpu\n"
 				sbatchfile += "#SBATCH -q regular\n"
-				sbatchfile += "#SBATCH -t 0:03:00\n"
+				sbatchfile += "#SBATCH -t 1:00:00\n"
 				sbatchfile += "#SBATCH -N 1\n"
 				# sbatchfile += "#SBATCH -c {}\n\n".foramt(2*thread)
 				# sbatchfile += 'module load gpu\n'
