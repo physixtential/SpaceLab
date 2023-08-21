@@ -22,7 +22,7 @@ if __name__ == '__main__':
 		
 	# job_set_name = "openMPallLoops"
 	# job_set_name = "profiling"
-	job_set_name = "fullRun"
+	job_set_name = "strongScaleCollideSimple"
 	# job_set_name = "pipeAndOpenmp"
 	# job_set_name = "smallerDt"
 	# job_set_name = "forceTest"
@@ -30,7 +30,7 @@ if __name__ == '__main__':
 
 	runs_at_once = 1
 	# attempts = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20] 
-	attempts = [1]
+	attempts = [2]
 	threads = [32]
 	# nodes = [1,2,4,8,16,32]
 	# nodes = [1]
@@ -69,7 +69,7 @@ if __name__ == '__main__':
 				input_json['simType'] = "collider"
 				input_json['h_min'] = 0.5
 				input_json['OMPthreads'] = thread
-				# input_json['simTimeSeconds'] = 0.5e-6 #Shorter sim time. Don't need whole time
+				input_json['simTimeSeconds'] = 0.5e-6 #Shorter sim time. Don't need whole time
 				# input_json['simTimeSeconds'] = 1.5e-5 #Shorter sim time. Don't need whole time
 				# input_json['u_s'] = 0.5
 				# input_json['u_r'] = 0.5
@@ -90,7 +90,7 @@ if __name__ == '__main__':
 				sbatchfile += "#SBATCH -A m2651\n"
 				sbatchfile += "#SBATCH -C gpu\n"
 				sbatchfile += "#SBATCH -q regular\n"
-				sbatchfile += "#SBATCH -t 3:00:00\n"
+				sbatchfile += "#SBATCH -t 0:10:00\n"
 				sbatchfile += "#SBATCH -J {}\n".format(job_set_name)
 				sbatchfile += "#SBATCH -N {}\n".format(node)
 				sbatchfile += "#SBATCH -G {}\n".format(node)
