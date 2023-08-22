@@ -23,7 +23,7 @@ if __name__ == '__main__':
 	# job_set_name = "openMPallLoops"
 	# job_set_name = "strongScaleGrow"
 	# job_set_name = "strongScaleCollide_O2_1200_"
-	job_set_name = "t1e-5sec"
+	job_set_name = "mid"
 	# job_set_name = "pipeAndOpenmp"
 	# job_set_name = "smallerDt"
 	# job_set_name = "forceTest"
@@ -34,7 +34,7 @@ if __name__ == '__main__':
 	attempts = [2,3,4,5]
 	attempts = [1]
 	threads = [1,2,4,8,16,32,64,128]
-	threads = [16]
+	threads = [32]
 	# threads = [128]
 	N = [30]
 	Temps = [100]
@@ -63,16 +63,18 @@ if __name__ == '__main__':
 				input_json['radiiDistribution'] = 'constant'
 				# input_json['kConsts'] = 3e3
 				input_json['N'] = n
-				input_json['simType'] = "collider"
+				# input_json['simType'] = "collider"
+				input_json['simType'] = "BPCA"
 				input_json['h_min'] = 0.5
 				input_json['OMPthreads'] = thread
+				input_json['genBalls'] = 28
 				input_json['simTimeSeconds'] = 1.5e-5 #Shorter sim time. Don't need whole time
 				# input_json['u_s'] = 0.5
 				# input_json['u_r'] = 0.5
 				input_json['projectileName'] = "1199_2_R4e-05_v4e-01_cor0.63_mu0.1_rho2.25_k4e+00_Ha5e-12_dt5e-10_"
 				input_json['targetName'] = "1199_2_R4e-05_v4e-01_cor0.63_mu0.1_rho2.25_k4e+00_Ha5e-12_dt5e-10_"
 				# input_json['note'] = "Uses openmp and loop unwinding to parallelize sim_one_step."
-				input_json['note'] = "Strong scaling with {} OMP threads, -O2, 600 particle aggs.".format(thread)
+				input_json['note'] = "Strong scaling with {} OMP threads, -O2, 2400 particle aggs.".format(thread)
 				####################################
 
 				with open(job + "input.json",'w') as fp:

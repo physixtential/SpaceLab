@@ -22,7 +22,7 @@ if __name__ == '__main__':
 		
 	# job_set_name = "openMPallLoops"
 	# job_set_name = "profiling"
-	job_set_name = "fullRun"
+	job_set_name = "mid"
 	# job_set_name = "pipeAndOpenmp"
 	# job_set_name = "smallerDt"
 	# job_set_name = "forceTest"
@@ -66,11 +66,13 @@ if __name__ == '__main__':
 				input_json['radiiDistribution'] = 'constant'
 				# input_json['kConsts'] = 3e3
 				input_json['N'] = n
-				input_json['simType'] = "collider"
+				input_json['simType'] = "BPCA"
+				# input_json['simType'] = "collider"
 				input_json['h_min'] = 0.5
 				input_json['OMPthreads'] = thread
 				# input_json['simTimeSeconds'] = 0.5e-6 #Shorter sim time. Don't need whole time
-				# input_json['simTimeSeconds'] = 1.5e-5 #Shorter sim time. Don't need whole time
+				input_json['simTimeSeconds'] = 1.5e-5 #Shorter sim time. Don't need whole time
+				input_json['genBalls'] = 28
 				# input_json['u_s'] = 0.5
 				# input_json['u_r'] = 0.5
 				input_json['projectileName'] = "1199_2_R4e-05_v4e-01_cor0.63_mu0.1_rho2.25_k4e+00_Ha5e-12_dt5e-10_"
@@ -90,7 +92,7 @@ if __name__ == '__main__':
 				sbatchfile += "#SBATCH -A m2651\n"
 				sbatchfile += "#SBATCH -C gpu\n"
 				sbatchfile += "#SBATCH -q regular\n"
-				sbatchfile += "#SBATCH -t 3:00:00\n"
+				sbatchfile += "#SBATCH -t 0:20:00\n"
 				sbatchfile += "#SBATCH -J {}\n".format(job_set_name)
 				sbatchfile += "#SBATCH -N {}\n".format(node)
 				sbatchfile += "#SBATCH -G {}\n".format(node)

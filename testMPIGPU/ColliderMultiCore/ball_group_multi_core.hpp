@@ -110,7 +110,8 @@ public:
 
     double KE = 0;
 
-    double *PE = new double[1];
+    double PE = 0.0;
+    // double *PE = new double[1];
 
     double* distances = nullptr;
 
@@ -986,7 +987,7 @@ void Ball_group::offset(const double& rad1, const double& rad2, const double& im
 // Update Gravitational Potential Energy:
 void Ball_group::updateGPE()
 {
-    PE[0] = 0;
+    PE = 0;
 
     if (num_particles > 1)  // Code below only necessary for effects between balls.
     {
@@ -998,16 +999,16 @@ void Ball_group::updateGPE()
 
                 // Check for collision between Ball and otherBall.
                 if (overlap > 0) {
-                    PE[0] +=
+                    PE +=
                         -G * m[A] * m[B] / dist + kin * ((sumRaRb - dist) * .5) * ((sumRaRb - dist) * .5);
                 } else {
-                    PE[0] += -G * m[A] * m[B] / dist;
+                    PE += -G * m[A] * m[B] / dist;
                 }
             }
         }
     } else  // For the case of just one ball:
     {
-        PE[0] = 0;
+        PE = 0;
     }
 }
 
@@ -1093,14 +1094,14 @@ void Ball_group::sim_init_write(std::string filename, int counter = 0)
     }
 
     energyBuffer << '\n'
-                 << simTimeElapsed << ',' << PE[0] << ',' << KE << ',' << PE[0] + KE << ',' << mom.norm() << ','
+                 << simTimeElapsed << ',' << PE << ',' << KE << ',' << PE + KE << ',' << mom.norm() << ','
                  << ang_mom.norm();
     energyWrite << energyBuffer.rdbuf();
     energyBuffer.str("");
 
     // Reinitialize energies for next step:
     KE = 0;
-    PE[0] = 0;
+    PE = 0;
     mom = {0, 0, 0};
     ang_mom = {0, 0, 0};
 
@@ -1715,7 +1716,7 @@ void Ball_group::init_conditions()
                 const double U_vdw =
                     -Ha / 6 *
                     (two_RaRb / denom_sum + two_RaRb / denom_diff + log(denom_sum / denom_diff));
-                PE[0] += U_vdw + 0.5 * k * overlap * overlap;
+                PE += U_vdw + 0.5 * k * overlap * overlap;
 
             } else  // Non-contact forces:
             {
@@ -1753,7 +1754,7 @@ void Ball_group::init_conditions()
                 const double U_vdw =
                     -Ha / 6 *
                     (two_RaRb / denom_sum + two_RaRb / denom_diff + log(denom_sum / denom_diff));
-                PE[0] += U_vdw;  // Van Der Waals
+                PE += U_vdw;  // Van Der Waals
 
                 // todo this is part of push_apart. Not great like this.
                 // For pushing apart overlappers:
@@ -1772,9 +1773,9 @@ void Ball_group::init_conditions()
     }
 
     #ifdef MPI_ENABLE
-        int local_PE = PE[0];
-        PE[0] = 0.0;
-        MPI_Reduce(&local_PE,PE,1,MPI_DOUBLE,MPI_SUM,0,MPI_COMM_WORLD);
+        double local_PE = PE;
+        PE = 0.0;
+        MPI_Reduce(&local_PE,&PE,1,MPI_DOUBLE,MPI_SUM,0,MPI_COMM_WORLD);
     #endif
 
     // Calc energy:
@@ -2308,7 +2309,7 @@ void Ball_group::simInit_cond_and_center(bool add_prefix)
 {
     // int world_rank = getRank();
 
-    PE[0] = 0.0;
+    PE = 0.0;
 
     if (world_rank == 0)
     {
@@ -2567,7 +2568,7 @@ void Ball_group::sim_looper()
                 ////////////////////////////////////
                 //TURN THIS ON FOR REAL RUNS!!!
                 energyBuffer << '\n'
-                             << simTimeElapsed << ',' << PE[0] << ',' << KE << ',' << PE[0] + KE << ','
+                             << simTimeElapsed << ',' << PE << ',' << KE << ',' << PE + KE << ','
                              << mom.norm() << ','
                              << ang_mom.norm();  // the two zeros are bound and unbound mass
 
@@ -2593,7 +2594,7 @@ void Ball_group::sim_looper()
             }
             // Reinitialize energies for next step:
             KE = 0;
-            PE[1] = 0;
+            PE = 0;
             mom = {0, 0, 0};
             ang_mom = {0, 0, 0};
             //unboundMass = 0;
@@ -2669,15 +2670,16 @@ void Ball_group::sim_one_step(const bool write_step)
     }
 
 
-    int A;
-    int B;
-    int pc;
+
     double t0 = omp_get_wtime();
     // std::cerr<<"IN simonestep"<<std::endl;
+    double pe = 0.0;
 
+    // #pragma acc parallel loop gang worker num_gangs(108) num_workers(256) private(pc,A,B) reduction(+:PE[0:1]) copyin(this) copy(PE[0:1],acc[0:num_particles],aacc[0:num_particles]) copyin(m[0:num_particles],moi[0:num_particles],w[0:num_particles],vel[0:num_particles],pos[0:num_particles],R[0:num_particles],distances[0:num_pairs]) copyin(num_pairs,num_particles,A,B,pc,Ha,k_in,k_out,h_min,u_s,u_r,write_step,world_rank,world_size)
+    // #pragma acc parallel loop gang worker private(pc,A,B) copyin(this) copy(pe,acc[0:num_particles],aacc[0:num_particles]) copyin(m[0:num_particles],moi[0:num_particles],w[0:num_particles],vel[0:num_particles],pos[0:num_particles],R[0:num_particles],distances[0:num_pairs]) copyin(num_pairs,num_particles,A,B,pc,Ha,k_in,k_out,h_min,u_s,u_r,write_step,world_rank,world_size)
     // #pragma acc parallel loop gang worker private(pc,A,B) reduction(+:PE[0:1]) copyin(this) copy(PE[0:1],acc[0:num_particles],aacc[0:num_particles]) copyin(m[0:num_particles],moi[0:num_particles],w[0:num_particles],vel[0:num_particles],pos[0:num_particles],R[0:num_particles],distances[0:num_pairs]) copyin(num_pairs,num_particles,A,B,pc,Ha,k_in,k_out,h_min,u_s,u_r,write_step,world_rank,world_size)
-    #pragma acc parallel loop gang worker num_workers(100) num_gangs(100) private(pc,A,B) reduction(+:PE[0:1]) copyin(this) copy(PE[0:1],acc[0:num_particles],aacc[0:num_particles]) copyin(m[0:num_particles],moi[0:num_particles],w[0:num_particles],vel[0:num_particles],pos[0:num_particles],R[0:num_particles],distances[0:num_pairs]) copyin(num_pairs,num_particles,A,B,pc,Ha,k_in,k_out,h_min,u_s,u_r,write_step,world_rank,world_size)
-    for (pc = world_rank + 1; pc <= num_pairs; pc += world_size)
+    #pragma acc parallel loop gang worker num_workers(256) num_gangs(108) reduction(+:pe) copyin(this) copy(pe,acc[0:num_particles],aacc[0:num_particles]) copyin(m[0:num_particles],moi[0:num_particles],w[0:num_particles],vel[0:num_particles],pos[0:num_particles],R[0:num_particles],distances[0:num_pairs]) copyin(num_pairs,num_particles,Ha,k_in,k_out,h_min,u_s,u_r,write_step,world_rank,world_size)   
+    for (int pc = world_rank + 1; pc <= num_pairs; pc += world_size)
     {
         // long double pd = (long double)pc;
         // pd = (sqrt(pd*8.0L+1.0L)+1.0L)*0.5L;
@@ -2687,8 +2689,11 @@ void Ball_group::sim_one_step(const bool write_step)
         double pd = (double)pc;
         pd = (sqrt(pd*8.0+1.0)+1.0)*0.5;
         pd -= 0.00001;
-        A = (int)pd;
-        B = (int)((double)pc-(double)A*((double)A-1.0)*.5-1.0);
+        int A = (int)pd;
+        int B = (int)((double)pc-(double)A*((double)A-1.0)*.5-1.0);
+
+
+        // PE += 1;
 
         const double sumRaRb = R[A] + R[B];
         const vec3 rVecab = pos[B] - pos[A];  // Vector from a to b.
@@ -2860,7 +2865,8 @@ void Ball_group::sim_one_step(const bool write_step)
                     (two_RaRb / denom_sum + two_RaRb / denom_diff + 
                     log(denom_sum / denom_diff));
                 // #pragma omp critical
-                PE[0] += U_vdw + 0.5 * k * overlap * overlap; ///TURN ON FOR REAL SIM
+                // pe += U_vdw + 0.5 * k * overlap * overlap; ///TURN ON FOR REAL SIM
+                pe += U_vdw + 0.5 * k * overlap * overlap; ///TURN ON FOR REAL SIM
             }
         } else  // Non-contact forces:
         {
@@ -2910,7 +2916,8 @@ void Ball_group::sim_one_step(const bool write_step)
                     -Ha / 6 *
                     (two_RaRb / denom_sum + two_RaRb / denom_diff + log(denom_sum / denom_diff));
                 // #pragma omp critical
-                PE[0] += U_vdw;  // Van Der Waals TURN ON FOR REAL SIM
+                // pe += U_vdw;  // Van Der Waals TURN ON FOR REAL SIM
+                pe += U_vdw;  // Van Der Waals TURN ON FOR REAL SIM
             }
 
             // todo this is part of push_apart. Not great like this.
@@ -2937,23 +2944,27 @@ void Ball_group::sim_one_step(const bool write_step)
 
 
         distances[e] = dist;
-        // #pragma acc update self(acc[0:num_particles],aacc[0:num_particles],PE[0:1]) //if(write_step)
+
+
+        #pragma acc update self(acc[0:num_particles],aacc[0:num_particles],pe) //if(write_step)
         // #pragma acc update self(pos[0:num_particles],vel[0:num_particles],velh[0:num_particles],w[0:num_particles],wh[0:num_particles]) if(write_step)
     }
-    
+    PE = pe;
 
+    // std::cerr<<"PE: "<<PE<<" from "<<world_rank<<std::endl;
+    // std::cerr<<acc[0][0]<<','<<acc[0][1]<<','<<acc[0][2]<<std::endl;
     #ifdef MPI_ENABLE
         MPI_Allreduce(MPI_IN_PLACE,acc,num_particles*3,MPI_DOUBLE,MPI_SUM,MPI_COMM_WORLD);
         MPI_Allreduce(MPI_IN_PLACE,aacc,num_particles*3,MPI_DOUBLE,MPI_SUM,MPI_COMM_WORLD);
         if (write_step)
         {
-            double local_PE = PE[0];
+            double local_PE = PE;
             // std::cout<<"PE in rank "<<world_rank<<" : "<<PE<<std::endl;
-            PE[0] = 0.0;
-            MPI_Reduce(&local_PE,PE,1,MPI_DOUBLE,MPI_SUM,0,MPI_COMM_WORLD);
+            PE = 0.0;
+            MPI_Reduce(&local_PE,&PE,1,MPI_DOUBLE,MPI_SUM,0,MPI_COMM_WORLD);
             if (world_rank == 0)
             {
-                std::cerr<<"PE: "<<PE[0]<<std::endl;
+                std::cerr<<"PE: "<<PE<<std::endl;
             }
         }
     #endif

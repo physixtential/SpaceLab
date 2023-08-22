@@ -22,7 +22,7 @@ if __name__ == '__main__':
 		
 	# job_set_name = "openMPallLoops"
 	# job_set_name = "profiling"
-	job_set_name = "strongScaleCollideSimple"
+	job_set_name = "mid2400"
 	# job_set_name = "pipeAndOpenmp"
 	# job_set_name = "smallerDt"
 	# job_set_name = "forceTest"
@@ -30,14 +30,14 @@ if __name__ == '__main__':
 
 	runs_at_once = 1
 	# attempts = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20] 
-	attempts = [2]
+	attempts = [4]
 	threads = [32]
 	# nodes = [1,2,4,8,16,32]
 	# nodes = [1]
 	# nodes = [1,2,4,8,16,32]
 	nodes = [1]
 	# threads = [128]
-	N = [30]
+	N = [5]
 	Temps = [100]
 	folders = []
 	for attempt in attempts:
@@ -66,15 +66,17 @@ if __name__ == '__main__':
 				input_json['radiiDistribution'] = 'constant'
 				# input_json['kConsts'] = 3e3
 				input_json['N'] = n
-				input_json['simType'] = "collider"
+				input_json['simType'] = "BPCA"
+				# input_json['simType'] = "collider"
 				input_json['h_min'] = 0.5
 				input_json['OMPthreads'] = thread
-				input_json['simTimeSeconds'] = 0.5e-6 #Shorter sim time. Don't need whole time
-				# input_json['simTimeSeconds'] = 1.5e-5 #Shorter sim time. Don't need whole time
+				input_json['genBalls'] = 28
+				# input_json['simTimeSeconds'] = 0.5e-6 #Shorter sim time. Don't need whole time
+				input_json['simTimeSeconds'] = 1.5e-5 #Shorter sim time. Don't need whole time
 				# input_json['u_s'] = 0.5
 				# input_json['u_r'] = 0.5
-				input_json['projectileName'] = "1199_2_R4e-05_v4e-01_cor0.63_mu0.1_rho2.25_k4e+00_Ha5e-12_dt5e-10_"
-				input_json['targetName'] = "1199_2_R4e-05_v4e-01_cor0.63_mu0.1_rho2.25_k4e+00_Ha5e-12_dt5e-10_"
+				# input_json['projectileName'] = "1199_2_R4e-05_v4e-01_cor0.63_mu0.1_rho2.25_k4e+00_Ha5e-12_dt5e-10_"
+				# input_json['targetName'] = "1199_2_R4e-05_v4e-01_cor0.63_mu0.1_rho2.25_k4e+00_Ha5e-12_dt5e-10_"
 				# input_json['note'] = "Uses openmp and loop unwinding to parallelize sim_one_step."
 				input_json['note'] = "Strong scaling 2400 particle, {} thread job, {} node(s).[Shorter time]. Testing how to minimize data transfers".format(thread,node)
 				####################################
@@ -99,8 +101,8 @@ if __name__ == '__main__':
 				# sbatchfile += 'export OMP_NUM_THREADS={}\n'.format(thread)
 				sbatchfile += 'export SLURM_CPU_BIND="cores"\n'
 				
-				sbatchfile += "srun -n {} -c {} --cpu-bind=cores numactl --interleave=all ./ColliderMultiCore.x {} 2>sim_err.log 1>sim_out.log".format(node,thread*2,job)
-				# sbatchfile += "srun -n {} -c {} --cpu-bind=cores numactl --interleave=all nsys profile -o prof ./ColliderMultiCore.x {} 2>sim_err.log 1>sim_out.log".format(node,thread*2,job)
+				# sbatchfile += "srun -n {} -c {} --cpu-bind=cores numactl --interleave=all ./ColliderMultiCore.x {} 2>sim_err.log 1>sim_out.log".format(node,thread*2,job)
+				sbatchfile += "srun -n {} -c {} --cpu-bind=cores numactl --interleave=all nsys profile -o prof ./ColliderMultiCore.x {} 2>sim_err.log 1>sim_out.log".format(node,thread*2,job)
 				
 
 				
