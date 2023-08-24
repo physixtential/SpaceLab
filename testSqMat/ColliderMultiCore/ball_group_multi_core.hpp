@@ -121,6 +121,8 @@ public:
     vec3* w = nullptr;
     vec3* wh = nullptr;  ///< Angular velocity half step for integration purposes.
     vec3* aacc = nullptr;
+    vec3* accsq = nullptr;
+    vec3* aaccsq = nullptr;
     double* R = nullptr;    ///< Radius
     double* m = nullptr;    ///< Mass
     double* moi = nullptr;  ///< Moment of inertia
@@ -1528,6 +1530,9 @@ void Ball_group::allocate_group(const int nBalls)
     // int world_rank = getRank();
     try {
         distances = new double[(num_particles * num_particles / 2) - (num_particles / 2)];
+        
+        accsq = new vec3[num_particles*num_particles];
+        aaccsq = new vec3[num_particles*num_particles];
 
         pos = new vec3[num_particles];
         vel = new vec3[num_particles];
@@ -1573,9 +1578,11 @@ void Ball_group::freeMemory() const
     delete[] vel;
     delete[] velh;
     delete[] acc;
+    delete[] accsq;
     delete[] w;
     delete[] wh;
     delete[] aacc;
+    delete[] aaccsq;
     delete[] R;
     delete[] m;
     delete[] moi;
@@ -2505,8 +2512,8 @@ void Ball_group::sim_looper()
 
     #pragma acc enter data copyin(this) 
     #pragma acc enter data copyin(moi[0:num_particles],m[0:num_particles],w[0:num_particles],vel[0:num_particles],pos[0:num_particles],R[0:num_particles],distances[0:num_pairs]) 
-    #pragma acc enter data copyin(acc[0:num_particles],aacc[0:num_particles],velh[0:num_particles],wh[0:num_particles]) 
-    #pragma acc enter data copyin(dt,num_pairs,num_particles,Ha,k_in,k_out,h_min,u_s,u_r)
+    #pragma acc enter data copyin(accsq[0:num_particles*num_particles],aaccsq[0:num_particles*num_particles],acc[0:num_particles],aacc[0:num_particles],velh[0:num_particles],wh[0:num_particles]) 
+    #pragma acc enter data copyin(dt,num_pairs,num_particles,Ha,k_in,k_out,h_min,u_s,u_r,world_rank,world_size)
     
     for (int Step = 1; Step < steps; Step++)  // Steps start at 1 because the 0 step is initial conditions.
     {
@@ -2607,9 +2614,9 @@ void Ball_group::sim_looper()
     // #pragma acc exit data delete(acc[0:num_particles],aacc[0:num_particles],PE[0:1])
     // #pragma acc exit data delete(velh[0:num_particles],wh[0:num_particles],m[0:num_particles],w[0:num_particles],vel[0:num_particles],pos[0:num_particles],R[0:num_particles],distances[0:num_pairs])
     // #pragma acc exit data delete(num_pairs,num_particles,A,B,pc,Ha,k_in,k_out,h_min,u_s,u_r,write_step,world_rank,world_size)
-    #pragma acc exit data delete(acc[0:num_particles],aacc[0:num_particles])
+    #pragma acc exit data delete(accsq[0:num_particles*num_particles],aaccsq[0:num_particles*num_particles],acc[0:num_particles],aacc[0:num_particles])
     #pragma acc exit data delete(m[0:num_particles],w[0:num_particles],vel[0:num_particles],pos[0:num_particles],R[0:num_particles],distances[0:num_pairs])
-    #pragma acc exit data delete(dt,num_pairs,num_particles,A,B,pc,Ha,k_in,k_out,h_min,u_s,u_r,write_step,world_rank,world_size)
+    #pragma acc exit data delete(dt,num_pairs,num_particles,Ha,k_in,k_out,h_min,u_s,u_r,world_rank,world_size)
     #pragma acc exit data delete(this)
 
     if (world_rank == 0)
@@ -2647,16 +2654,10 @@ void Ball_group::sim_looper()
 
 }  // end simLooper
 
-void Ball_group::sim_one_step(const bool write_step)
+void Ball_group::sim_one_step(const bool writeStep)
 {
-    double pe = 0.0;
-    #pragma acc enter data copyin(pe)
-    #pragma acc enter data copyin(write_step)
-    
     /// FIRST PASS - Update Kinematic Parameters:
-    // t.start_event("UpdateKinPar");
-    // #pragma omp parallel for default(none) shared(velh,vel,acc,wh,w,aacc,pos,dt)
-    #pragma acc parallel loop gang present(this,velh,vel,acc,dt,wh,w,aacc,pos,num_particles)
+    #pragma acc parallel loop gang worker present(this,velh[0:num_particles],vel[0:num_particles],acc[0:num_particles],dt,wh[0:num_particles],w[0:num_particles],aacc[0:num_particles],pos[0:num_particles],num_particles)
     for (int Ball = 0; Ball < num_particles; Ball++) {
         // Update velocity half step:
         velh[Ball] = vel[Ball] + .5 * acc[Ball] * dt;
@@ -2668,48 +2669,56 @@ void Ball_group::sim_one_step(const bool write_step)
         pos[Ball] += velh[Ball] * dt;
 
         // Reinitialize acceleration to be recalculated:
-        acc[Ball] = {0, 0, 0};
+        acc[Ball] = {0.0,0.0,0.0};
 
         // Reinitialize angular acceleration to be recalculated:
-        aacc[Ball] = {0, 0, 0};
+        aacc[Ball] = {0.0,0.0,0.0};
     }
 
+    #pragma acc parallel loop gang worker present(this,num_particles,accsq[0:num_particles*num_particles],aaccsq[0:num_particles*num_particles])
+    for (int i = 0; i < num_particles*num_particles; ++i)
+    {
+        accsq[i] = {0.0,0.0,0.0};
+        aaccsq[i] = {0.0,0.0,0.0};
+    }
+
+
+    double pe = 0.0;
+    #pragma acc enter data copyin(pe)
+    #pragma acc enter data copyin(writeStep)
 
     double t0 = omp_get_wtime();
     // std::cerr<<"IN simonestep"<<std::endl;
 
-    // #pragma acc parallel loop gang worker private(pc,A,B) reduction(+:PE[0:1]) copyin(this) copy(PE[0:1],acc[0:num_particles],aacc[0:num_particles]) copyin(m[0:num_particles],moi[0:num_particles],w[0:num_particles],vel[0:num_particles],pos[0:num_particles],R[0:num_particles],distances[0:num_pairs]) copyin(num_pairs,num_particles,A,B,pc,Ha,k_in,k_out,h_min,u_s,u_r,write_step,world_rank,world_size)
-    #pragma acc parallel loop num_gangs(108) num_workers(256) reduction(+:pe) present(this,acc,aacc,m,moi,w,vel,pos,R,distances,num_pairs,num_particles,Ha,k_in,k_out,h_min,u_s,u_r,writeStep,world_rank,world_size)
-    for (int pc = world_rank + 1; pc <= num_pairs; pc += world_size)
+    #pragma acc parallel loop gang worker num_gangs(108) num_workers(256) reduction(+:pe) present(pe,this,accsq[0:num_particles*num_particles],aaccsq[0:num_particles*num_particles],m[0:num_particles],moi[0:num_particles],w[0:num_particles],vel[0:num_particles],pos[0:num_particles],R[0:num_particles],distances[0:num_pairs],num_pairs,num_particles,Ha,k_in,k_out,h_min,u_s,u_r,writeStep,world_rank,world_size)
+    for (int pc = 1; pc <= num_pairs; pc ++)
     {
+        // if (writeStep)
+        // {
+        //     pe += 1;
+        // }
+        
         double pd = (double)pc;
         pd = (sqrt(pd*8.0+1.0)+1.0)*0.5;
         pd -= 0.00001;
         int A = (int)pd;
         int B = (int)((double)pc-(double)A*((double)A-1.0)*.5-1.0);
 
-        const double sumRaRb = R[A] + R[B];
+        const double sumRaRb =  R[A] + R[B];
         const vec3 rVecab = pos[B] - pos[A];  // Vector from a to b.
         const vec3 rVecba = -rVecab;
         const double dist = (rVecab).norm();
-
-        //////////////////////
-        // const double grav_scale = 3.0e21;
-        //////////////////////
 
         // Check for collision between Ball and otherBall:
         double overlap = sumRaRb - dist;
 
         vec3 totalForceOnA{0, 0, 0};
 
-        // Distance array element: 1,0    2,0    2,1    3,0    3,1    3,2 ...
-        // int e = static_cast<unsigned>(A * (A - 1) * .5) + B;  // a^2-a is always even, so this works.
         int e = pc-1;
         double oldDist = distances[e];
 
-        // Check for collision between Ball and otherBall.
-        if (overlap > 0) {
-
+        // if (overlap > 0) {
+        if (true) {
 
             double k;
             if (dist >= oldDist) {
@@ -2818,31 +2827,44 @@ void Ball_group::sim_one_step(const bool write_step)
             vec3 aaccA = (1/moi[A])*torqueA;
             vec3 aaccB = (1/moi[B])*torqueB;
 
-            // for (int i = 0; i < 3; i ++)
+
+
+            // aaccsq[0].x = torqueA.x;
+            // aaccsq[0].y = torqueA.y;
+            // aaccsq[0].z = torqueA.z;
+            // if (std::isnan(aaccA.x))
             // {
-            //     #pragma omp atomic
-            //         aacc[A][i] += aaccA[i];
-            //     #pragma omp atomic
-            //         aacc[B][i] += aaccB[i];
-
+            //     aaccA.x = 10;
             // }
-            #pragma acc atomic
-                aacc[A].x += aaccA.x;
-            #pragma acc atomic
-                aacc[A].y += aaccA.y;
-            #pragma acc atomic
-                aacc[A].z += aaccA.z;
-            #pragma acc atomic
-                aacc[B].x += aaccB.x;
-            #pragma acc atomic
-                aacc[B].y += aaccB.y;
-            #pragma acc atomic
-                aacc[B].z += aaccB.z;
+            // if (std::isnan(aaccA.y))
+            // {
+            //     aaccA.y = 10;
             // }
-            // omp_unset_lock(&writelock);
+            // if (std::isnan(aaccA.z))
+            // {
+            //     aaccA.z = 10;
+            // }
+            // if (std::isnan(aaccB.x))
+            // {
+            //     aaccB.x = 10;
+            // }
+            // if (std::isnan(aaccB.y))
+            // {
+            //     aaccB.y = 10;
+            // }
+            // if (std::isnan(aaccB.z))
+            // {
+            //     aaccB.z = 10;
+            // }
+            aaccsq[A*num_particles+B].x = aaccA.x;
+            aaccsq[A*num_particles+B].y = aaccA.y;
+            aaccsq[A*num_particles+B].z = aaccA.z;
+            aaccsq[B*num_particles+A].x = aaccB.x;
+            aaccsq[B*num_particles+A].y = aaccB.y;
+            aaccsq[B*num_particles+A].z = aaccB.z;
 
 
-            if (write_step) {
+            if (writeStep) {
                 // No factor of 1/2. Includes both spheres:
                 // PE += -G * m[A] * m[B] * grav_scale / dist + 0.5 * k * overlap * overlap;
                 // PE += -G * m[A] * m[B] / dist + 0.5 * k * overlap * overlap;
@@ -2858,6 +2880,11 @@ void Ball_group::sim_one_step(const bool write_step)
                     (two_RaRb / denom_sum + two_RaRb / denom_diff + 
                     log(denom_sum / denom_diff));
                 // #pragma omp critical
+                // #pragma acc atomic
+                // PE += 1; ///TURN ON FOR REAL SIM
+                // std::cerr<<"PE: "<<PE<<std::endl;
+                // printf("HERE");
+                // PE[0] += U_vdw + 0.5 * k * overlap * overlap; ///TURN ON FOR REAL SIM
                 pe += U_vdw + 0.5 * k * overlap * overlap; ///TURN ON FOR REAL SIM
             }
         } else  // Non-contact forces:
@@ -2896,9 +2923,8 @@ void Ball_group::sim_one_step(const bool write_step)
             // totalForceOnA = vdwForceOnA;
             // totalForceOnA = gravForceOnA;
             /////////////////////////////
-            if (write_step) {
+            if (writeStep) {
                 // PE += -G * m[A] * m[B] * grav_scale / dist; // Gravitational
-
                 const double diffRaRb = R[A] - R[B];
                 const double z = sumRaRb + h;
                 const double two_RaRb = 2 * R[A] * R[B];
@@ -2908,7 +2934,10 @@ void Ball_group::sim_one_step(const bool write_step)
                     -Ha / 6 *
                     (two_RaRb / denom_sum + two_RaRb / denom_diff + log(denom_sum / denom_diff));
                 // #pragma omp critical
+                // printf("HERE1");
+                // PE += 1.0;  // Van Der Waals TURN ON FOR REAL SIM
                 pe += U_vdw;  // Van Der Waals TURN ON FOR REAL SIM
+                // PE[0] += U_vdw;  // Van Der Waals TURN ON FOR REAL SIM
             }
 
             // todo this is part of push_apart. Not great like this.
@@ -2920,34 +2949,53 @@ void Ball_group::sim_one_step(const bool write_step)
 
         vec3 accA = (1/m[A])*totalForceOnA; 
         vec3 accB = (1/m[B])*totalForceOnA; 
-        #pragma acc atomic
-            acc[A].x += accA.x;
-        #pragma acc atomic
-            acc[A].y += accA.y;
-        #pragma acc atomic
-            acc[A].z += accA.z;
-        #pragma acc atomic
-            acc[B].x -= accB.x;
-        #pragma acc atomic
-            acc[B].y -= accB.y;
-        #pragma acc atomic
-            acc[B].z -= accB.z;
+
+        // accsq[0].x = totalForceOnA.x;
+        // accsq[0].y = totalForceOnA.y;
+        // accsq[0].z = totalForceOnA.z;
+        accsq[A*num_particles+B].x = accA.x;
+        accsq[A*num_particles+B].y = accA.y;
+        accsq[A*num_particles+B].z = accA.z;
+        accsq[B*num_particles+A].x = accA.x;
+        accsq[B*num_particles+A].y = accA.y;
+        accsq[B*num_particles+A].z = accA.z;
+
+        // distances[e] = dist;
 
 
-        distances[e] = dist;
-        // #pragma acc update self(acc[0:num_particles],aacc[0:num_particles],PE[0:1]) //if(write_step)
-        // #pragma acc update self(pos[0:num_particles],vel[0:num_particles],velh[0:num_particles],w[0:num_particles],wh[0:num_particles]) if(write_step)
-        #pragma acc update host(pe)
+        // #pragma acc update host(pe)
+
     }
 
+    #pragma acc parallel loop gang worker present(this,acc[0:num_particles],aacc[0:num_particles],accsq[0:num_particles*num_particles],aaccsq[0:num_particles*num_particles])
+    for (int i = 0; i < num_particles; i++)
+    {
+        #pragma acc loop seq
+        for (int j = 0; j < num_particles; j++)
+        {
+            acc[i].x += accsq[i*num_particles+j].x;
+            acc[i].y += accsq[i*num_particles+j].y;
+            acc[i].z += accsq[i*num_particles+j].z;
+            aacc[i].x += aaccsq[i*num_particles+j].x;
+            aacc[i].y += aaccsq[i*num_particles+j].y;
+            aacc[i].z += aaccsq[i*num_particles+j].z;
+        }
+    // #pragma acc update self(acc[0:num_particles],aacc[0:num_particles]) //if(write_step)
+    // #pragma acc update self(acc[i],aacc[i]) //if(write_step)
+    }
 
+    #pragma acc update host(pe,acc[0:num_particles],aacc[0:num_particles])
+    // std::cout<<aaccsq[0].x<<','<<aaccsq[0].y<<','<<aaccsq[0].z<<std::endl;
     PE = pe;
+
     #pragma acc exit data delete(pe,writeStep)
+    // std::cerr<<"PEpre: "<<PE<<std::endl;
+    // std::cerr<<"acc: "<<acc[0].x<<','<<acc[0].y<<','<<acc[0].z<<std::endl;
 
     #ifdef MPI_ENABLE
         MPI_Allreduce(MPI_IN_PLACE,acc,num_particles*3,MPI_DOUBLE,MPI_SUM,MPI_COMM_WORLD);
         MPI_Allreduce(MPI_IN_PLACE,aacc,num_particles*3,MPI_DOUBLE,MPI_SUM,MPI_COMM_WORLD);
-        if (write_step)
+        if (writeStep)
         {
             double local_PE = PE;
             // std::cout<<"PE in rank "<<world_rank<<" : "<<PE<<std::endl;
@@ -2956,6 +3004,7 @@ void Ball_group::sim_one_step(const bool write_step)
             if (world_rank == 0)
             {
                 std::cerr<<"PE: "<<PE<<std::endl;
+                std::cerr<<"acc: "<<acc[0].x<<','<<acc[0].y<<','<<acc[0].z<<std::endl;
             }
         }
     #endif
@@ -2964,13 +3013,7 @@ void Ball_group::sim_one_step(const bool write_step)
     update_time += t1-t0;
 
 
-    
-    // double ke = 0.0;
-    // vec3 Mom,Ang_mom;
-    // Mom = {0.0,0.0,0.0};
-    // Ang_mom = {0.0,0.0,0.0};
-    // #pragma acc enter data copyin(ke,Mom,Ang_mom)
-    #pragma acc parallel loop num_gangs(108) num_workers(256) present(this,acc,aacc,w,vel,num_particles,dt)
+    #pragma acc parallel loop gang worker num_gangs(108) num_workers(256) present(this,acc[0:num_particles],aacc[0:num_particles],w[0:num_particles],vel[0:num_particles],velh[0:num_particles],wh[0:num_particles],num_particles,dt)
     for (int Ball = 0; Ball < num_particles; Ball++) {
         // Velocity for next step:
         vel[Ball] = velh[Ball] + .5 * acc[Ball] * dt;
@@ -2984,14 +3027,11 @@ void Ball_group::sim_one_step(const bool write_step)
     }  // THIRD PASS END
 
 
-    if (write_step && world_rank == 0) {
-        ballBuffer << '\n';  // Prepares a new line for incoming data.
-        // std::cerr<<"Writing "<<num_particles<<" balls"<<std::endl;
-        
-    }
-    #pragma acc update host(velh[0:num_particles],wh[0:num_particles],acc[0:num_particles],aacc[0:num_particles],w[0:num_particles],vel[0:num_particles],pos[0:num_particles]) if(write_step && world_rank == 0)
-    if (write_step && world_rank == 0) 
+    #pragma acc update host(w[0:num_particles],vel[0:num_particles],pos[0:num_particles]) if(writeStep && world_rank == 0)
+    if (writeStep && world_rank == 0) 
     {
+        // std::cerr<<"Writing "<<num_particles<<" balls"<<std::endl;
+        ballBuffer << '\n';  // Prepares a new line for incoming data.
         for (int Ball = 0; Ball < num_particles;  Ball++)
         {
             if (Ball == 0) {

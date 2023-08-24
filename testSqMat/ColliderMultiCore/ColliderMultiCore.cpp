@@ -179,7 +179,6 @@ void BPCA(const char *path,int num_balls)
     int rest = -1;
     int *restart = &rest;
     Ball_group O = make_group(path,restart);    
-    std::cout<<path<<std::endl;
     safetyChecks(O);
     // Add projectile: For dust formation BPCA
     std::string ori_output_prefix = output_prefix;
