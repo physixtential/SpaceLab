@@ -17,11 +17,9 @@ def main():
 	# folder1 = base + "multiCoreTest4/"
 	# folder1 = base + "singleCoreComparison/"
 	# folder2 = "/global/homes/l/lpkolanz/SpaceLab/jobs/singleCoreComparison/"
-	# 
-	# folder2 = "/global/homes/l/lpkolanz/SpaceLab/testMPIGPU/jobs/strongScaleCollide3/node_2/"
-	# folder2 = "/pscratch/sd/l/lpkolanz/SpaceLab/testSqMat/jobs/long24001/node_1/"
-	folder1 = "/pscratch/sd/l/lpkolanz/SpaceLab/testSqMat/jobs/long24002/node_1/"
-	
+	folder2 = "/global/homes/l/lpkolanz/SpaceLab/testMPIGPU/jobs/strongScaleCollide3/node_2/"
+	folder2 = "/pscratch/sd/l/lpkolanz/SpaceLab/testSqMat/jobs/long24001/node_1/"
+	# folder1 = "/pscratch/sd/l/lpkolanz/SpaceLab/testDataMove/jobs/mid24001/node_1/"
 	# folder1 = base + "multiCoreTest1/"
 	# folder2 = base + "singleCoreComparison2/"
 	# folder2 = base + "multiCoreTest9/"
@@ -35,7 +33,7 @@ def main():
 	# folder2 = base + "affinityTests_th8_1/affinity_0-1-2-3-4-5-6-7-8/"
 
 	# folder1 = "/global/homes/l/lpkolanz/SpaceLab/jobs/strongScaleCollide_O2_2400_1/thread_1/"
-	folder2 = "/pscratch/sd/l/lpkolanz/SpaceLab/jobs/mid24001/thread_32/"
+	folder1 = "/pscratch/sd/l/lpkolanz/SpaceLab/jobs/mid24001/thread_32/"
 	
 	# folder2 = "/global/homes/l/lpkolanz/SpaceLab/testMPI/jobs/long15nodePEActualfix1/"
 	# folder2 = base + "singleCoreComparison_COPY7/"

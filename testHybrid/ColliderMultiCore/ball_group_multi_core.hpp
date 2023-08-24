@@ -121,8 +121,6 @@ public:
     vec3* w = nullptr;
     vec3* wh = nullptr;  ///< Angular velocity half step for integration purposes.
     vec3* aacc = nullptr;
-    vec3* accsq = nullptr;
-    vec3* aaccsq = nullptr;
     double* R = nullptr;    ///< Radius
     double* m = nullptr;    ///< Mass
     double* moi = nullptr;  ///< Moment of inertia
@@ -1531,9 +1529,6 @@ void Ball_group::allocate_group(const int nBalls)
     try {
         distances = new double[(num_particles * num_particles / 2) - (num_particles / 2)];
         
-        accsq = new vec3[num_particles*num_particles];
-        aaccsq = new vec3[num_particles*num_particles];
-
         pos = new vec3[num_particles];
         vel = new vec3[num_particles];
         velh = new vec3[num_particles];
@@ -2829,6 +2824,35 @@ void Ball_group::sim_one_step(const bool writeStep)
             vec3 aaccA = (1/moi[A])*torqueA;
             vec3 aaccB = (1/moi[B])*torqueB;
 
+
+
+            // aaccsq[0].x = torqueA.x;
+            // aaccsq[0].y = torqueA.y;
+            // aaccsq[0].z = torqueA.z;
+            // if (std::isnan(aaccA.x))
+            // {
+            //     aaccA.x = 10;
+            // }
+            // if (std::isnan(aaccA.y))
+            // {
+            //     aaccA.y = 10;
+            // }
+            // if (std::isnan(aaccA.z))
+            // {
+            //     aaccA.z = 10;
+            // }
+            // if (std::isnan(aaccB.x))
+            // {
+            //     aaccB.x = 10;
+            // }
+            // if (std::isnan(aaccB.y))
+            // {
+            //     aaccB.y = 10;
+            // }
+            // if (std::isnan(aaccB.z))
+            // {
+            //     aaccB.z = 10;
+            // }
             aaccsq[A*num_particles+B].x = aaccA.x;
             aaccsq[A*num_particles+B].y = aaccA.y;
             aaccsq[A*num_particles+B].z = aaccA.z;
@@ -2852,6 +2876,12 @@ void Ball_group::sim_one_step(const bool writeStep)
                     -Ha / 6 *
                     (two_RaRb / denom_sum + two_RaRb / denom_diff + 
                     log(denom_sum / denom_diff));
+                // #pragma omp critical
+                // #pragma acc atomic
+                // PE += 1; ///TURN ON FOR REAL SIM
+                // std::cerr<<"PE: "<<PE<<std::endl;
+                // printf("HERE");
+                // PE[0] += U_vdw + 0.5 * k * overlap * overlap; ///TURN ON FOR REAL SIM
                 pe += U_vdw + 0.5 * k * overlap * overlap; ///TURN ON FOR REAL SIM
             }
         } else  // Non-contact forces:
@@ -2900,7 +2930,11 @@ void Ball_group::sim_one_step(const bool writeStep)
                 const double U_vdw =
                     -Ha / 6 *
                     (two_RaRb / denom_sum + two_RaRb / denom_diff + log(denom_sum / denom_diff));
+                // #pragma omp critical
+                // printf("HERE1");
+                // PE += 1.0;  // Van Der Waals TURN ON FOR REAL SIM
                 pe += U_vdw;  // Van Der Waals TURN ON FOR REAL SIM
+                // PE[0] += U_vdw;  // Van Der Waals TURN ON FOR REAL SIM
             }
 
             // todo this is part of push_apart. Not great like this.
@@ -2911,16 +2945,19 @@ void Ball_group::sim_one_step(const bool writeStep)
 
 
         vec3 accA = (1/m[A])*totalForceOnA; 
-        vec3 accB = -1.0*(1/m[B])*totalForceOnA; 
+        vec3 accB = (1/m[B])*totalForceOnA; 
 
+        // accsq[0].x = totalForceOnA.x;
+        // accsq[0].y = totalForceOnA.y;
+        // accsq[0].z = totalForceOnA.z;
         accsq[A*num_particles+B].x = accA.x;
         accsq[A*num_particles+B].y = accA.y;
         accsq[A*num_particles+B].z = accA.z;
-        accsq[B*num_particles+A].x = accB.x;
-        accsq[B*num_particles+A].y = accB.y;
-        accsq[B*num_particles+A].z = accB.z;
+        accsq[B*num_particles+A].x = accA.x;
+        accsq[B*num_particles+A].y = accA.y;
+        accsq[B*num_particles+A].z = accA.z;
 
-        distances[e] = dist;
+        // distances[e] = dist;
 
 
         // #pragma acc update host(pe)
@@ -2979,6 +3016,12 @@ void Ball_group::sim_one_step(const bool writeStep)
         // Velocity for next step:
         vel[Ball] = velh[Ball] + .5 * acc[Ball] * dt;
         w[Ball] = wh[Ball] + .5 * aacc[Ball] * dt;
+
+        /////////////////////////////////
+        // if (true) {
+        /////////////////////////////////
+        
+        // #pragma acc update host(ke,Mom,Ang_mom)
     }  // THIRD PASS END
 
 
@@ -3008,6 +3051,10 @@ void Ball_group::sim_one_step(const bool writeStep)
             ang_mom += m[Ball] * pos[Ball].cross(vel[Ball]) + moi[Ball] * w[Ball];
         }
     }
+
+    // KE = ke;
+    // mom = Mom;
+    // ang_mom = Ang_mom;
 
     // #pragma acc exit data delete(ke,Mom,Ang_mom)
 

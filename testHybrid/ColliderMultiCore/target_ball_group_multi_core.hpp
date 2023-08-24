@@ -25,7 +25,6 @@
 // using std::numbers::pi;
 const double pi = 3.14159265358979311599796346854;
 using json = nlohmann::json;
-const time_t start = time(nullptr);  // For end of program analysis
 
 int getSize()
 {
@@ -54,6 +53,64 @@ int getRank()
 class Ball_group
 {
 public:
+
+
+    //////////////////////////////////////////////////////////
+    // const double pi = 3.14159265358979311599796346854;
+
+    // bool dynamicTime;
+    // const double Kb = 1.380649e-16; //in erg/K
+
+    // // using std::numbers::pi;
+    // double G;  // Gravitational constant
+    // double density;
+    // double u_s;                // Coeff of sliding friction
+    // double u_r;               // Coeff of rolling friction
+    // double sigma;              // Poisson ratio for rolling friction.
+    // double Y;               // Young's modulus in erg/cm3
+    // double cor;                // Coeff of restitution
+    // double simTimeSeconds;  // Seconds
+    // double timeResolution;    // Seconds - This is duration between exported steps.
+    // double fourThirdsPiRho;  // for fraction of smallest sphere radius.
+    // double scaleBalls;                         // base radius of ball.
+    // double maxOverlap;                           // of scaleBalls
+    // double KEfactor;                              // Determines collision velocity based on KE/PE
+    // double v_custom;  // Velocity cm/s
+    // double temp;          //tempurature of simulation in Kelvin
+    // double kConsts;
+    // double impactParameter;  // Impact angle radians
+    // double Ha;         // Hamaker constant for vdw force
+    // double h_min;  // 1e8 * std::numeric_limits<double>::epsilon(), // 2.22045e-10 (epsilon is 2.22045e-16)
+    // double cone;  // Cone of particles ignored moving away from center of mass. Larger angle ignores more.
+
+    // // Simulation Structure
+    // int properties;  // Number of columns in simData file per ball
+    // int genBalls;
+    // int attempts;  // How many times to try moving every ball touching another in generator.
+
+    // int skip;  // Steps thrown away before recording a step to the buffer. 500*.04 is every 20 seconds in sim.
+    // int steps;
+
+    // double dt;
+    // double kin;  // Spring constant
+    // double kout;
+    // double spaceRange;  // Rough minimum space required
+    // double spaceRangeIncrement;
+    // double z0Rot;  // Cluster one z axis rotation
+    // double y0Rot;  // Cluster one y axis rotation
+    // double z1Rot;  // Cluster two z axis rotation
+    // double y1Rot;  // Cluster two y axis rotation
+    // double simTimeElapsed;
+
+    // // File from which to proceed with further simulations
+    // std::string project_path;
+    // std::string output_folder;
+    // // std::string projectileName;
+    // // std::string targetName;
+    // std::string output_prefix;
+    //////////////////////////////////////////////////////////
+
+
 
     std::stringstream ballBuffer;
     std::stringstream energyBuffer;
@@ -92,10 +149,6 @@ public:
     double v_max_prev = HUGE_VAL;
     double soc = -1;
 
-    int world_rank;
-    int world_size;
-    int num_pairs;
-
     /////////////////////////////////
     const double h_min_physical = 2.1e-8; //prolly should make this a parameter/calculation
     const double max_mu = 0.5; // Make another parameter
@@ -108,9 +161,7 @@ public:
         0,
         0};  // Can be vec3 because they only matter for writing out to file. Can process on host.
 
-    double KE = 0;
-
-    double PE = 0.0;
+    double PE = 0, KE = 0;
 
     double* distances = nullptr;
 
@@ -121,8 +172,6 @@ public:
     vec3* w = nullptr;
     vec3* wh = nullptr;  ///< Angular velocity half step for integration purposes.
     vec3* aacc = nullptr;
-    vec3* accsq = nullptr;
-    vec3* aaccsq = nullptr;
     double* R = nullptr;    ///< Radius
     double* m = nullptr;    ///< Mass
     double* moi = nullptr;  ///< Moment of inertia
@@ -189,8 +238,6 @@ public:
     void merge_ball_group(const Ball_group& src);
 
     void sim_one_step(const bool write_step);
-    void sim_looper();
-    void bufferBarf();
 
     // String buffers to hold data in memory until worth writing to file:
     // std::stringstream ballBuffer;
@@ -292,6 +339,7 @@ Ball_group::Ball_group(
     const std::string& targetName,
     const double& customVel=-1.)
 {
+    int world_rank = getRank();
     parse_input_file(path.c_str());
     // std::cerr<<path<<std::endl;
     sim_init_two_cluster(path, projectileName, targetName);
@@ -535,6 +583,7 @@ void Ball_group::parse_input_file(char const* location)
     // std::cerr<<ifs.rdbuf()<<std::endl;
     json inputs = json::parse(ifs);
 
+    int world_rank = getRank();
     
     if (world_rank == 0)
     {
@@ -727,6 +776,7 @@ void Ball_group::zeroSaveVals()
 
 void Ball_group::calibrate_dt(int const Step, const double& customSpeed = -1.)
 {
+    int world_rank = getRank();
 
     const double dtOld = dt;
 
@@ -794,6 +844,7 @@ void Ball_group::calibrate_dt(int const Step, const double& customSpeed = -1.)
 /// @brief Push balls apart until no overlaps
 void Ball_group::pushApart() const
 {
+    int world_rank = getRank();
 
     if (world_rank == 0)
     {
@@ -879,7 +930,7 @@ void Ball_group::calc_v_collapse()
 /// get max velocity
 [[nodiscard]] double Ball_group::getVelMax()
 {
-    // int world_rank = getRank();
+    int world_rank = getRank();
 
     v_max = 0;
 
@@ -1134,7 +1185,7 @@ void Ball_group::sim_init_write(std::string filename, int counter = 0)
 
 [[nodiscard]] vec3 Ball_group::getCOM() const
 {
-    // int world_rank = getRank();
+    int world_rank = getRank();
 
     if (m_total > 0) {
         vec3 comNumerator;
@@ -1341,7 +1392,7 @@ Ball_group Ball_group::dust_agglomeration_particle_init()
     const double3x3 local_coords = local_coordinates(to_double3(projectile_direction));
     
     projectile.pos[0] = dust_agglomeration_offset(local_coords,projectile.pos[0],projectile.vel[0],projectile.R[0]);
-    // std::cerr<<"pos, dir: "<<projectile.pos[0]<<", "<<projectile_direction<<std::endl;
+    std::cerr<<"pos, dir: "<<projectile.pos[0]<<", "<<projectile_direction<<std::endl;
     //////////////////////////////////
     //TURN ON above LINE AND OFF REST FOR REAL SIM
     // if (num_particles == 3)
@@ -1364,7 +1415,7 @@ Ball_group Ball_group::dust_agglomeration_particle_init()
 // Uses previous O as target and adds one particle to hit it:
 Ball_group Ball_group::add_projectile()
 {
-    // int world_rank = getRank();
+    int world_rank = getRank();
 
     // Load file data:
     if (world_rank == 0)
@@ -1527,12 +1578,9 @@ void Ball_group::merge_ball_group(const Ball_group& src)
 void Ball_group::allocate_group(const int nBalls)
 {
     num_particles = nBalls;
-    // int world_rank = getRank();
+    int world_rank = getRank();
     try {
         distances = new double[(num_particles * num_particles / 2) - (num_particles / 2)];
-        
-        accsq = new vec3[num_particles*num_particles];
-        aaccsq = new vec3[num_particles*num_particles];
 
         pos = new vec3[num_particles];
         vel = new vec3[num_particles];
@@ -1578,11 +1626,9 @@ void Ball_group::freeMemory() const
     delete[] vel;
     delete[] velh;
     delete[] acc;
-    delete[] accsq;
     delete[] w;
     delete[] wh;
     delete[] aacc;
-    delete[] aaccsq;
     delete[] R;
     delete[] m;
     delete[] moi;
@@ -1611,7 +1657,7 @@ void Ball_group::freeMemory() const
 // Initialize accelerations and energy calculations:
 void Ball_group::init_conditions()
 {
-    // int world_rank = getRank();
+    int world_rank = getRank();
 
     update_time = 0.0;
     // SECOND PASS - Check for collisions, apply forces and torques:
@@ -1779,7 +1825,7 @@ void Ball_group::init_conditions()
     }
 
     #ifdef MPI_ENABLE
-        double local_PE = PE;
+        int local_PE = PE;
         PE = 0.0;
         MPI_Reduce(&local_PE,&PE,1,MPI_DOUBLE,MPI_SUM,0,MPI_COMM_WORLD);
     #endif
@@ -1867,7 +1913,7 @@ void Ball_group::parseSimData(std::string line)
 void Ball_group::loadConsts(const std::string& path, const std::string& filename)
 {
 
-    // int world_rank = getRank();
+    int world_rank = getRank();
     // Get radius, mass, moi:
     std::string constantsFilename = path + filename + "constants.csv";
     if (auto ConstStream = std::ifstream(constantsFilename, std::ifstream::in)) {
@@ -1897,7 +1943,7 @@ void Ball_group::loadConsts(const std::string& path, const std::string& filename
 /// Get last line of previous simData by filename.
 [[nodiscard]] std::string Ball_group::getLastLine(const std::string& path, const std::string& filename)
 {
-    // int world_rank = getRank();
+    int world_rank = getRank();
     std::string simDataFilepath = path + filename + "simData.csv";
     if (auto simDataStream = std::ifstream(simDataFilepath, std::ifstream::in)) {
         if (world_rank == 0)
@@ -1985,7 +2031,7 @@ void Ball_group::simDataWrite(std::string& outFilename)
 
 void Ball_group::threeSizeSphere(const int nBalls)
 {
-    // int world_rank = getRank();
+    int world_rank = getRank();
 
     // Make nBalls of 3 sizes in CGS with ratios such that the mass is distributed evenly among the 3
     // sizes (less large nBalls than small nBalls).
@@ -2104,7 +2150,7 @@ void Ball_group::threeSizeSphere(const int nBalls)
 
 void Ball_group::generate_ball_field(const int nBalls)
 {
-    // int world_rank = getRank();
+    int world_rank = getRank();
     if (world_rank == 0)
     {
         std::cerr << "CLUSTER FORMATION\n";
@@ -2137,7 +2183,7 @@ void Ball_group::generate_ball_field(const int nBalls)
 /// Make ballGroup from file data.
 void Ball_group::loadSim(const std::string& path, const std::string& filename)
 {
-    // int world_rank = getRank();
+    int world_rank = getRank();
     parseSimData(getLastLine(path, filename));
     loadConsts(path, filename);
 
@@ -2196,7 +2242,7 @@ void Ball_group::oneSizeSphere(const int nBalls)
 
 void Ball_group::placeBalls(const int nBalls)
 {
-    // int world_rank = getRank();
+    int world_rank = getRank();
 
     // Generate non-overlapping spherical particle field:
     int collisionDetected = 0;
@@ -2268,7 +2314,7 @@ void Ball_group::placeBalls(const int nBalls)
 
 void Ball_group::updateDTK(const double& velocity)
 {
-    // int world_rank = getRank();
+    int world_rank = getRank();
 
     calc_helpfuls();
     kin = kConsts * r_max * velocity * velocity;
@@ -2313,9 +2359,7 @@ void Ball_group::updateDTK(const double& velocity)
 
 void Ball_group::simInit_cond_and_center(bool add_prefix)
 {
-    // int world_rank = getRank();
-
-    PE = 0.0;
+    int world_rank = getRank();
 
     if (world_rank == 0)
     {
@@ -2347,7 +2391,7 @@ void Ball_group::simInit_cond_and_center(bool add_prefix)
 
 void Ball_group::sim_continue(const std::string& path, const std::string& filename, int start_file_index=0)
 {
-    // int world_rank = getRank();
+    int world_rank = getRank();
     // Load file data:
     num_particles = 3 + start_file_index;
     if (start_file_index == 0)
@@ -2384,7 +2428,7 @@ void Ball_group::sim_init_two_cluster(
     const std::string& projectileName,
     const std::string& targetName)
 {
-    // int world_rank = getRank();
+    int world_rank = getRank();
 
     // Load file data:
     if (world_rank == 0)
@@ -2471,195 +2515,14 @@ void Ball_group::sim_init_two_cluster(
                     rounder(impactParameter * 180 / 3.14159, 2) + "_rho" + rounder(density, 4);
 }
 
-void Ball_group::bufferBarf()
+void Ball_group::sim_one_step(const bool write_step)
 {
-    // Write simData to file and clear buffer.
-    std::ofstream ballWrite;
-    ballWrite.open(output_folder + output_prefix + "simData.csv", std::ofstream::app);
-    ballWrite << ballBuffer.rdbuf();  // Barf buffer to file.
-    ballBuffer.str("");               // Empty the stream for next filling.
-    ballWrite.close();
-
-    // Write Energy data to file and clear buffer.
-    ////////////////////////////////////////////
-    //TURN ON FOR REAL SIM
-    std::ofstream energyWrite;
-    energyWrite.open(output_folder + output_prefix + "energy.csv", std::ofstream::app);
-    energyWrite << energyBuffer.rdbuf();
-    energyBuffer.str("");  // Empty the stream for next filling.
-    energyWrite.close();
-    // ////////////////////////////////////////////
-}
-
-void Ball_group::sim_looper()
-{
-    world_rank = getRank();
-    world_size = getSize();
-
-    if (world_rank == 0)
-    {    
-        std::cerr << "Beginning simulation...\n";
-
-        // startProgress = ;
-
-        std::cerr<<"Stepping through "<<steps<<" steps"<<std::endl;
-    }
-
-    bool write_step;
-    time_t startProgress = time(nullptr);                // For progress reporting (gets reset)
-    time_t lastWrite;                    // For write control (gets reset)
-    num_pairs = (num_particles*num_particles-num_particles)*0.5;
-
-    #pragma acc enter data copyin(this) 
-    #pragma acc enter data copyin(moi[0:num_particles],m[0:num_particles],w[0:num_particles],vel[0:num_particles],pos[0:num_particles],R[0:num_particles],distances[0:num_pairs]) 
-    #pragma acc enter data copyin(accsq[0:num_particles*num_particles],aaccsq[0:num_particles*num_particles],acc[0:num_particles],aacc[0:num_particles],velh[0:num_particles],wh[0:num_particles]) 
-    #pragma acc enter data copyin(dt,num_pairs,num_particles,Ha,k_in,k_out,h_min,u_s,u_r,world_rank,world_size)
-    
-    for (int Step = 1; Step < steps; Step++)  // Steps start at 1 because the 0 step is initial conditions.
-    {
-        // simTimeElapsed += dt; //New code #1
-        // Check if this is a write step:
-        if (Step % skip == 0) {
-            // t.start_event("writeProgressReport");
-            write_step = true;
-
-            /////////////////////// Original code #1
-            simTimeElapsed += dt * skip;
-            ///////////////////////
-
-            // Progress reporting:
-            if (world_rank == 0)
-            {
-                float eta = ((time(nullptr) - startProgress) / static_cast<float>(skip) *
-                             static_cast<float>(steps - Step)) /
-                            3600.f;  // Hours.
-                float real = (time(nullptr) - start) / 3600.f;
-                float simmed = static_cast<float>(simTimeElapsed / 3600.f);
-                float progress = (static_cast<float>(Step) / static_cast<float>(steps) * 100.f);
-                fprintf(
-                    stderr,
-                    "%u\t%2.0f%%\tETA: %5.2lf\tReal: %5.2f\tSim: %5.2f hrs\tR/S: %5.2f\n",
-                    Step,
-                    progress,
-                    eta,
-                    real,
-                    simmed,
-                    real / simmed);
-                // fprintf(stdout, "%u\t%2.0f%%\tETA: %5.2lf\tReal: %5.2f\tSim: %5.2f hrs\tR/S: %5.2f\n", Step,
-                // progress, eta, real, simmed, real / simmed);
-                fflush(stdout);
-            }
-            startProgress = time(nullptr);
-            // t.end_event("writeProgressReport");
-        } else {
-            write_step = debug;
-            // write_step = true;
-        }
-
-        // Physics integration step:
-        ///////////
-        // if (write_all)
-        // {
-        //     zeroSaveVals();
-        // }
-        ///////////
-        // sim_one_step(write_step,O);
-        sim_one_step(write_step);
-        // std::cerr<<"STEP: "<<Step<<std::endl;
-
-        if (write_step) 
-        {
-            if (world_rank == 0)
-            {
-                // t.start_event("write_step");
-                // Write energy to stream:
-                ////////////////////////////////////
-                //TURN THIS ON FOR REAL RUNS!!!
-                energyBuffer << '\n'
-                             << simTimeElapsed << ',' << PE << ',' << KE << ',' << PE + KE << ','
-                             << mom.norm() << ','
-                             << ang_mom.norm();  // the two zeros are bound and unbound mass
-
-
-                // Data Export. Exports every 10 write_steps (10 new lines of data) and also if the last write was
-                // a long time ago.
-                // if (time(nullptr) - lastWrite > 1800 || Step / skip % 10 == 0) {
-                if (Step / skip % 10 == 0 || Step == steps-1) {
-                    // Report vMax:
-
-                    std::cerr << "vMax = " << getVelMax() << " Steps recorded: " << Step / skip << '\n';
-                    std::cerr << "Data Write to "<<output_folder<<"\n";
-                    // std::cerr<<"output_prefix: "<<output_prefix<<std::endl;
-
-
-                    bufferBarf();
-
-                    lastWrite = time(nullptr);
-                }  // Data export end
-
-
-                if (dynamicTime) { calibrate_dt(Step, false); }
-            }
-            // Reinitialize energies for next step:
-            KE = 0;
-            PE = 0;
-            mom = {0, 0, 0};
-            ang_mom = {0, 0, 0};
-            //unboundMass = 0;
-            //boundMass = massTotal;
-            ////////////////////////////////////
-                // t.end_event("write_step");
-        }  // write_step end
-
-    }
-    // #pragma acc exit data delete(this)
-    // #pragma acc exit data delete(acc[0:num_particles],aacc[0:num_particles],PE[0:1])
-    // #pragma acc exit data delete(velh[0:num_particles],wh[0:num_particles],m[0:num_particles],w[0:num_particles],vel[0:num_particles],pos[0:num_particles],R[0:num_particles],distances[0:num_pairs])
-    // #pragma acc exit data delete(num_pairs,num_particles,A,B,pc,Ha,k_in,k_out,h_min,u_s,u_r,write_step,world_rank,world_size)
-    #pragma acc exit data delete(accsq[0:num_particles*num_particles],aaccsq[0:num_particles*num_particles],acc[0:num_particles],aacc[0:num_particles])
-    #pragma acc exit data delete(m[0:num_particles],w[0:num_particles],vel[0:num_particles],pos[0:num_particles],R[0:num_particles],distances[0:num_pairs])
-    #pragma acc exit data delete(dt,num_pairs,num_particles,Ha,k_in,k_out,h_min,u_s,u_r,world_rank,world_size)
-    #pragma acc exit data delete(this)
-
-    if (world_rank == 0)
-    {
-        std::ofstream timeWrite;
-        timeWrite.open("time.csv", std::ofstream::app);
-        timeWrite << num_particles << ',' <<update_time << std::endl;
-    
-
-        // if (true)
-        // {
-        //     for (int i = 0; i < num_particles; i++)
-        //     {
-        //         std::cerr<<"===================================="<<std::endl;
-        //         std::cerr<<pos[i]<<std::endl;
-        //         std::cerr<<vel[i]<<std::endl;
-        //         std::cerr<<"===================================="<<std::endl;
-        //     }
-        // }
-
-        const time_t end = time(nullptr);
-
-        std::cerr << "Simulation complete!\n"
-                  << num_particles << " Particles and " << steps << " Steps.\n"
-                  << "Simulated time: " << steps * dt << " seconds\n"
-                  << "Computation time: " << end - start << " seconds\n";
-        std::cerr << "\n===============================================================\n";
-    }
-    if (!ballBuffer.str().empty())
-    {
-        ballBuffer<<'\n';
-        energyBuffer<<'\n';
-        bufferBarf();
-    }
-
-}  // end simLooper
-
-void Ball_group::sim_one_step(const bool writeStep)
-{
+    std::cerr<<"IN ONE STEP"<<std::endl;
+    int world_rank = getRank();
+    int world_size = getSize();
     /// FIRST PASS - Update Kinematic Parameters:
-    #pragma acc parallel loop gang worker present(this,velh[0:num_particles],vel[0:num_particles],acc[0:num_particles],dt,wh[0:num_particles],w[0:num_particles],aacc[0:num_particles],pos[0:num_particles],num_particles)
+    // t.start_event("UpdateKinPar");
+    // #pragma omp parallel for default(none) shared(velh,vel,acc,wh,w,aacc,pos,dt)
     for (int Ball = 0; Ball < num_particles; Ball++) {
         // Update velocity half step:
         velh[Ball] = vel[Ball] + .5 * acc[Ball] * dt;
@@ -2671,324 +2534,354 @@ void Ball_group::sim_one_step(const bool writeStep)
         pos[Ball] += velh[Ball] * dt;
 
         // Reinitialize acceleration to be recalculated:
-        acc[Ball] = {0.0,0.0,0.0};
+        acc[Ball] = {0, 0, 0};
 
         // Reinitialize angular acceleration to be recalculated:
-        aacc[Ball] = {0.0,0.0,0.0};
+        aacc[Ball] = {0, 0, 0};
     }
+    // t.end_event("UpdateKinPar");
 
-    #pragma acc parallel loop gang worker num_gangs(108) present(this,num_particles,accsq[0:num_particles*num_particles],aaccsq[0:num_particles*num_particles])
-    for (int i = 0; i < num_particles*num_particles; ++i)
-    {
-        accsq[i] = {0.0,0.0,0.0};
-        aaccsq[i] = {0.0,0.0,0.0};
-    }
+    /// SECOND PASS - Check for collisions, apply forces and torques:
+    // t.start_event("CalcForces/loopApplicablepairs");
+    // int A,B;
+    // #pragma omp declare reduction(vec3_sum : vec3 : omp_out += omp_in)
+    // #pragma omp parallel for num_threads(4) reduction(vec3_sum:acc[:num_particles],aacc[:num_particles]) reduction(+:PE) default(none) /*private(A,B)*/ shared(Ha,write_step,R,pos,vel,m,w,u_r,u_s,moi,kin,kout,distances,h_min,dt)
+    // #pragma omp parallel for num_threads(2) //reduction(+:PE) private(A,B) shared(Ha,write_step,R,pos,vel,m,w,u_r,u_s,moi,kin,kout,distances,h_min,dt)
+    // for (int A0 = 1; A0 < num_particles; A0++)  
+    // {
+    //     // #pragma omp critical
+    //     // {
+    //     /// DONT DO ANYTHING HERE. A STARTS AT 1.
+    //     int A = A0;//(A0 - 1) ^ 2 + 1;
+    //     for (int B = 0; B < A; B++) 
+    //     {
+    // #pragma omp parallel master
+    // std::cerr<<"Using "<<omp_get_num_threads()<<" threads"<<std::endl;
+    // omp_lock_t writelock;
+    // omp_init_lock(&writelock);
 
+    // long long A;
+    // long long B;
+    // long long pc;
+    // long long lllen = num_particles;
 
-    double pe = 0.0;
-    #pragma acc enter data copyin(pe)
-    #pragma acc enter data copyin(writeStep)
-
+    int A;
+    int B;
+    int pc;
+    int num_pairs = (num_particles*num_particles-num_particles)*0.5;
+    // // #pragma omp parallel for reduction(+:PE) default(none) private(A,B,pc) shared(Ha,write_step,lllen,R,pos,vel,m,w,u_r,u_s,moi,kin,kout,distances,h_min)
+    // // #pragma omp parallel for num_threads(3) reduction(+:PE) default(none) private(A,B,pc) shared(writelock,acc,aacc,Ha,write_step,lllen,R,pos,vel,m,w,u_r,u_s,moi,kin,kout,distances,h_min)
+    // for (pc = (((lllen*lllen)-lllen)/2); pc >= 1; pc--)
     double t0 = omp_get_wtime();
-    // std::cerr<<"IN simonestep"<<std::endl;
-
-    #pragma acc parallel loop gang worker num_gangs(108) num_workers(256) reduction(+:pe) present(pe,this,accsq[0:num_particles*num_particles],aaccsq[0:num_particles*num_particles],m[0:num_particles],moi[0:num_particles],w[0:num_particles],vel[0:num_particles],pos[0:num_particles],R[0:num_particles],distances[0:num_pairs],num_pairs,num_particles,Ha,k_in,k_out,h_min,u_s,u_r,writeStep,world_rank,world_size)
-    for (int pc = 1; pc <= num_pairs; pc ++)
+    // #pragma omp declare reduction(vec3_sum : vec3 : omp_out += omp_in)
+    // #pragma omp parallel for schedule(dynamic, 32) num_threads(OMPthreads) reduction(vec3_sum:acc[:num_particles],aacc[:num_particles]) reduction(+:PE) default(none) private(A,B,pc) shared(Ha,write_step,lllen,R,pos,vel,m,w,u_r,u_s,moi,kin,kout,distances,h_min,dt)
+    std::cerr<<"WE OUT HERE"<<std::endl;
+    #pragma omp target defaultmap(none) map(tofrom:acc[0:num_particles],aacc[0:num_particles],PE) map(to:world_rank,world_size,Ha,write_step,u_r,u_s,kin,kout,h_min,dt,R[0:num_particles],vel[0:num_particles],m[0:num_particles],w[0:num_particles],moi[0:num_particles],pos[0:num_particles],distances[0:num_pairs])
     {
-        // if (writeStep)
-        // {
-        //     pe += 1;
-        // }
-        
-        double pd = (double)pc;
-        pd = (sqrt(pd*8.0+1.0)+1.0)*0.5;
-        pd -= 0.00001;
-        int A = (int)pd;
-        int B = (int)((double)pc-(double)A*((double)A-1.0)*.5-1.0);
-
-        const double sumRaRb =  R[A] + R[B];
-        const vec3 rVecab = pos[B] - pos[A];  // Vector from a to b.
-        const vec3 rVecba = -rVecab;
-        const double dist = (rVecab).norm();
-
-        // Check for collision between Ball and otherBall:
-        double overlap = sumRaRb - dist;
-
-        vec3 totalForceOnA{0, 0, 0};
-
-        int e = pc-1;
-        double oldDist = distances[e];
-
-        // if (true) {
-        if (overlap > 0) {
-
-            double k;
-            if (dist >= oldDist) {
-                k = kout;
-            } else {
-                k = kin;
-            }
-
-            // Cohesion (in contact) h must always be h_min:
-            // constexpr double h = h_min;
-            const double h = h_min;
-            const double Ra = R[A];
-            const double Rb = R[B];
-            const double h2 = h * h;
-            // constexpr double h2 = h * h;
-            const double twoRah = 2 * Ra * h;
-            const double twoRbh = 2 * Rb * h;
-
-            // ==========================================
-            // Test new vdw force equation with less division
-            const double d1 = h2 + twoRah + twoRbh;
-            const double d2 = d1 + 4 * Ra * Rb;
-            const double numer = 64*Ha*Ra*Ra*Ra*Rb*Rb*Rb*(h+Ra+Rb);
-            const double denomrecip = 1/(6*d1*d1*d2*d2);
-            const vec3 vdwForceOnA = (numer*denomrecip)*rVecab.normalized();
-            // ==========================================
-            // const vec3 vdwForceOnA = Ha / 6 * 64 * Ra * Ra * Ra * Rb * Rb * Rb *
-            //                          ((h + Ra + Rb) / ((h2 + twoRah + twoRbh) * (h2 + twoRah + twoRbh) *
-            //                                            (h2 + twoRah + twoRbh + 4 * Ra * Rb) *
-            //                                            (h2 + twoRah + twoRbh + 4 * Ra * Rb))) *
-            //                          rVecab.normalized();
-            
-
-            const vec3 elasticForceOnA = -k * overlap * .5 * (rVecab / dist);
-
-            ///////////////////////////////
-            ///////material parameters for silicate composite from Reissl 2023
-            // const double Estar = 1e5*169; //in Pa
-            // const double nu2 = 0.27*0.27; // nu squared (unitless)
-            // const double prevoverlap = sumRaRb - oldDist;
-            // const double rij = sqrt(std::pow(Ra,2)-std::pow((Ra-overlap/2),2));
-            // const double Tvis = 15e-12; //Viscoelastic timescale (15ps)
-            // // const double Tvis = 5e-12; //Viscoelastic timescale (5ps)
-            // const vec3 viscoelaticforceOnA = -(2*Estar/nu2) * 
-            //                                  ((overlap - prevoverlap)/dt) * 
-            //                                  rij * Tvis * (rVecab / dist);
-            const vec3 viscoelaticforceOnA = {0,0,0};
-            ///////////////////////////////
-
-            // Gravity force:
-            // const vec3 gravForceOnA = (G * m[A] * m[B] * grav_scale / (dist * dist)) * (rVecab / dist); //SCALE MASS
-            const vec3 gravForceOnA = {0,0,0};
-            // const vec3 gravForceOnA = (G * m[A] * m[B] / (dist * dist)) * (rVecab / dist);
-
-            // Sliding and Rolling Friction:
-            vec3 slideForceOnA{0, 0, 0};
-            vec3 rollForceA{0, 0, 0};
-            vec3 torqueA{0, 0, 0};
-            vec3 torqueB{0, 0, 0};
-
-            // Shared terms:
-            const double elastic_force_A_mag = elasticForceOnA.norm();
-            const vec3 r_a = rVecab * R[A] / sumRaRb;  // Center to contact point
-            const vec3 r_b = rVecba * R[B] / sumRaRb;
-            const vec3 w_diff = w[A] - w[B];
-
-            // Sliding friction terms:
-            const vec3 d_vel = vel[B] - vel[A];
-            const vec3 frame_A_vel_B = d_vel - d_vel.dot(rVecab) * (rVecab / (dist * dist)) -
-                                       w[A].cross(r_a) - w[B].cross(r_a);
-
-            // Compute sliding friction force:
-            const double rel_vel_mag = frame_A_vel_B.norm();
-
-            if (rel_vel_mag > 1e-13)  // NORMAL ONE Divide by zero protection.
-            {
-                slideForceOnA = u_s * elastic_force_A_mag * (frame_A_vel_B / rel_vel_mag);
-            }
-
-
-
-            // Compute rolling friction force:
-            const double w_diff_mag = w_diff.norm();
-            // if (w_diff_mag > 1e-20)  // Divide by zero protection.
-            // if (w_diff_mag > 1e-8)  // Divide by zero protection.
-            if (w_diff_mag > 1e-13)  // NORMAL ONE Divide by zero protection.
-            {
-                rollForceA = 
-                        -u_r * elastic_force_A_mag * (w_diff).cross(r_a) / 
-                        (w_diff).cross(r_a).norm();
-            }
-
-            // Total forces on a:
-            // totalForceOnA = gravForceOnA + elasticForceOnA + slideForceOnA + vdwForceOnA;
-            ////////////////////////////////
-            totalForceOnA = viscoelaticforceOnA + gravForceOnA + elasticForceOnA + slideForceOnA + vdwForceOnA;
-            ////////////////////////////////
-
-            // Total torque a and b:
-            torqueA = r_a.cross(slideForceOnA + rollForceA);
-            torqueB = r_b.cross(-slideForceOnA + rollForceA); // original code
-
-            // omp_set_lock(&writelock);
-            // #pragma omp critical
-            // {
-            vec3 aaccA = (1/moi[A])*torqueA;
-            vec3 aaccB = (1/moi[B])*torqueB;
-
-            aaccsq[A*num_particles+B].x = aaccA.x;
-            aaccsq[A*num_particles+B].y = aaccA.y;
-            aaccsq[A*num_particles+B].z = aaccA.z;
-            aaccsq[B*num_particles+A].x = aaccB.x;
-            aaccsq[B*num_particles+A].y = aaccB.y;
-            aaccsq[B*num_particles+A].z = aaccB.z;
-
-
-            if (writeStep) {
-                // No factor of 1/2. Includes both spheres:
-                // PE += -G * m[A] * m[B] * grav_scale / dist + 0.5 * k * overlap * overlap;
-                // PE += -G * m[A] * m[B] / dist + 0.5 * k * overlap * overlap;
-
-                // Van Der Waals + elastic:
-                const double diffRaRb = R[A] - R[B];
-                const double z = sumRaRb + h;
-                const double two_RaRb = 2 * R[A] * R[B];
-                const double denom_sum = z * z - (sumRaRb * sumRaRb);
-                const double denom_diff = z * z - (diffRaRb * diffRaRb);
-                const double U_vdw =
-                    -Ha / 6 *
-                    (two_RaRb / denom_sum + two_RaRb / denom_diff + 
-                    log(denom_sum / denom_diff));
-                pe += U_vdw + 0.5 * k * overlap * overlap; ///TURN ON FOR REAL SIM
-            }
-        } else  // Non-contact forces:
+        // #pragma omp teams num_teams(64)
+        // #pragma omp distribute parallel for reduction(+:PE) default(none) private(A,B,pc) shared(acc,aacc,world_rank,world_size,Ha,write_step,lllen,R,pos,vel,m,w,u_r,u_s,moi,kin,kout,distances,h_min,dt)
+        #pragma omp parallel for reduction(+:PE) default(none) private(A,B,pc) shared(acc,aacc,world_rank,world_size,Ha,write_step,num_pairs,R,pos,vel,m,w,u_r,u_s,moi,kin,kout,distances,h_min,dt) //defaultmap(none) map(tofrom:acc[0:num_particles],aacc[0:num_particles],PE) map(to:write_step,vel[0:num_particles],m[0:num_particles],moi[0:num_particles],pos[0:num_particles],distances[(((lllen*lllen)-lllen)/2)])
+        for (pc = world_rank + 1; pc <= num_pairs; pc += world_size)
         {
+            // long double pd = (long double)pc;
+            // pd = (sqrt(pd*8.0L+1.0L)+1.0L)*0.5L;
+            // pd -= 0.00001L;
+            // A = (long long)pd;
+            // B = (long long)((long double)pc-(long double)A*((long double)A-1.0L)*.5L-1.0L);
+            double pd = (double)pc;
+            pd = (sqrt(pd*8.0+1.0)+1.0)*0.5;
+            pd -= 0.00001;
+            A = (int)pd;
+            B = (int)((double)pc-(double)A*((double)A-1.0)*.5-1.0);
 
-            // No collision: Include gravity and vdw:
-            // const vec3 gravForceOnA = (G * m[A] * m[B] * grav_scale / (dist * dist)) * (rVecab / dist);
-            const vec3 gravForceOnA = {0.0,0.0,0.0};
-            // Cohesion (non-contact) h must be positive or h + Ra + Rb becomes catastrophic cancellation:
-            double h = std::fabs(overlap);
-            if (h < h_min)  // If h is closer to 0 (almost touching), use hmin.
+            const double sumRaRb = R[A] + R[B];
+            const vec3 rVecab = pos[B] - pos[A];  // Vector from a to b.
+            const vec3 rVecba = -rVecab;
+            const double dist = (rVecab).norm();
+
+            //////////////////////
+            // const double grav_scale = 3.0e21;
+            //////////////////////
+
+            // Check for collision between Ball and otherBall:
+            double overlap = sumRaRb - dist;
+
+            vec3 totalForceOnA{0, 0, 0};
+
+            // Distance array element: 1,0    2,0    2,1    3,0    3,1    3,2 ...
+            // int e = static_cast<unsigned>(A * (A - 1) * .5) + B;  // a^2-a is always even, so this works.
+            int e = pc-1;
+            double oldDist = distances[e];
+
+            // Check for collision between Ball and otherBall.
+            if (overlap > 0) {
+
+
+                double k;
+                if (dist >= oldDist) {
+                    k = kout;
+                } else {
+                    k = kin;
+                }
+
+                // Cohesion (in contact) h must always be h_min:
+                // constexpr double h = h_min;
+                const double h = h_min;
+                const double Ra = R[A];
+                const double Rb = R[B];
+                const double h2 = h * h;
+                // constexpr double h2 = h * h;
+                const double twoRah = 2 * Ra * h;
+                const double twoRbh = 2 * Rb * h;
+
+                // ==========================================
+                // Test new vdw force equation with less division
+                const double d1 = h2 + twoRah + twoRbh;
+                const double d2 = d1 + 4 * Ra * Rb;
+                const double numer = 64*Ha*Ra*Ra*Ra*Rb*Rb*Rb*(h+Ra+Rb);
+                const double denomrecip = 1/(6*d1*d1*d2*d2);
+                const vec3 vdwForceOnA = (numer*denomrecip)*rVecab.normalized();
+                // ==========================================
+                // const vec3 vdwForceOnA = Ha / 6 * 64 * Ra * Ra * Ra * Rb * Rb * Rb *
+                //                          ((h + Ra + Rb) / ((h2 + twoRah + twoRbh) * (h2 + twoRah + twoRbh) *
+                //                                            (h2 + twoRah + twoRbh + 4 * Ra * Rb) *
+                //                                            (h2 + twoRah + twoRbh + 4 * Ra * Rb))) *
+                //                          rVecab.normalized();
+                
+
+                const vec3 elasticForceOnA = -k * overlap * .5 * (rVecab / dist);
+
+                ///////////////////////////////
+                ///////material parameters for silicate composite from Reissl 2023
+                // const double Estar = 1e5*169; //in Pa
+                // const double nu2 = 0.27*0.27; // nu squared (unitless)
+                // const double prevoverlap = sumRaRb - oldDist;
+                // const double rij = sqrt(std::pow(Ra,2)-std::pow((Ra-overlap/2),2));
+                // const double Tvis = 15e-12; //Viscoelastic timescale (15ps)
+                // // const double Tvis = 5e-12; //Viscoelastic timescale (5ps)
+                // const vec3 viscoelaticforceOnA = -(2*Estar/nu2) * 
+                //                                  ((overlap - prevoverlap)/dt) * 
+                //                                  rij * Tvis * (rVecab / dist);
+                const vec3 viscoelaticforceOnA = {0,0,0};
+                ///////////////////////////////
+
+                // Gravity force:
+                // const vec3 gravForceOnA = (G * m[A] * m[B] * grav_scale / (dist * dist)) * (rVecab / dist); //SCALE MASS
+                const vec3 gravForceOnA = {0,0,0};
+                // const vec3 gravForceOnA = (G * m[A] * m[B] / (dist * dist)) * (rVecab / dist);
+
+                // Sliding and Rolling Friction:
+                vec3 slideForceOnA{0, 0, 0};
+                vec3 rollForceA{0, 0, 0};
+                vec3 torqueA{0, 0, 0};
+                vec3 torqueB{0, 0, 0};
+
+                // Shared terms:
+                const double elastic_force_A_mag = elasticForceOnA.norm();
+                const vec3 r_a = rVecab * R[A] / sumRaRb;  // Center to contact point
+                const vec3 r_b = rVecba * R[B] / sumRaRb;
+                const vec3 w_diff = w[A] - w[B];
+
+                // Sliding friction terms:
+                const vec3 d_vel = vel[B] - vel[A];
+                const vec3 frame_A_vel_B = d_vel - d_vel.dot(rVecab) * (rVecab / (dist * dist)) -
+                                           w[A].cross(r_a) - w[B].cross(r_a);
+
+                // Compute sliding friction force:
+                const double rel_vel_mag = frame_A_vel_B.norm();
+
+                if (rel_vel_mag > 1e-13)  // NORMAL ONE Divide by zero protection.
+                {
+                    slideForceOnA = u_s * elastic_force_A_mag * (frame_A_vel_B / rel_vel_mag);
+                }
+
+
+
+                // Compute rolling friction force:
+                const double w_diff_mag = w_diff.norm();
+                // if (w_diff_mag > 1e-20)  // Divide by zero protection.
+                // if (w_diff_mag > 1e-8)  // Divide by zero protection.
+                if (w_diff_mag > 1e-13)  // NORMAL ONE Divide by zero protection.
+                {
+                    rollForceA = 
+                            -u_r * elastic_force_A_mag * (w_diff).cross(r_a) / 
+                            (w_diff).cross(r_a).norm();
+                }
+
+                // Total forces on a:
+                // totalForceOnA = gravForceOnA + elasticForceOnA + slideForceOnA + vdwForceOnA;
+                ////////////////////////////////
+                totalForceOnA = viscoelaticforceOnA + gravForceOnA + elasticForceOnA + slideForceOnA + vdwForceOnA;
+                ////////////////////////////////
+
+                // Total torque a and b:
+                torqueA = r_a.cross(slideForceOnA + rollForceA);
+                torqueB = r_b.cross(-slideForceOnA + rollForceA); // original code
+
+                // omp_set_lock(&writelock);
+                // #pragma omp critical
+                // {
+                vec3 aaccA = (1/moi[A])*torqueA;
+                vec3 aaccB = (1/moi[B])*torqueB;
+
+                // for (int i = 0; i < 3; i ++)
+                // {
+                //     #pragma omp atomic
+                //         aacc[A][i] += aaccA[i];
+                //     #pragma omp atomic
+                //         aacc[B][i] += aaccB[i];
+
+                // }
+                #pragma omp atomic
+                    aacc[A].x += aaccA.x;
+                #pragma omp atomic
+                    aacc[A].y += aaccA.y;
+                #pragma omp atomic
+                    aacc[A].z += aaccA.z;
+                #pragma omp atomic
+                    aacc[B].x += aaccB.x;
+                #pragma omp atomic
+                    aacc[B].y += aaccB.y;
+                #pragma omp atomic
+                    aacc[B].z += aaccB.z;
+                // }
+                // omp_unset_lock(&writelock);
+
+
+                if (write_step) {
+                    // No factor of 1/2. Includes both spheres:
+                    // PE += -G * m[A] * m[B] * grav_scale / dist + 0.5 * k * overlap * overlap;
+                    // PE += -G * m[A] * m[B] / dist + 0.5 * k * overlap * overlap;
+
+                    // Van Der Waals + elastic:
+                    const double diffRaRb = R[A] - R[B];
+                    const double z = sumRaRb + h;
+                    const double two_RaRb = 2 * R[A] * R[B];
+                    const double denom_sum = z * z - (sumRaRb * sumRaRb);
+                    const double denom_diff = z * z - (diffRaRb * diffRaRb);
+                    const double U_vdw =
+                        -Ha / 6 *
+                        (two_RaRb / denom_sum + two_RaRb / denom_diff + 
+                        log(denom_sum / denom_diff));
+                    // #pragma omp critical
+                    PE += U_vdw + 0.5 * k * overlap * overlap; ///TURN ON FOR REAL SIM
+                }
+            } else  // Non-contact forces:
             {
-                h = h_min;
+
+                // No collision: Include gravity and vdw:
+                // const vec3 gravForceOnA = (G * m[A] * m[B] * grav_scale / (dist * dist)) * (rVecab / dist);
+                const vec3 gravForceOnA = {0.0,0.0,0.0};
+                // Cohesion (non-contact) h must be positive or h + Ra + Rb becomes catastrophic cancellation:
+                double h = std::fabs(overlap);
+                if (h < h_min)  // If h is closer to 0 (almost touching), use hmin.
+                {
+                    h = h_min;
+                }
+                const double Ra = R[A];
+                const double Rb = R[B];
+                const double h2 = h * h;
+                const double twoRah = 2 * Ra * h;
+                const double twoRbh = 2 * Rb * h;
+                // ==========================================
+                // Test new vdw force equation with less division
+                const double d1 = h2 + twoRah + twoRbh;
+                const double d2 = d1 + 4 * Ra * Rb;
+                const double numer = 64*Ha*Ra*Ra*Ra*Rb*Rb*Rb*(h+Ra+Rb);
+                const double denomrecip = 1/(6*d1*d1*d2*d2);
+                const vec3 vdwForceOnA = (numer*denomrecip)*rVecab.normalized();
+                // ==========================================
+                // const vec3 vdwForceOnA = Ha / 6 * 64 * Ra * Ra * Ra * Rb * Rb * Rb *
+                //                          ((h + Ra + Rb) / ((h2 + twoRah + twoRbh) * (h2 + twoRah + twoRbh) *
+                //                                            (h2 + twoRah + twoRbh + 4 * Ra * Rb) *
+                //                                            (h2 + twoRah + twoRbh + 4 * Ra * Rb))) *
+                //                          rVecab.normalized();
+                // const vec3 vdwForceOnA = {0.0,0.0,0.0};
+                /////////////////////////////
+                totalForceOnA = vdwForceOnA + gravForceOnA;
+                // totalForceOnA = vdwForceOnA;
+                // totalForceOnA = gravForceOnA;
+                /////////////////////////////
+                if (write_step) {
+                    // PE += -G * m[A] * m[B] * grav_scale / dist; // Gravitational
+
+                    const double diffRaRb = R[A] - R[B];
+                    const double z = sumRaRb + h;
+                    const double two_RaRb = 2 * R[A] * R[B];
+                    const double denom_sum = z * z - (sumRaRb * sumRaRb);
+                    const double denom_diff = z * z - (diffRaRb * diffRaRb);
+                    const double U_vdw =
+                        -Ha / 6 *
+                        (two_RaRb / denom_sum + two_RaRb / denom_diff + log(denom_sum / denom_diff));
+                    // #pragma omp critical
+                    PE += U_vdw;  // Van Der Waals TURN ON FOR REAL SIM
+                }
+
+                // todo this is part of push_apart. Not great like this.
+                // For pushing apart overlappers:
+                // vel[A] = { 0,0,0 };
+                // vel[B] = { 0,0,0 };
             }
-            const double Ra = R[A];
-            const double Rb = R[B];
-            const double h2 = h * h;
-            const double twoRah = 2 * Ra * h;
-            const double twoRbh = 2 * Rb * h;
-            // ==========================================
-            // Test new vdw force equation with less division
-            const double d1 = h2 + twoRah + twoRbh;
-            const double d2 = d1 + 4 * Ra * Rb;
-            const double numer = 64*Ha*Ra*Ra*Ra*Rb*Rb*Rb*(h+Ra+Rb);
-            const double denomrecip = 1/(6*d1*d1*d2*d2);
-            const vec3 vdwForceOnA = (numer*denomrecip)*rVecab.normalized();
-            // ==========================================
-            // const vec3 vdwForceOnA = Ha / 6 * 64 * Ra * Ra * Ra * Rb * Rb * Rb *
-            //                          ((h + Ra + Rb) / ((h2 + twoRah + twoRbh) * (h2 + twoRah + twoRbh) *
-            //                                            (h2 + twoRah + twoRbh + 4 * Ra * Rb) *
-            //                                            (h2 + twoRah + twoRbh + 4 * Ra * Rb))) *
-            //                          rVecab.normalized();
-            // const vec3 vdwForceOnA = {0.0,0.0,0.0};
-            /////////////////////////////
-            totalForceOnA = vdwForceOnA + gravForceOnA;
-            // totalForceOnA = vdwForceOnA;
-            // totalForceOnA = gravForceOnA;
-            /////////////////////////////
-            if (writeStep) {
-                // PE += -G * m[A] * m[B] * grav_scale / dist; // Gravitational
-                const double diffRaRb = R[A] - R[B];
-                const double z = sumRaRb + h;
-                const double two_RaRb = 2 * R[A] * R[B];
-                const double denom_sum = z * z - (sumRaRb * sumRaRb);
-                const double denom_diff = z * z - (diffRaRb * diffRaRb);
-                const double U_vdw =
-                    -Ha / 6 *
-                    (two_RaRb / denom_sum + two_RaRb / denom_diff + log(denom_sum / denom_diff));
-                pe += U_vdw;  // Van Der Waals TURN ON FOR REAL SIM
-            }
 
-            // todo this is part of push_apart. Not great like this.
-            // For pushing apart overlappers:
-            // vel[A] = { 0,0,0 };
-            // vel[B] = { 0,0,0 };
+
+            vec3 accA = (1/m[A])*totalForceOnA; 
+            vec3 accB = (1/m[B])*totalForceOnA; 
+            #pragma omp atomic
+                acc[A].x += accA.x;
+            #pragma omp atomic
+                acc[A].y += accA.y;
+            #pragma omp atomic
+                acc[A].z += accA.z;
+            #pragma omp atomic
+                acc[B].x -= accB.x;
+            #pragma omp atomic
+                acc[B].y -= accB.y;
+            #pragma omp atomic
+                acc[B].z -= accB.z;
+
+
+            distances[e] = dist;
+
         }
-
-
-        vec3 accA = (1/m[A])*totalForceOnA; 
-        vec3 accB = -1.0*(1/m[B])*totalForceOnA; 
-
-        accsq[A*num_particles+B].x = accA.x;
-        accsq[A*num_particles+B].y = accA.y;
-        accsq[A*num_particles+B].z = accA.z;
-        accsq[B*num_particles+A].x = accB.x;
-        accsq[B*num_particles+A].y = accB.y;
-        accsq[B*num_particles+A].z = accB.z;
-
-        distances[e] = dist;
-
-
-        // #pragma acc update host(pe)
-
     }
-
-    // #pragma acc loop seq
-    #pragma acc parallel loop gang num_gangs(108) present(this,num_particles,acc[0:num_particles],aacc[0:num_particles],accsq[0:num_particles*num_particles],aaccsq[0:num_particles*num_particles])
-    for (int i = 0; i < num_particles; i++)
-    {
-        #pragma acc loop seq
-        for (int j = 0; j < num_particles; j++)
-        {
-            acc[i].x += accsq[i*num_particles+j].x;
-            acc[i].y += accsq[i*num_particles+j].y;
-            acc[i].z += accsq[i*num_particles+j].z;
-            aacc[i].x += aaccsq[i*num_particles+j].x;
-            aacc[i].y += aaccsq[i*num_particles+j].y;
-            aacc[i].z += aaccsq[i*num_particles+j].z;
-        }
-    // #pragma acc update self(acc[0:num_particles],aacc[0:num_particles]) //if(write_step)
-    // #pragma acc update self(acc[i],aacc[i]) //if(write_step)
-    }
-
-    #pragma acc update host(pe,acc[0:num_particles],aacc[0:num_particles])
-    // std::cout<<aaccsq[0].x<<','<<aaccsq[0].y<<','<<aaccsq[0].z<<std::endl;
-    PE = pe;
-
-    #pragma acc exit data delete(pe,writeStep)
-    // std::cerr<<"PEpre: "<<PE<<std::endl;
-    // std::cerr<<"acc: "<<acc[0].x<<','<<acc[0].y<<','<<acc[0].z<<std::endl;
 
     #ifdef MPI_ENABLE
         MPI_Allreduce(MPI_IN_PLACE,acc,num_particles*3,MPI_DOUBLE,MPI_SUM,MPI_COMM_WORLD);
         MPI_Allreduce(MPI_IN_PLACE,aacc,num_particles*3,MPI_DOUBLE,MPI_SUM,MPI_COMM_WORLD);
-        if (writeStep)
-        {
-            double local_PE = PE;
-            // std::cout<<"PE in rank "<<world_rank<<" : "<<PE<<std::endl;
-            PE = 0.0;
-            MPI_Reduce(&local_PE,&PE,1,MPI_DOUBLE,MPI_SUM,0,MPI_COMM_WORLD);
-            // if (world_rank == 0)
-            // {
-            //     std::cerr<<"PE: "<<PE<<std::endl;
-            //     std::cerr<<"acc: "<<acc[0].x<<','<<acc[0].y<<','<<acc[0].z<<std::endl;
-            // }
-        }
+        double local_PE = PE;
+        // std::cout<<"PE in rank "<<world_rank<<" : "<<PE<<std::endl;
+        PE = 0.0;
+        MPI_Reduce(&local_PE,&PE,1,MPI_DOUBLE,MPI_SUM,0,MPI_COMM_WORLD);
     #endif
 
     double t1 = omp_get_wtime();
     update_time += t1-t0;
+    // for(int Ball = 0; Ball < num_particles; ++Ball) {
+    //     std::cout << std::setprecision((std::numeric_limits<double>::digits10 + 1))<< acc[Ball] << " ";
+    // }
+    // std::cout << std::endl;
 
+    // omp_destroy_lock(&writelock);
+    // t.end_event("CalcForces/loopApplicablepairs");
 
-    #pragma acc parallel loop gang worker num_gangs(108) num_workers(256) present(this,acc[0:num_particles],aacc[0:num_particles],w[0:num_particles],vel[0:num_particles],velh[0:num_particles],wh[0:num_particles],num_particles,dt)
+    if (write_step && world_rank == 0) {
+        ballBuffer << '\n';  // Prepares a new line for incoming data.
+        // std::cerr<<"Writing "<<num_particles<<" balls"<<std::endl;
+        
+    }
+
+    // THIRD PASS - Calculate velocity for next step:
+    // t.start_event("CalcVelocityforNextStep");
+    // #pragma omp parallel for default(none) shared(write_step,vel,w,wh,velh,acc,aacc,dt,pos,moi)
     for (int Ball = 0; Ball < num_particles; Ball++) {
         // Velocity for next step:
         vel[Ball] = velh[Ball] + .5 * acc[Ball] * dt;
         w[Ball] = wh[Ball] + .5 * aacc[Ball] * dt;
-    }  // THIRD PASS END
 
-
-    #pragma acc update host(w[0:num_particles],vel[0:num_particles],pos[0:num_particles]) if(writeStep && world_rank == 0)
-    if (writeStep && world_rank == 0) 
-    {
-        // std::cerr<<"Writing "<<num_particles<<" balls"<<std::endl;
-        ballBuffer << '\n';  // Prepares a new line for incoming data.
-        for (int Ball = 0; Ball < num_particles;  Ball++)
-        {
+        /////////////////////////////////
+        // if (true) {
+        /////////////////////////////////
+        if (write_step && world_rank == 0) {
             if (Ball == 0) {
                 ballBuffer << pos[Ball][0] << ',' << pos[Ball][1] << ',' << pos[Ball][2] << ','
                            << w[Ball][0] << ',' << w[Ball][1] << ',' << w[Ball][2] << ','
@@ -3007,9 +2900,6 @@ void Ball_group::sim_one_step(const bool writeStep)
             mom += m[Ball] * vel[Ball];
             ang_mom += m[Ball] * pos[Ball].cross(vel[Ball]) + moi[Ball] * w[Ball];
         }
-    }
-
-    // #pragma acc exit data delete(ke,Mom,Ang_mom)
-
+    }  // THIRD PASS END
     // t.end_event("CalcVelocityforNextStep");
 }  // one Step end
