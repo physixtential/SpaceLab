@@ -22,8 +22,8 @@ if __name__ == '__main__':
 		
 	# job_set_name = "openMPallLoops"
 	# job_set_name = "profiling"
+	job_set_name = "profileSqMat"
 	job_set_name = "full2400"
-	job_set_name = "test"
 	# job_set_name = "pipeAndOpenmp"
 	# job_set_name = "smallerDt"
 	# job_set_name = "forceTest"
@@ -31,7 +31,7 @@ if __name__ == '__main__':
 
 	runs_at_once = 1
 	# attempts = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20] 
-	attempts = [1]
+	attempts = [2]
 	threads = [32]
 	# nodes = [1,2,4,8,16,32]
 	# nodes = [1]
@@ -72,7 +72,7 @@ if __name__ == '__main__':
 				input_json['h_min'] = 0.5
 				input_json['OMPthreads'] = thread
 				# input_json['genBalls'] = 28
-				input_json['simTimeSeconds'] = 0.5e-8 #Shorter sim time. Don't need whole time
+				# input_json['simTimeSeconds'] = 0.7e-8 #Shorter sim time. Don't need whole time
 				# input_json['simTimeSeconds'] = 0.5e-6 #Shorter sim time. Don't need whole time
 				# input_json['simTimeSeconds'] = 1.5e-5 #Shorter sim time. Don't need whole time
 				# input_json['u_s'] = 0.5
@@ -103,8 +103,8 @@ if __name__ == '__main__':
 				# sbatchfile += 'export OMP_NUM_THREADS={}\n'.format(thread)
 				sbatchfile += 'export SLURM_CPU_BIND="cores"\n'
 				
-				sbatchfile += "srun -n {} -c {} --cpu-bind=cores numactl --interleave=all ./ColliderMultiCore.x {} 2>sim_err.log 1>sim_out.log".format(node,thread*2,job)
-				# sbatchfile += "srun -n {} -c {} --cpu-bind=cores numactl --interleave=all nsys profile -o prof ./ColliderMultiCore.x {} 2>sim_err.log 1>sim_out.log".format(node,thread*2,job)
+				# sbatchfile += "srun -n {} -c {} --cpu-bind=cores numactl --interleave=all ./ColliderMultiCore.x {} 2>sim_err.log 1>sim_out.log".format(node,thread*2,job)
+				sbatchfile += "srun -n {} -c {} --cpu-bind=cores numactl --interleave=all nsys profile -o prof ./ColliderMultiCore.x {} 2>sim_err.log 1>sim_out.log".format(node,thread*2,job)
 				
 
 				
@@ -126,11 +126,11 @@ if __name__ == '__main__':
 	# inputs = list(zip(folders,N))
 	
 	print(folders)
-	# cwd = os.getcwd()
-	# for folder in folders:
-	# 	os.chdir(folder)
-	# 	os.system("sbatch sbatchMulti.bash")
-	# os.chdir(cwd)
+	cwd = os.getcwd()
+	for folder in folders:
+		os.chdir(folder)
+		os.system("sbatch sbatchMulti.bash")
+	os.chdir(cwd)
 
 	# for i in range(0,len(folders),runs_at_once):
 	# 	with mp.Pool(processes=runs_at_once) as pool:

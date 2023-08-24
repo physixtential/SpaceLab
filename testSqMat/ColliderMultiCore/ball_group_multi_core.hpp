@@ -2553,6 +2553,7 @@ void Ball_group::sim_looper()
             // t.end_event("writeProgressReport");
         } else {
             write_step = debug;
+            // write_step = true;
         }
 
         // Physics integration step:
@@ -2564,6 +2565,7 @@ void Ball_group::sim_looper()
         ///////////
         // sim_one_step(write_step,O);
         sim_one_step(write_step);
+        // std::cerr<<"STEP: "<<Step<<std::endl;
 
         if (write_step) 
         {
@@ -2582,7 +2584,7 @@ void Ball_group::sim_looper()
                 // Data Export. Exports every 10 write_steps (10 new lines of data) and also if the last write was
                 // a long time ago.
                 // if (time(nullptr) - lastWrite > 1800 || Step / skip % 10 == 0) {
-                if (Step / skip % 10 == 0) {
+                if (Step / skip % 10 == 0 || Step == steps-1) {
                     // Report vMax:
 
                     std::cerr << "vMax = " << getVelMax() << " Steps recorded: " << Step / skip << '\n';
@@ -2675,7 +2677,7 @@ void Ball_group::sim_one_step(const bool writeStep)
         aacc[Ball] = {0.0,0.0,0.0};
     }
 
-    #pragma acc parallel loop gang worker present(this,num_particles,accsq[0:num_particles*num_particles],aaccsq[0:num_particles*num_particles])
+    #pragma acc parallel loop gang worker num_gangs(108) present(this,num_particles,accsq[0:num_particles*num_particles],aaccsq[0:num_particles*num_particles])
     for (int i = 0; i < num_particles*num_particles; ++i)
     {
         accsq[i] = {0.0,0.0,0.0};
@@ -2717,8 +2719,8 @@ void Ball_group::sim_one_step(const bool writeStep)
         int e = pc-1;
         double oldDist = distances[e];
 
-        // if (overlap > 0) {
-        if (true) {
+        // if (true) {
+        if (overlap > 0) {
 
             double k;
             if (dist >= oldDist) {
@@ -2967,7 +2969,8 @@ void Ball_group::sim_one_step(const bool writeStep)
 
     }
 
-    #pragma acc parallel loop gang worker present(this,acc[0:num_particles],aacc[0:num_particles],accsq[0:num_particles*num_particles],aaccsq[0:num_particles*num_particles])
+    // #pragma acc loop seq
+    #pragma acc parallel loop gang num_gangs(108) present(this,num_particles,acc[0:num_particles],aacc[0:num_particles],accsq[0:num_particles*num_particles],aaccsq[0:num_particles*num_particles])
     for (int i = 0; i < num_particles; i++)
     {
         #pragma acc loop seq
@@ -3001,11 +3004,11 @@ void Ball_group::sim_one_step(const bool writeStep)
             // std::cout<<"PE in rank "<<world_rank<<" : "<<PE<<std::endl;
             PE = 0.0;
             MPI_Reduce(&local_PE,&PE,1,MPI_DOUBLE,MPI_SUM,0,MPI_COMM_WORLD);
-            if (world_rank == 0)
-            {
-                std::cerr<<"PE: "<<PE<<std::endl;
-                std::cerr<<"acc: "<<acc[0].x<<','<<acc[0].y<<','<<acc[0].z<<std::endl;
-            }
+            // if (world_rank == 0)
+            // {
+            //     std::cerr<<"PE: "<<PE<<std::endl;
+            //     std::cerr<<"acc: "<<acc[0].x<<','<<acc[0].y<<','<<acc[0].z<<std::endl;
+            // }
         }
     #endif
 
