@@ -27,7 +27,7 @@ def main():
 	fontsize = 25
 	# base = os.getcwd() + "/jobs/initialScaling/"
 	base = "/global/homes/l/lpkolanz/SpaceLab/testMPIGPU/jobs/"
-	base = "/pscratch/sd/l/lpkolanz/SpaceLab/testMPIGPU/jobs/"
+	base = "/pscratch/sd/l/lpkolanz/SpaceLab/testSqMat/jobs/"
 	
 	inds = np.arange(1,20)
 	threads = [1,2,4,8,16,32,64,128]
@@ -35,7 +35,7 @@ def main():
 
 	folders = ["strongScaleCollide1"]#,"weakScaleGrowth1"]
 	folders = ["strongScaleCollide_O2_1"]#,"weakScaleGrowth1"]
-	folders = ["strongScaleCollideSimple1"]#,"weakScaleGrowth1"]
+	folders = ["strongScaling1"]#,"weakScaleGrowth1"]
 	# folders = ["strongScaleCollideMPIonethread1"]#,"weakScaleGrowth1"]
 	# inds = np.arange(1,3)
 

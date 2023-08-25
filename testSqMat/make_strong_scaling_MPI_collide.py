@@ -23,7 +23,7 @@ if __name__ == '__main__':
 	# job_set_name = "openMPallLoops"
 	# job_set_name = "profiling"
 	job_set_name = "profileSqMat"
-	job_set_name = "long2400"
+	job_set_name = "strongScaling"
 	# job_set_name = "pipeAndOpenmp"
 	# job_set_name = "smallerDt"
 	# job_set_name = "forceTest"
@@ -31,12 +31,12 @@ if __name__ == '__main__':
 
 	runs_at_once = 1
 	# attempts = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20] 
-	attempts = [2]
+	attempts = [1]
 	threads = [32]
 	# nodes = [1,2,4,8,16,32]
 	# nodes = [1]
-	# nodes = [1,2,4,8,16,32]
-	nodes = [1]
+	nodes = [1,2,4,8,16,32]
+	# nodes = [1]
 	# threads = [128]
 	N = [5]
 	Temps = [100]
@@ -73,8 +73,8 @@ if __name__ == '__main__':
 				input_json['OMPthreads'] = thread
 				# input_json['genBalls'] = 28
 				# input_json['simTimeSeconds'] = 0.7e-8 #Shorter sim time. Don't need whole time
-				# input_json['simTimeSeconds'] = 0.5e-6 #Shorter sim time. Don't need whole time
-				input_json['simTimeSeconds'] = 1.5e-5 #Shorter sim time. Don't need whole time
+				input_json['simTimeSeconds'] = 0.5e-6 #Shorter sim time. Don't need whole time
+				# input_json['simTimeSeconds'] = 1.5e-5 #Shorter sim time. Don't need whole time
 				# input_json['u_s'] = 0.5
 				# input_json['u_r'] = 0.5
 				input_json['projectileName'] = "1199_2_R4e-05_v4e-01_cor0.63_mu0.1_rho2.25_k4e+00_Ha5e-12_dt5e-10_"
@@ -94,7 +94,7 @@ if __name__ == '__main__':
 				sbatchfile += "#SBATCH -A m2651\n"
 				sbatchfile += "#SBATCH -C gpu\n"
 				sbatchfile += "#SBATCH -q regular\n"
-				sbatchfile += "#SBATCH -t 5:00:00\n"
+				sbatchfile += "#SBATCH -t 0:30:00\n"
 				sbatchfile += "#SBATCH -J {}\n".format(job_set_name)
 				sbatchfile += "#SBATCH -N {}\n".format(node)
 				sbatchfile += "#SBATCH -G {}\n".format(node)
@@ -103,8 +103,8 @@ if __name__ == '__main__':
 				# sbatchfile += 'export OMP_NUM_THREADS={}\n'.format(thread)
 				sbatchfile += 'export SLURM_CPU_BIND="cores"\n'
 				
-				# sbatchfile += "srun -n {} -c {} --cpu-bind=cores numactl --interleave=all ./ColliderMultiCore.x {} 2>sim_err.log 1>sim_out.log".format(node,thread*2,job)
-				sbatchfile += "srun -n {} -c {} --cpu-bind=cores numactl --interleave=all nsys profile -o prof ./ColliderMultiCore.x {} 2>sim_err.log 1>sim_out.log".format(node,thread*2,job)
+				sbatchfile += "srun -n {} -c {} --cpu-bind=cores numactl --interleave=all ./ColliderMultiCore.x {} 2>sim_err.log 1>sim_out.log".format(node,thread*2,job)
+				# sbatchfile += "srun -n {} -c {} --cpu-bind=cores numactl --interleave=all nsys profile -o prof ./ColliderMultiCore.x {} 2>sim_err.log 1>sim_out.log".format(node,thread*2,job)
 				
 
 				
@@ -126,11 +126,11 @@ if __name__ == '__main__':
 	# inputs = list(zip(folders,N))
 	
 	print(folders)
-	# cwd = os.getcwd()
-	# for folder in folders:
-	# 	os.chdir(folder)
-	# 	os.system("sbatch sbatchMulti.bash")
-	# os.chdir(cwd)
+	cwd = os.getcwd()
+	for folder in folders:
+		os.chdir(folder)
+		os.system("sbatch sbatchMulti.bash")
+	os.chdir(cwd)
 
 	# for i in range(0,len(folders),runs_at_once):
 	# 	with mp.Pool(processes=runs_at_once) as pool:

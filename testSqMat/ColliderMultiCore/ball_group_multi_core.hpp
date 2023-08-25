@@ -33,7 +33,7 @@ int getSize()
     #ifdef MPI_ENABLE
         MPI_Comm_size(MPI_COMM_WORLD,&world_size);
     #else
-        world_size = 0;
+        world_size = 1;
     #endif
     return world_size;
 }
