@@ -22,8 +22,9 @@ double dt = 1e-5;
 class lass
 {
 public:
-	int num_particles = 1004;
-    int blockSize = 20000;
+    // int num_particles = 2416;
+	int num_particles = 50;
+    int blockSize = 25;
 	int num_pairs = (((num_particles*num_particles)-num_particles)/2);
     int numBlocks = ceil((double)num_pairs/(double)blockSize);
 
@@ -126,7 +127,7 @@ void lass::init()
 
 void lass::tofu()
 {
-	int outerLoop = 100;
+	int outerLoop = 10;
 
 	// int pc;
 
@@ -269,7 +270,19 @@ void lass::loop_one_step(bool writeStep)
     // std::cerr<<"IN simonestep"<<std::endl;
 
     // #pragma acc parallel num_gangs(numBlocks) num_workers(blockSize) reduction(+:pe,aaccLocalx[0:num_particles],aaccLocaly[0:num_particles],aaccLocalz[0:num_particles],accLocalx[0:num_particles],accLocaly[0:num_particles],accLocalz[0:num_particles]) present(aaccLocalx[0:num_particles],aaccLocaly[0:num_particles],aaccLocalz[0:num_particles],accLocalx[0:num_particles],accLocaly[0:num_particles],accLocalz[0:num_particles]) present(pe,this,accAccum[0:num_particles*numBlocks],aaccAccum[0:num_particles*numBlocks],m[0:num_particles],moi[0:num_particles],w[0:num_particles],vel[0:num_particles],pos[0:num_particles],R[0:num_particles],distances[0:num_pairs],num_pairs,numBlocks,blockSize,num_particles,Ha,k_in,k_out,h_min,u_s,u_r,writeStep,world_rank,world_size)
-    #pragma acc parallel reduction(+:pe,aaccLocalx[0:num_particles],aaccLocaly[0:num_particles],aaccLocalz[0:num_particles],accLocalx[0:num_particles],accLocaly[0:num_particles],accLocalz[0:num_particles]) present(aaccLocalx[0:num_particles],aaccLocaly[0:num_particles],aaccLocalz[0:num_particles],accLocalx[0:num_particles],accLocaly[0:num_particles],accLocalz[0:num_particles]) present(pe,this,accAccum[0:num_particles*numBlocks],aaccAccum[0:num_particles*numBlocks],m[0:num_particles],moi[0:num_particles],w[0:num_particles],vel[0:num_particles],pos[0:num_particles],R[0:num_particles],distances[0:num_pairs],num_pairs,numBlocks,blockSize,num_particles,Ha,k_in,k_out,h_min,u_s,u_r,writeStep,world_rank,world_size)
+    #pragma acc parallel reduction(+:pe,aaccLocalx[0:num_particles],\
+        aaccLocaly[0:num_particles],aaccLocalz[0:num_particles],\
+        accLocalx[0:num_particles],accLocaly[0:num_particles],\
+        accLocalz[0:num_particles]) present(aaccLocalx[0:num_particles],\
+        aaccLocaly[0:num_particles],aaccLocalz[0:num_particles],\
+        accLocalx[0:num_particles],accLocaly[0:num_particles],\
+        accLocalz[0:num_particles]) present(pe,this,\
+        accAccum[0:num_particles*numBlocks],\
+        aaccAccum[0:num_particles*numBlocks],m[0:num_particles],\
+        moi[0:num_particles],w[0:num_particles],vel[0:num_particles],\
+        pos[0:num_particles],R[0:num_particles],distances[0:num_pairs],\
+        num_pairs,numBlocks,blockSize,num_particles,Ha,k_in,k_out,h_min,\
+        u_s,u_r,writeStep,world_rank,world_size)
     {
         // #pragma acc loop gang num_gangs(numBlocks) private(aaccLocal[0:num_particles],accLocal[0:num_particles])
         #pragma acc loop gang //reduction(+:pe,aaccLocalx[0:num_particles],aaccLocaly[0:num_particles],aaccLocalz[0:num_particles],accLocalx[0:num_particles],accLocaly[0:num_particles],accLocalz[0:num_particles])//private(aaccLocal[0:num_particles],accLocal[0:num_particles]) 
@@ -287,7 +300,7 @@ void lass::loop_one_step(bool writeStep)
             // for (int pc = block+1; pc <= num_pairs; pc+=numBlocks)
                 // vec3 test(2,2,2);
             // for (int pc = block+1; pc < num_pairs; pc+=numBlocks)
-            #pragma acc loop worker //reduction(+:pe,aaccLocalx[0:num_particles],aaccLocaly[0:num_particles],aaccLocalz[0:num_particles],accLocalx[0:num_particles],accLocaly[0:num_particles],accLocalz[0:num_particles]) //private(accLocal[0:num_particles],aaccLocal[0:num_particles])//workers
+            #pragma acc loop //worker //reduction(+:pe,aaccLocalx[0:num_particles],aaccLocaly[0:num_particles],aaccLocalz[0:num_particles],accLocalx[0:num_particles],accLocaly[0:num_particles],accLocalz[0:num_particles]) //private(accLocal[0:num_particles],aaccLocal[0:num_particles])//workers
             for (int pc = blockSize*block+1; pc <= finish; pc++)
             {
                 // if (writeStep)

@@ -21,6 +21,7 @@
 #include <random>
 #include <omp.h>
 #include <mpi.h>
+#include <openacc.h>
 
 // using std::numbers::pi;
 const double pi = 3.14159265358979311599796346854;
@@ -128,7 +129,8 @@ public:
     double* moi = nullptr;  ///< Moment of inertia
     double* u_scale = nullptr; ///ADD TO COPY CONSTRUCTOR, ETC
     
-
+    int ndev;
+    int thegpu;
     ///////////////////////////
     // if (write_all)
     // {
@@ -2495,6 +2497,12 @@ void Ball_group::sim_looper()
 {
     world_rank = getRank();
     world_size = getSize();
+    ndev=acc_get_num_devices(acc_device_nvidia);
+    thegpu=world_rank%ndev;
+    acc_set_device_num(thegpu,acc_device_nvidia);
+    std::cout<<ndev<<" devices"<<std::endl;
+    std::cout<<thegpu<<" thegpu"<<std::endl;
+    std::cout<<world_rank<<" world_rank"<<std::endl;
 
     if (world_rank == 0)
     {    
@@ -2693,7 +2701,7 @@ void Ball_group::sim_one_step(const bool writeStep)
     // std::cerr<<"IN simonestep"<<std::endl;
 
     #pragma acc parallel loop gang worker num_gangs(108) num_workers(256) reduction(+:pe) present(pe,this,accsq[0:num_particles*num_particles],aaccsq[0:num_particles*num_particles],m[0:num_particles],moi[0:num_particles],w[0:num_particles],vel[0:num_particles],pos[0:num_particles],R[0:num_particles],distances[0:num_pairs],num_pairs,num_particles,Ha,k_in,k_out,h_min,u_s,u_r,writeStep,world_rank,world_size)
-    for (int pc = 1; pc <= num_pairs; pc ++)
+    for (int pc = world_rank+1; pc <= num_pairs; pc += world_size)
     {
         // if (writeStep)
         // {
