@@ -17,34 +17,35 @@ class HDF5Handler {
         	}
         }
 
-        void createAppendFile(std::vector<double>& data,const std::string datasetname,size_t start=0) {
+        //Make start a class variable so you dont need to keep track
+        void createAppendFile(std::vector<double>& data,const std::string datasetName,size_t start=0) {
 		    H5::H5File file;
 		    H5::DataSet dataset;
 		    H5::DataSpace dataspace;
 
 		    if(std::filesystem::exists(filename)) {
-		    	if (datasetExists(filename,datasetname))
+		    	if (datasetExists(filename,datasetName))
 		    	{
-		    		appendDataSet(data,datasetname,start);
+		    		appendDataSet(data,datasetName,start);
 		    	}
 		    	else
 		    	{
 		    		// std::cerr<<"HERE"<<std::endl;
-		    		createDataSet(data,datasetname,1);
+		    		createDataSet(data,datasetName,1);
 		    		// std::cerr<<"HERE1"<<std::endl;
 		    	}   
 		    } else {
-		        createDataSet(data,datasetname);
+		        createDataSet(data,datasetName);
 		    }
 		}
 
 
 
-        std::vector<double> readFile(const std::string datasetname) {
+        std::vector<double> readFile(const std::string datasetName) {
             std::vector<double> data;
             if(std::filesystem::exists(filename)) {
                 H5::H5File file(filename, H5F_ACC_RDONLY);
-                H5::DataSet dataset = file.openDataSet(datasetname);
+                H5::DataSet dataset = file.openDataSet(datasetName);
                 H5::DataSpace dataspace = dataset.getSpace();
                 
                 hsize_t dims_out[1];
@@ -53,14 +54,109 @@ class HDF5Handler {
                 
                 dataset.read(&data[0], H5::PredType::NATIVE_DOUBLE);
                 file.close();
+            }else{
+            	std::cerr<<"File '"<<filename<<"' does not exist."<<std::endl;
             }
             return data;
         }
+
+        void attachMetadataToDataset(const std::string& metadata, const std::string& datasetName) 
+        {
+		    // Initialize the HDF5 library
+        	if(std::filesystem::exists(filename)) {
+			    H5::H5File file(filename, H5F_ACC_RDWR);
+	    		H5::DataSet dataset;
+			    // Open the specified dataset
+			    if (datasetExists(filename,datasetName)){
+			    	dataset = file.openDataSet(datasetName);
+			    }else{
+			    	std::vector<double> dummy;
+			    	dataset = createDataSet(dummy,datasetName);
+			    }
+
+			    // Create a string data type for the attribute
+			    H5::StrType strType(H5::PredType::C_S1, H5T_VARIABLE);
+
+			    // Check if the attribute's dataspace exists
+			    if (attributeExists(dataset, "metadata")) {
+			        std::cerr << "Attribute 'metadata' already exists for the dataset." << std::endl;
+			        dataset.close();
+			        file.close();
+			        return;
+			    }
+
+			    // Create a dataspace for the attribute
+			    H5::DataSpace attrSpace = H5::DataSpace(H5S_SCALAR);
+
+			    // Create the attribute and write the metadata
+			    H5::Attribute metadataAttr = dataset.createAttribute("metadata", strType, attrSpace);
+			    metadataAttr.write(strType, metadata);
+
+			    // Close resources
+			    metadataAttr.close();
+			    attrSpace.close();
+			    dataset.close();
+			    file.close();
+		    }else{
+            	std::cerr<<"File '"<<filename<<"' does not exist."<<std::endl;
+            }
+		}
+
+		std::string readMetadataFromDataset(const std::string& datasetName) 
+		{
+		    std::string metadata;
+
+		    // Initialize the HDF5 library
+		    if(std::filesystem::exists(filename)) {
+		    	H5::DataSet dataset;
+                H5::H5File file(filename, H5F_ACC_RDONLY);
+			    // Open the specified dataset
+			    if (datasetExists(filename,datasetName)){
+			    	dataset = file.openDataSet(datasetName);
+			    }else{
+			        std::cerr << "dataset '"<<datasetName<<"' does not exist for file '"<<filename<<"' ." << std::endl;
+			    	return "ERROR RETRIEVING METADATA";
+			    }
+
+			    // Check if the attribute's dataspace exists
+			    if (!attributeExists(dataset, "metadata")) {
+			        std::cerr << "Attribute 'metadata' does not exist for dataset '"<<datasetName<<"' in file '"<<filename<<"' ." << std::endl;
+			        dataset.close();
+			        file.close();
+			    	return "ERROR RETRIEVING METADATA";
+			    }
+
+			    // Open the metadata attribute
+			    H5::Attribute metadataAttr = dataset.openAttribute("metadata");
+
+			    // Read the metadata attribute
+			    H5::StrType strType(H5::PredType::C_S1, H5T_VARIABLE);
+			    metadataAttr.read(strType, metadata);
+			    
+		    	// Close resources
+			    metadataAttr.close();
+			    dataset.close();
+			    file.close();
+            }else{
+            	std::cerr<<"File '"<<filename<<"' does not exist."<<std::endl;
+            }
+
+
+
+		    return metadata;
+		}
+
 
     private:
         std::string filename;
         size_t max_size;
         bool fixed;
+
+        bool attributeExists(const H5::H5Object& object, const std::string& attributeName) 
+        {
+    		return object.attrExists(attributeName);
+    	}
+
 
         bool datasetExists(const std::string& filename, const std::string& datasetName)
 		{
@@ -71,7 +167,7 @@ class HDF5Handler {
 		    return H5Lexists(file.getId(), datasetName.c_str(), H5P_DEFAULT) > 0;
 		}
 
-		void createDataSet(std::vector<double>& data,const std::string datasetname,int test=0)
+		H5::DataSet createDataSet(std::vector<double>& data,const std::string datasetName,int test=0)
 		{
 			H5::H5File file;
 		    H5::DataSet dataset;
@@ -90,7 +186,7 @@ class HDF5Handler {
 	        {
 	        	maxdims[0] = max_size; // Set maximum dimensions to max_size
 	        	dataspace = H5::DataSpace(1, maxdims);
-		        dataset = file.createDataSet(datasetname, H5::PredType::NATIVE_DOUBLE,dataspace);
+		        dataset = file.createDataSet(datasetName, H5::PredType::NATIVE_DOUBLE,dataspace);
 	        	dataset.write(&data[0], H5::PredType::NATIVE_DOUBLE);
 	        }
 	        else
@@ -98,23 +194,25 @@ class HDF5Handler {
 	        	maxdims[0] = H5S_UNLIMITED; // Set maximum dimensions to unlimited
 	        	dataspace = H5::DataSpace(1, dims, maxdims);
 		        H5::DSetCreatPropList plist;
-		        hsize_t chunk_dims[1] = {std::min((hsize_t)1000, data.size())}; // Adjust chunk size as needed
+		        hsize_t chunk_dims[1] = {std::min((hsize_t)1000, (hsize_t)data.size())}; // Adjust chunk size as needed
 		        plist.setChunk(1, chunk_dims);
-		        dataset = file.createDataSet(datasetname, H5::PredType::NATIVE_DOUBLE, dataspace, plist);
+		        dataset = file.createDataSet(datasetName, H5::PredType::NATIVE_DOUBLE, dataspace, plist);
 	        	dataset.write(&data[0], H5::PredType::NATIVE_DOUBLE);
 	        }
 
 	        file.close();
+	        dataspace.close();
+	        return dataset;
 		}
 
-		void appendDataSet(std::vector<double>& data,const std::string datasetname,size_t start=0)
+		void appendDataSet(std::vector<double>& data,const std::string datasetName,size_t start=0)
 		{
 			H5::H5File file;
 		    H5::DataSet dataset;
 		    H5::DataSpace dataspace;
 			file = H5::H5File(filename, H5F_ACC_RDWR);
 
-	        dataset = file.openDataSet(datasetname);
+	        dataset = file.openDataSet(datasetName);
 	        dataspace = dataset.getSpace();
 
 	        // Get current size of the dataset
