@@ -6,6 +6,7 @@
 #.o files
 **/*.o
 **/*.x
+**/*.h5
 
 #jobs
 jobs/
