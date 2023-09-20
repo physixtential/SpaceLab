@@ -18,15 +18,18 @@ double dt = 1e-5;
 
 // using json = nlohmann::json;
 
-
 class lass
 {
 public:
     // int num_particles = 2416;
-	int num_particles = 50;
-    int blockSize = 25;
+	int num_particles = 500;
 	int num_pairs = (((num_particles*num_particles)-num_particles)/2);
+
+    //MAX OF 1024 BLOCKS FOR CORRECT REDUCTIONS
+    int blockSize = num_particles; //starting blockSize
+
     int numBlocks = ceil((double)num_pairs/(double)blockSize);
+
 
 	double *R = new double[num_particles];
 	double *m = new double[num_particles];
@@ -57,6 +60,16 @@ public:
 
 void lass::init()
 {
+    if (blockSize > 10)
+    {
+        blockSize = num_particles/2;
+        blockSize = ceil((double)num_pairs/(double)blockSize);
+    }
+    if (numBlocks > 1024)
+    {
+        numBlocks = 1024;
+        blockSize = ceil((double)num_pairs/(double)numBlocks);
+    }
     std::cout<<"num_particles: "<<num_particles<<std::endl;
     std::cout<<"num_pairs: "<<num_pairs<<std::endl;
     std::cout<<"blockSize: "<<blockSize<<std::endl;
@@ -285,7 +298,7 @@ void lass::loop_one_step(bool writeStep)
         u_s,u_r,writeStep,world_rank,world_size)
     {
         // #pragma acc loop gang num_gangs(numBlocks) private(aaccLocal[0:num_particles],accLocal[0:num_particles])
-        #pragma acc loop gang //reduction(+:pe,aaccLocalx[0:num_particles],aaccLocaly[0:num_particles],aaccLocalz[0:num_particles],accLocalx[0:num_particles],accLocaly[0:num_particles],accLocalz[0:num_particles])//private(aaccLocal[0:num_particles],accLocal[0:num_particles]) 
+        #pragma acc loop gang reduction(+:pe,aaccLocalx[0:num_particles],aaccLocaly[0:num_particles],aaccLocalz[0:num_particles],accLocalx[0:num_particles],accLocaly[0:num_particles],accLocalz[0:num_particles])//private(aaccLocal[0:num_particles],accLocal[0:num_particles]) 
         for (int block = 0; block < numBlocks; block++)
         {
             int finish;
@@ -300,7 +313,7 @@ void lass::loop_one_step(bool writeStep)
             // for (int pc = block+1; pc <= num_pairs; pc+=numBlocks)
                 // vec3 test(2,2,2);
             // for (int pc = block+1; pc < num_pairs; pc+=numBlocks)
-            #pragma acc loop //worker //reduction(+:pe,aaccLocalx[0:num_particles],aaccLocaly[0:num_particles],aaccLocalz[0:num_particles],accLocalx[0:num_particles],accLocaly[0:num_particles],accLocalz[0:num_particles]) //private(accLocal[0:num_particles],aaccLocal[0:num_particles])//workers
+            #pragma acc loop worker vector//reduction(+:pe,aaccLocalx[0:num_particles],aaccLocaly[0:num_particles],aaccLocalz[0:num_particles],accLocalx[0:num_particles],accLocaly[0:num_particles],accLocalz[0:num_particles]) //private(accLocal[0:num_particles],aaccLocal[0:num_particles])//workers
             for (int pc = blockSize*block+1; pc <= finish; pc++)
             {
                 // if (writeStep)
@@ -452,18 +465,18 @@ void lass::loop_one_step(bool writeStep)
                     // #pragma acc atomic
                     // aaccLocal[B].z += aaccB.z;
 
-                    // #pragma acc atomic
+                    #pragma acc atomic
                     aaccLocalx[A] += 1;
-                    // #pragma acc atomic
+                    #pragma acc atomic
                     aaccLocaly[A] += 1;
-                    // #pragma acc atomic
+                    #pragma acc atomic
                     aaccLocalz[A] += 1;
 
-                    // #pragma acc atomic
+                    #pragma acc atomic
                     aaccLocalx[B] += 1;
-                    // #pragma acc atomic
+                    #pragma acc atomic
                     aaccLocaly[B] += 1;
-                    // #pragma acc atomic
+                    #pragma acc atomic
                     aaccLocalz[B] += 1;
 
 
@@ -557,18 +570,18 @@ void lass::loop_one_step(bool writeStep)
                 // #pragma acc atomic
                 // accLocal[B].z += accB.z;
 
-                // #pragma acc atomic
+                #pragma acc atomic
                 accLocalx[A] += 1;
-                // #pragma acc atomic
+                #pragma acc atomic
                 accLocaly[A] += 1;
-                // #pragma acc atomic
+                #pragma acc atomic
                 accLocalz[A] += 1;
 
-                // #pragma acc atomic
+                #pragma acc atomic
                 accLocalx[B] += 1;
-                // #pragma acc atomic
+                #pragma acc atomic
                 accLocaly[B] += 1;
-                // #pragma acc atomic
+                #pragma acc atomic
                 accLocalz[B] += 1;
 
                 distances[e] = dist;
