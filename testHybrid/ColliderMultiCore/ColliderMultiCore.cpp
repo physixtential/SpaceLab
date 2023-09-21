@@ -110,8 +110,12 @@ main(int argc, char* argv[])
 
     // Normal sim:
     // O.sim_init_write(output_prefix);
+
+    std::cerr<<"HERERERRER"<<std::endl;
     Ball_group dummy(1);
+    std::cerr<<"HERERERRER11"<<std::endl;
     dummy.parse_input_file(argv[1]);
+    std::cerr<<"HERERERRER22"<<std::endl;
     if (dummy.typeSim == dummy.collider)
     {
         #ifdef MPI_ENABLE
@@ -121,8 +125,10 @@ main(int argc, char* argv[])
     }
     else if (dummy.typeSim == dummy.BPCA)
     {
+    std::cerr<<"HERERERRER1"<<std::endl;
         if (dummy.total_balls_to_add >= 0)
         {
+    std::cerr<<"HERERERRER2"<<std::endl;
             #ifdef MPI_ENABLE
                 MPI_Barrier(MPI_COMM_WORLD);
             #endif
@@ -189,7 +195,9 @@ void BPCA(const char *path,int num_balls)
         // contact = false;
         // inital_contact = true;
         // t.start_event("add_projectile");
+        std::cerr<<"add_projectile"<<std::endl;
         O = O.add_projectile();
+        std::cerr<<"after add_projectile"<<std::endl;
         // t.end_event("add_projectile");
         if (world_rank == 0)
         {
