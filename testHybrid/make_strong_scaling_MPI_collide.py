@@ -69,8 +69,8 @@ if __name__ == '__main__':
 				# input_json['kConsts'] = 3e3
 				input_json['N'] = n
 				input_json['genBalls'] = 2
-				input_json['simType'] = "BPCA"
-				# input_json['simType'] = "collider"
+				# input_json['simType'] = "BPCA"
+				input_json['simType'] = "collider"
 				input_json['h_min'] = 0.5
 				input_json['OMPthreads'] = thread
 				# input_json['simTimeSeconds'] = 0.7e-8 #Shorter sim time. Don't need whole time
