@@ -103,7 +103,9 @@ if __name__ == '__main__':
 				sbatchfile += 'export SLURM_CPU_BIND="cores"\n'
 				
 				# sbatchfile += "srun -n {} -c {} --cpu-bind=cores numactl --interleave=all ./ColliderMultiCore.x {} 2>sim_err.log 1>sim_out.log".format(node,thread*2,job)
-				sbatchfile += "srun -n {} -c {} --cpu-bind=cores numactl --interleave=all nsys profile -o prof ./ColliderMultiCore.x {} 2>sim_err.log 1>sim_out.log".format(node,thread*2,job)
+				# sbatchfile += "srun -n {} -c {} --cpu-bind=cores numactl --interleave=all nsys profile -o prof ./ColliderMultiCore.x {} 2>sim_err.log 1>sim_out.log".format(node,thread*2,job)
+				sbatchfile += "dcgmi profile --pause\n"
+				sbatchfile += "srun -n {} -c {} --cpu-bind=cores numactl --interleave=all ncu -o prof --set full ./ColliderMultiCore.x {} 2>sim_err.log 1>sim_out.log".format(node,thread*2,job)
 				
 
 				
