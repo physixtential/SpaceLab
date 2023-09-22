@@ -110,6 +110,7 @@ main(int argc, char* argv[])
 
     // Normal sim:
     // O.sim_init_write(output_prefix);
+
     Ball_group dummy(1);
     dummy.parse_input_file(argv[1]);
     if (dummy.typeSim == dummy.collider)
