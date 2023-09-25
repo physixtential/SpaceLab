@@ -88,6 +88,11 @@ def get_data_file(data_folder,data_index=-1):
 
 	if len(data_file) == 1:
 		return data_file[0]
+	elif len(data_file) == 2 and len(set(file_indicies)) == 1:
+		if (len(data_file[0]) > len(data_file[1])):
+			return data_file[0] 
+		else:
+			return data_file[1]
 	else:
 		data_file = [file for file in files \
 				if file.endswith("simData.csv") and file.startswith(str(index)+'_2')]
@@ -127,8 +132,15 @@ def get_energy_file(data_folder,data_index=-1):
 
 	data_file = [file for file in files \
 				if file.endswith("energy.csv") and file.startswith(str(index))]
-	if len(data_file) == 1:
+	# print(data_file)
+
+	if len(data_file) == 1 or len(set(data_file)) == 1:
 		return data_file[0]
+	elif len(data_file) == 2 and len(set(file_indicies)) == 1:
+		if (len(data_file[0]) > len(data_file[1])):
+			return data_file[0] 
+		else:
+			return data_file[1]
 	else:
 		data_file = [file for file in files \
 				if file.endswith("energy.csv") and file.startswith(str(index)+'_2')]

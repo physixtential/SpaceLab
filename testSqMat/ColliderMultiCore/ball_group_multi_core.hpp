@@ -338,6 +338,9 @@ Ball_group& Ball_group::operator=(const Ball_group& rhs)
     m = rhs.m;      ///< Mass
     moi = rhs.moi;  ///< Moment of inertia
 
+    accsq = rhs.accsq;
+    aaccsq = rhs.aaccsq;
+
     radiiDistribution = rhs.radiiDistribution;
     radiiFraction = rhs.radiiFraction;
 
@@ -453,6 +456,9 @@ Ball_group::Ball_group(const Ball_group& rhs)
 
     radiiDistribution = rhs.radiiDistribution;
     radiiFraction = rhs.radiiFraction;
+
+    accsq = rhs.accsq;
+    aaccsq = rhs.aaccsq;
 
 
     /////////////////////////////////////////////////////////////
@@ -2497,11 +2503,11 @@ void Ball_group::sim_looper()
 {
     world_rank = getRank();
     world_size = getSize();
-    ndev=acc_get_num_devices(acc_device_nvidia);
-    thegpu=world_rank%ndev;
-    acc_set_device_num(thegpu,acc_device_nvidia);
-    std::cout<<ndev<<" devices"<<std::endl;
-    std::cout<<thegpu<<" thegpu"<<std::endl;
+    // ndev=acc_get_num_devices(acc_device_nvidia);
+    // thegpu=world_rank%ndev;
+    // acc_set_device_num(thegpu,acc_device_nvidia);
+    // std::cout<<ndev<<" devices"<<std::endl;
+    // std::cout<<thegpu<<" thegpu"<<std::endl;
     std::cout<<world_rank<<" world_rank"<<std::endl;
 
     if (world_rank == 0)
@@ -2519,9 +2525,16 @@ void Ball_group::sim_looper()
     num_pairs = (num_particles*num_particles-num_particles)*0.5;
 
     #pragma acc enter data copyin(this) 
-    #pragma acc enter data copyin(moi[0:num_particles],m[0:num_particles],w[0:num_particles],vel[0:num_particles],pos[0:num_particles],R[0:num_particles],distances[0:num_pairs]) 
-    #pragma acc enter data copyin(accsq[0:num_particles*num_particles],aaccsq[0:num_particles*num_particles],acc[0:num_particles],aacc[0:num_particles],velh[0:num_particles],wh[0:num_particles]) 
-    #pragma acc enter data copyin(dt,num_pairs,num_particles,Ha,k_in,k_out,h_min,u_s,u_r,world_rank,world_size)
+    #pragma acc enter data copyin(moi[0:num_particles],m[0:num_particles],\
+        w[0:num_particles],vel[0:num_particles],pos[0:num_particles],R[0:num_particles],\
+        distances[0:num_pairs]) 
+    #pragma acc enter data copyin(accsq[0:num_particles*num_particles],\
+        aaccsq[0:num_particles*num_particles],acc[0:num_particles],aacc[0:num_particles],\
+        velh[0:num_particles],wh[0:num_particles]) 
+    #pragma acc enter data copyin(dt,num_pairs,num_particles,Ha,k_in,k_out,h_min,u_s,u_r,\
+        world_rank,world_size)
+
+    // std::cerr<<"COPYIN"<<std::endl;
     
     for (int Step = 1; Step < steps; Step++)  // Steps start at 1 because the 0 step is initial conditions.
     {
@@ -2624,9 +2637,12 @@ void Ball_group::sim_looper()
     // #pragma acc exit data delete(acc[0:num_particles],aacc[0:num_particles],PE[0:1])
     // #pragma acc exit data delete(velh[0:num_particles],wh[0:num_particles],m[0:num_particles],w[0:num_particles],vel[0:num_particles],pos[0:num_particles],R[0:num_particles],distances[0:num_pairs])
     // #pragma acc exit data delete(num_pairs,num_particles,A,B,pc,Ha,k_in,k_out,h_min,u_s,u_r,write_step,world_rank,world_size)
-    #pragma acc exit data delete(accsq[0:num_particles*num_particles],aaccsq[0:num_particles*num_particles],acc[0:num_particles],aacc[0:num_particles])
-    #pragma acc exit data delete(m[0:num_particles],w[0:num_particles],vel[0:num_particles],pos[0:num_particles],R[0:num_particles],distances[0:num_pairs])
-    #pragma acc exit data delete(dt,num_pairs,num_particles,Ha,k_in,k_out,h_min,u_s,u_r,world_rank,world_size)
+    #pragma acc exit data delete(accsq[0:num_particles*num_particles],\
+        aaccsq[0:num_particles*num_particles],acc[0:num_particles],aacc[0:num_particles])
+    #pragma acc exit data delete(m[0:num_particles],w[0:num_particles],vel[0:num_particles],\
+        pos[0:num_particles],R[0:num_particles],distances[0:num_pairs])
+    #pragma acc exit data delete(dt,num_pairs,num_particles,Ha,k_in,k_out,h_min,u_s,u_r,\
+        world_rank,world_size)
     #pragma acc exit data delete(this)
 
     if (world_rank == 0)
@@ -2667,7 +2683,9 @@ void Ball_group::sim_looper()
 void Ball_group::sim_one_step(const bool writeStep)
 {
     /// FIRST PASS - Update Kinematic Parameters:
-    #pragma acc parallel loop gang worker present(this,velh[0:num_particles],vel[0:num_particles],acc[0:num_particles],dt,wh[0:num_particles],w[0:num_particles],aacc[0:num_particles],pos[0:num_particles],num_particles)
+    #pragma acc parallel loop gang worker present(this,velh[0:num_particles],vel[0:num_particles],\
+        acc[0:num_particles],dt,wh[0:num_particles],w[0:num_particles],aacc[0:num_particles],\
+        pos[0:num_particles],num_particles)
     for (int Ball = 0; Ball < num_particles; Ball++) {
         // Update velocity half step:
         velh[Ball] = vel[Ball] + .5 * acc[Ball] * dt;
@@ -2683,13 +2701,24 @@ void Ball_group::sim_one_step(const bool writeStep)
 
         // Reinitialize angular acceleration to be recalculated:
         aacc[Ball] = {0.0,0.0,0.0};
+        
     }
 
-    #pragma acc parallel loop gang worker num_gangs(108) present(this,num_particles,accsq[0:num_particles*num_particles],aaccsq[0:num_particles*num_particles])
+    // std::cerr<<"acc[0]: "<<acc[0].x<<','<<acc[0].y<<','<<acc[0].z<<std::endl;
+
+    #pragma acc parallel loop gang worker num_gangs(108) \
+        present(this,num_particles,accsq[0:num_particles*num_particles],\
+            aaccsq[0:num_particles*num_particles])
     for (int i = 0; i < num_particles*num_particles; ++i)
     {
         accsq[i] = {0.0,0.0,0.0};
         aaccsq[i] = {0.0,0.0,0.0};
+        // accsq[i].x = 0.0;
+        // accsq[i].y = 0.0;
+        // accsq[i].z = 0.0;
+        // aaccsq[i].x = 0.0;
+        // aaccsq[i].y = 0.0;
+        // aaccsq[i].z = 0.0;
     }
 
 
@@ -2700,7 +2729,12 @@ void Ball_group::sim_one_step(const bool writeStep)
     double t0 = omp_get_wtime();
     // std::cerr<<"IN simonestep"<<std::endl;
 
-    #pragma acc parallel loop gang worker num_gangs(108) num_workers(256) reduction(+:pe) present(pe,this,accsq[0:num_particles*num_particles],aaccsq[0:num_particles*num_particles],m[0:num_particles],moi[0:num_particles],w[0:num_particles],vel[0:num_particles],pos[0:num_particles],R[0:num_particles],distances[0:num_pairs],num_pairs,num_particles,Ha,k_in,k_out,h_min,u_s,u_r,writeStep,world_rank,world_size)
+    #pragma acc parallel loop gang worker num_gangs(108) num_workers(256) reduction(+:pe) \
+        present(pe,this,accsq[0:num_particles*num_particles],\
+            aaccsq[0:num_particles*num_particles],m[0:num_particles],\
+            moi[0:num_particles],w[0:num_particles],vel[0:num_particles],\
+            pos[0:num_particles],R[0:num_particles],distances[0:num_pairs],\
+            num_pairs,num_particles,Ha,k_in,k_out,h_min,u_s,u_r,writeStep,world_rank,world_size)
     for (int pc = world_rank+1; pc <= num_pairs; pc += world_size)
     {
         // if (writeStep)
@@ -2936,7 +2970,9 @@ void Ball_group::sim_one_step(const bool writeStep)
     }
 
     // #pragma acc loop seq
-    #pragma acc parallel loop gang num_gangs(108) present(this,num_particles,acc[0:num_particles],aacc[0:num_particles],accsq[0:num_particles*num_particles],aaccsq[0:num_particles*num_particles])
+    #pragma acc parallel loop gang num_gangs(108) \
+        present(this,num_particles,acc[0:num_particles],aacc[0:num_particles],\
+            accsq[0:num_particles*num_particles],aaccsq[0:num_particles*num_particles])
     for (int i = 0; i < num_particles; i++)
     {
         #pragma acc loop seq
@@ -2953,7 +2989,7 @@ void Ball_group::sim_one_step(const bool writeStep)
     // #pragma acc update self(acc[i],aacc[i]) //if(write_step)
     }
 
-    #pragma acc update host(pe,acc[0:num_particles],aacc[0:num_particles])
+    #pragma acc update host(pe)//,acc[0:num_particles],aacc[0:num_particles])
     // std::cout<<aaccsq[0].x<<','<<aaccsq[0].y<<','<<aaccsq[0].z<<std::endl;
     PE = pe;
 
@@ -2961,28 +2997,32 @@ void Ball_group::sim_one_step(const bool writeStep)
     // std::cerr<<"PEpre: "<<PE<<std::endl;
     // std::cerr<<"acc: "<<acc[0].x<<','<<acc[0].y<<','<<acc[0].z<<std::endl;
 
-    #ifdef MPI_ENABLE
-        MPI_Allreduce(MPI_IN_PLACE,acc,num_particles*3,MPI_DOUBLE,MPI_SUM,MPI_COMM_WORLD);
-        MPI_Allreduce(MPI_IN_PLACE,aacc,num_particles*3,MPI_DOUBLE,MPI_SUM,MPI_COMM_WORLD);
-        if (writeStep)
-        {
-            double local_PE = PE;
-            // std::cout<<"PE in rank "<<world_rank<<" : "<<PE<<std::endl;
-            PE = 0.0;
-            MPI_Reduce(&local_PE,&PE,1,MPI_DOUBLE,MPI_SUM,0,MPI_COMM_WORLD);
-            // if (world_rank == 0)
-            // {
-            //     std::cerr<<"PE: "<<PE<<std::endl;
-            //     std::cerr<<"acc: "<<acc[0].x<<','<<acc[0].y<<','<<acc[0].z<<std::endl;
-            // }
-        }
-    #endif
+    // #ifdef MPI_ENABLE
+    //     MPI_Allreduce(MPI_IN_PLACE,acc,num_particles*3,MPI_DOUBLE,MPI_SUM,MPI_COMM_WORLD);
+    //     MPI_Allreduce(MPI_IN_PLACE,aacc,num_particles*3,MPI_DOUBLE,MPI_SUM,MPI_COMM_WORLD);
+    //     if (writeStep)
+    //     {
+    //         double local_PE = PE;
+    //         // std::cout<<"PE in rank "<<world_rank<<" : "<<PE<<std::endl;
+    //         PE = 0.0;
+    //         MPI_Reduce(&local_PE,&PE,1,MPI_DOUBLE,MPI_SUM,0,MPI_COMM_WORLD);
+    //         // if (world_rank == 0)
+    //         // {
+    //         //     std::cerr<<"PE: "<<PE<<std::endl;
+    //         //     std::cerr<<"acc: "<<acc[0].x<<','<<acc[0].y<<','<<acc[0].z<<std::endl;
+    //         // }
+    //     }
+    // #endif
+
+
 
     double t1 = omp_get_wtime();
     update_time += t1-t0;
 
-
-    #pragma acc parallel loop gang worker num_gangs(108) num_workers(256) present(this,acc[0:num_particles],aacc[0:num_particles],w[0:num_particles],vel[0:num_particles],velh[0:num_particles],wh[0:num_particles],num_particles,dt)
+    // std::cerr<<"velafter[0]: "<<vel[0].x<<','<<vel[0].y<<','<<vel[0].z<<std::endl;
+    #pragma acc parallel loop gang worker num_gangs(108) num_workers(256) \
+        present(this,acc[0:num_particles],aacc[0:num_particles],w[0:num_particles],\
+            vel[0:num_particles],velh[0:num_particles],wh[0:num_particles],num_particles,dt)
     for (int Ball = 0; Ball < num_particles; Ball++) {
         // Velocity for next step:
         vel[Ball] = velh[Ball] + .5 * acc[Ball] * dt;
@@ -2990,9 +3030,10 @@ void Ball_group::sim_one_step(const bool writeStep)
     }  // THIRD PASS END
 
 
-    #pragma acc update host(w[0:num_particles],vel[0:num_particles],pos[0:num_particles]) if(writeStep && world_rank == 0)
+    #pragma acc update host(w[0:num_particles],vel[0:num_particles],pos[0:num_particles]) //if(writeStep && world_rank == 0)
     if (writeStep && world_rank == 0) 
     {
+    std::cerr<<"velafter[0]: "<<vel[0].x<<','<<vel[0].y<<','<<vel[0].z<<std::endl;
         // std::cerr<<"Writing "<<num_particles<<" balls"<<std::endl;
         ballBuffer << '\n';  // Prepares a new line for incoming data.
         for (int Ball = 0; Ball < num_particles;  Ball++)

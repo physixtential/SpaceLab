@@ -24,6 +24,11 @@ if __name__ == '__main__':
 	# job_set_name = "profiling"
 	job_set_name = "strongScaling"
 	job_set_name = "computeSqMat"
+	job_set_name = "fullCompSqMa"
+	job_set_name = "mid2400"
+	job_set_name = "test"
+
+
 	# job_set_name = "pipeAndOpenmp"
 	# job_set_name = "smallerDt"
 	# job_set_name = "forceTest"
@@ -31,14 +36,14 @@ if __name__ == '__main__':
 
 	runs_at_once = 1
 	# attempts = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20] 
-	attempts = [2]
+	attempts = [1]
 	threads = [1]
 	# nodes = [1,2,4,8,16,32]
 	# nodes = [1]
 	# nodes = [1,2,4,8,16,32]
 	nodes = [1]
 	# threads = [128]
-	N = [5]
+	N = [1]
 	Temps = [100]
 	folders = []
 	for attempt in attempts:
@@ -67,13 +72,13 @@ if __name__ == '__main__':
 				input_json['radiiDistribution'] = 'constant'
 				# input_json['kConsts'] = 3e3
 				input_json['N'] = n
-				# input_json['simType'] = "BPCA"
-				input_json['simType'] = "collider"
+				input_json['simType'] = "BPCA"
+				# input_json['simType'] = "collider"
 				input_json['h_min'] = 0.5
 				input_json['OMPthreads'] = thread
-				# input_json['genBalls'] = 28
+				input_json['genBalls'] = 5
 				# input_json['simTimeSeconds'] = 0.7e-8 #Shorter sim time. Don't need whole time
-				input_json['simTimeSeconds'] = 0.5e-6 #Shorter sim time. Don't need whole time
+				# input_json['simTimeSeconds'] = 0.5e-6 #Shorter sim time. Don't need whole time
 				# input_json['simTimeSeconds'] = 1.5e-5 #Shorter sim time. Don't need whole time
 				# input_json['u_s'] = 0.5
 				# input_json['u_r'] = 0.5
@@ -104,9 +109,9 @@ if __name__ == '__main__':
 				sbatchfile += 'export SLURM_CPU_BIND="cores"\n'
 				
 				# sbatchfile += "srun -n {} -c {} --cpu-bind=cores numactl --interleave=all ./ColliderMultiCore.x {} 2>sim_err.log 1>sim_out.log\n".format(node,thread*2,job)
-				# sbatchfile += "srun -n {} -c {} --cpu-bind=cores numactl --interleave=all nsys profile -o prof ./ColliderMultiCore.x {} 2>sim_err.log 1>sim_out.log\n".format(node,thread*2,job)
-				sbatchfile += "dcgmi profile --pause\n"
-				sbatchfile += "srun -n {} -c {} --cpu-bind=cores numactl --interleave=all ncu -o prof --set full ./ColliderMultiCore.x {} 2>sim_err.log 1>sim_out.log\n".format(node,thread*2,job)
+				sbatchfile += "srun -n {} -c {} --cpu-bind=cores numactl --interleave=all nsys profile -o SqMaprof ./ColliderMultiCore.x {} 2>sim_err.log 1>sim_out.log\n".format(node,thread*2,job)
+				# sbatchfile += "dcgmi profile --pause\n"
+				# sbatchfile += "srun -n {} -c {} --cpu-bind=cores numactl --interleave=all ncu -o prof --set full ./ColliderMultiCore.x {} 2>sim_err.log 1>sim_out.log\n".format(node,thread*2,job)
 				
 
 				
@@ -118,7 +123,8 @@ if __name__ == '__main__':
 				os.system("cp ColliderMultiCore/ColliderMultiCore.x {}ColliderMultiCore.x".format(job))
 				os.system("cp ColliderMultiCore/ColliderMultiCore.cpp {}ColliderMultiCore.cpp".format(job))
 				os.system("cp ColliderMultiCore/ball_group_multi_core.hpp {}ball_group_multi_core.hpp".format(job))
-				os.system("cp ../jobs/collidable_aggregate_1200/* {}".format(job))
+				if input_json['simType'] != "BPCA":
+					os.system("cp ../jobs/collidable_aggregate_1200/* {}".format(job))
 
 				folders.append(job)
 	# print(folders)
@@ -128,11 +134,11 @@ if __name__ == '__main__':
 	# inputs = list(zip(folders,N))
 	
 	print(folders)
-	cwd = os.getcwd()
-	for folder in folders:
-		os.chdir(folder)
-		os.system("sbatch sbatchMulti.bash")
-	os.chdir(cwd)
+	# cwd = os.getcwd()
+	# for folder in folders:
+	# 	os.chdir(folder)
+	# 	os.system("sbatch sbatchMulti.bash")
+	# os.chdir(cwd)
 
 	# for i in range(0,len(folders),runs_at_once):
 	# 	with mp.Pool(processes=runs_at_once) as pool:
