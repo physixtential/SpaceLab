@@ -11,6 +11,9 @@ jobs/
 
 RenderOption*
 
+*.zip
+**/*.zip
+
 **/*.blend1
 **/*errors.txt
 **/*output.txt

@@ -29,12 +29,13 @@ if __name__ == '__main__':
 
 
 	func_input = [(a,b),(c,d)]
+	print("Starting Pool")
+	with mp.Pool(processes=runs_at_once) as pool:
+		for i in range(0, jobs):
+			input_data = func_input[i % len(func_input)]
+			pool.apply_async(matMul, input_data)
 
-	pool = mp.Pool(processes=runs_at_once)
-	for i in range(0, jobs):
-		input_data = func_input[i % len(func_input)]
-		pool.apply_async(matMul, input_data)
-
-	pool.close()
-	pool.join()
+		pool.close()
+		pool.join()
+	
 
