@@ -73,11 +73,14 @@ if __name__ == '__main__':
 				with open(job + "input.json",'w') as fp:
 					json.dump(input_json,fp,indent=4)
 
-				#add run script and executable to folders
+
+				
+				#####################3#add run script and executable to folders
 				os.system("cp default_files/run_sim.py {}run_sim.py".format(job))
 				os.system("cp ColliderSingleCore/ColliderSingleCore.o {}ColliderSingleCore.o".format(job))
-				folders.append(job)
 				folders_N.append(n)
+				folders.append(job)
+				######################################################
 	# print(folders)
 	# if len(N) != len(folders):
 	# 	for i in range(len(folders))
