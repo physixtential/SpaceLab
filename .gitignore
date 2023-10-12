@@ -5,6 +5,8 @@
 
 #.o files
 **/*.o
+**/*.x
+**/*.h5
 
 #jobs
 jobs/
@@ -24,6 +26,8 @@ RenderOption*
 *.png
 **/*.pcd
 *.pcd
+
+slurm*.out
 
 #venv
 py3.7venv/

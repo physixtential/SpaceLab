@@ -21,20 +21,20 @@ if __name__ == '__main__':
 		
 	job_set_name = "lognorm_radius_test"
 	job_set_name = "test"
-	job_set_name = "step_back"
+	job_set_name = "small_balls"
 	# folder_name_scheme = "T_"
 
 	runs_at_once = 1
 	# attempts = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20] 
-	attempts = [20] 
+	attempts = [1] 
 	N = [2]
 	Temps = [1]
 	folders = []
 	for attempt in attempts:
 		for n in N:
 			for Temp in Temps:
-				job = curr_folder + 'jobs/' + job_set_name + str(attempt) + '/'\
-							+ 'N_' + str(n) + '/' + 'T_' + str(Temp) + '/'
+				job = curr_folder + 'jobs/' + job_set_name + str(attempt) + '/'#\
+							# + 'N_' + str(n) + '/' + 'T_' + str(Temp) + '/'
 				if not os.path.exists(job):
 					os.makedirs(job)
 				else:
@@ -65,7 +65,7 @@ if __name__ == '__main__':
 
 				#add run script and executable to folders
 				os.system("cp default_files/run_sim.py {}run_sim.py".format(job))
-				os.system("cp ColliderSingleCore/ColliderSingleCore.o {}ColliderSingleCore.o".format(job))
+				os.system("cp ColliderSingleCore/ColliderSingleCore.x {}ColliderSingleCore.x".format(job))
 				folders.append(job)
 	# print(folders)
 	if len(N) != len(folders):

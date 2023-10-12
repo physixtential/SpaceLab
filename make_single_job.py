@@ -21,7 +21,7 @@ if __name__ == '__main__':
 		
 	job_set_name = "lognorm_radius_test"
 	job_set_name = "writeTest"
-	job_set_name = "poolTest"
+
 	# folder_name_scheme = "T_"
 
 	runs_at_once = 7
@@ -53,10 +53,13 @@ if __name__ == '__main__':
 				input_json['radiiDistribution'] = 'constant'
 				# input_json['kConsts'] = 3e3
 				input_json['h_min'] = 0.5
-				# input_json['u_s'] = 0.5
-				# input_json['u_r'] = 0.5
-				input_json['note'] = "deltaV"
-				####################################
+
+				input_json['u_s'] = 0.5
+				input_json['u_r'] = 0.5
+				input_json['projectileName'] = "299_2_R4e-05_v4e-01_cor0.63_mu0.1_rho2.25_k4e+00_Ha5e-12_dt5e-10_"
+				input_json['targetName'] = "299_2_R4e-05_v4e-01_cor0.63_mu0.1_rho2.25_k4e+00_Ha5e-12_dt5e-10_"
+				input_json['note'] = "testing"
+
 
 				with open(job + "input.json",'w') as fp:
 					json.dump(input_json,fp,indent=4)

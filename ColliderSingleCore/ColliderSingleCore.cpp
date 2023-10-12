@@ -1,5 +1,5 @@
 #include "../ball_group.hpp"
-#include "../timing/timing.hpp"
+// #include "../timing/timing.hpp"
 
 #include <cmath>
 #include <iostream>
@@ -41,6 +41,10 @@ Ball_group
 make_group(const char *argv1,int* restart);
 inline int 
 twoDtoOneD(const int row, const int col, const int width);
+void 
+BPCA(const char *path, int num_balls);
+void 
+collider(const char *path, std::string projectileName,std::string targetName);
 /// @brief The ballGroup run by the main sim looper.
 // Ball_group O(output_folder, projectileName, targetName, v_custom); // Collision
 // Ball_group O(path, targetName, 0);  // Continue
@@ -58,8 +62,7 @@ main(const int argc, char const* argv[])
     t.start_event("WholeThing");
     energyBuffer.precision(12);  // Need more precision on momentum.
     int num_balls;
-    int rest = -1;
-    int *restart = &rest;
+    
     
     
     // Runtime arguments:
@@ -78,17 +81,46 @@ main(const int argc, char const* argv[])
     {
         num_balls = 100;
     }
-    Ball_group O = make_group(argv[1],restart);    
 
+    // Ball_group dummy(1);
+    // dummy.parse_input_file(argv[1]);
     // O.zeroAngVel();
     // O.pushApart();
-    safetyChecks(O);
 
     // Normal sim:
     // O.sim_init_write(output_prefix);
     // sim_looper();
+    BPCA(argv[1],num_balls);
+    // collider(argv[1],dummy.projectileName,dummy.targetName);
 
+    // collider(argv[1],projTarget,projTarget);
+    
+    t.end_event("WholeThing");
+    t.print_events();
+    t.save_events(output_folder + "timing.txt");
+}  // end main
+//////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////
 
+void collider(const char *path, std::string projectileName, std::string targetName)
+{
+    t.start_event("collider");
+    Ball_group O = Ball_group(std::string(path),std::string(projectileName),std::string(targetName));
+    safetyChecks(O);
+    O.sim_init_write(output_prefix);
+    sim_looper(O);
+    t.end_event("collider");
+    // O.freeMemory();
+    return;
+}
+
+void BPCA(const char *path, int num_balls)
+{
+    int rest = -1;
+    int *restart = &rest;
+    Ball_group O = make_group(path,restart);    
+    safetyChecks(O);
     // Add projectile: For dust formation BPCA
     std::string ori_output_prefix = output_prefix;
     for (int i = *restart; i < num_balls; i++) {
@@ -104,13 +136,10 @@ main(const int argc, char const* argv[])
         sim_looper(O);
         simTimeElapsed = 0;
     }
-    t.end_event("WholeThing");
-    t.print_events();
-    t.save_events(output_folder + "timing.txt");
-}  // end main
-//////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////
+    // O.freeMemory();
+    return;
+}
+
 
 //@brief sets Ball_group object based on the need for a restart or not
 Ball_group make_group(const char *argv1,int* restart)
@@ -266,9 +295,13 @@ sim_one_step(const bool write_step, Ball_group &O)
     }
     t.end_event("UpdateKinPar");
 
+    // std::ofstream accWrite, aaccWrite;
+    // accWrite.open(output_folder+"accWrite_"+std::to_string(O.num_particles)+".txt",std::ios::app);
+    // aaccWrite.open(output_folder+"aaccWrite_"+std::to_string(O.num_particles)+".txt",std::ios::app);
+
     /// SECOND PASS - Check for collisions, apply forces and torques:
     t.start_event("CalcForces/loopApplicablepairs");
-    for (int A = 1; A < O.num_particles; A++)  // cuda
+    for (int A = 1; A < O.num_particles; A++)  
     {
         /// DONT DO ANYTHING HERE. A STARTS AT 1.
         for (int B = 0; B < A; B++) {
@@ -295,12 +328,12 @@ sim_one_step(const bool write_step, Ball_group &O)
             // Check for collision between Ball and otherBall.
             if (overlap > 0) {
 
-                if (!contact && A == O.num_particles-1)
-                {
-                    // std::cout<<"CONTACT MADE"<<std::endl;
-                    contact = true;
-                    contactBuffer<<A<<','<<simTimeElapsed<<'\n';
-                }
+                // if (!contact && A == O.num_particles-1)
+                // {
+                //     // std::cout<<"CONTACT MADE"<<std::endl;
+                //     contact = true;
+                //     contactBuffer<<A<<','<<simTimeElapsed<<'\n';
+                // }
 
                 double k;
                 if (dist >= oldDist) {
@@ -481,6 +514,8 @@ sim_one_step(const bool write_step, Ball_group &O)
                 // Total torque a and b:
                 torqueA = r_a.cross(slideForceOnA + rollForceA);
                 torqueB = r_b.cross(-slideForceOnA + rollForceA); // original code
+
+                // aaccWrite<<"["<<A<<';'<<B<<";("<<torqueA<<");("<<torqueB<<")],";
                 //////////////////////////////////////
                 // torqueB = r_b.cross(slideForceOnA + rollForceA); // test code
                 //////////////////////////////////////
@@ -568,6 +603,8 @@ sim_one_step(const bool write_step, Ball_group &O)
             O.acc[A] += totalForceOnA / O.m[A];
             O.acc[B] -= totalForceOnA / O.m[B];
 
+            // accWrite<<"["<<A<<';'<<B<<";("<<totalForceOnA<<")],";
+
             // So last distance can be known for COR:
             O.distances[e] = dist;
             //////////////////////////
@@ -579,6 +616,9 @@ sim_one_step(const bool write_step, Ball_group &O)
         }
         // DONT DO ANYTHING HERE. A STARTS AT 1.
     }
+
+    // aaccWrite<<'\n';
+    // accWrite<<'\n';
 
     //////////////////////////////
     // Write out sliding/rolling fric
@@ -698,16 +738,18 @@ sim_looper(Ball_group &O)
 
     startProgress = time(nullptr);
 
+    std::cerr<<"Stepping through "<<steps<<" steps"<<std::endl;
+
     for (int Step = 1; Step < steps; Step++)  // Steps start at 1 because the 0 step is initial conditions.
     {
-        simTimeElapsed += dt; //New code #1
+        // simTimeElapsed += dt; //New code #1
         // Check if this is a write step:
         if (Step % skip == 0) {
             t.start_event("writeProgressReport");
             writeStep = true;
 
             /////////////////////// Original code #1
-            // simTimeElapsed += dt * skip;
+            simTimeElapsed += dt * skip;
             ///////////////////////
 
             // Progress reporting:
@@ -896,8 +938,10 @@ sim_looper(Ball_group &O)
 
             // Data Export. Exports every 10 writeSteps (10 new lines of data) and also if the last write was
             // a long time ago.
-            if (time(nullptr) - lastWrite > 1800 || Step / skip % 10 == 0) {
+            // if (time(nullptr) - lastWrite > 1800 || Step / skip % 10 == 0) {
+            if (Step / skip % 10 == 0) {
                 // Report vMax:
+
                 std::cerr << "vMax = " << O.getVelMax() << " Steps recorded: " << Step / skip << '\n';
                 std::cerr << "Data Write to "<<output_folder<<"\n";
                 // std::cerr<<"output_prefix: "<<output_prefix<<std::endl;
@@ -927,6 +971,17 @@ sim_looper(Ball_group &O)
             if (dynamicTime) { O.calibrate_dt(Step, false); }
             t.end_event("writeStep");
         }  // writestep end
+    }
+
+    if (true)
+    {
+        for (int i = 0; i < O.num_particles; i++)
+        {
+            std::cerr<<"===================================="<<std::endl;
+            std::cerr<<O.pos[i]<<std::endl;
+            std::cerr<<O.vel[i]<<std::endl;
+            std::cerr<<"===================================="<<std::endl;
+        }
     }
 
     const time_t end = time(nullptr);
