@@ -107,7 +107,7 @@ if __name__ == '__main__':
 
 				folders.append(job)
 
-
+print(folders)
 # cwd = os.getcwd()
 # for folder in folders:
 # 	os.chdir(folder)
