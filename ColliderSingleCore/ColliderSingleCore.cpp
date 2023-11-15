@@ -973,16 +973,16 @@ sim_looper(Ball_group &O)
         }  // writestep end
     }
 
-    if (true)
-    {
-        for (int i = 0; i < O.num_particles; i++)
-        {
-            std::cerr<<"===================================="<<std::endl;
-            std::cerr<<O.pos[i]<<std::endl;
-            std::cerr<<O.vel[i]<<std::endl;
-            std::cerr<<"===================================="<<std::endl;
-        }
-    }
+    // if (true)
+    // {
+    //     for (int i = 0; i < O.num_particles; i++)
+    //     {
+    //         std::cerr<<"===================================="<<std::endl;
+    //         std::cerr<<O.pos[i]<<std::endl;
+    //         std::cerr<<O.vel[i]<<std::endl;
+    //         std::cerr<<"===================================="<<std::endl;
+    //     }
+    // }
 
     const time_t end = time(nullptr);
 

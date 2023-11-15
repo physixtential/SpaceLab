@@ -5,7 +5,7 @@
 CPP=g++-10
 # CPPflags=-O3 -std=c++2a -fopenmp
 # CPPflags=-O3 -std=c++2a 
-CPPflags=-std=c++2a 
+CPPflags=-std=c++2a -O2
 
 ColliderSingleCore.x: ColliderSingleCore.cpp ../dust_const.hpp ../ball_group.hpp ../timing/timing.hpp
 	${CPP} ${CPPflags} -o ColliderSingleCore.x ColliderSingleCore.cpp

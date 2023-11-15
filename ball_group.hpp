@@ -377,12 +377,16 @@ void Ball_group::parse_input_file(char const* location)
     if (inputs["seed"] == std::string("default"))
     {
         seed = static_cast<int>(time(nullptr));
+        std::ofstream seedFile;
+        seedFile.open(s_location+"seedFile.txt",std::ios::app);
+        seedFile<<seed<<std::endl;
+        seedFile.close();
     }
     else
     {
         seed = static_cast<int>(inputs["seed"]);
-        random_generator.seed(seed);
     }
+    random_generator.seed(seed);//This was in the else but it should be outside so random_generator is always seeded the same as srand (right?)
     srand(seed);
 
     std::string temp_distribution = inputs["radiiDistribution"];
@@ -573,11 +577,29 @@ void Ball_group::calibrate_dt(int const Step, const double& customSpeed = -1.)
 
     if (Step == 0 or dtOld < 0) {
         steps = static_cast<int>(simTimeSeconds / dt);
+        if (steps < 0)
+        {
+            std::cerr<< "ERROR: STEPS IS NEGATIVE."<<std::endl;
+            std::cerr<< "simTimeSeconds/dt = " << simTimeSeconds / dt<<std::endl;
+            std::cerr<< "casted simTimeSeconds/dt (steps) = " << static_cast<int>(simTimeSeconds / dt)<<std::endl;
+            std::cerr<< "Exiting program now."<<std::endl;
+            exit(-1);
+        }
         std::cerr << "\tInitial Steps: " << steps << '\n';
     } else {
         steps = static_cast<int>(dtOld / dt) * (steps - Step) + Step;
+        if (steps < 0)
+        {
+            std::cerr<< "ERROR: STEPS IS NEGATIVE."<<std::endl;
+            std::cerr<< "dtOld/dt = " << dtOld / dt<<std::endl;
+            std::cerr<< "(steps - Step) + Step = " << (steps - Step) + Step<<std::endl;
+            std::cerr<< "Final steps = " << static_cast<int>(dtOld / dt) * (steps - Step) + Step<<std::endl;
+            std::cerr<< "Exiting program now."<<std::endl;
+            exit(-1);
+        }
         std::cerr << "\tSteps: " << steps;
     }
+
 
     if (timeResolution / dt > 1.) {
         skip = static_cast<int>(floor(timeResolution / dt));
