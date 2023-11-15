@@ -19,24 +19,23 @@ if __name__ == '__main__':
 		print('compilation failed')
 		exit(-1)
 		
-	job_set_name = "lognorm_radius_test"
 	job_set_name = "restartTest"
 
 	# folder_name_scheme = "T_"
 
-	runs_at_once = 7
+	runs_at_once = 1
 	# attempts = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20] 
 	attempts = [1] 
-	N = [5]
+	N = [50]
 	# Temps = [3,10,30,100,300,1000]
 	Temps = [3]
 	folders = []
 	for attempt in attempts:
 		for n in N:
 			for Temp in Temps:
-				# job = curr_folder + 'jobs/' + job_set_name + str(attempt) + '/'
-				job = curr_folder + 'jobs/' + job_set_name + str(attempt) + '/'\
-							+ 'N_' + str(n) + '/' + 'T_' + str(Temp) + '/'
+				job = curr_folder + 'jobs/' + job_set_name + str(attempt) + '/'
+				# job = curr_folder + 'jobs/' + job_set_name + str(attempt) + '/'\
+							# + 'N_' + str(n) + '/' + 'T_' + str(Temp) + '/'
 				if not os.path.exists(job):
 					os.makedirs(job)
 				else:
@@ -50,7 +49,7 @@ if __name__ == '__main__':
 				####################################
 				######Change input values here######
 				input_json['temp'] = Temp
-				input_json['seed'] = 'default'
+				input_json['seed'] = 101
 				input_json['radiiDistribution'] = 'logNormal'
 				input_json['h_min'] = 0.5
 				# input_json['u_s'] = 0.5
@@ -63,7 +62,11 @@ if __name__ == '__main__':
 
 				#add run script and executable to folders
 				os.system("cp default_files/run_sim.py {}run_sim.py".format(job))
-				os.system("cp ColliderSingleCore/ColliderSingleCore.o {}ColliderSingleCore.o".format(job))
+				os.system("cp ColliderSingleCore/ColliderSingleCore.x {}ColliderSingleCore.x".format(job))
+
+				# os.system("cp /mnt/be2a0173-321f-4b9d-b05a-addba547276f/kolanzl/SpaceLab_stable/SpaceLab/jobs/lognorm0/N_100/T_3/3* {}".format(job))
+				# os.system("cp /mnt/be2a0173-321f-4b9d-b05a-addba547276f/kolanzl/SpaceLab_stable/SpaceLab/jobs/lognorm0/N_100/T_3/4* {}".format(job))
+
 				folders.append(job)
 	# print(folders)
 	if len(N) != len(folders):
@@ -73,9 +76,6 @@ if __name__ == '__main__':
 	print(inputs)
 
 
-	# for i in range(0,len(folders),runs_at_once):
-	# 	with mp.Pool(processes=runs_at_once) as pool:
-	# 		pool.starmap(run_job,inputs[i:i+runs_at_once]) 
 	with mp.Pool(processes=runs_at_once) as pool:
 		for i in range(0,len(folders)):
 			# input_data = inputs[i:i+runs_at_once]
