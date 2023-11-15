@@ -20,26 +20,25 @@ if __name__ == '__main__':
 		exit(-1)
 
 
-	job_set_name = "lognorm"
-	job_set_name = "overflow_tester"
+	job_set_name = "lognorm_test"
 	# folder_name_scheme = "T_"
 
-	runs_at_once = 5
+	runs_at_once = 1
 	# attempts = [21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40]
 	# attempts = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20] 
-	attempts = [i for i in range(10)]
-	# attempts = [1] 
-	attempts_300 = [i for i in range(5)]
+	# attempts = [i for i in range(10)]
+	attempts = [1] 
+	# attempts_300 = [i for i in range(5)]
+	attempts_300 = [1]
 
 	#test it out first
 	# attempts = [0]
 	# attempts_300 = [0]
 
-	N = [30,100,300]
+	# N = [30,100,300]
 	N = [300]
-	# N = [5]
-	Temps = [3,10,30,100,300,1000]
-	# Temps = [3]
+	# Temps = [3,10,30,100,300,1000]
+	Temps = [3]
 
 	folders = []
 	folders_N = []
