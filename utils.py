@@ -158,13 +158,13 @@ def get_energy_file(data_folder,data_index=-1):
 def get_last_line_data(data_folder,data_index=-1):
 	# data_headers = np.loadtxt(data_folder + data_file,skiprows=0,dtype=str,delimiter=',')[0]
 	data_file = get_data_file(data_folder,data_index)
-	print("data file: {}".format(data_file))
+	# print("data file: {}".format(data_file))
 	try:
 		data = np.loadtxt(data_folder + data_file,skiprows=1,dtype=float,delimiter=',')
 		if data.ndim > 1:
-				data = data[-1]
+			data = data[-1]
 		# print(data)
-		print(data_folder + data_file)
+		# print(data_folder + data_file)
 	except Exception as e:
 		with open(data_folder + data_file) as f:
 			for line in f:
@@ -185,7 +185,7 @@ def get_last_line_energy(data_folder,data_index=-1):
 		energy = np.loadtxt(data_folder + energy_file,skiprows=1,dtype=float,delimiter=',')
 		if energy.ndim > 1:
 			energy = energy[-1]
-		print(energy)
+		# print(energy)
 	except Exception as e:
 		with open(data_folder + energy_file) as f:
 			for line in f:

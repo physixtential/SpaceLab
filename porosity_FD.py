@@ -108,12 +108,13 @@ def number_of_contacts(data_folder,data_index=-1):
 	return np.mean(np.sum(contacts,axis=1))
 
 if __name__ == '__main__':
-	path = '/mnt/be2a0173-321f-4b9d-b05a-addba547276f/kolanzl/SpaceLab_stable/SpaceLab/jobs/'
-	data_prefolder = path + 'calibrateTest'
-	data_prefolder = path + 'tempVarianceRand_attempt'
-	data_prefolder = path + 'mu_max'
-	data_prefolder = path + 'h_max'
-	data_prefolder = path + 'lognorm'
+	path = '/mnt/be2a0173-321f-4b9d-b05a-addba547276f/kolanzl/SpaceLab_stable/SpaceLab/'
+	data_prefolder = path + 'jobs/calibrateTest'
+	data_prefolder = path + 'jobs/tempVarianceRand_attempt'
+	data_prefolder = path + 'jobs/mu_max'
+	data_prefolder = path + 'jobs/h_max'
+	data_prefolder = path + 'jobs/lognorm'
+	data_prefolder = path + 'jobsCosine/lognorm'
 
 	dataset_name = data_prefolder.split("/")[-1]
 
@@ -135,12 +136,12 @@ if __name__ == '__main__':
 	# # exit(0)
 	# attempts300 = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16]
 	attempts = [0,1]
-	attempts = [i for i in range(59)]
-	attempts = [i for i in range(9)]
+	attempts = [i for i in range(30)]
+	# attempts = [i for i in range(9)]
 	# attempts.append(50)
 	# print(attempts)
-	attempts300 = [i for i in range(20)]
-	attempts300 = [i for i in range(9)]
+	attempts300 = attempts
+	# attempts300 = [i for i in range(9)]
 	# data = [] 
 
 	porositiesabcavg = np.full(shape=(len(Nums),len(temps)),fill_value=np.nan,dtype=np.float64)
@@ -178,6 +179,7 @@ if __name__ == '__main__':
 	show_stat_plots = False
 
 	sav = 'data/{}_averageData.csv'.format(dataset_name)
+	figure_folder = 'figuresCosine/'
 		# pass
 
 	if new_data:
@@ -195,10 +197,11 @@ if __name__ == '__main__':
 		# contacts[:] = np.nan
 		for i,temp in enumerate(temps):
 			for n,N in enumerate(Nums):
-				if N == 300:
-					a = attempts300
-				else:
-					a = attempts
+				# if N == 300:
+				# 	a = attempts300
+				# else:
+				# 	a = attempts
+				a = attempts
 				for j,attempt in enumerate(a):
 					# temp = 100
 					# N = 300
@@ -285,7 +288,7 @@ if __name__ == '__main__':
 						ax.axhline(FD_avgsums[-1],label='Overall avg')
 
 						fig.legend()
-						plt.savefig("figuresOCT/meanFDsum.png")
+						plt.savefig("{}meanFDsum.png".format(figure_folder))
 						if show_stat_plots:
 							plt.show()
 						plt.close("all")
@@ -302,7 +305,7 @@ if __name__ == '__main__':
 						ax.axhline(porositiesabc_avgsums[-1],label='Overall avg')
 
 						fig.legend()
-						plt.savefig("figuresOCT/meanporositiesabcsum.png")
+						plt.savefig("{}meanporositiesabcsum.png".format(figure_folder))
 						if show_stat_plots:
 							plt.show()
 						plt.close("all")
@@ -319,7 +322,7 @@ if __name__ == '__main__':
 						ax.axhline(porositiesKBM_avgsums[-1],label='Overall avg')
 
 						fig.legend()
-						plt.savefig("figuresOCT/meanporositiesKBMsum.png")
+						plt.savefig("{}meanporositiesKBMsum.png".format(figure_folder))
 						if show_stat_plots:
 							plt.show()
 						plt.close("all")
@@ -335,7 +338,7 @@ if __name__ == '__main__':
 						ax.axhline(contacts_avgsums[-1],label='Overall avg')
 
 						fig.legend()
-						plt.savefig("figuresOCT/meanpcontactssum.png")
+						plt.savefig("{}meanpcontactssum.png".format(figure_folder))
 						if show_stat_plots:
 							plt.show()
 						plt.close("all")
@@ -689,7 +692,7 @@ if __name__ == '__main__':
 		if True:
 			fig.legend(loc='upper right',bbox_to_anchor=(0.98, 0.97))
 		plt.tight_layout()
-		plt.savefig("figuresOCT/{}_FractDimandPorosity_{}.png".format(dataset_name,method.replace(" ","")))
+		plt.savefig("{}{}_FractDimandPorosity_{}.png".format(figure_folder,dataset_name,method.replace(" ","")))
 		if show_plots:
 			plt.show()
 	plt.close("all")
