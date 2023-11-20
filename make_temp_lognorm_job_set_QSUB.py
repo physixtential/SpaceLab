@@ -26,19 +26,15 @@ if __name__ == '__main__':
 	# runs_at_once = 7
 	# attempts = [21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40]
 	# attempts = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20] 
-	attempts = [i for i in range(10)]
+	attempts = [i for i in range(10,30)]
 	# attempts = [1] 
-	attempts_300 = [i for i in range(5)]
+	attempts_300 = [i for i in range(5,13)]
 
-	#test it out first
-	attempts = [0]
-	# attempts_300 = [0]
-
-	N = [300,30,100]
-	N = [3]
+	N = [30,100,300]
+	# N = [3]
 	node = 1
 	Temps = [3,10,30,100,300,1000]
-	Temps = [3]
+	# Temps = [3]
 	# Temps = [3]
 
 	folders = []
@@ -115,11 +111,11 @@ if __name__ == '__main__':
 
 
 print(folders)
-# cwd = os.getcwd()
-# for folder in folders:
-# 	os.chdir(folder)
-# 	os.system('qsub qsub.bash')
-# os.chdir(cwd)
+cwd = os.getcwd()
+for folder in folders:
+	os.chdir(folder)
+	os.system('qsub qsub.bash')
+os.chdir(cwd)
 
 
 
