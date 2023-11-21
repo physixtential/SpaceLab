@@ -46,20 +46,17 @@ def restart_job(folder,test=True,move_folder=''):
 			os.system(command)
 
 	else: #remove and restart
-		cwd = os.getcwd()
-		os.chdir(folder)
 		if test:
 			command = "ls"
 		else:
 			command = "rm"
 
-		os.system(f"{command} *.csv")
-		os.system(f"{command} *.txt")
-		os.system(f"{command} *.x")
-		os.system(f"{command} *.py")
-		os.system(f"{command} *.cpp")
-		os.system(f"{command} *.hpp")
-		os.chdir(cwd)
+		os.system(f"{command} {folder}*.csv")
+		os.system(f"{command} {folder}*.txt")
+		os.system(f"{command} {folder}*.x")
+		os.system(f"{command} {folder}*.py")
+		os.system(f"{command} {folder}*.cpp")
+		os.system(f"{command} {folder}*.hpp")
 
 		try:
 			# os.chdir("{}ColliderSingleCore".format(curr_folder))
@@ -88,7 +85,8 @@ def main():
 
 	curr_folder = os.getcwd() + '/'
 
-	job_folder = 'jobsCosine/'
+	job_folder = 'jobsCosine/'##FOR LOCAL
+	job_folder = 'jobs/'###FOR COSINE
 	move_job_folder = 'erroredJobs/'
 
 	job = curr_folder + job_folder + 'lognorm$a$/N_$n$/T_$t$/'
@@ -109,7 +107,7 @@ def main():
 		# print(folder)
 
 		# restart_job(folder,test=False,move_folder=folder.replace(job_folder,move_job_folder))
-		restart_job(folder,test=True,move_folder=folder.replace(job_folder,move_job_folder))
+		# restart_job(folder,test=False,move_folder='') #keep move_folder empty if in Cosine
 
 
 if __name__ == '__main__':

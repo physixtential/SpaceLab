@@ -186,6 +186,7 @@ def main():
 	curr_folder = os.getcwd() + '/'
 
 	job = curr_folder + 'jobsCosine/lognorm$a$/N_$n$/T_$t$/'
+	job = curr_folder + 'jobs/lognorm$a$/N_$n$/T_$t$/'
 
 
 

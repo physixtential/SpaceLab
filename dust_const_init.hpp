@@ -1,7 +1,7 @@
 #pragma once
 #include <cmath>
 #include <string>
-#include <numbers>
+// #include <numbers>
 
 ////////////////////////////////////
 // Initialization (Units are CGS) //
@@ -16,6 +16,7 @@
 // 1000	6.627726932618988
 
 constexpr double Kb = 1.380649e-16; //in erg/K
+constexpr double pi = 3.14159265358979311599796346854;
 
 
 bool dynamicTime;
