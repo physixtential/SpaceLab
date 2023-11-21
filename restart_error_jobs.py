@@ -15,26 +15,36 @@ import check_for_errors as cfe
 
 
 def restart_job(folder,test=True,move_folder=''):
-
-	if len(move_folder) > 0 #move data to new folder specified in move_folder
+	if test:
+		print('==================================================================================')
+		print("IN TEST MODE")
+		print('==================================================================================')
+	if len(move_folder) > 0: #move data to new folder specified in move_folder
 		if os.path.exists(move_folder): #if move_folder already exists
 			#if it already exists then we need to change the name of it so it doesn't overwrite
-			move_folder += '_MOVE-'
+			move_folder = move_folder[:-1] + '_MOVE-'
 			move_index = 0
 			while os.path.exists(move_folder+str(move_index)): #check for lowest number transpher. 
 				move_index += 1
 
 			move_folder += str(move_index) + '/'
-			os.makedirs(move_folder)
+			if test:
+				print(f"make {move_folder}")
+			else:
+				os.makedirs(move_folder)
 		
 		else : #make it
-			os.makedirs(move_folder)
+			if test:
+				print(f"make {move_folder}")
+			else:
+				os.makedirs(move_folder)
 
 		command = f"mv {folder}* {move_folder}."
 		if test:
 			print(command)
 		else:
 			os.system(command)
+
 	else: #remove and restart
 		cwd = os.getcwd()
 		os.chdir(folder)
@@ -78,10 +88,11 @@ def main():
 
 	curr_folder = os.getcwd() + '/'
 
-	job = curr_folder + 'jobs/lognorm$a$/N_$n$/T_$t$/'
-	move_folder = curr_folder + 'erroredJobs/lognorm$a$/N_$n$/T_$t$/'
+	job_folder = 'jobsCosine/'
+	move_job_folder = 'erroredJobs/'
 
-
+	job = curr_folder + job_folder + 'lognorm$a$/N_$n$/T_$t$/'
+	# move_folder = curr_folder + 'erroredJobs/lognorm$a$/N_$n$/T_$t$/'
 
 	attempts = [i for i in range(30)]
 	# attempts = [0]
@@ -92,16 +103,13 @@ def main():
 	Temps = [3,10,30,100,300,1000]
 	# Temps = [3]
 
-	# errorgen_folders = check_error(job,error_general,N,Temps,attempts)
-	# error1_folders = check_error(job,error1,N,Temps,attempts)
-	# print(error1_folders)
-
 	error2_folders = cfe.check_error(job,cfe.error2,N,Temps,attempts)
+
 	for folder in error2_folders:
 		# print(folder)
-		restart_job(folder,test=True,move_folder=move_folder)
-		# exit(0)
-	# print(error2_folders)
+
+		# restart_job(folder,test=False,move_folder=folder.replace(job_folder,move_job_folder))
+		restart_job(folder,test=True,move_folder=folder.replace(job_folder,move_job_folder))
 
 
 if __name__ == '__main__':
