@@ -11,11 +11,11 @@ all: unitTest
 unitTest: unitTest.o
 	g++ -o $@ $^ $(LDFLAGS)
 
-%.o: %.cpp h5CPP.hpp
+%.o: %.cpp DECCOData.hpp
 	g++ $(CFLAGS) -c $< -o $@
 
 clean:
 	rm -f *.o
 	rm -f *.hdf5
 	rm -f *.h5
-	rm -f h5cpp unitTest
+	rm -f DECCOData unitTest

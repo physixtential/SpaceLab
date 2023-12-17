@@ -3,6 +3,14 @@
 #include <iostream>
 #include <vector>
 
+class CSVHandler
+{
+public:
+	CSVHandler()=default;
+	~CSVHandler()=default;
+	
+};
+
 class HDF5Handler {
     public:
         HDF5Handler(std::string filename,ssize_t max_size=-1) : filename(filename),max_size(max_size) 

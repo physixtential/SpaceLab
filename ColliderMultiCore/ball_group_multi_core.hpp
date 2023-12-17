@@ -2159,9 +2159,12 @@ void Ball_group::sim_one_step(const bool write_step)
     // // #pragma omp parallel for num_threads(3) reduction(+:PE) default(none) private(A,B,pc) shared(writelock,acc,aacc,Ha,write_step,lllen,R,pos,vel,m,w,u_r,u_s,moi,kin,kout,distances,h_min)
     // for (pc = (((lllen*lllen)-lllen)/2); pc >= 1; pc--)
     double t0 = omp_get_wtime();
-    #pragma omp declare reduction(vec3_sum : vec3 : omp_out += omp_in)
     // #pragma omp parallel for schedule(dynamic, 32) num_threads(OMPthreads) reduction(vec3_sum:acc[:num_particles],aacc[:num_particles]) reduction(+:PE) default(none) private(A,B,pc) shared(Ha,write_step,lllen,R,pos,vel,m,w,u_r,u_s,moi,kin,kout,distances,h_min,dt)
-    #pragma omp parallel for num_threads(OMPthreads) reduction(vec3_sum:acc[:num_particles],aacc[:num_particles]) reduction(+:PE) default(none) private(A,B,pc) shared(Ha,write_step,lllen,R,pos,vel,m,w,u_r,u_s,moi,kin,kout,distances,h_min,dt)
+    #pragma omp declare reduction(vec3_sum : vec3 : omp_out += omp_in)
+    #pragma omp parallel for num_threads(OMPthreads) \
+        reduction(vec3_sum:acc[:num_particles],aacc[:num_particles]) reduction(+:PE)\
+        default(none) private(A,B,pc) shared(Ha,write_step,lllen,R,pos,vel,m,w,u_r,u_s,moi,kin,\
+            kout,distances,h_min,dt)
     for (pc = 1; pc <= (((lllen*lllen)-lllen)/2); pc++)
     {
         long double pd = (long double)pc;
