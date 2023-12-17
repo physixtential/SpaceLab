@@ -62,6 +62,8 @@ double y1Rot = 0;  // Cluster two y axis rotation
 double simTimeElapsed = 0;
 
 // File from which to proceed with further simulations
-std::string path = "C:/Users/milin/Desktop/VSOUT/", projectileName = "";
-std::string targetName = "2_R2e-05_v1e+00_cor0.16_mu0.1_rho2.25_k3e+01_Ha5e-12_dt2e-10_";
-std::string output_prefix = "Unnamed_";
+std::string path = "/home/lucas/Desktop/Research/SpaceLabTesting/SpaceLab/";
+std::string output_folder = path + "output/dust_formation/";
+// std::string projectileName = "19_2_R3e-05_v4e-01_cor0.63_mu0.1_rho2.25_k4e+00_Ha5e-12_dt5e-10_";
+// std::string targetName = projectileName;
+std::string output_prefix = "TEST";

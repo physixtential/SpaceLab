@@ -7,9 +7,12 @@
 #include <iomanip>
 #include <algorithm>
 #include <omp.h>
-#include "../vector3d.h"
-#include "../initializations.h"
-#include "../objects.h"
+#include "../vec3.hpp"
+// #include "../vector3d.h"
+#include "../dust_const.hpp"
+// #include "../initializations.h"
+#include "../ball_group.hpp"
+// #include "../objects.h"
 
 // File streams
 std::ofstream

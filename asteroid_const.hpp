@@ -53,7 +53,7 @@ simTimeElapsed = 0;
 
 // File from which to proceed with further simulations
 inline std::string
-path = "C:/Users/milin/Desktop/GoogleDrive/GradResearch/Development/SpaceLab/ColliderSingleCore/",
+path = "/home/lucas/Desktop/Research/SpaceLabTesting/SpaceLab",
 projectileName = "cohTest_",
 targetName = "cohTest_",
 output_prefix = "Unnamed_";
