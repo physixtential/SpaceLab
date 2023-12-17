@@ -10,8 +10,13 @@
 
 #jobs
 jobs/
+jobsCosine/
+erroredJobs/
 
 RenderOption*
+
+*.zip
+**/*.zip
 
 **/*.blend1
 **/*errors.txt

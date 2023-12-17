@@ -1,5 +1,5 @@
 #include "../ball_group.hpp"
-// #include "../timing/timing.hpp"
+#include "../timing/timing.hpp"
 
 #include <cmath>
 #include <iostream>
@@ -82,16 +82,16 @@ main(const int argc, char const* argv[])
         num_balls = 100;
     }
 
-    // Ball_group dummy(1);
-    // dummy.parse_input_file(argv[1]);
+    Ball_group dummy(1);
+    dummy.parse_input_file(argv[1]);
     // O.zeroAngVel();
     // O.pushApart();
 
     // Normal sim:
     // O.sim_init_write(output_prefix);
     // sim_looper();
-    BPCA(argv[1],num_balls);
-    // collider(argv[1],dummy.projectileName,dummy.targetName);
+    // BPCA(argv[1],num_balls);
+    collider(argv[1],dummy.projectileName,dummy.targetName);
 
     // collider(argv[1],projTarget,projTarget);
     
@@ -108,7 +108,6 @@ void collider(const char *path, std::string projectileName, std::string targetNa
     t.start_event("collider");
     Ball_group O = Ball_group(std::string(path),std::string(projectileName),std::string(targetName));
     safetyChecks(O);
-    O.sim_init_write(output_prefix);
     sim_looper(O);
     t.end_event("collider");
     // O.freeMemory();
@@ -121,7 +120,7 @@ void BPCA(const char *path, int num_balls)
     int *restart = &rest;
     Ball_group O = make_group(path,restart);    
     safetyChecks(O);
-    // Add projectile: For dust formation BPCA
+    // Add projectile: For dust formation BPCA 
     std::string ori_output_prefix = output_prefix;
     for (int i = *restart; i < num_balls; i++) {
     // for (int i = 0; i < 250; i++) {
@@ -155,9 +154,6 @@ Ball_group make_group(const char *argv1,int* restart)
             (*restart)--;
             // filename = std::to_string(*restart) + filename;
             filename = filename.substr(1,filename.length());
-            std::cerr<<"\n============================================\
-                    \nRESTARTING (from non-first write) WITH START VAL OF "<<*restart<<\
-                    "\n============================================"<<std::endl;
             O = Ball_group(argv1,filename,v_custom,*restart);
         }
         else if (*restart == 1) //restart from first write (different naming convension for first write)
@@ -165,16 +161,10 @@ Ball_group make_group(const char *argv1,int* restart)
             (*restart)--;
             filename = filename.substr(1,filename.length());
             // exit(EXIT_SUCCESS);
-            std::cerr<<"\n============================================\
-                    \nRESTARTING (from first write) WITH START VAL OF "<<*restart<<\
-                    "\n============================================"<<std::endl;
             O = Ball_group(argv1,filename,v_custom,*restart);
         }
         else //if restart is 0, need to rerun whole thing
         {//TESTED
-            std::cerr<<"\n============================================\
-                    \nRESTARTING (whole sim) WITH START VAL OF "<<*restart<<\
-                    "\n============================================"<<std::endl;
             O = Ball_group(true, v_custom, argv1); // Generate new group
         }
 
@@ -198,7 +188,7 @@ std::string check_restart(std::string folder,int* restart)
     // int tot_count = 0;
     // int file_count = 0;
     int largest_file_index = -1;
-    int file_index=0;
+    int file_index;
     std::string largest_index_name;
     for (const auto & entry : fs::directory_iterator(folder))
     {
@@ -215,15 +205,14 @@ std::string check_restart(std::string folder,int* restart)
         if (file.substr(file.size()-4,file.size()) == ".csv")
         {
             // file_count++;
-            size_t _pos = file.find_first_of("_");
-            size_t _secpos = file.substr(_pos+1,file.size()).find_first_of("_");
-            _secpos += _pos+1; //add 1 to account for _pos+1 in substr above
-            file_index = stoi(file.substr(0,file.find_first_of("_")));
-            if (file[_pos+1] == 'R')
+            if (file[3] == '_')
+            {
+                file_index = stoi(file.substr(0,file.find("_")));
+            }
+            else if (file[1] == '_' and file[3] != '_')
             {
                 file_index = 0;
             }
-
             if (file_index > largest_file_index)
             {
                 largest_file_index = file_index;
@@ -305,13 +294,9 @@ sim_one_step(const bool write_step, Ball_group &O)
     }
     t.end_event("UpdateKinPar");
 
-    // std::ofstream accWrite, aaccWrite;
-    // accWrite.open(output_folder+"accWrite_"+std::to_string(O.num_particles)+".txt",std::ios::app);
-    // aaccWrite.open(output_folder+"aaccWrite_"+std::to_string(O.num_particles)+".txt",std::ios::app);
-
     /// SECOND PASS - Check for collisions, apply forces and torques:
     t.start_event("CalcForces/loopApplicablepairs");
-    for (int A = 1; A < O.num_particles; A++)  
+    for (int A = 1; A < O.num_particles; A++)  // cuda
     {
         /// DONT DO ANYTHING HERE. A STARTS AT 1.
         for (int B = 0; B < A; B++) {
@@ -338,12 +323,12 @@ sim_one_step(const bool write_step, Ball_group &O)
             // Check for collision between Ball and otherBall.
             if (overlap > 0) {
 
-                // if (!contact && A == O.num_particles-1)
-                // {
-                //     // std::cout<<"CONTACT MADE"<<std::endl;
-                //     contact = true;
-                //     contactBuffer<<A<<','<<simTimeElapsed<<'\n';
-                // }
+                if (!contact && A == O.num_particles-1)
+                {
+                    // std::cout<<"CONTACT MADE"<<std::endl;
+                    contact = true;
+                    contactBuffer<<A<<','<<simTimeElapsed<<'\n';
+                }
 
                 double k;
                 if (dist >= oldDist) {
@@ -524,8 +509,6 @@ sim_one_step(const bool write_step, Ball_group &O)
                 // Total torque a and b:
                 torqueA = r_a.cross(slideForceOnA + rollForceA);
                 torqueB = r_b.cross(-slideForceOnA + rollForceA); // original code
-
-                // aaccWrite<<"["<<A<<';'<<B<<";("<<torqueA<<");("<<torqueB<<")],";
                 //////////////////////////////////////
                 // torqueB = r_b.cross(slideForceOnA + rollForceA); // test code
                 //////////////////////////////////////
@@ -613,8 +596,6 @@ sim_one_step(const bool write_step, Ball_group &O)
             O.acc[A] += totalForceOnA / O.m[A];
             O.acc[B] -= totalForceOnA / O.m[B];
 
-            // accWrite<<"["<<A<<';'<<B<<";("<<totalForceOnA<<")],";
-
             // So last distance can be known for COR:
             O.distances[e] = dist;
             //////////////////////////
@@ -626,9 +607,6 @@ sim_one_step(const bool write_step, Ball_group &O)
         }
         // DONT DO ANYTHING HERE. A STARTS AT 1.
     }
-
-    // aaccWrite<<'\n';
-    // accWrite<<'\n';
 
     //////////////////////////////
     // Write out sliding/rolling fric
@@ -748,18 +726,16 @@ sim_looper(Ball_group &O)
 
     startProgress = time(nullptr);
 
-    std::cerr<<"Stepping through "<<steps<<" steps"<<std::endl;
-
     for (int Step = 1; Step < steps; Step++)  // Steps start at 1 because the 0 step is initial conditions.
     {
-        // simTimeElapsed += dt; //New code #1
+        simTimeElapsed += dt; //New code #1
         // Check if this is a write step:
         if (Step % skip == 0) {
             t.start_event("writeProgressReport");
             writeStep = true;
 
             /////////////////////// Original code #1
-            simTimeElapsed += dt * skip;
+            // simTimeElapsed += dt * skip;
             ///////////////////////
 
             // Progress reporting:
@@ -948,10 +924,8 @@ sim_looper(Ball_group &O)
 
             // Data Export. Exports every 10 writeSteps (10 new lines of data) and also if the last write was
             // a long time ago.
-            // if (time(nullptr) - lastWrite > 1800 || Step / skip % 10 == 0) {
-            if (Step / skip % 10 == 0) {
+            if (time(nullptr) - lastWrite > 1800 || Step / skip % 10 == 0) {
                 // Report vMax:
-
                 std::cerr << "vMax = " << O.getVelMax() << " Steps recorded: " << Step / skip << '\n';
                 std::cerr << "Data Write to "<<output_folder<<"\n";
                 // std::cerr<<"output_prefix: "<<output_prefix<<std::endl;
@@ -982,17 +956,6 @@ sim_looper(Ball_group &O)
             t.end_event("writeStep");
         }  // writestep end
     }
-
-    // if (true)
-    // {
-    //     for (int i = 0; i < O.num_particles; i++)
-    //     {
-    //         std::cerr<<"===================================="<<std::endl;
-    //         std::cerr<<O.pos[i]<<std::endl;
-    //         std::cerr<<O.vel[i]<<std::endl;
-    //         std::cerr<<"===================================="<<std::endl;
-    //     }
-    // }
 
     const time_t end = time(nullptr);
 

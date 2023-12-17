@@ -10,7 +10,6 @@ def main():
 	base = os.getcwd() + "/jobs/"
 	# folder1 = base + "multiCoreTest4/"
 	# folder1 = base + "singleCoreComparison/"
-	folder1 = base + "oneThreadReference/thread_1/"
 	# folder1 = base + "multiCoreTest1/"
 	# folder2 = base + "singleCoreComparison2/"
 	# folder2 = base + "multiCoreTest9/"
@@ -22,10 +21,12 @@ def main():
 	# folder2 = base + "affinityTests_th2_1/affinity_0-1/"
 	# folder2 = base + "affinityTests_th2_1/affinity_0-8/"
 	# folder2 = base + "affinityTests_th8_1/affinity_0-1-2-3-4-5-6-7-8/"
-	folder2 = "/global/u2/l/lpkolanz/SpaceLab/jobs/TESTE2/"
 	# folder2 = base + "singleCoreComparison_COPY7/"
 	# folder1 = "/home/lpkolanz/Desktop/SpaceLab_branch/SpaceLab/jobs/accuracyTest11/N_10/T_100/"
 	# folder2 = "/home/lpkolanz/Desktop/SpaceLab_branch/SpaceLab/jobs/accuracyTest15/N_10/T_100/"
+	folder1 = "/global/homes/l/lpkolanz/SpaceLab/jobs/full2400Collide1/thread_32/"
+	folder2 = "/pscratch/sd/l/lpkolanz/SpaceLab/testHybrid/jobs/fullCompHybrid1/node_1/"
+	folder2 = "/pscratch/sd/l/lpkolanz/SpaceLab/testSqMat/jobs/fullCompSqMa1/node_1/"
 
 	# max_ind = -1
 	# for file in os.listdir(folder1):
@@ -61,6 +62,7 @@ def main():
 	N = 5
 	temp = 100
 	show_FD_plots = False
+	allEnergy = []
 	for ind in [1]:
 		f1 = "{}_{}_simData.csv".format(ind,'_'.join(body))
 		f2 = "{}_{}_simData.csv".format(ind,'_'.join(body))
@@ -79,6 +81,7 @@ def main():
 			#     count += len(files)
 			# if count/3 > N:
 			energy = u.get_last_line_energy(data_folder,ind)
+			allEnergy.append(energy)
 			COM.append(u.COM(data_folder,ind))
 			PE.append(energy[1])
 			KE.append(energy[2])
@@ -88,6 +91,8 @@ def main():
 
 
 		print("================Comparing {}================".format(ind))
+		print("Data 1: {}".format(allEnergy[0]))
+		print("Data 2: {}".format(allEnergy[1]))
 		print("COM difference : {}".format(np.diff(COM,axis=0)))	
 		print("PE difference  : {}".format(np.diff(PE)))	
 		print("KE difference  : {}".format(np.diff(KE)))	

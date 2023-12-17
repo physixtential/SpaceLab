@@ -20,22 +20,23 @@ if __name__ == '__main__':
 		exit(-1)
 		
 	job_set_name = "lognorm_radius_test"
-	job_set_name = "writeTest"
-	job_set_name = "collideTest"
+	job_set_name = "restartTest"
+
 	# folder_name_scheme = "T_"
 
-	runs_at_once = 1
+	runs_at_once = 7
 	# attempts = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20] 
 	attempts = [1] 
-	N = [100]
-	Temps = [1000]
+	N = [5]
+	# Temps = [3,10,30,100,300,1000]
+	Temps = [3]
 	folders = []
 	for attempt in attempts:
 		for n in N:
 			for Temp in Temps:
-				job = curr_folder + 'jobs/' + job_set_name + str(attempt) + '/'
 				# job = curr_folder + 'jobs/' + job_set_name + str(attempt) + '/'
-							# + 'N_' + str(n) + '/' + 'T_' + str(Temp) + '/'
+				job = curr_folder + 'jobs/' + job_set_name + str(attempt) + '/'\
+							+ 'N_' + str(n) + '/' + 'T_' + str(Temp) + '/'
 				if not os.path.exists(job):
 					os.makedirs(job)
 				else:
@@ -49,15 +50,12 @@ if __name__ == '__main__':
 				####################################
 				######Change input values here######
 				input_json['temp'] = Temp
-				input_json['seed'] = 101
-				input_json['radiiDistribution'] = 'constant'
-				# input_json['kConsts'] = 3e3
+				input_json['seed'] = 'default'
+				input_json['radiiDistribution'] = 'logNormal'
 				input_json['h_min'] = 0.5
-				input_json['u_s'] = 0.5
-				input_json['u_r'] = 0.5
-				input_json['projectileName'] = "299_2_R4e-05_v4e-01_cor0.63_mu0.1_rho2.25_k4e+00_Ha5e-12_dt5e-10_"
-				input_json['targetName'] = "299_2_R4e-05_v4e-01_cor0.63_mu0.1_rho2.25_k4e+00_Ha5e-12_dt5e-10_"
-				input_json['note'] = "testing"
+				# input_json['u_s'] = 0.5
+				# input_json['u_r'] = 0.5
+				input_json['note'] = "Restart test because it dont work no mo"
 				####################################
 
 				with open(job + "input.json",'w') as fp:
@@ -74,9 +72,17 @@ if __name__ == '__main__':
 	inputs = list(zip(folders,N))
 	print(inputs)
 
-	for i in range(0,len(folders),runs_at_once):
-		with mp.Pool(processes=runs_at_once) as pool:
-			pool.starmap(run_job,inputs[i:i+runs_at_once]) 
+
+	# for i in range(0,len(folders),runs_at_once):
+	# 	with mp.Pool(processes=runs_at_once) as pool:
+	# 		pool.starmap(run_job,inputs[i:i+runs_at_once]) 
+	with mp.Pool(processes=runs_at_once) as pool:
+		for i in range(0,len(folders)):
+			# input_data = inputs[i:i+runs_at_once]
+			pool.apply_async(run_job,inputs[i]) 
+
+		pool.close()
+		pool.join()
 
 
 	

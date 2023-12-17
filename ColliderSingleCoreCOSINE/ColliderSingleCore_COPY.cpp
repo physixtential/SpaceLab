@@ -1,5 +1,5 @@
-#include "../ball_group.hpp"
-// #include "../timing/timing.hpp"
+#include "../ball_group_COPY.hpp"
+#include "../timing/timing.hpp"
 
 #include <cmath>
 #include <iostream>
@@ -155,9 +155,6 @@ Ball_group make_group(const char *argv1,int* restart)
             (*restart)--;
             // filename = std::to_string(*restart) + filename;
             filename = filename.substr(1,filename.length());
-            std::cerr<<"\n============================================\
-                    \nRESTARTING (from non-first write) WITH START VAL OF "<<*restart<<\
-                    "\n============================================"<<std::endl;
             O = Ball_group(argv1,filename,v_custom,*restart);
         }
         else if (*restart == 1) //restart from first write (different naming convension for first write)
@@ -165,16 +162,10 @@ Ball_group make_group(const char *argv1,int* restart)
             (*restart)--;
             filename = filename.substr(1,filename.length());
             // exit(EXIT_SUCCESS);
-            std::cerr<<"\n============================================\
-                    \nRESTARTING (from first write) WITH START VAL OF "<<*restart<<\
-                    "\n============================================"<<std::endl;
             O = Ball_group(argv1,filename,v_custom,*restart);
         }
         else //if restart is 0, need to rerun whole thing
         {//TESTED
-            std::cerr<<"\n============================================\
-                    \nRESTARTING (whole sim) WITH START VAL OF "<<*restart<<\
-                    "\n============================================"<<std::endl;
             O = Ball_group(true, v_custom, argv1); // Generate new group
         }
 
@@ -198,7 +189,7 @@ std::string check_restart(std::string folder,int* restart)
     // int tot_count = 0;
     // int file_count = 0;
     int largest_file_index = -1;
-    int file_index=0;
+    int file_index;
     std::string largest_index_name;
     for (const auto & entry : fs::directory_iterator(folder))
     {
@@ -215,15 +206,14 @@ std::string check_restart(std::string folder,int* restart)
         if (file.substr(file.size()-4,file.size()) == ".csv")
         {
             // file_count++;
-            size_t _pos = file.find_first_of("_");
-            size_t _secpos = file.substr(_pos+1,file.size()).find_first_of("_");
-            _secpos += _pos+1; //add 1 to account for _pos+1 in substr above
-            file_index = stoi(file.substr(0,file.find_first_of("_")));
-            if (file[_pos+1] == 'R')
+            if (file[3] == '_')
+            {
+                file_index = stoi(file.substr(0,file.find("_")));
+            }
+            else if (file[1] == '_' and file[3] != '_')
             {
                 file_index = 0;
             }
-
             if (file_index > largest_file_index)
             {
                 largest_file_index = file_index;
@@ -304,10 +294,6 @@ sim_one_step(const bool write_step, Ball_group &O)
         O.aacc[Ball] = {0, 0, 0};
     }
     t.end_event("UpdateKinPar");
-
-    // std::ofstream accWrite, aaccWrite;
-    // accWrite.open(output_folder+"accWrite_"+std::to_string(O.num_particles)+".txt",std::ios::app);
-    // aaccWrite.open(output_folder+"aaccWrite_"+std::to_string(O.num_particles)+".txt",std::ios::app);
 
     /// SECOND PASS - Check for collisions, apply forces and torques:
     t.start_event("CalcForces/loopApplicablepairs");
@@ -524,8 +510,6 @@ sim_one_step(const bool write_step, Ball_group &O)
                 // Total torque a and b:
                 torqueA = r_a.cross(slideForceOnA + rollForceA);
                 torqueB = r_b.cross(-slideForceOnA + rollForceA); // original code
-
-                // aaccWrite<<"["<<A<<';'<<B<<";("<<torqueA<<");("<<torqueB<<")],";
                 //////////////////////////////////////
                 // torqueB = r_b.cross(slideForceOnA + rollForceA); // test code
                 //////////////////////////////////////
@@ -613,8 +597,6 @@ sim_one_step(const bool write_step, Ball_group &O)
             O.acc[A] += totalForceOnA / O.m[A];
             O.acc[B] -= totalForceOnA / O.m[B];
 
-            // accWrite<<"["<<A<<';'<<B<<";("<<totalForceOnA<<")],";
-
             // So last distance can be known for COR:
             O.distances[e] = dist;
             //////////////////////////
@@ -626,9 +608,6 @@ sim_one_step(const bool write_step, Ball_group &O)
         }
         // DONT DO ANYTHING HERE. A STARTS AT 1.
     }
-
-    // aaccWrite<<'\n';
-    // accWrite<<'\n';
 
     //////////////////////////////
     // Write out sliding/rolling fric
@@ -983,16 +962,16 @@ sim_looper(Ball_group &O)
         }  // writestep end
     }
 
-    // if (true)
-    // {
-    //     for (int i = 0; i < O.num_particles; i++)
-    //     {
-    //         std::cerr<<"===================================="<<std::endl;
-    //         std::cerr<<O.pos[i]<<std::endl;
-    //         std::cerr<<O.vel[i]<<std::endl;
-    //         std::cerr<<"===================================="<<std::endl;
-    //     }
-    // }
+    if (true)
+    {
+        for (int i = 0; i < O.num_particles; i++)
+        {
+            std::cerr<<"===================================="<<std::endl;
+            std::cerr<<O.pos[i]<<std::endl;
+            std::cerr<<O.vel[i]<<std::endl;
+            std::cerr<<"===================================="<<std::endl;
+        }
+    }
 
     const time_t end = time(nullptr);
 

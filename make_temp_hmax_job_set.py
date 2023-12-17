@@ -23,7 +23,7 @@ if __name__ == '__main__':
 	job_set_name = "h_max"
 	# folder_name_scheme = "T_"
 
-	runs_at_once = 7
+	runs_at_once = 4
 	# attempts = [1] 
 	# attempts = [21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40]
 	# attempts = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20] 
@@ -85,9 +85,13 @@ if __name__ == '__main__':
 	inputs = list(zip(folders,folders_N))
 	print(inputs)
 
-	for i in range(0,len(folders),runs_at_once):
-		with mp.Pool(processes=runs_at_once) as pool:
-			pool.starmap(run_job,inputs[i:i+runs_at_once]) 
+	with mp.Pool(processes=runs_at_once) as pool:
+		for i in range(0,len(folders)):
+			# input_data = inputs[i:i+runs_at_once]
+			pool.apply_async(run_job,inputs[i]) 
+
+		pool.close()
+		pool.join()
 
 
 	
