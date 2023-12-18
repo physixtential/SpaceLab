@@ -3,6 +3,10 @@ import json
 import multiprocessing as mp
 import subprocess
 
+relative_path = "../"
+relative_path = '/'.join(__file__.split('/')[:-1]) + '/' + relative_path
+project_path = os.path.abspath(relative_path) + '/'
+
 def run_job(location,num_balls):
 	cmd = ["python3", "{}run_sim.py".format(location), location, str(num_balls)]
 	# print(cmd)
@@ -10,17 +14,19 @@ def run_job(location,num_balls):
 
 if __name__ == '__main__':
 	#make new output folders
-	curr_folder = os.getcwd() + '/'
+	# curr_folder = os.getcwd() + '/'
+
 
 	try:
 		# os.chdir("{}ColliderSingleCore".format(curr_folder))
-		subprocess.run(["make","-C","ColliderSingleCore"], check=True)
+		subprocess.run(["make","-C",project_path+"ColliderSingleCore"], check=True)
 	except:
 		print('compilation failed')
 		exit(-1)
 		
 	job_set_name = "lognorm_radius_test"
 	job_set_name = "restartTest"
+	job_set_name = "test"
 
 	# folder_name_scheme = "T_"
 
@@ -35,7 +41,7 @@ if __name__ == '__main__':
 		for n in N:
 			for Temp in Temps:
 				# job = curr_folder + 'jobs/' + job_set_name + str(attempt) + '/'
-				job = curr_folder + 'jobs/' + job_set_name + str(attempt) + '/'\
+				job = project_path + 'jobs/' + job_set_name + str(attempt) + '/'\
 							+ 'N_' + str(n) + '/' + 'T_' + str(Temp) + '/'
 				if not os.path.exists(job):
 					os.makedirs(job)
@@ -44,7 +50,7 @@ if __name__ == '__main__':
 
 
 				#load default input file
-				with open(curr_folder+"default_files/default_input.json",'r') as fp:
+				with open(project_path+"default_files/default_input.json",'r') as fp:
 					input_json = json.load(fp)
 
 				####################################
@@ -55,15 +61,15 @@ if __name__ == '__main__':
 				input_json['h_min'] = 0.5
 				# input_json['u_s'] = 0.5
 				# input_json['u_r'] = 0.5
-				input_json['note'] = "Restart test because it dont work no mo"
+				input_json['note'] = "Does this work at all?"
 				####################################
 
 				with open(job + "input.json",'w') as fp:
 					json.dump(input_json,fp,indent=4)
 
 				#add run script and executable to folders
-				os.system("cp default_files/run_sim.py {}run_sim.py".format(job))
-				os.system("cp ColliderSingleCore/ColliderSingleCore.o {}ColliderSingleCore.o".format(job))
+				os.system(f"cp {project_path}default_files/run_sim.py {job}run_sim.py")
+				os.system(f"cp {project_path}ColliderSingleCore/ColliderSingleCore.x {job}ColliderSingleCore.x")
 				folders.append(job)
 	# print(folders)
 	if len(N) != len(folders):

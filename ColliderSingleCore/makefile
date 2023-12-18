@@ -2,7 +2,7 @@
 # std=c++2a
 # CFLAGS=-I.
 # CPP=CC
-CPP=g++-10
+CPP=g++
 # CPPflags=-O3 -std=c++2a -fopenmp
 # CPPflags=-O3 -std=c++2a 
 CPPflags=-std=c++2a -O2
