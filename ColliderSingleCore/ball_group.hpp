@@ -1,11 +1,11 @@
 #pragma once
-#include "dust_const_init.hpp"
+#include "../default_files/dust_const.hpp"
 // #include "dust_const.hpp"
-#include "external/json/single_include/nlohmann/json.hpp"
-#include "vec3.hpp"
-#include "linalg.hpp"
-#include "Utils.hpp"
-#include "timing/timing.hpp"
+#include "../external/json/single_include/nlohmann/json.hpp"
+#include "../utilities/vec3.hpp"
+#include "../utilities/linalg.hpp"
+#include "../utilities/Utils.hpp"
+#include "../timing/timing.hpp"
 
 #include <cmath>
 #include <iostream>
