@@ -1,32 +1,29 @@
 #include "H5Cpp.h"
+#include "../default_files/dust_const.hpp"
 #include <filesystem>
 #include <iostream>
 #include <vector>
+#include <sstream>
 
-class CSVHandler
-{
-public:
-	CSVHandler()=default;
-	~CSVHandler()=default;
+// class CSVHandler
+// {
+// public:
+// 	CSVHandler()=default;
+// 	~CSVHandler()=default;
 	
-};
+// };
+
 
 class HDF5Handler {
     public:
-        HDF5Handler(std::string filename,ssize_t max_size=-1) : filename(filename),max_size(max_size) 
+    	HDF5Handler()=default;
+        HDF5Handler(std::string filename,bool fixed=false) : filename(filename),fixed(fixed) 
         {
-        	if (max_size > 0)
-        	{
-        		fixed = true;
-        	}
-        	else
-        	{
-        		fixed = false;
-        	}
+        	initialized = true;
         }
 
         //Make start a class variable so you dont need to keep track
-        void createAppendFile(std::vector<double>& data,const std::string datasetName,size_t start=0) {
+        void createAppendFile(std::vector<double>& data,const std::string datasetName,size_t start=0,hsize_t maxdim=0) {
 		    H5::H5File file;
 		    H5::DataSet dataset;
 		    H5::DataSpace dataspace;
@@ -38,35 +35,97 @@ class HDF5Handler {
 		    	}
 		    	else
 		    	{
-		    		// std::cerr<<"HERE"<<std::endl;
-		    		createDataSet(data,datasetName,1);
-		    		// std::cerr<<"HERE1"<<std::endl;
+		    		createDataSet(data,datasetName,1,maxdim);
 		    	}   
 		    } else {
-		        createDataSet(data,datasetName);
+		        createDataSet(data,datasetName,0,maxdim);
 		    }
 		}
 
+		//@params datasetName is the name of the dataset you want to read
+		//@params offset specifies where to start reading in the dataset.
+		//			If this value is negative, the offset is applied from the 
+		//			end of the dataset.
+		//@param len specifies the length of data to read starting from the offset.
+		//@returns the data requested as a 1d vector of doubles. If the returned vector
+		//			is empty, then the read failed, or you specified len=0.	
+		// If you specify a length longer than the dataset, or an offset further away 
+		// from zero then the length of the dataset, the whole dataset is returned.
+		std::vector<double> readFile(const std::string datasetName, hsize_t start=0, hsize_t len=0,bool neg_offset=false) {
+		    std::vector<double> data;
+		    if (std::filesystem::exists(filename)) {
+		        H5::H5File file(filename, H5F_ACC_RDONLY);
+		        H5::DataSet dataset = file.openDataSet(datasetName);
+		        H5::DataSpace dataspace = dataset.getSpace();
+
+		        hsize_t dims_out[1];
+		        dataspace.getSimpleExtentDims(dims_out, NULL);
+		        hsize_t total_size = dims_out[0];
 
 
-        std::vector<double> readFile(const std::string datasetName) {
-            std::vector<double> data;
-            if(std::filesystem::exists(filename)) {
-                H5::H5File file(filename, H5F_ACC_RDONLY);
-                H5::DataSet dataset = file.openDataSet(datasetName);
-                H5::DataSpace dataspace = dataset.getSpace();
+		        if (start > total_size)
+		        {
+		        	std::cerr<<"DECCOData ERROR: invalid start input"<<std::endl;
+		        	return data;
+		        }
+
+		        if (neg_offset)
+		        {
+		        	start = total_size - start;
+		        }
+
+		        if (len > total_size-start || len == 0)
+		        {
+		        	len = total_size-start;
+		        }
+
+		        data.resize(len);
+
+		        // std::cerr<<"START: "<<start<<std::endl;
+		        // std::cerr<<"LEN: "<<len<<std::endl;
+		        // std::cerr<<"data.size(): "<<data.size()<<std::endl;
+		        // std::cerr<<"total_size: "<<total_size<<std::endl;
+		        // //start should be 
+		        // //len should be 3
+
+		        hsize_t offset[1] = {start};
+		        hsize_t count[1] = {len};
+		        dataspace.selectHyperslab(H5S_SELECT_SET, count, offset);
+
+		        hsize_t dimsm[1] = {len};              /* memory space dimensions */
+ 		        H5::DataSpace memspace(1, dimsm);
+
+		        dataset.read(&data[0], H5::PredType::NATIVE_DOUBLE,memspace,dataspace);
+
+		        dataspace.close();
+		        memspace.close();
+			    dataset.close();
+			    file.close();
+		    } else {
+		        std::cerr << "File '" << filename << "' does not exist." << std::endl;
+		    }
+
+		    return data;
+		}
+
+        // std::vector<double> readFile(const std::string datasetName) {
+        //     std::vector<double> data;
+        //     if(std::filesystem::exists(filename)) {
+        //         H5::H5File file(filename, H5F_ACC_RDONLY);
+        //         H5::DataSet dataset = file.openDataSet(datasetName);
+        //         H5::DataSpace dataspace = dataset.getSpace();
                 
-                hsize_t dims_out[1];
-                dataspace.getSimpleExtentDims(dims_out, NULL);
-                data.resize(dims_out[0]);
+        //         hsize_t dims_out[1];
+        //         dataspace.getSimpleExtentDims(dims_out, NULL);
+        //         data.resize(dims_out[0]);
                 
-                dataset.read(&data[0], H5::PredType::NATIVE_DOUBLE);
-                file.close();
-            }else{
-            	std::cerr<<"File '"<<filename<<"' does not exist."<<std::endl;
-            }
-            return data;
-        }
+        //         dataset.read(&data[0], H5::PredType::NATIVE_DOUBLE);
+        //         file.close();
+        //     }else{
+        //     	std::cerr<<"File '"<<filename<<"' does not exist."<<std::endl;
+        //     }
+        //     return data;
+        // }
 
         void attachMetadataToDataset(const std::string& metadata, const std::string& datasetName) 
         {
@@ -77,6 +136,13 @@ class HDF5Handler {
 			    // Open the specified dataset
 			    if (datasetExists(filename,datasetName)){
 			    	dataset = file.openDataSet(datasetName);
+			    	// Check if the attribute's dataspace exists
+				    if (attributeExists(dataset, "metadata")) {
+				        // std::cerr << "DECCOHDF5 Warning: Attribute 'metadata' already exists for the dataset." << std::endl;
+				        dataset.close();
+				        file.close();
+				        return;
+				    }
 			    }else{
 			    	std::vector<double> dummy;
 			    	dataset = createDataSet(dummy,datasetName);
@@ -85,13 +151,7 @@ class HDF5Handler {
 			    // Create a string data type for the attribute
 			    H5::StrType strType(H5::PredType::C_S1, H5T_VARIABLE);
 
-			    // Check if the attribute's dataspace exists
-			    if (attributeExists(dataset, "metadata")) {
-			        std::cerr << "Attribute 'metadata' already exists for the dataset." << std::endl;
-			        dataset.close();
-			        file.close();
-			        return;
-			    }
+			    
 
 			    // Create a dataspace for the attribute
 			    H5::DataSpace attrSpace = H5::DataSpace(H5S_SCALAR);
@@ -108,6 +168,7 @@ class HDF5Handler {
 		    }else{
             	std::cerr<<"File '"<<filename<<"' does not exist."<<std::endl;
             }
+            return;
 		}
 
 		std::string readMetadataFromDataset(const std::string& datasetName) 
@@ -154,11 +215,16 @@ class HDF5Handler {
 		    return metadata;
 		}
 
+		bool isInitialized()
+		{
+			return initialized;
+		}
 
     private:
         std::string filename;
-        size_t max_size;
         bool fixed;
+        bool initialized = false;
+        
 
         bool attributeExists(const H5::H5Object& object, const std::string& attributeName) 
         {
@@ -172,15 +238,17 @@ class HDF5Handler {
 		    H5::H5File file(filename, H5F_ACC_RDONLY);
 
 		    // Check if the dataset exists
-		    return H5Lexists(file.getId(), datasetName.c_str(), H5P_DEFAULT) > 0;
+		    bool exists = H5Lexists(file.getId(), datasetName.c_str(), H5P_DEFAULT) > 0;
+		    file.close();
+		    return exists;
 		}
 
-		H5::DataSet createDataSet(std::vector<double>& data,const std::string datasetName,int test=0)
+		H5::DataSet createDataSet(std::vector<double>& data,const std::string datasetName,int fileExists=0,int max_size=-1)
 		{
 			H5::H5File file;
 		    H5::DataSet dataset;
 		    H5::DataSpace dataspace;
-		    if (test ==1)
+		    if (fileExists == 1)//fileExists
 		    {
 				file = H5::H5File(filename, H5F_ACC_RDWR);
 		    }
@@ -196,6 +264,7 @@ class HDF5Handler {
 	        	dataspace = H5::DataSpace(1, maxdims);
 		        dataset = file.createDataSet(datasetName, H5::PredType::NATIVE_DOUBLE,dataspace);
 	        	dataset.write(&data[0], H5::PredType::NATIVE_DOUBLE);
+	        	////////////////////ENDED HERE, max_size isnt being set correctly
 	        }
 	        else
 	        {
@@ -208,12 +277,13 @@ class HDF5Handler {
 	        	dataset.write(&data[0], H5::PredType::NATIVE_DOUBLE);
 	        }
 
-	        file.close();
 	        dataspace.close();
+	        dataset.close();
+	        file.close();
 	        return dataset;
 		}
 
-		void appendDataSet(std::vector<double>& data,const std::string datasetName,size_t start=0)
+		void appendDataSet(std::vector<double>& data,const std::string datasetName,size_t start=0,int max_size=-1)
 		{
 			H5::H5File file;
 		    H5::DataSet dataset;
@@ -262,4 +332,339 @@ class HDF5Handler {
 	        dataset.write(&data[0], H5::PredType::NATIVE_DOUBLE, memspace, dataspace);
 	        file.close();
 		}
+};
+
+
+
+
+class DECCOData
+{
+public:
+	
+
+	/*
+	Mandatory class input
+		storage_method: either "h5"/"hdf5" for an hdf5 file format or "csv" for a csv format. Will be whatever the file
+						extension is in "filename" variable
+	Optional class input
+		num_particles : the number of particles in the DECCO simulation, only needed for a fixed hdf5 storage
+		writes        : the number of writes that will happen in the DECCO simulation, only needed for a fixed hdf5 storage
+		steps   	  : the number of sims for writing out timing
+	*/
+	DECCOData(std::string filename, int num_particles, int writes=-1, int steps=-1) : 
+		filename(filename), 
+		num_particles(num_particles),
+		writes(writes),
+		steps(steps)
+	{
+		//If writes is set we know we want a fixed hdf5 file storage
+		if (writes > 0 || steps > 0)
+		{
+			fixed = true;
+		}
+		else
+		{
+			fixed = false;
+		}
+
+		int dot_index = filename.find('.');
+		storage_type = filename.substr(dot_index+1,filename.length()-dot_index);
+		//Transform storage_type to be not case sensitive
+		transform(storage_type.begin(), storage_type.end(), storage_type.begin(), ::tolower);
+		if (storage_type == "h5" || storage_type == "hdf5")
+		{
+			h5data = true;
+			csvdata = false;
+		}
+		else if (storage_type == "csv")
+		{
+			csvdata = true;
+			h5data = false;
+		}
+		else
+		{
+			std::cerr<<"DECCOData ERROR: storage_type '"<<storage_type<<"' not available."<<std::endl;
+		}
+
+		//If user specified number of writes but a storage_type other than hdf5 then default to hdf5 and warn user
+		if (fixed && not h5data)
+		{
+			std::cerr<<"DECCOData warning: specified a non-negative number of writes (which indicates a fixed size hdf5 storage) and a storage_type other than hdf5. Defaulting to a fixed size hdf5 storage_type."<<std::endl;
+		}
+
+
+	}
+
+
+	//Write the data given with the method specified during class construction
+	//This includes taking care of headers for csv and metadata for hdf5
+	//@param data_type is one of "simData", "constants", "energy", "timing",
+	//@param data is the data to be written. Can only be an std::stringstream 
+	//		(for csv data_type) or std::vector<double> (for hdf5 data_type)
+	//@returns true if write succeeded, false otherwise
+	bool Write(std::vector<double> &data, std::string data_type)
+	{
+		bool retVal;
+		if (h5data)
+		{
+			retVal = writeH5(data,data_type);
+		}
+		else if (csvdata)
+		{
+			return -1;
+			// retVal = writeCSV(data,data_type);
+		}
+		return retVal;
+	}
+
+
+	std::string ReadMetaData(int data_index) 
+	{
+		//if data_index is less than zero a bad data_type was input and write doesn't happen
+		if (data_index < 0)
+		{
+			return "ERROR RETRIEVING METADATA";
+		}
+		std::string datasetName = getDataStringFromIndex(data_index);
+		std::string readMetaData;
+		if (h5data)
+		{
+			//Has the HDF5 handler been initiated yet?
+			if (!H.isInitialized())
+			{
+				H = HDF5Handler(filename,fixed);
+			}
+
+			readMetaData = H.readMetadataFromDataset(datasetName);
+		}
+		else if (csvdata)
+		{
+			return "ERROR";
+			// //Has the csv handler been initiated yet?
+			// if (!C.isInitialized())
+			// {
+			// 	C = CSVHandler(filename,fixed);
+			// }
+
+			// readMetaData = C.readMetadataFromDataset(datasetName);
+		}
+
+		return readMetaData;
+	}
+
+	std::string ReadMetaData(std::string data_type) 
+	{
+		int data_index = getDataIndexFromString(data_type);
+		std::string readMetaData = ReadMetaData(data_index);
+		return readMetaData;
+	}
+
+	std::vector<double> Read(std::string data_type, bool all=true, int line=-1) 
+	{
+
+		//Has the HDF5 handler been initiated yet?
+		if (!H.isInitialized())
+		{
+			H = HDF5Handler(filename,fixed);
+		}
+
+		std::vector<double> data_read;
+		if (all)
+		{
+			data_read = H.readFile(data_type); 
+		}
+		else
+		{
+			int data_index = getDataIndexFromString(data_type);
+			bool neg_offset = false;
+			//if data_index is less than zero a bad data_type was input and write doesn't happen
+			if (data_index < 0)
+			{
+				return data_read;
+			}
+
+			if (line < 0)
+			{
+				line = (-1)*line;
+				neg_offset = true;
+			}
+
+			data_read = H.readFile(data_type,line*widths[data_index],widths[data_index],neg_offset);
+		}
+		return data_read;
+	}
+
+	int getNumTypes()
+	{
+		return num_data_types;
+	}
+
+	int getWidth(std::string data_type)
+	{
+		return widths[getDataIndexFromString(data_type)];
+	}
+
+
+	std::string genMetaData(int data_index)
+	{
+		if (data_index == 0)//simData
+		{
+			return genSimDataMetaData();
+		}
+		else if (data_index == 1)//energy
+		{
+			return genEnergyMetaData();
+		}
+		else if (data_index == 2)//constants
+		{
+			return genConstantsMetaData();
+		}
+		else if (data_index == 3)//timing
+		{
+			return genTimingMetaData();
+		}
+		std::cerr<<"DECCOData ERROR: data_index '"<<data_index<<"' is out of range."<<std::endl;
+		return "DECCOData ERROR";
+	}
+	
+
+
+	// ~DECCOData();
+private:
+	static const int num_data_types = 4;
+	std::string storage_type;
+	std::string filename;
+	int num_particles;
+	int writes;
+	int steps;
+	int fixed_width = -1;
+	bool fixed;
+	bool h5data;
+	bool csvdata;
+	HDF5Handler H; 
+	// CSVHandler C;
+
+
+    std::string data_types[num_data_types] = {"simData","energy","constants","timing"};
+    const int single_ball_widths[num_data_types] = {11,6,3,2};
+    int widths[num_data_types] = {single_ball_widths[0]*num_particles,single_ball_widths[1]*num_particles,single_ball_widths[2],single_ball_widths[3]};
+    int max_size[num_data_types] = {widths[0]*writes,widths[1]*num_particles,widths[2]*writes*num_particles,widths[3]*steps};
+    int written_so_far[num_data_types] = {0,0,0,0};
+
+    //Write the data given with the csv method.
+	//This includes taking care of headers for csv and metadata for hdf5
+	//@param data_type is one of "simData", "constants", "energy", "timing",
+	//@param data is the data to be written.  
+	//@returns true if write succeeded, false otherwise
+	bool writeCSV(std::vector<double> &data, std::string data_type)
+	{
+		int data_index = getDataIndexFromString(data_type);
+		//if data_index is less than zero a bad data_type was input and write doesn't happen
+		if (data_index < 0)
+		{
+			return 0;
+		}
+
+		//TODO
+		
+		// std::cerr<<"HERE: "<< std::is_same<T, std::stringstream>::value<<std::endl;
+		// std::cerr<<"HERE: "<< std::is_same<T, std::vector<double>>::value<<std::endl;
+		// //check that data is of correct type
+
+		
+		return 0;
+	}
+
+	//Write the data given with the hdf5 method.
+	//This includes taking care of headers for csv and metadata for hdf5
+	//@param data_type is one of "simData", "constants", "energy", "timing",
+	//@param data is the data to be written.  
+	//@returns true if write succeeded, false otherwise
+	bool writeH5(std::vector<double> &data, std::string data_type)
+	{
+		int data_index = getDataIndexFromString(data_type);
+		//if data_index is less than zero a bad data_type was input and write doesn't happen
+		if (data_index < 0)
+		{
+			return 0;
+		}
+
+		//Has the HDF5 handler been initiated yet?
+		if (!H.isInitialized())
+		{
+			H = HDF5Handler(filename,fixed);
+		}		
+
+		if (fixed)
+		{
+			H.createAppendFile(data,data_type,written_so_far[data_index],max_size[data_index]);
+			written_so_far[data_index] += data.size();
+			// std::cout<<data_type<<": "<<written_so_far[data_index]<<" / "<<max_size[data_index]<<std::endl;
+		}
+		else
+		{
+			H.createAppendFile(data,data_type);
+		}
+
+		H.attachMetadataToDataset(genMetaData(data_index),data_type);
+		
+		return 1;
+	}
+
+    std::string getDataStringFromIndex(const int data_index)
+    {
+    	if (data_index < 0 || data_index > num_data_types-1)
+    	{
+			std::cerr<<"DECCOData ERROR: data_index '"<<data_index<<"' is out of range."<<std::endl;
+			return "DECCOData ERROR";
+    	}
+    	return data_types[data_index];
+    }
+
+    int getDataIndexFromString(std::string data_type)
+	{
+		for (int i = 0; i < num_data_types; ++i)
+		{
+			if (data_type == data_types[i])
+			{
+				return i;
+			}
+		}
+		std::cerr<<"DECCOData ERROR: dataType '"<<data_type<<"' not found in class."<<std::endl;
+		return -1;
+	}
+
+
+	std::string genSimDataMetaData()
+	{
+		std::string meta_data = "Columns: posx[ball],posy[ball],posz[ball],wx[ball],wy[ball],wz[ball],wtot[ball],velx[ball],vely[ball],velz[ball],bound[ball]\n";
+		meta_data += "rows: writes\n";
+		meta_data += "row width: " + std::to_string(widths[getDataIndexFromString("simData")]);
+		return meta_data;
+	}
+
+	std::string genConstantsMetaData()
+	{
+		std::string meta_data = "Columns: radius, mass, moment of inertia\n";
+		meta_data += "rows: balls\n";	
+		meta_data += "row width: " + std::to_string(widths[getDataIndexFromString("constants")]);
+
+		return meta_data;
+	}
+
+	std::string genEnergyMetaData()
+	{
+		std::string meta_data = "Columns: time, PE, KE, Etot, p, L\n";
+		meta_data += "rows: writes\n";	
+		meta_data += "row width: " + std::to_string(widths[getDataIndexFromString("energy")]);
+		return meta_data;	
+	}
+
+	std::string genTimingMetaData()
+	{
+		std::string meta_data = "Columns: number of balls, time spent in sim_one_step\n";
+		meta_data += "rows: sims\n";	
+		meta_data += "row width: " + std::to_string(widths[getDataIndexFromString("timing")]);
+		return meta_data;	
+	}
 };

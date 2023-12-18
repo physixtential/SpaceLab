@@ -18,4 +18,4 @@ clean:
 	rm -f *.o
 	rm -f *.hdf5
 	rm -f *.h5
-	rm -f DECCOData unitTest
+	rm -f unitTest
