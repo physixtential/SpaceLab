@@ -3,6 +3,10 @@ import json
 import multiprocessing as mp
 import subprocess
 
+relative_path = "../"
+relative_path = '/'.join(__file__.split('/')[:-1]) + '/' + relative_path
+project_path = os.path.abspath(relative_path) + '/'
+
 def run_job(location,num_balls):
 	cmd = ["python3", "{}run_sim.py".format(location), location, str(num_balls)]
 	# print(cmd)
@@ -14,7 +18,7 @@ if __name__ == '__main__':
 
 	try:
 		# os.chdir("{}ColliderSingleCore".format(curr_folder))
-		subprocess.run(["make","-C","ColliderSingleCore"], check=True)
+		subprocess.run(["make","-C",project_path+"ColliderSingleCore"], check=True)
 	except:
 		print('compilation failed')
 		exit(-1)
@@ -44,7 +48,7 @@ if __name__ == '__main__':
 			if n == 300:
 				temp_attempt = attempts_300
 			for attempt in temp_attempt:
-				job = curr_folder + 'jobs/' + job_set_name + str(attempt) + '/'\
+				job = project_path + 'jobs/' + job_set_name + str(attempt) + '/'\
 							+ 'N_' + str(n) + '/' + 'T_' + str(Temp) + '/'
 				if not os.path.exists(job):
 					os.makedirs(job)
@@ -53,7 +57,7 @@ if __name__ == '__main__':
 
 
 				#load default input file
-				with open(curr_folder+"default_files/default_input.json",'r') as fp:
+				with open(project_path+"default_files/default_input.json",'r') as fp:
 					input_json = json.load(fp)
 
 				####################################
@@ -98,12 +102,12 @@ if __name__ == '__main__':
 					sfp.write(qsubfile)
 
 				#add run script and executable to folders
-				os.system("cp default_files/run_sim.py {}run_sim.py".format(job))
-				os.system("cp ColliderSingleCore/ColliderSingleCore.x {}ColliderSingleCore.x".format(job))
-				os.system("cp ColliderSingleCore/ColliderSingleCore.cpp {}ColliderSingleCore.cpp".format(job))
+				os.system(f"cp {project_path}default_files/run_sim.py {job}run_sim.py")
+				os.system(f"cp {project_path}ColliderSingleCore/ColliderSingleCore.x {job}ColliderSingleCore.x")
+				os.system(f"cp {project_path}ColliderSingleCore/ColliderSingleCore.cpp {job}ColliderSingleCore.cpp")
 				# os.system("cp default_files/run_multicore_sim.py {}run_multicore_sim.py".format(job))
 				# os.system("cp ColliderMultiCore/ColliderMultiCore.x {}ColliderMultiCore.x".format(job))
-				os.system("cp ball_group.hpp {}ball_group.hpp".format(job))
+				os.system(f"cp {project_path}ball_group.hpp {job}ball_group.hpp")
 				# if input_json['simType'] != "BPCA":
 				# 	os.system("cp ../jobs/collidable_aggregate_1200/* {}".format(job))
 
