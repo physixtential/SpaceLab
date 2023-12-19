@@ -1,4 +1,5 @@
 {
+    "dataFormat": "h5",
     "note": "",
     "OMPthreads": 8,
     "simType": "BPCA",

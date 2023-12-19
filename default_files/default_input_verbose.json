@@ -2,6 +2,8 @@
 ////////////////////////////////////
 // Initialization (Units are CGS) //
 ////////////////////////////////////
+	//What format should the data be saved in? default to "h5", other options: "csv" (not implimented)
+	"data_format": "h5",
 	//What is this sim for?
 	"note": "",
 	//How many openMP threads do you want?

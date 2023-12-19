@@ -504,6 +504,11 @@ public:
 		return widths[getDataIndexFromString(data_type)];
 	}
 
+	int getSingleWidth(std::string data_type)
+	{
+		return single_ball_widths[getDataIndexFromString(data_type)];
+	}
+
 
 	std::string genMetaData(int data_index)
 	{

@@ -5,6 +5,7 @@
 #include "../utilities/vec3.hpp"
 #include "../utilities/linalg.hpp"
 #include "../utilities/Utils.hpp"
+#include "../data/DECCOData.hpp"
 #include "../timing/timing.hpp"
 
 #include <cmath>
@@ -81,7 +82,13 @@ public:
     double* m = nullptr;    ///< Mass
     double* moi = nullptr;  ///< Moment of inertia
     double* u_scale = nullptr; ///ADD TO COPY CONSTRUCTOR, ETC
-    
+
+
+    DECCOData* data = nullptr;
+    // data_type 0 for hdf5 
+    // data_type 1 for csv (not implimented) 
+    int data_type = 0;
+    std::string filetype = "h5";
 
     ///////////////////////////
     // if (write_all)
@@ -146,8 +153,11 @@ public:
     
 private:
     // String buffers to hold data in memory until worth writing to file:
-    std::stringstream ballBuffer;
-    std::stringstream energyBuffer;
+    // std::stringstream ballBuffer;
+    // std::stringstream energyBuffer;
+    std::vector<double> energyBuffer;
+    std::vector<double> ballBuffer;
+
 
     void allocate_group(const int nBalls);
     void freeMemory() const;
@@ -373,6 +383,19 @@ void Ball_group::parse_input_file(char const* location)
     std::string json_file = s_location + "input.json";
     std::ifstream ifs(json_file);
     json inputs = json::parse(ifs);
+
+    if (inputs["dataFormat"] == "h5" || inputs["dataFormat"] == "hdf5")
+    {
+        data_type = 0;
+        filetype = "h5";
+    }
+    else if (inputs["dataFormat"] == "csv")
+    {
+        data_type = 1;
+        filetype = "csv";
+        std::cerr<<"CSV data format not implimented yet."<<std::endl;
+        exit(-1);
+    }
 
     if (inputs["seed"] == std::string("default"))
     {
@@ -817,16 +840,6 @@ void Ball_group::updateGPE()
 
 void Ball_group::sim_init_write(std::string filename, int counter = 0)
 {
-    // Create string for file name identifying spin combination negative is 2, positive is 1 on each axis.
-    // std::string spinCombo = "";
-    // for ( int i = 0; i < 3; i++)
-    //{
-    //  if (spins[i] < 0) { spinCombo += "2"; }
-    //  else if (spins[i] > 0) { spinCombo += "1"; }
-    //  else { spinCombo += "0"; }
-    //}
-
-
     // todo - filename is now a copy and this works. Need to consider how old way worked for
     // compatibility. What happens without setting output_prefix = filename? Check if file name already
     // exists.
@@ -840,218 +853,42 @@ void Ball_group::sim_init_write(std::string filename, int counter = 0)
     {
         filenum = "";
     }
-    checkForFile.open(output_folder + filenum + filename + "simData.csv", std::ifstream::in);
+    checkForFile.open(output_folder + filenum + filename + "data."+filetype, std::ifstream::in);
     // Add a counter to the file name until it isn't overwriting anything:
     while (checkForFile.is_open()) {
         counter++;
         checkForFile.close();
-        checkForFile.open(output_folder + std::to_string(counter) + '_' + filename + "simData.csv", std::ifstream::in);
+        checkForFile.open(output_folder + std::to_string(counter) + '_' + filename + "data." + filetype, std::ifstream::in);
     }
 
-    if (counter > 0) { filename.insert(0, std::to_string(counter) + '_'); }
-
-    output_prefix = filename;
-
-    //////////////////////////
-    if (write_all)
+    if (data != nullptr)
     {
-        // Force writes
-        std::ofstream vdwWrite;
-        vdwWrite.open(output_folder + filename + "vdwData.csv", std::ofstream::app);
-        for (int A = 0; A < num_particles; ++A)
-        {
-            vdwWrite <<"vdw("<<A<<"x)"<<"vdw("<<A<<"y)"<<"vdw("<<A<<"z)";
-            if (A != num_particles-1)
-            {
-                vdwWrite << ',';
-            }
-        }
-        vdwWrite<<'\n';
-        vdwWrite.close();
-
-        // std::ofstream elasticWrite;
-        // elasticWrite.open(output_folder + filename + "elasticData.csv", std::ofstream::app);
-        // for (int A = 0; A < num_particles; ++A)
-        // {
-        //     elasticWrite <<"ela("<<A<<')';
-        //     if (A != num_particles-1)
-        //     {
-        //         elasticWrite << ',';
-        //     }
-        // }
-        // elasticWrite<<'\n';
-        // elasticWrite.close();
-
-        // std::ofstream slideWrite;
-        // slideWrite.open(output_folder + filename + "slideData.csv", std::ofstream::app);
-        // for (int A = 0; A < num_particles; ++A)
-        // {
-        //     for (int B = 0; B < num_particles; ++B)
-        //     {
-        //         slideWrite <<"sli("<<A<<';'<<B<<')';
-        //         if ((B != num_particles-1) && (A != num_particles-1))
-        //         {
-        //             slideWrite << ',';
-        //         }
-        //     }
-        // }
-        // slideWrite<<'\n';
-        // slideWrite.close();
-
-        // std::ofstream rollWrite;
-        // rollWrite.open(output_folder + filename + "rollData.csv", std::ofstream::app);
-        // for (int A = 0; A < num_particles; ++A)
-        // {
-        //     for (int B = 0; B < num_particles; ++B)
-        //     {
-        //         rollWrite <<"rol("<<A<<';'<<B<<')';
-        //         if ((B != num_particles-1) && (A != num_particles-1))
-        //         {
-        //             rollWrite << ',';
-        //         }
-        //     }
-        // }
-        // rollWrite<<'\n';
-        // rollWrite.close();
-        
-        // std::ofstream torqueWrite;
-        // torqueWrite.open(output_folder + filename + "torqueData.csv", std::ofstream::app);
-        // for (int A = 0; A < num_particles; ++A)
-        // {
-        //     for (int B = 0; B < num_particles; ++B)
-        //     {
-        //         torqueWrite <<"tor("<<A<<';'<<B<<')';
-        //         if ((B != num_particles-1) && (A != num_particles-1))
-        //         {
-        //             torqueWrite << ',';
-        //         }
-        //     }
-        // }
-        // torqueWrite<<'\n';
-        // torqueWrite.close();
-
-        // std::ofstream wWrite;
-        // wWrite.open(output_folder + filename + "wData.csv", std::ofstream::app);
-        // wWrite<<"w(0)";
-        // for (int A = 1; A < num_particles; ++A)
-        // {
-        //     wWrite<<','<<"w("<<A<<')';
-        // }
-        // wWrite<<'\n';
-        // wWrite.close();
-
-        // std::ofstream posWrite;
-        // posWrite.open(output_folder + filename + "posData.csv", std::ofstream::app);
-        // posWrite<<"pos(0)";
-        // for (int A = 1; A < num_particles; ++A)
-        // {
-        //     posWrite<<','<<"pos("<<A<<')';
-        // }
-        // posWrite<<'\n';
-        // posWrite.close();
-
-        // std::ofstream velWrite;
-        // velWrite.open(output_folder + filename + "velData.csv", std::ofstream::app);
-        // velWrite<<"vel(0)";
-        // for (int A = 1; A < num_particles; ++A)
-        // {
-        //     velWrite<<','<<"vel("<<A<<')';
-        // }
-        // velWrite<<'\n';
-        // velWrite.close();
-        // std::ofstream fricWrite;
-        // fricWrite.open(output_folder + filename + "fricData.csv", std::ofstream::app);
-        // for (int i = 0; i < num_particles; ++i)
-        // {
-        //     fricWrite << "b"<<i<<"xroll,"<<"b"<<i<<"yroll,"<<"b"<<i<<"zroll,"<<
-        //     "b"<<i<<"xslide,"<<"b"<<i<<"yslide,"<<"b"<<i<<"zslide";
-        //     if (i != num_particles-1)
-        //     {
-        //         fricWrite << ',';
-        //     }
-        // }
-        // fricWrite.close();
-        // std::ofstream fricB3Write;
-        // fricB3Write.open(output_folder + filename + "fricB3Data.csv", std::ofstream::app);
-        // for (int i = 0; i < num_particles; ++i)
-        // {
-        //     fricB3Write << "Fx3"<<i<<"roll,"<<"Fy3"<<i<<"roll,"<<"Fz3"<<i<<"roll,"<<
-        //     "Fx3"<<i<<"slide,"<<"Fy3"<<i<<"slide,"<<"Fz3"<<i<<"slide";
-        //     if (i != num_particles-1)
-        //     {
-        //         fricB3Write << ',';
-        //     }
-        // }
-        // fricB3Write.close();
-        // std::ofstream dirB3Write;
-        // dirB3Write.open(output_folder + filename + "dirB3Data.csv", std::ofstream::app);
-        // for (int i = 0; i < num_particles; ++i)
-        // {
-        //     dirB3Write << "xhat3"<<i<<"roll,"<<"yhat3"<<i<<"roll,"<<"zhat3"<<i<<"roll,"<<
-        //     "xhat3"<<i<<"slide,"<<"yhat3"<<i<<"slide,"<<"zhat3"<<i<<"slide";
-        //     if (i != num_particles-1)
-        //     {
-        //         dirB3Write << ',';
-        //     }
-        // }
-        // dirB3Write.close();
-        // std::ofstream distB3Write;
-        // distB3Write.open(output_folder + filename + "distB3Data.csv", std::ofstream::app);
-        // for (int i = 0; i < num_particles-1; ++i)
-        // {
-        //     distB3Write << "dist3"<<i;
-        //     if (i != num_particles-2)
-        //     {
-        //         distB3Write << ',';
-        //     }
-        // }
-        // distB3Write.close();
-        //////////////////////////
+        delete data;
+        data = nullptr; 
     }
-    // Complete file names:
-    std::string simDataFilename = output_folder + filename + "simData.csv";
-    std::string energyFilename = output_folder + filename + "energy.csv";
-    std::string constantsFilename = output_folder + filename + "constants.csv";
+    data = new DECCOData(output_folder+std::to_string(counter)+"_data."+filetype,\
+                        num_particles,steps/skip,steps);
 
-    std::cerr << "New file tag: " << filename;
+    // if (counter > 0) { filename.insert(0, std::to_string(counter) + '_'); }
 
-    // Open all file streams:
-    std::ofstream energyWrite, ballWrite, constWrite;
-    energyWrite.open(energyFilename, std::ofstream::app);
-    ballWrite.open(simDataFilename, std::ofstream::app);
-    constWrite.open(constantsFilename, std::ofstream::app);
-
-    // Make column headers:
-    energyWrite << "Time,PE,KE,E,p,L";
-    ballWrite << "x0,y0,z0,wx0,wy0,wz0,wmag0,vx0,vy0,vz0,bound0";
-    // std::cout << "x0,y0,z0,wx0,wy0,wz0,wmag0,vx0,vy0,vz0,bound0";
-    // std::cout<<simDataFilename<<std::endl;
-    // std::cout<<num_particles<<std::endl;
-
-    for (int Ball = 1; Ball < num_particles;
-         Ball++)  // Start at 2nd ball because first one was just written^.
-    {
-        // std::cout<<Ball<<','<<num_particles<<std::endl;
-        std::string thisBall = std::to_string(Ball);
-        ballWrite << ",x" + thisBall << ",y" + thisBall << ",z" + thisBall << ",wx" + thisBall
-                  << ",wy" + thisBall << ",wz" + thisBall << ",wmag" + thisBall << ",vx" + thisBall
-                  << ",vy" + thisBall << ",vz" + thisBall << ",bound" + thisBall;
-        // std::cout << ",x" + thisBall << ",y" + thisBall << ",z" + thisBall << ",wx" + thisBall
-        //           << ",wy" + thisBall << ",wz" + thisBall << ",wmag" + thisBall << ",vx" + thisBall
-        //           << ",vy" + thisBall << ",vz" + thisBall << ",bound" + thisBall;
-
-    }
-
+    std::vector<double> constData(data.getWidth("constants")*num_particles);
     // Write constant data:
-    for (int Ball = 0; Ball < num_particles; Ball++) {
-        constWrite << R[Ball] << ',' << m[Ball] << ',' << moi[Ball] << '\n';
+    for (int i = 0; i < data.getWidth("constants")*num_particles; i+=data.getWidth("constants")) 
+    {
+        constData[i] = R[Ball];
+        constData[i] = m[Ball+1];
+        constData[i] = moi[Ball+2];
     }
+    data.Write(constData,"constants");
 
-    energyBuffer << '\n'
-                 << simTimeElapsed << ',' << PE << ',' << KE << ',' << PE + KE << ',' << mom.norm() << ','
-                 << ang_mom.norm();
-    energyWrite << energyBuffer.rdbuf();
-    energyBuffer.str("");
+    std::vector<double> energy;
+    energy.push_back(simTimeElapsed);
+    energy.push_back(PE);
+    energy.push_back(KE);
+    energy.push_back(PE+KE);
+    energy.push_back(mom.norm());
+    energy.push_back(ang_mom.norm());
+    data.Write(energy,"energy");
 
     // Reinitialize energies for next step:
     KE = 0;
@@ -1060,30 +897,299 @@ void Ball_group::sim_init_write(std::string filename, int counter = 0)
     ang_mom = {0, 0, 0};
 
     // Send position and rotation to buffer:
-    ballBuffer << '\n';  // Necessary new line after header.
-    ballBuffer << pos[0].x << ',' << pos[0].y << ',' << pos[0].z << ',' << w[0].x << ',' << w[0].y << ','
-               << w[0].z << ',' << w[0].norm() << ',' << vel[0].x << ',' << vel[0].y << ',' << vel[0].z
-               << ',' << 0;  // bound[0];
-    for (int Ball = 1; Ball < num_particles; Ball++) {
-        ballBuffer << ',' << pos[Ball].x
-                   << ','  // Needs comma start so the last bound doesn't have a dangling comma.
-                   << pos[Ball].y << ',' << pos[Ball].z << ',' << w[Ball].x << ',' << w[Ball].y << ','
-                   << w[Ball].z << ',' << w[Ball].norm() << ',' << vel[Ball].x << ',' << vel[Ball].y
-                   << ',' << vel[Ball].z << ',' << 0;  // bound[Ball];
+    std::vector<double> ballData(data.getWidth("simData"));
+    int pt = 0;
+    int jump = data.getSingleWidth("simData");
+    for (int i = 0; i < num_particles; i++) 
+    {
+        ballData[pt] = pos[i].x;
+        ballData[pt+1] = pos[i].y;
+        ballData[pt+2] = pos[i].z;
+        ballData[pt+3] = w[i].x;
+        ballData[pt+4] = w[i].y;
+        ballData[pt+5] = w[i].z;
+        ballData[pt+6] = w[i].norm();
+        ballData[pt+7] = vel[i].x;
+        ballData[pt+8] = vel[i].y;
+        ballData[pt+9] = vel[i].z;
+        ballData[pt+10] = 0;
+        pt += jump;
     }
-    // Write position and rotation data to file:
-    ballWrite << ballBuffer.rdbuf();
-    ballBuffer.str("");  // Resets the stream buffer to blank.
-
-    // Close Streams for user viewing:
-    energyWrite.close();
-    ballWrite.close();
-    constWrite.close();
+    
 
     std::cerr << "\nSimulating " << steps * dt / 60 / 60 << " hours.\n";
     std::cerr << "Total mass: " << m_total << '\n';
     std::cerr << "\n===============================================================\n";
 }
+// void Ball_group::sim_init_write(std::string filename, int counter = 0)
+// {
+//     // Create string for file name identifying spin combination negative is 2, positive is 1 on each axis.
+//     // std::string spinCombo = "";
+//     // for ( int i = 0; i < 3; i++)
+//     //{
+//     //  if (spins[i] < 0) { spinCombo += "2"; }
+//     //  else if (spins[i] > 0) { spinCombo += "1"; }
+//     //  else { spinCombo += "0"; }
+//     //}
+
+
+//     // todo - filename is now a copy and this works. Need to consider how old way worked for
+//     // compatibility. What happens without setting output_prefix = filename? Check if file name already
+//     // exists.
+//     std::ifstream checkForFile;
+//     std::string filenum;
+//     if (counter != 0)
+//     {
+//         filenum = std::to_string(counter) + '_';
+//     }
+//     else
+//     {
+//         filenum = "";
+//     }
+//     checkForFile.open(output_folder + filenum + filename + "simData.csv", std::ifstream::in);
+//     // Add a counter to the file name until it isn't overwriting anything:
+//     while (checkForFile.is_open()) {
+//         counter++;
+//         checkForFile.close();
+//         checkForFile.open(output_folder + std::to_string(counter) + '_' + filename + "simData.csv", std::ifstream::in);
+//     }
+
+//     if (counter > 0) { filename.insert(0, std::to_string(counter) + '_'); }
+
+//     output_prefix = filename;
+
+//     //////////////////////////
+//     if (write_all)
+//     {
+//         // Force writes
+//         std::ofstream vdwWrite;
+//         vdwWrite.open(output_folder + filename + "vdwData.csv", std::ofstream::app);
+//         for (int A = 0; A < num_particles; ++A)
+//         {
+//             vdwWrite <<"vdw("<<A<<"x)"<<"vdw("<<A<<"y)"<<"vdw("<<A<<"z)";
+//             if (A != num_particles-1)
+//             {
+//                 vdwWrite << ',';
+//             }
+//         }
+//         vdwWrite<<'\n';
+//         vdwWrite.close();
+
+//         // std::ofstream elasticWrite;
+//         // elasticWrite.open(output_folder + filename + "elasticData.csv", std::ofstream::app);
+//         // for (int A = 0; A < num_particles; ++A)
+//         // {
+//         //     elasticWrite <<"ela("<<A<<')';
+//         //     if (A != num_particles-1)
+//         //     {
+//         //         elasticWrite << ',';
+//         //     }
+//         // }
+//         // elasticWrite<<'\n';
+//         // elasticWrite.close();
+
+//         // std::ofstream slideWrite;
+//         // slideWrite.open(output_folder + filename + "slideData.csv", std::ofstream::app);
+//         // for (int A = 0; A < num_particles; ++A)
+//         // {
+//         //     for (int B = 0; B < num_particles; ++B)
+//         //     {
+//         //         slideWrite <<"sli("<<A<<';'<<B<<')';
+//         //         if ((B != num_particles-1) && (A != num_particles-1))
+//         //         {
+//         //             slideWrite << ',';
+//         //         }
+//         //     }
+//         // }
+//         // slideWrite<<'\n';
+//         // slideWrite.close();
+
+//         // std::ofstream rollWrite;
+//         // rollWrite.open(output_folder + filename + "rollData.csv", std::ofstream::app);
+//         // for (int A = 0; A < num_particles; ++A)
+//         // {
+//         //     for (int B = 0; B < num_particles; ++B)
+//         //     {
+//         //         rollWrite <<"rol("<<A<<';'<<B<<')';
+//         //         if ((B != num_particles-1) && (A != num_particles-1))
+//         //         {
+//         //             rollWrite << ',';
+//         //         }
+//         //     }
+//         // }
+//         // rollWrite<<'\n';
+//         // rollWrite.close();
+        
+//         // std::ofstream torqueWrite;
+//         // torqueWrite.open(output_folder + filename + "torqueData.csv", std::ofstream::app);
+//         // for (int A = 0; A < num_particles; ++A)
+//         // {
+//         //     for (int B = 0; B < num_particles; ++B)
+//         //     {
+//         //         torqueWrite <<"tor("<<A<<';'<<B<<')';
+//         //         if ((B != num_particles-1) && (A != num_particles-1))
+//         //         {
+//         //             torqueWrite << ',';
+//         //         }
+//         //     }
+//         // }
+//         // torqueWrite<<'\n';
+//         // torqueWrite.close();
+
+//         // std::ofstream wWrite;
+//         // wWrite.open(output_folder + filename + "wData.csv", std::ofstream::app);
+//         // wWrite<<"w(0)";
+//         // for (int A = 1; A < num_particles; ++A)
+//         // {
+//         //     wWrite<<','<<"w("<<A<<')';
+//         // }
+//         // wWrite<<'\n';
+//         // wWrite.close();
+
+//         // std::ofstream posWrite;
+//         // posWrite.open(output_folder + filename + "posData.csv", std::ofstream::app);
+//         // posWrite<<"pos(0)";
+//         // for (int A = 1; A < num_particles; ++A)
+//         // {
+//         //     posWrite<<','<<"pos("<<A<<')';
+//         // }
+//         // posWrite<<'\n';
+//         // posWrite.close();
+
+//         // std::ofstream velWrite;
+//         // velWrite.open(output_folder + filename + "velData.csv", std::ofstream::app);
+//         // velWrite<<"vel(0)";
+//         // for (int A = 1; A < num_particles; ++A)
+//         // {
+//         //     velWrite<<','<<"vel("<<A<<')';
+//         // }
+//         // velWrite<<'\n';
+//         // velWrite.close();
+//         // std::ofstream fricWrite;
+//         // fricWrite.open(output_folder + filename + "fricData.csv", std::ofstream::app);
+//         // for (int i = 0; i < num_particles; ++i)
+//         // {
+//         //     fricWrite << "b"<<i<<"xroll,"<<"b"<<i<<"yroll,"<<"b"<<i<<"zroll,"<<
+//         //     "b"<<i<<"xslide,"<<"b"<<i<<"yslide,"<<"b"<<i<<"zslide";
+//         //     if (i != num_particles-1)
+//         //     {
+//         //         fricWrite << ',';
+//         //     }
+//         // }
+//         // fricWrite.close();
+//         // std::ofstream fricB3Write;
+//         // fricB3Write.open(output_folder + filename + "fricB3Data.csv", std::ofstream::app);
+//         // for (int i = 0; i < num_particles; ++i)
+//         // {
+//         //     fricB3Write << "Fx3"<<i<<"roll,"<<"Fy3"<<i<<"roll,"<<"Fz3"<<i<<"roll,"<<
+//         //     "Fx3"<<i<<"slide,"<<"Fy3"<<i<<"slide,"<<"Fz3"<<i<<"slide";
+//         //     if (i != num_particles-1)
+//         //     {
+//         //         fricB3Write << ',';
+//         //     }
+//         // }
+//         // fricB3Write.close();
+//         // std::ofstream dirB3Write;
+//         // dirB3Write.open(output_folder + filename + "dirB3Data.csv", std::ofstream::app);
+//         // for (int i = 0; i < num_particles; ++i)
+//         // {
+//         //     dirB3Write << "xhat3"<<i<<"roll,"<<"yhat3"<<i<<"roll,"<<"zhat3"<<i<<"roll,"<<
+//         //     "xhat3"<<i<<"slide,"<<"yhat3"<<i<<"slide,"<<"zhat3"<<i<<"slide";
+//         //     if (i != num_particles-1)
+//         //     {
+//         //         dirB3Write << ',';
+//         //     }
+//         // }
+//         // dirB3Write.close();
+//         // std::ofstream distB3Write;
+//         // distB3Write.open(output_folder + filename + "distB3Data.csv", std::ofstream::app);
+//         // for (int i = 0; i < num_particles-1; ++i)
+//         // {
+//         //     distB3Write << "dist3"<<i;
+//         //     if (i != num_particles-2)
+//         //     {
+//         //         distB3Write << ',';
+//         //     }
+//         // }
+//         // distB3Write.close();
+//         //////////////////////////
+//     }
+//     // Complete file names:
+//     std::string simDataFilename = output_folder + filename + "simData.csv";
+//     std::string energyFilename = output_folder + filename + "energy.csv";
+//     std::string constantsFilename = output_folder + filename + "constants.csv";
+
+//     std::cerr << "New file tag: " << filename;
+
+//     // Open all file streams:
+//     std::ofstream energyWrite, ballWrite, constWrite;
+//     energyWrite.open(energyFilename, std::ofstream::app);
+//     ballWrite.open(simDataFilename, std::ofstream::app);
+//     constWrite.open(constantsFilename, std::ofstream::app);
+
+//     // Make column headers:
+//     energyWrite << "Time,PE,KE,E,p,L";
+//     ballWrite << "x0,y0,z0,wx0,wy0,wz0,wmag0,vx0,vy0,vz0,bound0";
+//     // std::cout << "x0,y0,z0,wx0,wy0,wz0,wmag0,vx0,vy0,vz0,bound0";
+//     // std::cout<<simDataFilename<<std::endl;
+//     // std::cout<<num_particles<<std::endl;
+
+//     for (int Ball = 1; Ball < num_particles;
+//          Ball++)  // Start at 2nd ball because first one was just written^.
+//     {
+//         // std::cout<<Ball<<','<<num_particles<<std::endl;
+//         std::string thisBall = std::to_string(Ball);
+//         ballWrite << ",x" + thisBall << ",y" + thisBall << ",z" + thisBall << ",wx" + thisBall
+//                   << ",wy" + thisBall << ",wz" + thisBall << ",wmag" + thisBall << ",vx" + thisBall
+//                   << ",vy" + thisBall << ",vz" + thisBall << ",bound" + thisBall;
+//         // std::cout << ",x" + thisBall << ",y" + thisBall << ",z" + thisBall << ",wx" + thisBall
+//         //           << ",wy" + thisBall << ",wz" + thisBall << ",wmag" + thisBall << ",vx" + thisBall
+//         //           << ",vy" + thisBall << ",vz" + thisBall << ",bound" + thisBall;
+
+//     }
+
+//     // Write constant data:
+//     for (int Ball = 0; Ball < num_particles; Ball++) {
+//         constWrite << R[Ball] << ',' << m[Ball] << ',' << moi[Ball] << '\n';
+//     }
+
+//     energyBuffer << '\n'
+//                  << simTimeElapsed << ',' << PE << ',' << KE << ',' << PE + KE << ',' << mom.norm() << ','
+//                  << ang_mom.norm();
+//     energyWrite << energyBuffer.rdbuf();
+//     energyBuffer.str("");
+
+//     // Reinitialize energies for next step:
+//     KE = 0;
+//     PE = 0;
+//     mom = {0, 0, 0};
+//     ang_mom = {0, 0, 0};
+
+//     // Send position and rotation to buffer:
+//     ballBuffer << '\n';  // Necessary new line after header.
+//     ballBuffer << pos[0].x << ',' << pos[0].y << ',' << pos[0].z << ',' << w[0].x << ',' << w[0].y << ','
+//                << w[0].z << ',' << w[0].norm() << ',' << vel[0].x << ',' << vel[0].y << ',' << vel[0].z
+//                << ',' << 0;  // bound[0];
+//     for (int Ball = 1; Ball < num_particles; Ball++) {
+//         ballBuffer << ',' << pos[Ball].x
+//                    << ','  // Needs comma start so the last bound doesn't have a dangling comma.
+//                    << pos[Ball].y << ',' << pos[Ball].z << ',' << w[Ball].x << ',' << w[Ball].y << ','
+//                    << w[Ball].z << ',' << w[Ball].norm() << ',' << vel[Ball].x << ',' << vel[Ball].y
+//                    << ',' << vel[Ball].z << ',' << 0;  // bound[Ball];
+//     }
+//     // Write position and rotation data to file:
+//     ballWrite << ballBuffer.rdbuf();
+//     ballBuffer.str("");  // Resets the stream buffer to blank.
+
+//     // Close Streams for user viewing:
+//     energyWrite.close();
+//     ballWrite.close();
+//     constWrite.close();
+
+//     std::cerr << "\nSimulating " << steps * dt / 60 / 60 << " hours.\n";
+//     std::cerr << "Total mass: " << m_total << '\n';
+//     std::cerr << "\n===============================================================\n";
+// }
 
 [[nodiscard]] vec3 Ball_group::getCOM() const
 {
@@ -1464,6 +1570,7 @@ void Ball_group::freeMemory() const
     delete[] R;
     delete[] m;
     delete[] moi;
+    delete data;
     /////////////////////
     if (write_all)
     {
