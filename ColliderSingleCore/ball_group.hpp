@@ -89,6 +89,7 @@ public:
     // data_type 1 for csv (not implimented) 
     int data_type = 0;
     std::string filetype = "h5";
+    int num_writes = 0;
 
     ///////////////////////////
     // if (write_all)
@@ -148,19 +149,19 @@ public:
     Ball_group dust_agglomeration_particle_init();
     Ball_group add_projectile();
     void merge_ball_group(const Ball_group& src);
+    void freeMemory() const;
 
 
+    std::vector<double> energyBuffer;
+    std::vector<double> ballBuffer;
     
 private:
     // String buffers to hold data in memory until worth writing to file:
     // std::stringstream ballBuffer;
     // std::stringstream energyBuffer;
-    std::vector<double> energyBuffer;
-    std::vector<double> ballBuffer;
 
 
     void allocate_group(const int nBalls);
-    void freeMemory() const;
     void init_conditions();
     [[nodiscard]] double getRmin();
     [[nodiscard]] double getRmax();
@@ -168,7 +169,7 @@ private:
     void parseSimData(std::string line);
     void loadConsts(const std::string& path, const std::string& filename);
     [[nodiscard]] static std::string getLastLine(const std::string& path, const std::string& filename);
-    void simDataWrite(std::string& outFilename);
+    // void simDataWrite(std::string& outFilename);
     [[nodiscard]] double getMass();
     void threeSizeSphere(const int nBalls);
     void generate_ball_field(const int nBalls);
@@ -871,24 +872,28 @@ void Ball_group::sim_init_write(std::string filename, int counter = 0)
 
     // if (counter > 0) { filename.insert(0, std::to_string(counter) + '_'); }
 
-    std::vector<double> constData(data.getWidth("constants")*num_particles);
+    std::vector<double> constData(data->getWidth("constants")*num_particles);
     // Write constant data:
-    for (int i = 0; i < data.getWidth("constants")*num_particles; i+=data.getWidth("constants")) 
+    int pt = 0;
+    int jump = data->getSingleWidth("constants");
+    for (int i = 0; i < num_particles; i++) 
     {
-        constData[i] = R[Ball];
-        constData[i] = m[Ball+1];
-        constData[i] = moi[Ball+2];
+        constData[pt] = R[i];
+        constData[pt+1] = m[i];
+        constData[pt+2] = moi[i];
+        pt += jump;
     }
-    data.Write(constData,"constants");
+    data->Write(constData,"constants");
 
-    std::vector<double> energy;
-    energy.push_back(simTimeElapsed);
-    energy.push_back(PE);
-    energy.push_back(KE);
-    energy.push_back(PE+KE);
-    energy.push_back(mom.norm());
-    energy.push_back(ang_mom.norm());
-    data.Write(energy,"energy");
+
+    energyBuffer = std::vector<double> (data->getWidth("energy"));
+    energyBuffer.push_back(simTimeElapsed);
+    energyBuffer.push_back(PE);
+    energyBuffer.push_back(KE);
+    energyBuffer.push_back(PE+KE);
+    energyBuffer.push_back(mom.norm());
+    energyBuffer.push_back(ang_mom.norm());
+    data->Write(energyBuffer,"energy");
 
     // Reinitialize energies for next step:
     KE = 0;
@@ -897,29 +902,37 @@ void Ball_group::sim_init_write(std::string filename, int counter = 0)
     ang_mom = {0, 0, 0};
 
     // Send position and rotation to buffer:
-    std::vector<double> ballData(data.getWidth("simData"));
-    int pt = 0;
-    int jump = data.getSingleWidth("simData");
+    ballBuffer = std::vector<double> (data->getWidth("simData"));
+    pt = 0;
+    jump = data->getSingleWidth("simData");
     for (int i = 0; i < num_particles; i++) 
     {
-        ballData[pt] = pos[i].x;
-        ballData[pt+1] = pos[i].y;
-        ballData[pt+2] = pos[i].z;
-        ballData[pt+3] = w[i].x;
-        ballData[pt+4] = w[i].y;
-        ballData[pt+5] = w[i].z;
-        ballData[pt+6] = w[i].norm();
-        ballData[pt+7] = vel[i].x;
-        ballData[pt+8] = vel[i].y;
-        ballData[pt+9] = vel[i].z;
-        ballData[pt+10] = 0;
+        ballBuffer[pt] = pos[i].x;
+        ballBuffer[pt+1] = pos[i].y;
+        ballBuffer[pt+2] = pos[i].z;
+        ballBuffer[pt+3] = w[i].x;
+        ballBuffer[pt+4] = w[i].y;
+        ballBuffer[pt+5] = w[i].z;
+        ballBuffer[pt+6] = w[i].norm();
+        ballBuffer[pt+7] = vel[i].x;
+        ballBuffer[pt+8] = vel[i].y;
+        ballBuffer[pt+9] = vel[i].z;
+        ballBuffer[pt+10] = 0;
         pt += jump;
     }
+    data->Write(ballBuffer,"simData");
+
+    //Initialize ballBuffer and energyBuffer to the size they should be for actual sim
+    energyBuffer.clear();
+    ballBuffer.clear();
+    energyBuffer = std::vector<double> (data->getWidth("energy")*10);
+    ballBuffer = std::vector<double> (data->getWidth("simData")*10);
     
 
     std::cerr << "\nSimulating " << steps * dt / 60 / 60 << " hours.\n";
     std::cerr << "Total mass: " << m_total << '\n';
     std::cerr << "\n===============================================================\n";
+
 }
 // void Ball_group::sim_init_write(std::string filename, int counter = 0)
 // {
@@ -1899,41 +1912,41 @@ void Ball_group::loadConsts(const std::string& path, const std::string& filename
     }
 }
 
-void Ball_group::simDataWrite(std::string& outFilename)
-{
-    // todo - for some reason I need checkForFile instead of just using ballWrite. Need to work out why.
-    // Check if file name already exists. If not, initialize
-    std::ifstream checkForFile;
-    checkForFile.open(output_folder + outFilename + "simData.csv", std::ifstream::in);
-    if (checkForFile.is_open() == false) {
-        sim_init_write(outFilename);
-    } else {
-        ballBuffer << '\n';  // Prepares a new line for incoming data.
+// void Ball_group::simDataWrite(std::string& outFilename)
+// {
+//     // todo - for some reason I need checkForFile instead of just using ballWrite. Need to work out why.
+//     // Check if file name already exists. If not, initialize
+//     std::ifstream checkForFile;
+//     checkForFile.open(output_folder + outFilename + "simData.csv", std::ifstream::in);
+//     if (checkForFile.is_open() == false) {
+//         sim_init_write(outFilename);
+//     } else {
+//         ballBuffer << '\n';  // Prepares a new line for incoming data.
 
-        for (int Ball = 0; Ball < num_particles; Ball++) {
-            // Send positions and rotations to buffer:
-            if (Ball == 0) {
-                ballBuffer << pos[Ball][0] << ',' << pos[Ball][1] << ',' << pos[Ball][2] << ','
-                           << w[Ball][0] << ',' << w[Ball][1] << ',' << w[Ball][2] << ','
-                           << w[Ball].norm() << ',' << vel[Ball].x << ',' << vel[Ball].y << ','
-                           << vel[Ball].z << ',' << 0;
-            } else {
-                ballBuffer << ',' << pos[Ball][0] << ',' << pos[Ball][1] << ',' << pos[Ball][2] << ','
-                           << w[Ball][0] << ',' << w[Ball][1] << ',' << w[Ball][2] << ','
-                           << w[Ball].norm() << ',' << vel[Ball].x << ',' << vel[Ball].y << ','
-                           << vel[Ball].z << ',' << 0;
-            }
-        }
+//         for (int Ball = 0; Ball < num_particles; Ball++) {
+//             // Send positions and rotations to buffer:
+//             if (Ball == 0) {
+//                 ballBuffer << pos[Ball][0] << ',' << pos[Ball][1] << ',' << pos[Ball][2] << ','
+//                            << w[Ball][0] << ',' << w[Ball][1] << ',' << w[Ball][2] << ','
+//                            << w[Ball].norm() << ',' << vel[Ball].x << ',' << vel[Ball].y << ','
+//                            << vel[Ball].z << ',' << 0;
+//             } else {
+//                 ballBuffer << ',' << pos[Ball][0] << ',' << pos[Ball][1] << ',' << pos[Ball][2] << ','
+//                            << w[Ball][0] << ',' << w[Ball][1] << ',' << w[Ball][2] << ','
+//                            << w[Ball].norm() << ',' << vel[Ball].x << ',' << vel[Ball].y << ','
+//                            << vel[Ball].z << ',' << 0;
+//             }
+//         }
 
-        // Write simData to file and clear buffer.
-        std::ofstream ballWrite;
-        ballWrite.open(output_folder + outFilename + "simData.csv", std::ofstream::app);
-        ballWrite << ballBuffer.rdbuf();  // Barf buffer to file.
-        ballBuffer.str("");               // Resets the stream for that balls to blank.
-        ballWrite.close();
-    }
-    checkForFile.close();
-}
+//         // Write simData to file and clear buffer.
+//         std::ofstream ballWrite;
+//         ballWrite.open(output_folder + outFilename + "simData.csv", std::ofstream::app);
+//         ballWrite << ballBuffer.rdbuf();  // Barf buffer to file.
+//         ballBuffer.str("");               // Resets the stream for that balls to blank.
+//         ballWrite.close();
+//     }
+//     checkForFile.close();
+// }
 
 
 [[nodiscard]] double Ball_group::getMass()

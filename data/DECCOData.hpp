@@ -552,8 +552,14 @@ private:
 
     std::string data_types[num_data_types] = {"simData","energy","constants","timing"};
     const int single_ball_widths[num_data_types] = {11,6,3,2};
-    int widths[num_data_types] = {single_ball_widths[0]*num_particles,single_ball_widths[1]*num_particles,single_ball_widths[2],single_ball_widths[3]};
-    int max_size[num_data_types] = {widths[0]*writes,widths[1]*num_particles,widths[2]*writes*num_particles,widths[3]*steps};
+    int widths[num_data_types] = {  single_ball_widths[0]*num_particles,\
+    								single_ball_widths[1],\
+    								single_ball_widths[2],\
+    								single_ball_widths[3]};
+    int max_size[num_data_types] = {widths[0]*writes,\
+    								widths[1]*writes,\
+    								widths[2]*num_particles,\
+    								widths[3]*steps};
     int written_so_far[num_data_types] = {0,0,0,0};
 
     //Write the data given with the csv method.

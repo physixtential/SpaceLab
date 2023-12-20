@@ -13,8 +13,8 @@ namespace fs = std::filesystem;
 
 
 // String buffers to hold data in memory until worth writing to file:
-std::stringstream ballBuffer;
-std::stringstream energyBuffer;
+// std::stringstream ballBuffer;
+// std::stringstream energyBuffer;
 std::stringstream contactBuffer;
 
 
@@ -60,7 +60,7 @@ int
 main(const int argc, char const* argv[])
 {
     t.start_event("WholeThing");
-    energyBuffer.precision(12);  // Need more precision on momentum.
+    // energyBuffer.precision(12);  // Need more precision on momentum.
     int num_balls;
     
     
@@ -133,7 +133,6 @@ void BPCA(const char *path, int num_balls)
         O = O.add_projectile();
         t.end_event("add_projectile");
         O.sim_init_write(ori_output_prefix, i);
-        exit(0);
         sim_looper(O);
         simTimeElapsed = 0;
     }
@@ -493,28 +492,7 @@ sim_one_step(const bool write_step, Ball_group &O)
                     // }
                     /////////////////////////////////////
                 }
-                //////////////////////////////////////
-                // O.rollForce[A] += rollForceA;
-                // O.rollForce[B] -= rollForceA;
-                //////////////////////////////////////
 
-                /////////////////////////////////
-                // if (A == O.num_particles-1)
-                // {
-                //     // O.slidDir[B] += (frame_A_vel_B / rel_vel_mag);
-                //     // O.rollDir[B] += (w_diff).cross(r_a) / (w_diff).cross(r_a).norm();
-                //     O.slidB3[B] += slideForceOnA;
-                //     O.rollB3[B] += rollForceA;
-                //     // O.distB3[B] += dist;
-                //     // O.inout[B] += inoutT;
-                // }
-                // O.slidFric[A] += slideForceOnA;
-                // O.slidFric[B] -= slideForceOnA;
-                /////////////////////////////////
-                /////////////////////////////////
-                // O.rollFric[A] += rollForceA;
-                // O.rollFric[B] -= rollForceA;
-                /////////////////////////////////
 
                 // Total forces on a:
                 // totalForceOnA = gravForceOnA + elasticForceOnA + slideForceOnA + vdwForceOnA;
@@ -526,14 +504,7 @@ sim_one_step(const bool write_step, Ball_group &O)
                 torqueA = r_a.cross(slideForceOnA + rollForceA);
                 torqueB = r_b.cross(-slideForceOnA + rollForceA); // original code
 
-                // aaccWrite<<"["<<A<<';'<<B<<";("<<torqueA<<");("<<torqueB<<")],";
-                //////////////////////////////////////
-                // torqueB = r_b.cross(slideForceOnA + rollForceA); // test code
-                //////////////////////////////////////
-                //////////////////////////////////////
-                // O.torqueForce[twoDtoOneD(A,B,O.num_particles)] = torqueA;
-                // O.torqueForce[twoDtoOneD(B,A,O.num_particles)] = torqueB;
-                //////////////////////////////////////
+
 
                 O.aacc[A] += torqueA / O.moi[A];
                 O.aacc[B] += torqueB / O.moi[B];
@@ -614,102 +585,27 @@ sim_one_step(const bool write_step, Ball_group &O)
             O.acc[A] += totalForceOnA / O.m[A];
             O.acc[B] -= totalForceOnA / O.m[B];
 
-            // accWrite<<"["<<A<<';'<<B<<";("<<totalForceOnA<<")],";
 
             // So last distance can be known for COR:
             O.distances[e] = dist;
-            //////////////////////////
-            // if (A == O.num_particles-1)
-            // {
-            //     O.distB3[B] += dist;
-            // }
-            //////////////////////////
+
         }
         // DONT DO ANYTHING HERE. A STARTS AT 1.
     }
 
-    // aaccWrite<<'\n';
-    // accWrite<<'\n';
-
-    //////////////////////////////
-    // Write out sliding/rolling fric
-    // std::ofstream fricWrite;
-    // fricWrite.open(output_folder + output_prefix + "fricData.csv", std::ofstream::app);
-    // fricWrite << '\n';
-    // for (int i = 0; i < O.num_particles; ++i)
-    // {
-    //     fricWrite << O.rollFric[i] << "," << O.slidFric[i];
-    //     if (i != O.num_particles - 1)
-    //     {
-    //         fricWrite << ',';
-    //     } 
-    // }
-    // fricWrite.close();
-
-    // std::ofstream fricB3Write;
-    // fricB3Write.open(output_folder + output_prefix + "fricB3Data.csv", std::ofstream::app);
-    // fricB3Write << '\n';
-    // for (int i = 0; i < O.num_particles; ++i)
-    // {
-    //     fricB3Write << O.rollB3[i] << "," << O.slidB3[i];
-    //     if (i != O.num_particles - 1)
-    //     {
-    //         fricB3Write << ',';
-    //     } 
-    // }
-    // fricB3Write.close();
-
-    // std::ofstream dirB3Write;
-    // dirB3Write.open(output_folder + output_prefix + "dirB3Data.csv", std::ofstream::app);
-    // dirB3Write << '\n';
-    // for (int i = 0; i < O.num_particles; ++i)
-    // {
-    //     dirB3Write << O.rollDir[i] << "," << O.slidDir[i];
-    //     if (i != O.num_particles - 1)
-    //     {
-    //         dirB3Write << ',';
-    //     } 
-    // }
-    // dirB3Write.close();
-
-    // std::ofstream distB3Write;
-    // distB3Write.open(output_folder + output_prefix + "distB3Data.csv", std::ofstream::app);
-    // distB3Write << '\n';
-    // for (int i = 0; i < O.num_particles-1; ++i)
-    // {
-    //     distB3Write << O.distB3[i];
-    //     if (i != O.num_particles - 2)
-    //     {
-    //         distB3Write << ',';
-    //     } 
-    // }
-    // distB3Write.close();
-
-    // std::ofstream inoutB3Write;
-    // inoutB3Write.open(output_folder + output_prefix + "inoutB3Data.csv", std::ofstream::app);
-    // inoutB3Write << '\n';
-    // for (int i = 0; i < O.num_particles-1; ++i)
-    // {
-    //     inoutB3Write << O.inout[i];
-    //     if (i != O.num_particles - 2)
-    //     {
-    //         inoutB3Write << ',';
-    //     } 
-    // }
-    // inoutB3Write.close();
     
-    //////////////////////////////
 
     t.end_event("CalcForces/loopApplicablepairs");
 
-    if (write_step) {
-        ballBuffer << '\n';  // Prepares a new line for incoming data.
-        // std::cerr<<"Writing "<<O.num_particles<<" balls"<<std::endl;
-    }
+    // if (write_step) {
+    //     ballBuffer << '\n';  // Prepares a new line for incoming data.
+    //     // std::cerr<<"Writing "<<O.num_particles<<" balls"<<std::endl;
+    // }
 
     // THIRD PASS - Calculate velocity for next step:
     t.start_event("CalcVelocityforNextStep");
-    for (int Ball = 0; Ball < O.num_particles; Ball++) {
+    for (int Ball = 0; Ball < O.num_particles; Ball++) 
+    {
         // Velocity for next step:
         O.vel[Ball] = O.velh[Ball] + .5 * O.acc[Ball] * dt;
         O.w[Ball] = O.wh[Ball] + .5 * O.aacc[Ball] * dt;
@@ -717,27 +613,60 @@ sim_one_step(const bool write_step, Ball_group &O)
         /////////////////////////////////
         // if (true) {
         /////////////////////////////////
-        if (write_step) {
+        if (write_step) 
+        {
             // Send positions and rotations to buffer:
             // std::cerr<<"Write ball "<<Ball<<std::endl;
-            if (Ball == 0) {
-                ballBuffer << O.pos[Ball][0] << ',' << O.pos[Ball][1] << ',' << O.pos[Ball][2] << ','
-                           << O.w[Ball][0] << ',' << O.w[Ball][1] << ',' << O.w[Ball][2] << ','
-                           << O.w[Ball].norm() << ',' << O.vel[Ball].x << ',' << O.vel[Ball].y << ','
-                           << O.vel[Ball].z << ',' << 0;
-            } else {
-                ballBuffer << ',' << O.pos[Ball][0] << ',' << O.pos[Ball][1] << ',' << O.pos[Ball][2] << ','
-                           << O.w[Ball][0] << ',' << O.w[Ball][1] << ',' << O.w[Ball][2] << ','
-                           << O.w[Ball].norm() << ',' << O.vel[Ball].x << ',' << O.vel[Ball].y << ','
-                           << O.vel[Ball].z << ',' << 0;
-            }
+            
+            int start = O.data->getWidth("simData")*O.num_writes+Ball*O.data->getSingleWidth("simData");
+            
+            O.ballBuffer[start] = O.pos[Ball][0];
+            O.ballBuffer[start+1] = O.pos[Ball][1];
+            O.ballBuffer[start+2] = O.pos[Ball][2];
+            O.ballBuffer[start+3] = O.w[Ball][0];
+            O.ballBuffer[start+4] = O.w[Ball][1];
+            O.ballBuffer[start+5] = O.w[Ball][2];
+            O.ballBuffer[start+6] = O.w[Ball].norm();
+            O.ballBuffer[start+7] = O.vel[Ball][0];
+            O.ballBuffer[start+8] = O.vel[Ball][1];
+            O.ballBuffer[start+9] = O.vel[Ball][2];
+            O.ballBuffer[start+10] = 0;
 
+            // O.ballBuffer.push_back(O.pos[Ball][0]);
+            // O.ballBuffer.push_back(O.pos[Ball][1]);
+            // O.ballBuffer.push_back(O.pos[Ball][2]);
+            // O.ballBuffer.push_back(O.w[Ball][0]);
+            // O.ballBuffer.push_back(O.w[Ball][1]);
+            // O.ballBuffer.push_back(O.w[Ball][2]);
+            // O.ballBuffer.push_back(O.w[Ball].norm());
+            // O.ballBuffer.push_back(O.vel[Ball][0]);
+            // O.ballBuffer.push_back(O.vel[Ball][1]);
+            // O.ballBuffer.push_back(O.vel[Ball][2]);
+            // O.ballBuffer.push_back(0);
+
+            // if (Ball == 0) {
+            //     ballBuffer << O.pos[Ball][0] << ',' << O.pos[Ball][1] << ',' << O.pos[Ball][2] << ','
+            //                << O.w[Ball][0] << ',' << O.w[Ball][1] << ',' << O.w[Ball][2] << ','
+            //                << O.w[Ball].norm() << ',' << O.vel[Ball].x << ',' << O.vel[Ball].y << ','
+            //                << O.vel[Ball].z << ',' << 0;
+            // } else {
+            //     ballBuffer << ',' << O.pos[Ball][0] << ',' << O.pos[Ball][1] << ',' << O.pos[Ball][2] << ','
+            //                << O.w[Ball][0] << ',' << O.w[Ball][1] << ',' << O.w[Ball][2] << ','
+            //                << O.w[Ball].norm() << ',' << O.vel[Ball].x << ',' << O.vel[Ball].y << ','
+            //                << O.vel[Ball].z << ',' << 0;
+            // }
+
+            
             O.KE += .5 * O.m[Ball] * O.vel[Ball].normsquared() +
                     .5 * O.moi[Ball] * O.w[Ball].normsquared();  // Now includes rotational kinetic energy.
             O.mom += O.m[Ball] * O.vel[Ball];
             O.ang_mom += O.m[Ball] * O.pos[Ball].cross(O.vel[Ball]) + O.moi[Ball] * O.w[Ball];
         }
     }  // THIRD PASS END
+    if (writeStep)
+    {
+        O.num_writes ++;
+    }
     t.end_event("CalcVelocityforNextStep");
 }  // one Step end
 
@@ -933,10 +862,14 @@ sim_looper(Ball_group &O)
             // Write energy to stream:
             ////////////////////////////////////
             //TURN THIS ON FOR REAL RUNS!!!
-            energyBuffer << '\n'
-                         << simTimeElapsed << ',' << O.PE << ',' << O.KE << ',' << O.PE + O.KE << ','
-                         << O.mom.norm() << ','
-                         << O.ang_mom.norm();  // the two zeros are bound and unbound mass
+            
+            O.energyBuffer.push_back(simTimeElapsed);
+            O.energyBuffer.push_back(O.PE);
+            O.energyBuffer.push_back(O.KE);
+            O.energyBuffer.push_back(O.PE+O.KE);
+            O.energyBuffer.push_back(O.mom.norm());
+            O.energyBuffer.push_back(O.ang_mom.norm());
+
 
             // Reinitialize energies for next step:
             O.KE = 0;
@@ -956,25 +889,16 @@ sim_looper(Ball_group &O)
                 std::cerr << "vMax = " << O.getVelMax() << " Steps recorded: " << Step / skip << '\n';
                 std::cerr << "Data Write to "<<output_folder<<"\n";
                 // std::cerr<<"output_prefix: "<<output_prefix<<std::endl;
+                
+                O.data->Write(O.ballBuffer,"simData");
+                O.ballBuffer.clear();
+                O.ballBuffer = std::vector<double>(O.data->getWidth("simData")*10);
 
+                O.data->Write(O.energyBuffer,"energy");
+                O.energyBuffer.clear();
+                O.energyBuffer = std::vector<double>(O.data->getWidth("energy")*10);
 
-                // Write simData to file and clear buffer.
-                std::ofstream ballWrite;
-                ballWrite.open(output_folder + output_prefix + "simData.csv", std::ofstream::app);
-                ballWrite << ballBuffer.rdbuf();  // Barf buffer to file.
-                ballBuffer.str("");               // Empty the stream for next filling.
-                ballWrite.close();
-
-                // Write Energy data to file and clear buffer.
-                ////////////////////////////////////////////
-                //TURN ON FOR REAL SIM
-                std::ofstream energyWrite;
-                energyWrite.open(output_folder + output_prefix + "energy.csv", std::ofstream::app);
-                energyWrite << energyBuffer.rdbuf();
-                energyBuffer.str("");  // Empty the stream for next filling.
-                energyWrite.close();
-                // ////////////////////////////////////////////
-
+                O.num_writes = 0;
                 lastWrite = time(nullptr);
             }  // Data export end
 

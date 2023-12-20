@@ -56,7 +56,7 @@ if __name__ == '__main__':
 				####################################
 				######Change input values here######
 				input_json['temp'] = Temp
-				input_json['seed'] = 'default'
+				input_json['seed'] = 100
 				input_json['radiiDistribution'] = 'logNormal'
 				input_json['h_min'] = 0.5
 				# input_json['u_s'] = 0.5
