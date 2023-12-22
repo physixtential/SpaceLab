@@ -37,11 +37,11 @@ EXEC = ColliderSingleCore.x
 all: $(HPP) $(EXEC) 
 
 # Linking the executable
-$(EXEC): $(OBJECTS)
+$(EXEC): $(OBJECTS) $(HPP)
 	$(CXX) $(CXXFLAGS) -o $(EXEC) $(OBJECTS) $(LIBS)
 
 # Generic rule for compiling
-%.o: %.cpp 
+%.o: %.cpp $(HPP)
 	$(CXX) $(CXXFLAGS) -c $<
 
 

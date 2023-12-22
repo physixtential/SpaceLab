@@ -13,10 +13,20 @@
 	
 // };
 
+void printVec(std::vector<double> v)
+{
+	int i;
+	for (i = 0; i < v.size()-1; i++)
+	{
+		std::cout<<v[i]<<", ";
+	}
+	std::cout<<v[i]<<std::endl;
+}
 
 class HDF5Handler {
     public:
     	HDF5Handler()=default;
+    	~HDF5Handler(){};
         HDF5Handler(std::string filename,bool fixed=false) : filename(filename),fixed(fixed) 
         {
         	initialized = true;
@@ -24,9 +34,9 @@ class HDF5Handler {
 
         //Make start a class variable so you dont need to keep track
         void createAppendFile(std::vector<double>& data,const std::string datasetName,size_t start=0,hsize_t maxdim=0) {
-		    H5::H5File file;
-		    H5::DataSet dataset;
-		    H5::DataSpace dataspace;
+		    // H5::H5File file;
+		    // H5::DataSet dataset;
+		    // H5::DataSpace dataspace;
 
 		    if(std::filesystem::exists(filename)) {
 		    	if (datasetExists(filename,datasetName))
@@ -243,11 +253,23 @@ class HDF5Handler {
 		    return exists;
 		}
 
+		// __attribute__((optimize("O0")))
 		H5::DataSet createDataSet(std::vector<double>& data,const std::string datasetName,int fileExists=0,int max_size=-1)
 		{
 			H5::H5File file;
 		    H5::DataSet dataset;
 		    H5::DataSpace dataspace;
+	        // std::cout<<"Filename in create: "<<filename<<std::endl;
+	        // std::cout<<"datasetName: "<<datasetName<<std::endl;
+	        // std::cout<<"data: "<<data[0]<<std::endl;
+	        // int i;
+			// for (i = 0; i < data.size()-1; i++)
+			// {
+			// 	std::cout<<data[i]<<", ";
+			// }
+			// std::cout<<data[i]<<std::endl;
+	        // printVec(data);
+
 		    if (fileExists == 1)//fileExists
 		    {
 				file = H5::H5File(filename, H5F_ACC_RDWR);
@@ -261,10 +283,10 @@ class HDF5Handler {
 	        if (fixed)
 	        {
 	        	maxdims[0] = max_size; // Set maximum dimensions to max_size
+	        	// std::cout<<"maxsize: "<<max_size<<std::endl;
 	        	dataspace = H5::DataSpace(1, maxdims);
 		        dataset = file.createDataSet(datasetName, H5::PredType::NATIVE_DOUBLE,dataspace);
 	        	dataset.write(&data[0], H5::PredType::NATIVE_DOUBLE);
-	        	////////////////////ENDED HERE, max_size isnt being set correctly
 	        }
 	        else
 	        {
@@ -288,10 +310,38 @@ class HDF5Handler {
 			H5::H5File file;
 		    H5::DataSet dataset;
 		    H5::DataSpace dataspace;
-			file = H5::H5File(filename, H5F_ACC_RDWR);
+		    if(std::filesystem::exists(filename)) 
+		    {
+				file = H5::H5File(filename, H5F_ACC_RDWR);
+			}
+			else
+			{
+				std::cerr<<"File "<<filename<<" doesn't exist."<<std::endl;
+				exit(-1);
+			}
 
-	        dataset = file.openDataSet(datasetName);
-	        dataspace = dataset.getSpace();
+	        // std::cout<<"datasetName: "<<datasetName<<std::endl;
+			// int i;
+			// for (i = 0; i < data.size()-1; i++)
+			// {
+			// 	std::cout<<data[i]<<", ";
+			// }
+			// std::cout<<data[i]<<std::endl;
+	        // std::cout<<"Filename in append: "<<filename<<std::endl;
+	        // dataset = file.openDataSet(datasetName);
+	        // dataspace = dataset.getSpace();
+
+	        try {
+			    dataset = file.openDataSet(datasetName);
+			} catch (const H5::Exception& error) {
+			    std::cerr<<"H5 ERROR: "<<error.getDetailMsg()<<std::endl;
+			}
+
+			try {
+			    dataspace = dataset.getSpace();
+			} catch (const H5::Exception& error) {
+			    std::cerr<<"H5 ERROR: "<<error.getDetailMsg()<<std::endl;
+			}
 
 	        // Get current size of the dataset
 	        hsize_t dims_out[1];
@@ -330,6 +380,10 @@ class HDF5Handler {
 	        // Write the data to the extended part of the dataset
 	        H5::DataSpace memspace(1, dimsextend);
 	        dataset.write(&data[0], H5::PredType::NATIVE_DOUBLE, memspace, dataspace);
+	        
+	        dataspace.close();
+	        dataset.close();
+	        memspace.close();
 	        file.close();
 		}
 };
@@ -391,10 +445,16 @@ public:
 		{
 			std::cerr<<"DECCOData warning: specified a non-negative number of writes (which indicates a fixed size hdf5 storage) and a storage_type other than hdf5. Defaulting to a fixed size hdf5 storage_type."<<std::endl;
 		}
-
+		std::cerr<<"END OF DECCODATA CONST"<<std::endl;
 
 	}
 
+	//copy constructor to handle the data handlers
+	DECCOData& operator=(const DECCOData& rhs)
+	{
+		H=rhs.H;
+		return *this;
+	}
 
 	//Write the data given with the method specified during class construction
 	//This includes taking care of headers for csv and metadata for hdf5
@@ -534,7 +594,7 @@ public:
 	
 
 
-	// ~DECCOData();
+	~DECCOData(){};
 private:
 	static const int num_data_types = 4;
 	std::string storage_type;

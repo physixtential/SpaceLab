@@ -266,10 +266,18 @@ bool DatauTest1()
     {
         energy_to_write[i] = (i+i*0.1)+1000;
     }
+
+    // std::cerr<<data.max_size[2]<<std::endl;
+    // std::cerr<<data.written_so_far[2]<<std::endl;
+    // std::cerr<<"FIRSTWRITE"<<std::endl;
     bool b10 = data.Write(simData_to_write,"simData");
+    // std::cerr<<"SECWRITE"<<std::endl;
     bool b11 = data.Write(constants_to_write,"constants");
+    // std::cerr<<"THIRDWRITE"<<std::endl;
     bool b12 = data.Write(constants_to_write,"constants");
+    // std::cerr<<"FOURWRITE"<<std::endl;
     bool b13 = data.Write(energy_to_write,"energy");
+    // std::cerr<<"ENDWRITE"<<std::endl;
 
     // //Verify metaData was written and is correct
     bool b50 = data.ReadMetaData("simData") == data.genMetaData(0);

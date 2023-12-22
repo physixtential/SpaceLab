@@ -11,6 +11,7 @@
 #include <cmath>
 #include <iostream>
 #include <string>
+#include <filesystem>
 #include <sstream>
 #include <fstream>
 #include <iomanip>
@@ -18,6 +19,7 @@
 #include <limits.h>
 #include <cstring>
 #include <typeinfo>
+#include <memory>
 #include <random>
 
 // using std::numbers::pi;
@@ -28,16 +30,20 @@ using json = nlohmann::json;
 class Ball_group
 {
 public:
+    std::string project_path;
+    std::string output_folder;
+    std::string projectileName;
+    std::string targetName;
+    std::string output_prefix;
+
     double radiiFraction = -1;
     bool debug = false;
     bool write_all = false;
 
-    std::string out_folder;
+    // std::string out_folder;
     int num_particles = 0;
     int num_particles_added = 0;
 
-    std::string targetName;
-    std::string projectileName;
 
     int seed = -1;
     int output_width = -1;
@@ -54,6 +60,7 @@ public:
     double v_max = -1;
     double v_max_prev = HUGE_VAL;
     double soc = -1;
+    int N=-1; //Number of balls to grow (if BPCA)
 
     /////////////////////////////////
     const double h_min_physical = 2.1e-8; //prolly should make this a parameter/calculation
@@ -85,6 +92,8 @@ public:
 
 
     DECCOData* data = nullptr;
+    // std::unique_ptr<DECCOData> data;
+    
     // data_type 0 for hdf5 
     // data_type 1 for csv (not implimented) 
     int data_type = 0;
@@ -120,7 +129,7 @@ public:
     Ball_group(const bool generate, const double& customVel, const char* path);
     Ball_group(const Ball_group& rhs);
     Ball_group& operator=(const Ball_group& rhs);
-    void parse_input_file(char const* location);
+    void parse_input_file(std::string location);
     inline double calc_VDW_force_mag(const double Ra, const double Rb, const double h);
     void calc_mu_scale_factor();
     void zeroSaveVals();
@@ -135,7 +144,7 @@ public:
     void offset(const double& rad1, const double& rad2, const double& impactParam) const;
     [[nodiscard]] double get_radius(const vec3& center) const;
     void updateGPE();
-    void sim_init_write(std::string filename, int counter);
+    void sim_init_write(int counter);
     [[nodiscard]] vec3 getCOM() const;
     void zeroVel() const;
     void zeroAngVel() const;
@@ -201,7 +210,7 @@ Ball_group::Ball_group(const int nBalls)
 /// @param customVel To condition for specific vMax.
 Ball_group::Ball_group(const bool generate, const double& customVel, const char* path)
 {
-    parse_input_file(path);
+    parse_input_file(std::string(path));
     generate_ball_field(genBalls);
     // Hack - Override and creation just 2 balls position and velocity.
     pos[0] = {0, 1.101e-5, 0};
@@ -235,7 +244,7 @@ Ball_group::Ball_group(const bool generate, const double& customVel, const char*
 /// @param customVel To condition for specific vMax.
 Ball_group::Ball_group(const std::string& path, const std::string& filename, const double& customVel, int start_file_index=0)
 {
-    parse_input_file(path.c_str());
+    parse_input_file(std::string(path));
     sim_continue(path, filename,start_file_index);
     calc_v_collapse();
     calibrate_dt(0, customVel);
@@ -252,7 +261,7 @@ Ball_group::Ball_group(
     const std::string& targetName,
     const double& customVel=-1.)
 {
-    parse_input_file(path.c_str());
+    parse_input_file(std::string(path));
     // std::cerr<<path<<std::endl;
     sim_init_two_cluster(path, projectileName, targetName);
     calc_v_collapse();
@@ -298,6 +307,14 @@ Ball_group& Ball_group::operator=(const Ball_group& rhs)
 
     radiiDistribution = rhs.radiiDistribution;
     radiiFraction = rhs.radiiFraction;
+
+    project_path=rhs.project_path;
+    output_folder=rhs.output_folder;
+    projectileName=rhs.projectileName;
+    targetName=rhs.targetName;
+    output_prefix=rhs.output_prefix;
+
+    data = rhs.data;
 
     /////////////////////////////////////
     if (write_all)
@@ -360,6 +377,14 @@ Ball_group::Ball_group(const Ball_group& rhs)
     radiiDistribution = rhs.radiiDistribution;
     radiiFraction = rhs.radiiFraction;
 
+    project_path=rhs.project_path;
+    output_folder=rhs.output_folder;
+    projectileName=rhs.projectileName;
+    targetName=rhs.targetName;
+    output_prefix=rhs.output_prefix;
+
+    data = rhs.data;
+
     /////////////////////////////////////
     // slidDir = rhs.slidDir;
     // rollDir = rhs.rollDir;
@@ -378,12 +403,29 @@ Ball_group::Ball_group(const Ball_group& rhs)
     /////////////////////////////////////
 }
 
-void Ball_group::parse_input_file(char const* location)
+//Parses input.json file that is in the same folder the executable is in
+void Ball_group::parse_input_file(std::string location)
 {
-    std::string s_location(location);
-    std::string json_file = s_location + "input.json";
+
+    //////TODO
+    //////IF location == null then get current directory
+    if (location == "")
+    {
+        try {
+            std::filesystem::path currentPath = std::filesystem::current_path();
+            std::cout << "Current Directory: " << currentPath << std::endl;
+            location = currentPath.string() + "/";
+        } catch (const std::filesystem::filesystem_error& e) {
+            std::cerr << "Error getting current directory: " << e.what() << std::endl;
+            exit(-1);
+        }
+    }
+    std::cerr<<"LOCATIOPN: "<<location<<std::endl;
+    // std::string s_location(location);
+    std::string json_file = location + "input.json";
     std::ifstream ifs(json_file);
     json inputs = json::parse(ifs);
+    output_folder = inputs["output_folder"];
 
     if (inputs["dataFormat"] == "h5" || inputs["dataFormat"] == "hdf5")
     {
@@ -398,11 +440,12 @@ void Ball_group::parse_input_file(char const* location)
         exit(-1);
     }
 
+
     if (inputs["seed"] == std::string("default"))
     {
         seed = static_cast<int>(time(nullptr));
         std::ofstream seedFile;
-        seedFile.open(s_location+"seedFile.txt",std::ios::app);
+        seedFile.open(output_folder+"seedFile.txt",std::ios::app);
         seedFile<<seed<<std::endl;
         seedFile.close();
     }
@@ -422,6 +465,7 @@ void Ball_group::parse_input_file(char const* location)
     {
         radiiDistribution = constant;
     }
+    N = inputs["N"];
     dynamicTime = inputs["dynamicTime"];
     G = inputs["G"];
     density = inputs["density"];
@@ -490,18 +534,17 @@ void Ball_group::parse_input_file(char const* location)
     z1Rot = inputs["z1Rot"];
     y1Rot = inputs["y1Rot"];
     simTimeElapsed = inputs["simTimeElapsed"];
-    project_path = inputs["project_path"];
-    if (project_path == std::string("default"))
-    {
-        project_path = s_location;
-    }
-    output_folder = inputs["output_folder"];
-    out_folder = inputs["output_folder"];
-    if (output_folder == std::string("default"))
-    {
-        output_folder = s_location;
-        out_folder = s_location;
-    }
+    // project_path = inputs["project_path"];
+    // if (project_path == std::string("default"))
+    // {
+    //     project_path = s_location;
+    // }
+    // out_folder = inputs["output_folder"];
+    // if (output_folder == std::string("default"))
+    // {
+    //     output_folder = s_location;
+    //     // out_folder = s_location;
+    // }
     projectileName = inputs["projectileName"];
     targetName = inputs["targetName"];
     output_prefix = inputs["output_prefix"];
@@ -839,7 +882,7 @@ void Ball_group::updateGPE()
     }
 }
 
-void Ball_group::sim_init_write(std::string filename, int counter = 0)
+void Ball_group::sim_init_write(int counter = 0)
 {
     // todo - filename is now a copy and this works. Need to consider how old way worked for
     // compatibility. What happens without setting output_prefix = filename? Check if file name already
@@ -854,12 +897,13 @@ void Ball_group::sim_init_write(std::string filename, int counter = 0)
     {
         filenum = "";
     }
-    checkForFile.open(output_folder + filenum + filename + "data."+filetype, std::ifstream::in);
+    std::cerr<<output_folder + filenum + "data."+filetype<<std::endl;
+    checkForFile.open(output_folder + filenum + "data."+filetype, std::ifstream::in);
     // Add a counter to the file name until it isn't overwriting anything:
     while (checkForFile.is_open()) {
         counter++;
         checkForFile.close();
-        checkForFile.open(output_folder + std::to_string(counter) + '_' + filename + "data." + filetype, std::ifstream::in);
+        checkForFile.open(output_folder + std::to_string(counter) + '_' + "data." + filetype, std::ifstream::in);
     }
 
     if (data != nullptr)
@@ -867,8 +911,11 @@ void Ball_group::sim_init_write(std::string filename, int counter = 0)
         delete data;
         data = nullptr; 
     }
+    // data = std::make_unique<DECCOData>(output_folder + std::to_string(counter) + "_data." + filetype,
+                                   // num_particles, steps / skip + 1, steps);
+
     data = new DECCOData(output_folder+std::to_string(counter)+"_data."+filetype,\
-                        num_particles,steps/skip,steps);
+                        num_particles,steps/skip+1,steps);
 
     // if (counter > 0) { filename.insert(0, std::to_string(counter) + '_'); }
 
@@ -887,12 +934,12 @@ void Ball_group::sim_init_write(std::string filename, int counter = 0)
 
 
     energyBuffer = std::vector<double> (data->getWidth("energy"));
-    energyBuffer.push_back(simTimeElapsed);
-    energyBuffer.push_back(PE);
-    energyBuffer.push_back(KE);
-    energyBuffer.push_back(PE+KE);
-    energyBuffer.push_back(mom.norm());
-    energyBuffer.push_back(ang_mom.norm());
+    energyBuffer[0] = simTimeElapsed;
+    energyBuffer[1] = PE;
+    energyBuffer[2] = KE;
+    energyBuffer[3] = PE+KE;
+    energyBuffer[4] = mom.norm();
+    energyBuffer[5] = ang_mom.norm();
     data->Write(energyBuffer,"energy");
 
     // Reinitialize energies for next step:
@@ -927,6 +974,9 @@ void Ball_group::sim_init_write(std::string filename, int counter = 0)
     ballBuffer.clear();
     energyBuffer = std::vector<double> (data->getWidth("energy")*10);
     ballBuffer = std::vector<double> (data->getWidth("simData")*10);
+
+    //initialize num_writes
+    num_writes = 0;
     
 
     std::cerr << "\nSimulating " << steps * dt / 60 / 60 << " hours.\n";
@@ -934,275 +984,7 @@ void Ball_group::sim_init_write(std::string filename, int counter = 0)
     std::cerr << "\n===============================================================\n";
 
 }
-// void Ball_group::sim_init_write(std::string filename, int counter = 0)
-// {
-//     // Create string for file name identifying spin combination negative is 2, positive is 1 on each axis.
-//     // std::string spinCombo = "";
-//     // for ( int i = 0; i < 3; i++)
-//     //{
-//     //  if (spins[i] < 0) { spinCombo += "2"; }
-//     //  else if (spins[i] > 0) { spinCombo += "1"; }
-//     //  else { spinCombo += "0"; }
-//     //}
 
-
-//     // todo - filename is now a copy and this works. Need to consider how old way worked for
-//     // compatibility. What happens without setting output_prefix = filename? Check if file name already
-//     // exists.
-//     std::ifstream checkForFile;
-//     std::string filenum;
-//     if (counter != 0)
-//     {
-//         filenum = std::to_string(counter) + '_';
-//     }
-//     else
-//     {
-//         filenum = "";
-//     }
-//     checkForFile.open(output_folder + filenum + filename + "simData.csv", std::ifstream::in);
-//     // Add a counter to the file name until it isn't overwriting anything:
-//     while (checkForFile.is_open()) {
-//         counter++;
-//         checkForFile.close();
-//         checkForFile.open(output_folder + std::to_string(counter) + '_' + filename + "simData.csv", std::ifstream::in);
-//     }
-
-//     if (counter > 0) { filename.insert(0, std::to_string(counter) + '_'); }
-
-//     output_prefix = filename;
-
-//     //////////////////////////
-//     if (write_all)
-//     {
-//         // Force writes
-//         std::ofstream vdwWrite;
-//         vdwWrite.open(output_folder + filename + "vdwData.csv", std::ofstream::app);
-//         for (int A = 0; A < num_particles; ++A)
-//         {
-//             vdwWrite <<"vdw("<<A<<"x)"<<"vdw("<<A<<"y)"<<"vdw("<<A<<"z)";
-//             if (A != num_particles-1)
-//             {
-//                 vdwWrite << ',';
-//             }
-//         }
-//         vdwWrite<<'\n';
-//         vdwWrite.close();
-
-//         // std::ofstream elasticWrite;
-//         // elasticWrite.open(output_folder + filename + "elasticData.csv", std::ofstream::app);
-//         // for (int A = 0; A < num_particles; ++A)
-//         // {
-//         //     elasticWrite <<"ela("<<A<<')';
-//         //     if (A != num_particles-1)
-//         //     {
-//         //         elasticWrite << ',';
-//         //     }
-//         // }
-//         // elasticWrite<<'\n';
-//         // elasticWrite.close();
-
-//         // std::ofstream slideWrite;
-//         // slideWrite.open(output_folder + filename + "slideData.csv", std::ofstream::app);
-//         // for (int A = 0; A < num_particles; ++A)
-//         // {
-//         //     for (int B = 0; B < num_particles; ++B)
-//         //     {
-//         //         slideWrite <<"sli("<<A<<';'<<B<<')';
-//         //         if ((B != num_particles-1) && (A != num_particles-1))
-//         //         {
-//         //             slideWrite << ',';
-//         //         }
-//         //     }
-//         // }
-//         // slideWrite<<'\n';
-//         // slideWrite.close();
-
-//         // std::ofstream rollWrite;
-//         // rollWrite.open(output_folder + filename + "rollData.csv", std::ofstream::app);
-//         // for (int A = 0; A < num_particles; ++A)
-//         // {
-//         //     for (int B = 0; B < num_particles; ++B)
-//         //     {
-//         //         rollWrite <<"rol("<<A<<';'<<B<<')';
-//         //         if ((B != num_particles-1) && (A != num_particles-1))
-//         //         {
-//         //             rollWrite << ',';
-//         //         }
-//         //     }
-//         // }
-//         // rollWrite<<'\n';
-//         // rollWrite.close();
-        
-//         // std::ofstream torqueWrite;
-//         // torqueWrite.open(output_folder + filename + "torqueData.csv", std::ofstream::app);
-//         // for (int A = 0; A < num_particles; ++A)
-//         // {
-//         //     for (int B = 0; B < num_particles; ++B)
-//         //     {
-//         //         torqueWrite <<"tor("<<A<<';'<<B<<')';
-//         //         if ((B != num_particles-1) && (A != num_particles-1))
-//         //         {
-//         //             torqueWrite << ',';
-//         //         }
-//         //     }
-//         // }
-//         // torqueWrite<<'\n';
-//         // torqueWrite.close();
-
-//         // std::ofstream wWrite;
-//         // wWrite.open(output_folder + filename + "wData.csv", std::ofstream::app);
-//         // wWrite<<"w(0)";
-//         // for (int A = 1; A < num_particles; ++A)
-//         // {
-//         //     wWrite<<','<<"w("<<A<<')';
-//         // }
-//         // wWrite<<'\n';
-//         // wWrite.close();
-
-//         // std::ofstream posWrite;
-//         // posWrite.open(output_folder + filename + "posData.csv", std::ofstream::app);
-//         // posWrite<<"pos(0)";
-//         // for (int A = 1; A < num_particles; ++A)
-//         // {
-//         //     posWrite<<','<<"pos("<<A<<')';
-//         // }
-//         // posWrite<<'\n';
-//         // posWrite.close();
-
-//         // std::ofstream velWrite;
-//         // velWrite.open(output_folder + filename + "velData.csv", std::ofstream::app);
-//         // velWrite<<"vel(0)";
-//         // for (int A = 1; A < num_particles; ++A)
-//         // {
-//         //     velWrite<<','<<"vel("<<A<<')';
-//         // }
-//         // velWrite<<'\n';
-//         // velWrite.close();
-//         // std::ofstream fricWrite;
-//         // fricWrite.open(output_folder + filename + "fricData.csv", std::ofstream::app);
-//         // for (int i = 0; i < num_particles; ++i)
-//         // {
-//         //     fricWrite << "b"<<i<<"xroll,"<<"b"<<i<<"yroll,"<<"b"<<i<<"zroll,"<<
-//         //     "b"<<i<<"xslide,"<<"b"<<i<<"yslide,"<<"b"<<i<<"zslide";
-//         //     if (i != num_particles-1)
-//         //     {
-//         //         fricWrite << ',';
-//         //     }
-//         // }
-//         // fricWrite.close();
-//         // std::ofstream fricB3Write;
-//         // fricB3Write.open(output_folder + filename + "fricB3Data.csv", std::ofstream::app);
-//         // for (int i = 0; i < num_particles; ++i)
-//         // {
-//         //     fricB3Write << "Fx3"<<i<<"roll,"<<"Fy3"<<i<<"roll,"<<"Fz3"<<i<<"roll,"<<
-//         //     "Fx3"<<i<<"slide,"<<"Fy3"<<i<<"slide,"<<"Fz3"<<i<<"slide";
-//         //     if (i != num_particles-1)
-//         //     {
-//         //         fricB3Write << ',';
-//         //     }
-//         // }
-//         // fricB3Write.close();
-//         // std::ofstream dirB3Write;
-//         // dirB3Write.open(output_folder + filename + "dirB3Data.csv", std::ofstream::app);
-//         // for (int i = 0; i < num_particles; ++i)
-//         // {
-//         //     dirB3Write << "xhat3"<<i<<"roll,"<<"yhat3"<<i<<"roll,"<<"zhat3"<<i<<"roll,"<<
-//         //     "xhat3"<<i<<"slide,"<<"yhat3"<<i<<"slide,"<<"zhat3"<<i<<"slide";
-//         //     if (i != num_particles-1)
-//         //     {
-//         //         dirB3Write << ',';
-//         //     }
-//         // }
-//         // dirB3Write.close();
-//         // std::ofstream distB3Write;
-//         // distB3Write.open(output_folder + filename + "distB3Data.csv", std::ofstream::app);
-//         // for (int i = 0; i < num_particles-1; ++i)
-//         // {
-//         //     distB3Write << "dist3"<<i;
-//         //     if (i != num_particles-2)
-//         //     {
-//         //         distB3Write << ',';
-//         //     }
-//         // }
-//         // distB3Write.close();
-//         //////////////////////////
-//     }
-//     // Complete file names:
-//     std::string simDataFilename = output_folder + filename + "simData.csv";
-//     std::string energyFilename = output_folder + filename + "energy.csv";
-//     std::string constantsFilename = output_folder + filename + "constants.csv";
-
-//     std::cerr << "New file tag: " << filename;
-
-//     // Open all file streams:
-//     std::ofstream energyWrite, ballWrite, constWrite;
-//     energyWrite.open(energyFilename, std::ofstream::app);
-//     ballWrite.open(simDataFilename, std::ofstream::app);
-//     constWrite.open(constantsFilename, std::ofstream::app);
-
-//     // Make column headers:
-//     energyWrite << "Time,PE,KE,E,p,L";
-//     ballWrite << "x0,y0,z0,wx0,wy0,wz0,wmag0,vx0,vy0,vz0,bound0";
-//     // std::cout << "x0,y0,z0,wx0,wy0,wz0,wmag0,vx0,vy0,vz0,bound0";
-//     // std::cout<<simDataFilename<<std::endl;
-//     // std::cout<<num_particles<<std::endl;
-
-//     for (int Ball = 1; Ball < num_particles;
-//          Ball++)  // Start at 2nd ball because first one was just written^.
-//     {
-//         // std::cout<<Ball<<','<<num_particles<<std::endl;
-//         std::string thisBall = std::to_string(Ball);
-//         ballWrite << ",x" + thisBall << ",y" + thisBall << ",z" + thisBall << ",wx" + thisBall
-//                   << ",wy" + thisBall << ",wz" + thisBall << ",wmag" + thisBall << ",vx" + thisBall
-//                   << ",vy" + thisBall << ",vz" + thisBall << ",bound" + thisBall;
-//         // std::cout << ",x" + thisBall << ",y" + thisBall << ",z" + thisBall << ",wx" + thisBall
-//         //           << ",wy" + thisBall << ",wz" + thisBall << ",wmag" + thisBall << ",vx" + thisBall
-//         //           << ",vy" + thisBall << ",vz" + thisBall << ",bound" + thisBall;
-
-//     }
-
-//     // Write constant data:
-//     for (int Ball = 0; Ball < num_particles; Ball++) {
-//         constWrite << R[Ball] << ',' << m[Ball] << ',' << moi[Ball] << '\n';
-//     }
-
-//     energyBuffer << '\n'
-//                  << simTimeElapsed << ',' << PE << ',' << KE << ',' << PE + KE << ',' << mom.norm() << ','
-//                  << ang_mom.norm();
-//     energyWrite << energyBuffer.rdbuf();
-//     energyBuffer.str("");
-
-//     // Reinitialize energies for next step:
-//     KE = 0;
-//     PE = 0;
-//     mom = {0, 0, 0};
-//     ang_mom = {0, 0, 0};
-
-//     // Send position and rotation to buffer:
-//     ballBuffer << '\n';  // Necessary new line after header.
-//     ballBuffer << pos[0].x << ',' << pos[0].y << ',' << pos[0].z << ',' << w[0].x << ',' << w[0].y << ','
-//                << w[0].z << ',' << w[0].norm() << ',' << vel[0].x << ',' << vel[0].y << ',' << vel[0].z
-//                << ',' << 0;  // bound[0];
-//     for (int Ball = 1; Ball < num_particles; Ball++) {
-//         ballBuffer << ',' << pos[Ball].x
-//                    << ','  // Needs comma start so the last bound doesn't have a dangling comma.
-//                    << pos[Ball].y << ',' << pos[Ball].z << ',' << w[Ball].x << ',' << w[Ball].y << ','
-//                    << w[Ball].z << ',' << w[Ball].norm() << ',' << vel[Ball].x << ',' << vel[Ball].y
-//                    << ',' << vel[Ball].z << ',' << 0;  // bound[Ball];
-//     }
-//     // Write position and rotation data to file:
-//     ballWrite << ballBuffer.rdbuf();
-//     ballBuffer.str("");  // Resets the stream buffer to blank.
-
-//     // Close Streams for user viewing:
-//     energyWrite.close();
-//     ballWrite.close();
-//     constWrite.close();
-
-//     std::cerr << "\nSimulating " << steps * dt / 60 / 60 << " hours.\n";
-//     std::cerr << "Total mass: " << m_total << '\n';
-//     std::cerr << "\n===============================================================\n";
-// }
 
 [[nodiscard]] vec3 Ball_group::getCOM() const
 {
@@ -1351,6 +1133,13 @@ Ball_group Ball_group::dust_agglomeration_particle_init()
     Ball_group projectile(1);
     projectile.radiiDistribution = radiiDistribution;
     projectile.radiiFraction = radiiFraction;
+    // projectile.data = data;
+    //carry over folders
+    projectile.project_path = project_path;
+    projectile.output_folder = output_folder;
+    projectile.projectileName = projectileName;
+    projectile.targetName = targetName;
+    projectile.output_prefix = output_prefix;
     // Particle random position at twice radius of target:
     // We want the farthest from origin since we are offsetting form origin. Not com.
     const auto cluster_radius = get_radius(vec3(0, 0, 0));
@@ -1522,6 +1311,15 @@ void Ball_group::merge_ball_group(const Ball_group& src)
     num_particles_added += src.num_particles;
     radiiDistribution = src.radiiDistribution;
     radiiFraction = src.radiiFraction;
+
+    //carry over folders
+    project_path = src.project_path;
+    output_folder = src.output_folder;
+    projectileName = src.projectileName;
+    targetName = src.targetName;
+    output_prefix = src.output_prefix;
+    // data = src.data;
+
     calc_helpfuls();
 }
 
@@ -1583,7 +1381,7 @@ void Ball_group::freeMemory() const
     delete[] R;
     delete[] m;
     delete[] moi;
-    delete data;
+    // delete data;
     /////////////////////
     if (write_all)
     {

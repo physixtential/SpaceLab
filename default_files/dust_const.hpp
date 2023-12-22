@@ -64,8 +64,8 @@ double y1Rot;  // Cluster two y axis rotation
 double simTimeElapsed;
 
 // File from which to proceed with further simulations
-std::string project_path;
-std::string output_folder;
-std::string projectileName;
-std::string targetName;
-std::string output_prefix;
+// std::string project_path;
+// std::string output_folder;
+// std::string projectileName;
+// std::string targetName;
+// std::string output_prefix;

@@ -7,10 +7,18 @@ relative_path = "../"
 relative_path = '/'.join(__file__.split('/')[:-1]) + '/' + relative_path
 project_path = os.path.abspath(relative_path) + '/'
 
-def run_job(location,num_balls):
-	cmd = ["python3", "{}run_sim.py".format(location), location, str(num_balls)]
-	# print(cmd)
-	subprocess.run(cmd)
+	# out = os.system("./ColliderSingleCore.o {}".format(curr_folder))
+	# out = os.system("./ColliderSingleCore.o {} 1>> {} 2>> {}".format(curr_folder,output_file,error_file))
+	
+	# cmd = ["srun","-n","1","-c","2","{}ColliderSingleCore.x".format(location), location, str(num_balls)]
+
+def run_job(location):
+	output_file = location + "sim_output.txt"
+	error_file = location + "sim_errors.txt"
+	cmd = [f"{location}ColliderSingleCore.x",location]
+
+	with open(output_file,"a") as out, open(error_file,"a") as err:
+		subprocess.run(cmd,stdout=out,stderr=err)
 
 if __name__ == '__main__':
 	#make new output folders
@@ -56,6 +64,9 @@ if __name__ == '__main__':
 				####################################
 				######Change input values here######
 				input_json['temp'] = Temp
+				input_json['N'] = n
+				input_json['output_folder'] = job
+
 				input_json['seed'] = 100
 				input_json['radiiDistribution'] = 'logNormal'
 				input_json['h_min'] = 0.5
@@ -68,27 +79,25 @@ if __name__ == '__main__':
 					json.dump(input_json,fp,indent=4)
 
 				#add run script and executable to folders
-				os.system(f"cp {project_path}default_files/run_sim.py {job}run_sim.py")
+				# os.system(f"cp {project_path}default_files/run_sim.py {job}run_sim.py")
 				os.system(f"cp {project_path}ColliderSingleCore/ColliderSingleCore.x {job}ColliderSingleCore.x")
 				folders.append(job)
 	# print(folders)
-	if len(N) != len(folders):
-		N = [str(N[0]) for i in range(len(folders))]
 
-	inputs = list(zip(folders,N))
-	print(inputs)
 
+	print(folders)
 
 	# for i in range(0,len(folders),runs_at_once):
 	# 	with mp.Pool(processes=runs_at_once) as pool:
 	# 		pool.starmap(run_job,inputs[i:i+runs_at_once]) 
-	with mp.Pool(processes=runs_at_once) as pool:
-		for i in range(0,len(folders)):
-			# input_data = inputs[i:i+runs_at_once]
-			pool.apply_async(run_job,inputs[i]) 
+	
+	# with mp.Pool(processes=runs_at_once) as pool:
+	# 	for folder in folders:
+	# 		# input_data = inputs[i:i+runs_at_once]
+	# 		pool.apply_async(run_job, (folder,))
 
-		pool.close()
-		pool.join()
+	# 	pool.close()
+	# 	pool.join()
 
 
 	

@@ -61,43 +61,33 @@ main(const int argc, char const* argv[])
 {
     t.start_event("WholeThing");
     // energyBuffer.precision(12);  // Need more precision on momentum.
-    int num_balls;
-    
-    
-    
-    // Runtime arguments:
-    if (argc > 2) 
+
+    //make dummy ball group to read input file
+    std::string location;
+    Ball_group dummy(1);
+    if (argc == 2)
     {
-        std::stringstream s(argv[2]);
-        // s << argv[2];
-        s >> num_balls;
-        // numThreads = atoi(argv[1]);
-        // fprintf(stderr,"\nThread count set to %i.\n", numThreads);
-        // projectileName = argv[2];
-        // targetName = argv[3];
-        // KEfactor = atof(argv[4]);
+        location = std::string(argv[1]);
     }
     else
     {
-        num_balls = 100;
+        location = "";
     }
-
-    // Ball_group dummy(1);
-    // dummy.parse_input_file(argv[1]);
+    dummy.parse_input_file(location);
     // O.zeroAngVel();
     // O.pushApart();
 
     // Normal sim:
     // O.sim_init_write(output_prefix);
     // sim_looper();
-    BPCA(argv[1],num_balls);
+    BPCA(dummy.output_folder.c_str(),dummy.N);
     // collider(argv[1],dummy.projectileName,dummy.targetName);
 
     // collider(argv[1],projTarget,projTarget);
     
     t.end_event("WholeThing");
     t.print_events();
-    t.save_events(output_folder + "timing.txt");
+    t.save_events(dummy.output_folder + "timing.txt");
 }  // end main
 //////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////
@@ -108,7 +98,7 @@ void collider(const char *path, std::string projectileName, std::string targetNa
     t.start_event("collider");
     Ball_group O = Ball_group(std::string(path),std::string(projectileName),std::string(targetName));
     safetyChecks(O);
-    O.sim_init_write(output_prefix);
+    O.sim_init_write();
     sim_looper(O);
     t.end_event("collider");
     O.freeMemory();
@@ -122,21 +112,21 @@ void BPCA(const char *path, int num_balls)
     Ball_group O = make_group(path,restart);    
     safetyChecks(O);
     // Add projectile: For dust formation BPCA
-    std::string ori_output_prefix = "";
     for (int i = *restart; i < num_balls; i++) {
     // for (int i = 0; i < 250; i++) {
         // O.zeroAngVel();
         // O.zeroVel();
         contact = false;
         inital_contact = true;
-        t.start_event("add_projectile");
+        // t.start_event("add_projectile");
         O = O.add_projectile();
-        t.end_event("add_projectile");
-        O.sim_init_write(ori_output_prefix, i);
+        // t.end_event("add_projectile");
+        O.sim_init_write(i);
+        std::cout<<"i: "<<i<<std::endl;
         sim_looper(O);
         simTimeElapsed = 0;
     }
-    O.freeMemory();
+    // O.freeMemory();
     return;
 }
 
@@ -619,7 +609,9 @@ sim_one_step(const bool write_step, Ball_group &O)
             // std::cerr<<"Write ball "<<Ball<<std::endl;
             
             int start = O.data->getWidth("simData")*O.num_writes+Ball*O.data->getSingleWidth("simData");
-            
+            // std::cout<<"O.data->getSingleWidth(simData)"<<O.data->getSingleWidth("simData")<<std::endl;
+            // std::cout<<"O.data->getWidth(simData)"<<O.data->getWidth("simData")<<std::endl;
+            // std::cout<<"O.num_writes: "<<O.num_writes<<"\tball: "<<Ball<<"\tstart: "<<start<<std::endl;
             O.ballBuffer[start] = O.pos[Ball][0];
             O.ballBuffer[start+1] = O.pos[Ball][1];
             O.ballBuffer[start+2] = O.pos[Ball][2];
@@ -674,6 +666,7 @@ sim_one_step(const bool write_step, Ball_group &O)
 void
 sim_looper(Ball_group &O)
 {
+    O.num_writes = 0;
     std::cerr << "Beginning simulation...\n";
 
     startProgress = time(nullptr);
@@ -726,135 +719,7 @@ sim_looper(Ball_group &O)
         ///////////
         sim_one_step(writeStep,O);
 
-        ///////////////////////////////////////
-        //TAKE THIS OUT FOR REAL RUNS
-        // energyBuffer << '\n'
-        //              << simTimeElapsed << ',' << O.PE << ',' << O.KE << ',' << O.PE + O.KE << ','
-        //              << O.mom.norm() << ','
-        //              << O.ang_mom.norm();  // the two zeros are bound and unbound mass
 
-        // // Reinitialize energies for next step:
-        // O.KE = 0;
-        // O.PE = 0;
-        // O.mom = {0, 0, 0};
-        // O.ang_mom = {0, 0, 0};
-        // // unboundMass = 0;
-        // // boundMass = massTotal;
-        // if (Step % 10 == 0)
-        // {
-        //     std::ofstream energyWrite;
-        //     energyWrite.open(output_folder + output_prefix + "energy.csv", std::ofstream::app);
-        //     energyWrite << energyBuffer.rdbuf();
-        //     energyBuffer.str("");  // Empty the stream for next filling.
-        //     energyWrite.close();
-        // }
-        ///////////////////////////////////////
-        //////////////////////////////////////
-        if (contact and inital_contact)
-        {
-            inital_contact = false;
-            std::ofstream contact_write;
-            contact_write.open(output_folder + "contact.csv", std::ofstream::app);
-            contact_write << contactBuffer.rdbuf();  // Barf buffer to file.
-            contactBuffer.str("");               // Empty the stream for next filling.
-            contact_write.close();
-        }
-        //////////////////////////////////////
-        if (O.write_all)
-        {
-            //////////////////////////////////////
-            std::ofstream vdwWrite;
-            vdwWrite.open(output_folder + output_prefix + "vdwData.csv", std::ofstream::app);
-            vdwWrite<<O.vdwForce[0][0]<<','<<O.vdwForce[0][1]<<','<<O.vdwForce[0][0];
-            for (int i = 1; i < O.num_particles; ++i)
-            {
-                vdwWrite<<','<<O.vdwForce[i][0]<<','<<O.vdwForce[i][1]<<','<<O.vdwForce[i][2];
-            }
-            vdwWrite << '\n';  
-            vdwWrite.close();
-
-            std::ofstream distWrite;
-            distWrite.open(output_folder + output_prefix + "distData.csv", std::ofstream::app);
-            int dist_length = (O.num_particles * O.num_particles / 2) - (O.num_particles / 2);
-            distWrite<<O.distances[0];
-            for (int i = 1; i < dist_length; ++i)
-            {
-                distWrite<<','<<O.distances[i];
-            }
-            distWrite << '\n';  
-            distWrite.close();
-
-            // std::ofstream elasticWrite;
-            // elasticWrite.open(output_folder + output_prefix + "elasticData.csv", std::ofstream::app);
-            // elasticWrite<<O.elasticForce[0][0]<<','<<O.elasticForce[0][1]<<','<<O.elasticForce[0][2];
-            // for (int i = 1; i < O.num_particles; ++i)
-            // {
-            //     elasticWrite<<','<<O.elasticForce[i][0]<<','<<O.elasticForce[i][1]<<','<<O.elasticForce[i][2];
-            // }
-            // elasticWrite << '\n';  
-            // elasticWrite.close();
-
-            // std::ofstream slideWrite;
-            // slideWrite.open(output_folder + output_prefix + "slideData.csv", std::ofstream::app);
-            // slideWrite<<O.slideForce[0][0]<<','<<O.slideForce[0][1]<<','<<O.slideForce[0][2];
-            // for (int i = 1; i < O.num_particles*O.num_particles; ++i)
-            // {
-            //     slideWrite<<','<<O.slideForce[i][0]<<','<<O.slideForce[i][1]<<','<<O.slideForce[i][2];
-            // }
-            // slideWrite << '\n';  
-            // slideWrite.close();
-
-            // std::ofstream rollWrite;
-            // rollWrite.open(output_folder + output_prefix + "rollData.csv", std::ofstream::app);
-            // rollWrite<<O.rollForce[0][0]<<','<<O.rollForce[0][1]<<','<<O.rollForce[0][2];
-            // for (int i = 1; i < O.num_particles*O.num_particles; ++i)
-            // {
-            //     rollWrite<<','<<O.rollForce[i][0]<<','<<O.rollForce[i][1]<<','<<O.rollForce[i][2];
-            // }
-            // rollWrite << '\n';  
-            // rollWrite.close();
-
-            // std::ofstream torqueWrite;
-            // torqueWrite.open(output_folder + output_prefix + "torqueData.csv", std::ofstream::app);
-            // torqueWrite<<O.torqueForce[0][0]<<','<<O.torqueForce[0][1]<<','<<O.torqueForce[0][2];
-            // for (int i = 1; i < O.num_particles*O.num_particles; ++i)
-            // {
-            //     torqueWrite<<','<<O.torqueForce[i][0]<<','<<O.torqueForce[i][1]<<','<<O.torqueForce[i][2];
-            // }
-            // torqueWrite << '\n';  
-            // torqueWrite.close();
-
-            // std::ofstream wWrite;
-            // wWrite.open(output_folder + output_prefix + "wData.csv", std::ofstream::app);
-            // wWrite<<O.w[0][0]<<','<<O.w[0][1]<<','<<O.w[0][2];
-            // for (int i = 1; i < O.num_particles; ++i)
-            // {
-            //     wWrite<<','<<O.w[i][0]<<','<<O.w[i][1]<<','<<O.w[i][2];
-            // }
-            // wWrite << '\n';  
-            // wWrite.close();
-
-            // std::ofstream posWrite;
-            // posWrite.open(output_folder + output_prefix + "posData.csv", std::ofstream::app);
-            // posWrite<<O.pos[0][0]<<','<<O.pos[0][1]<<','<<O.pos[0][2];
-            // for (int i = 1; i < O.num_particles; ++i)
-            // {
-            //     posWrite<<','<<O.pos[i][0]<<','<<O.pos[i][1]<<','<<O.pos[i][2];
-            // }
-            // posWrite << '\n';  
-            // posWrite.close();
-
-            // std::ofstream velWrite;
-            // velWrite.open(output_folder + output_prefix + "velData.csv", std::ofstream::app);
-            // velWrite<<O.vel[0][0]<<','<<O.vel[0][1]<<','<<O.vel[0][2];
-            // for (int i = 1; i < O.num_particles; ++i)
-            // {
-            //     velWrite<<','<<O.vel[i][0]<<','<<O.vel[i][1]<<','<<O.vel[i][2];
-            // }
-            // velWrite << '\n';  
-            // velWrite.close();
-        }
-        //////////////////////////////////////
         
 
         if (writeStep) {
@@ -862,13 +727,24 @@ sim_looper(Ball_group &O)
             // Write energy to stream:
             ////////////////////////////////////
             //TURN THIS ON FOR REAL RUNS!!!
+
+            // O.energyBuffer = std::vector<double> (data->getWidth("energy"));
+            int start = O.data->getWidth("energy")*(O.num_writes-1);
+            // std::cerr<<"start,num_writes: "<<start<<','<<O.num_writes<<std::endl;
+            O.energyBuffer[start] = simTimeElapsed;
+            O.energyBuffer[start+1] = O.PE;
+            O.energyBuffer[start+2] = O.KE;
+            O.energyBuffer[start+3] = O.PE+O.KE;
+            O.energyBuffer[start+4] = O.mom.norm();
+            O.energyBuffer[start+5] = O.ang_mom.norm();
+
             
-            O.energyBuffer.push_back(simTimeElapsed);
-            O.energyBuffer.push_back(O.PE);
-            O.energyBuffer.push_back(O.KE);
-            O.energyBuffer.push_back(O.PE+O.KE);
-            O.energyBuffer.push_back(O.mom.norm());
-            O.energyBuffer.push_back(O.ang_mom.norm());
+            // O.energyBuffer.push_back(simTimeElapsed);
+            // O.energyBuffer.push_back(O.PE);
+            // O.energyBuffer.push_back(O.KE);
+            // O.energyBuffer.push_back(O.PE+O.KE);
+            // O.energyBuffer.push_back(O.mom.norm());
+            // O.energyBuffer.push_back(O.ang_mom.norm());
 
 
             // Reinitialize energies for next step:
@@ -887,7 +763,7 @@ sim_looper(Ball_group &O)
                 // Report vMax:
 
                 std::cerr << "vMax = " << O.getVelMax() << " Steps recorded: " << Step / skip << '\n';
-                std::cerr << "Data Write to "<<output_folder<<"\n";
+                std::cerr << "Data Write to "<<O.output_folder<<"\n";
                 // std::cerr<<"output_prefix: "<<output_prefix<<std::endl;
                 
                 O.data->Write(O.ballBuffer,"simData");
@@ -926,6 +802,8 @@ sim_looper(Ball_group &O)
               << "Simulated time: " << steps * dt << " seconds\n"
               << "Computation time: " << end - start << " seconds\n";
     std::cerr << "\n===============================================================\n";
+
+
 }  // end simLooper
 
 
