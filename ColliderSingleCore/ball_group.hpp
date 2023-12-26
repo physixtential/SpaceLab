@@ -413,14 +413,12 @@ void Ball_group::parse_input_file(std::string location)
     {
         try {
             std::filesystem::path currentPath = std::filesystem::current_path();
-            std::cout << "Current Directory: " << currentPath << std::endl;
             location = currentPath.string() + "/";
         } catch (const std::filesystem::filesystem_error& e) {
             std::cerr << "Error getting current directory: " << e.what() << std::endl;
             exit(-1);
         }
     }
-    std::cerr<<"LOCATIOPN: "<<location<<std::endl;
     // std::string s_location(location);
     std::string json_file = location + "input.json";
     std::ifstream ifs(json_file);
@@ -897,7 +895,7 @@ void Ball_group::sim_init_write(int counter = 0)
     {
         filenum = "";
     }
-    std::cerr<<output_folder + filenum + "data."+filetype<<std::endl;
+    // std::cerr<<output_folder + filenum + "data."+filetype<<std::endl;
     checkForFile.open(output_folder + filenum + "data."+filetype, std::ifstream::in);
     // Add a counter to the file name until it isn't overwriting anything:
     while (checkForFile.is_open()) {
@@ -1197,7 +1195,7 @@ Ball_group Ball_group::dust_agglomeration_particle_init()
     const double3x3 local_coords = local_coordinates(to_double3(projectile_direction));
     
     projectile.pos[0] = dust_agglomeration_offset(local_coords,projectile.pos[0],projectile.vel[0],projectile.R[0]);
-    std::cerr<<"pos, dir: "<<projectile.pos[0]<<", "<<projectile_direction<<std::endl;
+    // std::cerr<<"pos, dir: "<<projectile.pos[0]<<", "<<projectile_direction<<std::endl;
     //////////////////////////////////
     //TURN ON above LINE AND OFF REST FOR REAL SIM
     // if (num_particles == 3)
