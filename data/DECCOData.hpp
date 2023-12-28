@@ -519,39 +519,59 @@ public:
 		return readMetaData;
 	}
 
-	std::vector<double> Read(std::string data_type, bool all=true, int line=-1) 
+	std::vector<double> Read(std::string data_type, bool all=true, int line=-1,std::string file="") 
 	{
-
-		//Has the HDF5 handler been initiated yet?
-		if (!H.isInitialized())
+		if (file == "")
 		{
-			H = HDF5Handler(filename,fixed);
+			file = filename;
 		}
+		
 
 		std::vector<double> data_read;
-		if (all)
+		if (file.substr(file.size()-3,file.size()) == ".h5")
 		{
-			data_read = H.readFile(data_type); 
+
+			//Has the HDF5 handler been initiated yet?
+			if (!H.isInitialized())
+			{
+				H = HDF5Handler(file,fixed);
+			}
+
+			if (all)
+			{
+				data_read = H.readFile(data_type); 
+			}
+			else
+			{
+				int data_index = getDataIndexFromString(data_type);
+				bool neg_offset = false;
+				//if data_index is less than zero a bad data_type was input and write doesn't happen
+				if (data_index < 0)
+				{
+					return data_read;
+				}
+
+				if (line < 0)
+				{
+					line = (-1)*line;
+					neg_offset = true;
+				}
+
+				data_read = H.readFile(data_type,line*widths[data_index],widths[data_index],neg_offset);
+			}
 		}
-		else
+		else if (file.substr(file.size()-4,file.size()) == ".csv")
 		{
-			int data_index = getDataIndexFromString(data_type);
-			bool neg_offset = false;
-			//if data_index is less than zero a bad data_type was input and write doesn't happen
-			if (data_index < 0)
-			{
-				return data_read;
-			}
-
-			if (line < 0)
-			{
-				line = (-1)*line;
-				neg_offset = true;
-			}
-
-			data_read = H.readFile(data_type,line*widths[data_index],widths[data_index],neg_offset);
+			std::cerr<<"ERROR: csv file type not yet readable by DECCOData."<<std::endl;
+			exit(-1);
 		}
 		return data_read;
+	}
+
+	void loadConsts(std::string path,std::string file,double *R,double *m,double *moi)
+	{
+		std::vector<double> constdata = Read("constants",true,-100,path+file);
+		//STOPPED HERE
 	}
 
 	int getNumTypes()

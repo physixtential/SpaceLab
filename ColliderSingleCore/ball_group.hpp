@@ -44,7 +44,7 @@ public:
     // std::string out_folder;
     int num_particles = 0;
     int num_particles_added = 0;
-    int start_index = -1;
+    int start_index = 0;
 
 
     int seed = -1;
@@ -163,6 +163,7 @@ public:
     void freeMemory() const;
     std::string find_restart_file_name(std::string path);
     int check_restart(std::string folder);
+    void loadDatafromH5(std::string path, std::string file);
 
 
     std::vector<double> energyBuffer;
@@ -217,16 +218,18 @@ Ball_group::Ball_group(std::string& path)
     std::string filename = find_restart_file_name(path); 
     bool just_restart = false;
 
-    if (filename.substr(filename.size()-4,filename.size()) == ".csv")
+    if (filename != "")
     {
-        size_t _pos = filename.find_first_of("_");
-        // int file_index = stoi(filename.substr(0,filename.find_first_of("_")));
-        if (filename[_pos+1] == 'R')
+        if (filename.substr(filename.size()-4,filename.size()) == ".csv")
         {
-            just_restart = true;
+            size_t _pos = filename.find_first_of("_");
+            // int file_index = stoi(filename.substr(0,filename.find_first_of("_")));
+            if (filename[_pos+1] == 'R')
+            {
+                just_restart = true;
+            }
         }
     }
-
 
     if (!just_restart && restart==1)
     {
@@ -235,7 +238,7 @@ Ball_group::Ball_group(std::string& path)
         calibrate_dt(0, v_custom);
         simInit_cond_and_center(false);
     }
-    else if (restart == 2 || just_restart)
+    else if (restart == 0 || just_restart)
     {
 
         generate_ball_field(genBalls);
@@ -920,17 +923,17 @@ void Ball_group::sim_init_write(int counter = 0)
     // compatibility. What happens without setting output_prefix = filename? Check if file name already
     // exists.
     std::ifstream checkForFile;
-    std::string filenum;
-    if (counter != 0)
-    {
-        filenum = std::to_string(counter) + '_';
-    }
-    else
-    {
-        filenum = "";
-    }
-    // std::cerr<<output_folder + filenum + "data."+filetype<<std::endl;
-    checkForFile.open(output_folder + filenum + "data."+filetype, std::ifstream::in);
+    // std::string filenum;
+    // if (counter != 0)
+    // {
+    //     filenum = std::to_string(counter) + '_';
+    // }
+    // else
+    // {
+    //     filenum = "";
+    // }
+    // std::cerr<<output_folder +std::to_string(counter) + "_data."+filetype<<std::endl;
+    checkForFile.open(output_folder + std::to_string(counter) + "_data."+filetype, std::ifstream::in);
     // Add a counter to the file name until it isn't overwriting anything:
     while (checkForFile.is_open()) {
         counter++;
@@ -1920,26 +1923,45 @@ void Ball_group::loadSim(const std::string& path, const std::string& filename)
 {
     std::string file = filename;
     //file we are loading is csv file
+    size_t _pos;
+    int file_index;
     if (file.substr(file.size()-4,file.size()) == ".csv")
     {
         //decrease index by 1 so we have most recent finished sim
-        size_t _pos = file.find_first_of("_");
-        size_t _secpos = file.substr(_pos+1,file.size()).find_first_of("_");
-        _secpos += _pos+1; //add 1 to account for _pos+1 in substr above
+        _pos = file.find_first_of("_");
+        size_t _lastpos = file.find_last_of("_");
         
-        int file_index = stoi(file.substr(0,file.find_first_of("_")));
-        file = std::to_string(file_index-1) + file.substr(_pos,file.size());
+        file_index = stoi(file.substr(0,_pos));
+        file = std::to_string(file_index-1) + file.substr(_pos,_lastpos);
+
+        parseSimData(getLastLine(path, file));
+        loadConsts(path, file);
+        start_index = file_index;
+    }
+    else if (file.substr(file.size()-3,file.size()) == ".h5")
+    {
+        _pos = file.find_first_of("_");
+        file_index = stoi(file.substr(0,_pos));
+        loadDatafromH5(path,file);
+        start_index = file_index;
+    }
+    else
+    {
+        std::cerr<<"ERROR: filename in loadSim is of unknown type."<<std::endl;
+        exit(EXIT_FAILURE);
     }
 
-    //TODO:: These functions should go in DECCOData or call DECCOData functions
-    parseSimData(getLastLine(path, file));
-    loadConsts(path, file);
 
     calc_helpfuls();
 
     std::cerr << "Balls: " << num_particles << '\n';
     std::cerr << "Mass: " << m_total << '\n';
     std::cerr << "Approximate radius: " << initial_radius << " cm.\n";
+}
+
+void Ball_group::loadDatafromH5(std::string path,std::string file)
+{
+    data->loadConsts(path,file,m,R,moi);
 }
 
 void Ball_group::distSizeSphere(const int nBalls)
@@ -2272,6 +2294,7 @@ int Ball_group::check_restart(std::string folder)
         
         if (file.substr(0,file.size()-4) == "timing")
         {
+            std::cerr<<"HERERER: "<<file<<std::endl;
             return 2;
         }
 
