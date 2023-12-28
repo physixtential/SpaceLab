@@ -8,8 +8,8 @@
 #include <sstream>
 #include <string>
 #include <iomanip>
-#include <filesystem>
-namespace fs = std::filesystem;
+// #include <filesystem>
+// namespace fs = std::filesystem;
 
 
 // String buffers to hold data in memory until worth writing to file:
@@ -35,16 +35,16 @@ void
 sim_looper(Ball_group &O);
 void
 safetyChecks(Ball_group &O);
-std::string 
-check_restart(std::string folder,int* restart);
+int 
+check_restart(std::string folder);
 Ball_group 
-make_group(const char *argv1,int* restart);
+make_group(std::string argv1);
 inline int 
 twoDtoOneD(const int row, const int col, const int width);
 void 
-BPCA(const char *path, int num_balls);
+BPCA(std::string path, int num_balls);
 void 
-collider(const char *path, std::string projectileName,std::string targetName);
+collider(std::string path, std::string projectileName,std::string targetName);
 /// @brief The ballGroup run by the main sim looper.
 // Ball_group O(output_folder, projectileName, targetName, v_custom); // Collision
 // Ball_group O(path, targetName, 0);  // Continue
@@ -93,10 +93,10 @@ main(const int argc, char const* argv[])
 //////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////
 
-void collider(const char *path, std::string projectileName, std::string targetName)
+void collider(std::string path, std::string projectileName, std::string targetName)
 {
     t.start_event("collider");
-    Ball_group O = Ball_group(std::string(path),std::string(projectileName),std::string(targetName));
+    Ball_group O = Ball_group(path,std::string(projectileName),std::string(targetName));
     safetyChecks(O);
     O.sim_init_write();
     sim_looper(O);
@@ -105,14 +105,13 @@ void collider(const char *path, std::string projectileName, std::string targetNa
     return;
 }
 
-void BPCA(const char *path, int num_balls)
+void BPCA(std::string path, int num_balls)
 {
     int rest = -1;
-    int *restart = &rest;
-    Ball_group O = make_group(path,restart);    
+    Ball_group O = Ball_group(path);    
     safetyChecks(O);
     // Add projectile: For dust formation BPCA
-    for (int i = *restart; i < num_balls; i++) {
+    for (int i = O.start_index; i < num_balls; i++) {
     // for (int i = 0; i < 250; i++) {
         // O.zeroAngVel();
         // O.zeroVel();
@@ -132,145 +131,256 @@ void BPCA(const char *path, int num_balls)
 
 
 //@brief sets Ball_group object based on the need for a restart or not
-Ball_group make_group(const char *argv1,int* restart)
-{
-    Ball_group O;
+// Ball_group make_group(std::string argv1)
+// {
+//     Ball_group O;
+//     //See if run has already been started
+//     // int state = check_restart(argv1);
+
+//     O = Ball_group(argv1);
+//     if (state == 0)
+//     {
+//     }
+//     else if (state == 1)
+//     {
+//         O = Ball_group(true, argv1);
+//     }
+//     else if (state == 2)
+//     {
+//         std::cerr<<"Simulation already complete.\n";
+//         exit(2); 
+//     }
+//     else
+//     {
+//         std::cerr<<"ERROR: restart state can be 0, 1, or 2. It cannot be '"<<state<<"'\n";
+//         exit(-2);
+//     }
+
+//     return O;
+// }
+
+// //@brief sets Ball_group object based on the need for a restart or not
+// Ball_group make_group(const char *argv1,int* restart)
+// {
+//     Ball_group O;
+//     //See if run has already been started
+//     std::string filename = check_restart(argv1,restart,from_hdf5);
+//     if (*restart > -1) //Restart is necessary unless only first write has happended so far
+//     {
+//         if (*restart > 1)
+//         {//TESTED
+//             (*restart)--;
+//             // filename = std::to_string(*restart) + filename;
+//             filename = filename.substr(1,filename.length());
+//             std::cerr<<"\n============================================\
+//                     \nRESTARTING (from non-first write) WITH START VAL OF "<<*restart<<\
+//                     "\n============================================"<<std::endl;
+//             O = Ball_group(argv1,filename,v_custom,*restart);
+//         }
+//         else if (*restart == 1) //restart from first write (different naming convension for first write)
+//         {//TESTED
+//             (*restart)--;
+//             filename = filename.substr(1,filename.length());
+//             // exit(EXIT_SUCCESS);
+//             std::cerr<<"\n============================================\
+//                     \nRESTARTING (from first write) WITH START VAL OF "<<*restart<<\
+//                     "\n============================================"<<std::endl;
+//             O = Ball_group(argv1,filename,v_custom,*restart);
+//         }
+//         else //if restart is 0, need to rerun whole thing
+//         {//TESTED
+//             std::cerr<<"\n============================================\
+//                     \nRESTARTING (whole sim) WITH START VAL OF "<<*restart<<\
+//                     "\n============================================"<<std::endl;
+//             O = Ball_group(true, v_custom, argv1); // Generate new group
+//         }
+
+//     }
+//     else if (*restart == -1) // Make new ball group
+//     {
+//         *restart = 0;
+//         O = Ball_group(true, v_custom, argv1); // Generate new group
+//     }
+//     else
+//     {
+//         std::cerr<<"Simulation already complete.\n";
+//     }
+//     return O;
+// }
+
+// // @brief checks if this is new job or restart.
+// // @returns 0 if this is starting from scratch
+// // @returns 1 if this is a restart
+// // @returns 2 if this job is already finished
+// int check_restart(std::string folder)
+// {
+//     std::string file;
+//     // int tot_count = 0;
+//     // int file_count = 0;
+//     int largest_file_index = -1;
+//     int file_index=0;
+//     for (const auto & entry : fs::directory_iterator(folder))
+//     {
+//         file = entry.path();
+//         size_t pos = file.find_last_of("/");
+//         file = file.erase(0,pos+1);
+        
+//         if (file.substr(0,file.size()-4) == "timing")
+//         {
+//             return 2;
+//         }
+
+//         //Is the data in csv format?
+//         if (file.substr(file.size()-4,file.size()) == ".csv")
+//         {
+//             // file_count++;
+//             size_t _pos = file.find_first_of("_");
+//             size_t _secpos = file.substr(_pos+1,file.size()).find_first_of("_");
+//             _secpos += _pos+1; //add 1 to account for _pos+1 in substr above
+//             file_index = stoi(file.substr(0,file.find_first_of("_")));
+//             if (file[_pos+1] == 'R')
+//             {
+//                 file_index = 0;
+//             }
+
+//             if (file_index > largest_file_index)
+//             {
+//                 largest_file_index = file_index;
+//             }
+//         }
+//         else if (file.substr(file.size()-3,file.size()) == ".h5")
+//         {
+//             size_t _pos = file.find_first_of("_");
+//             file_index = stoi(file.substr(0,file.find_first_of("_")));
+//             if (file_index > largest_file_index)
+//             {
+//                 largest_file_index = file_index;
+//             }
+//         }
+//     }
     
-    //See if run has already been started
-    std::string filename = check_restart(argv1,restart);
-    if (*restart > -1) //Restart is necessary unless only first write has happended so far
-    {
-        if (*restart > 1)
-        {//TESTED
-            (*restart)--;
-            // filename = std::to_string(*restart) + filename;
-            filename = filename.substr(1,filename.length());
-            std::cerr<<"\n============================================\
-                    \nRESTARTING (from non-first write) WITH START VAL OF "<<*restart<<\
-                    "\n============================================"<<std::endl;
-            O = Ball_group(argv1,filename,v_custom,*restart);
-        }
-        else if (*restart == 1) //restart from first write (different naming convension for first write)
-        {//TESTED
-            (*restart)--;
-            filename = filename.substr(1,filename.length());
-            // exit(EXIT_SUCCESS);
-            std::cerr<<"\n============================================\
-                    \nRESTARTING (from first write) WITH START VAL OF "<<*restart<<\
-                    "\n============================================"<<std::endl;
-            O = Ball_group(argv1,filename,v_custom,*restart);
-        }
-        else //if restart is 0, need to rerun whole thing
-        {//TESTED
-            std::cerr<<"\n============================================\
-                    \nRESTARTING (whole sim) WITH START VAL OF "<<*restart<<\
-                    "\n============================================"<<std::endl;
-            O = Ball_group(true, v_custom, argv1); // Generate new group
-        }
+//     if (largest_file_index > -1)
+//     {
+//         return 1;
+//     }
+//     else
+//     {
+//         return 0;
+//     }
 
-    }
-    else if (*restart == -1) // Make new ball group
-    {
-        *restart = 0;
-        O = Ball_group(true, v_custom, argv1); // Generate new group
-    }
-    else
-    {
-        std::cerr<<"Simulation already complete.\n";
-    }
-    return O;
-}
+    
+// }
 
-// @brief checks if this is new job or restart
-std::string check_restart(std::string folder,int* restart)
-{
-    std::string file;
-    // int tot_count = 0;
-    // int file_count = 0;
-    int largest_file_index = -1;
-    int file_index=0;
-    std::string largest_index_name;
-    for (const auto & entry : fs::directory_iterator(folder))
-    {
-        if (file.substr(0,file.size()-4) == "timing")
-        {
-            *restart = -2;
-            return "";
-        }
+// // @brief checks if this is new job or restart
+// std::string check_restart(std::string folder,int* restart,bool &from_hdf5)
+// {
+//     std::string file;
+//     // int tot_count = 0;
+//     // int file_count = 0;
+//     int largest_file_index = -1;
+//     int file_index=0;
+//     std::string largest_index_name;
+//     for (const auto & entry : fs::directory_iterator(folder))
+//     {
+//         file = entry.path();
+//         size_t pos = file.find_last_of("/");
+//         file = file.erase(0,pos+1);
+        
+//         if (file.substr(0,file.size()-4) == "timing")
+//         {
+//             *restart = -2;
+//             return "";
+//         }
 
-        file = entry.path();
-        size_t pos = file.find_last_of("/");
-        file = file.erase(0,pos+1);
-        // tot_count++;
-        if (file.substr(file.size()-4,file.size()) == ".csv")
-        {
-            // file_count++;
-            size_t _pos = file.find_first_of("_");
-            size_t _secpos = file.substr(_pos+1,file.size()).find_first_of("_");
-            _secpos += _pos+1; //add 1 to account for _pos+1 in substr above
-            file_index = stoi(file.substr(0,file.find_first_of("_")));
-            if (file[_pos+1] == 'R')
-            {
-                file_index = 0;
-            }
+//         //Is the data in csv format?
+//         if (file.substr(file.size()-4,file.size()) == ".csv")
+//         {
+//             // file_count++;
+//             size_t _pos = file.find_first_of("_");
+//             size_t _secpos = file.substr(_pos+1,file.size()).find_first_of("_");
+//             _secpos += _pos+1; //add 1 to account for _pos+1 in substr above
+//             file_index = stoi(file.substr(0,file.find_first_of("_")));
+//             if (file[_pos+1] == 'R')
+//             {
+//                 file_index = 0;
+//             }
 
-            if (file_index > largest_file_index)
-            {
-                largest_file_index = file_index;
-                largest_index_name = file;
-            }
-        }
-    }
-    *restart = largest_file_index;
-    if (*restart != -1)
-    {
-        size_t start,end;
-        start = largest_index_name.find('_');
-        end = largest_index_name.find_last_of('_');
-        //Delete most recent save file as this is likely only partially 
-        //complete if we are restarting
+//             if (file_index > largest_file_index)
+//             {
+//                 largest_file_index = file_index;
+//                 largest_index_name = file;
+//             }
+//         }
+//         else if (file.substr(file.size()-3,file.size()) == ".h5")
+//         {
+//             size_t _pos = file.find_first_of("_");
+//             file_index = stoi(file.substr(0,file.find_first_of("_")));
+//             if (file_index > largest_file_index)
+//             {
+//                 largest_file_index = file_index;
+//                 largest_index_name = file;
+//             }
+//             from_hdf5 = true;
+//         }
+//     }
+//     *restart = largest_file_index;
+//     if (from_hdf5)
+//     {
+//         return largest_index_name;
+//     }
 
-        std::string remove_file;
 
-        if (*restart == 0)
-        {
-            remove_file = largest_index_name.substr(0,end+1);
-        }
-        else
-        {
-            remove_file = std::to_string(*restart) + largest_index_name.substr(start,end-start+1);
-        }
+//     if (*restart != -1)
+//     {
 
-        std::string file1 = folder + remove_file + "constants.csv";
-        std::string file2 = folder + remove_file + "energy.csv";
-        std::string file3 = folder + remove_file + "simData.csv";
-        int status1 = remove(file1.c_str());
-        int status2 = remove(file2.c_str());
-        int status3 = remove(file3.c_str());
+//         size_t start,end;
+//         start = largest_index_name.find('_');
+//         end = largest_index_name.find_last_of('_');
+//         //Delete most recent save file as this is likely only partially 
+//         //complete if we are restarting
 
-        if (status1 != 0)
-        {
-            std::cout<<"File: "<<file1<<" could not be removed, now exiting with failure."<<std::endl;
-            exit(EXIT_FAILURE);
-        }
-        else if (status2 != 0)
-        {
-            std::cout<<"File: "<<file2<<" could not be removed, now exiting with failure."<<std::endl;
-            exit(EXIT_FAILURE);
-        }
-        else if (status3 != 0)
-        {
-            std::cout<<"File: "<<file3<<" could not be removed, now exiting with failure."<<std::endl;
-            exit(EXIT_FAILURE);
-        }
+//         std::string remove_file;
 
-        return largest_index_name.substr(start,end-start+1);
-    }
-    else
-    {
-        return "";
-    }
-}
+//         if (*restart == 0)
+//         {
+//             remove_file = largest_index_name.substr(0,end+1);
+//         }
+//         else
+//         {
+//             remove_file = std::to_string(*restart) + largest_index_name.substr(start,end-start+1);
+//         }
+
+//         std::string file1 = folder + remove_file + "constants.csv";
+//         std::string file2 = folder + remove_file + "energy.csv";
+//         std::string file3 = folder + remove_file + "simData.csv";
+//         int status1 = remove(file1.c_str());
+//         int status2 = remove(file2.c_str());
+//         int status3 = remove(file3.c_str());
+
+//         if (status1 != 0)
+//         {
+//             std::cout<<"File: "<<file1<<" could not be removed, now exiting with failure."<<std::endl;
+//             exit(EXIT_FAILURE);
+//         }
+//         else if (status2 != 0)
+//         {
+//             std::cout<<"File: "<<file2<<" could not be removed, now exiting with failure."<<std::endl;
+//             exit(EXIT_FAILURE);
+//         }
+//         else if (status3 != 0)
+//         {
+//             std::cout<<"File: "<<file3<<" could not be removed, now exiting with failure."<<std::endl;
+//             exit(EXIT_FAILURE);
+//         }
+
+//         return largest_index_name.substr(start,end-start+1);
+
+//     }
+//     else
+//     {
+//         return "";
+//     }
+// }
 
 void
 sim_one_step(const bool write_step, Ball_group &O)

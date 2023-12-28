@@ -24,6 +24,7 @@
 
 // using std::numbers::pi;
 using json = nlohmann::json;
+namespace fs = std::filesystem;
 
 
 /// @brief Facilitates the concept of a group of balls with physical properties.
@@ -43,6 +44,7 @@ public:
     // std::string out_folder;
     int num_particles = 0;
     int num_particles_added = 0;
+    int start_index = -1;
 
 
     int seed = -1;
@@ -124,9 +126,9 @@ public:
     Ball_group() = default;
 
     explicit Ball_group(const int nBalls);
-    explicit Ball_group(const std::string& path, const std::string& filename, const double& customVel, int start_file_index);
+    // explicit Ball_group(const std::string& path, const std::string& filename, int start_file_index);
+    explicit Ball_group(std::string& path);
     explicit Ball_group(const std::string& path,const std::string& projectileName,const std::string& targetName,const double& customVel);
-    Ball_group(const bool generate, const double& customVel, const char* path);
     Ball_group(const Ball_group& rhs);
     Ball_group& operator=(const Ball_group& rhs);
     void parse_input_file(std::string location);
@@ -159,6 +161,8 @@ public:
     Ball_group add_projectile();
     void merge_ball_group(const Ball_group& src);
     void freeMemory() const;
+    std::string find_restart_file_name(std::string path);
+    int check_restart(std::string folder);
 
 
     std::vector<double> energyBuffer;
@@ -188,7 +192,7 @@ private:
     void placeBalls(const int nBalls);
     void updateDTK(const double& velocity);
     void simInit_cond_and_center(bool add_prefix);
-    void sim_continue(const std::string& path, const std::string& filename, int start_file_index);
+    void sim_continue(const std::string& path);
     void sim_init_two_cluster(const std::string& path,const std::string& projectileName,const std::string& targetName);
 };
 
@@ -204,52 +208,81 @@ Ball_group::Ball_group(const int nBalls)
     }
 }
 
-/// @brief For generating a new ballGroup of size nBalls
-/// @param nBalls Number of balls to allocate.
-/// @param generate Just here to get you to the right constructor. This is definitely wrong.
-/// @param customVel To condition for specific vMax.
-Ball_group::Ball_group(const bool generate, const double& customVel, const char* path)
+/// @brief For generating a new ballGroup 
+/// @param path is a path to the job folder
+Ball_group::Ball_group(std::string& path)
 {
-    parse_input_file(std::string(path));
-    generate_ball_field(genBalls);
-    // Hack - Override and creation just 2 balls position and velocity.
-    pos[0] = {0, 1.101e-5, 0};
-    vel[0] = {0, 0, 0};
-    if (genBalls > 1)
+    parse_input_file(path);
+    int restart = check_restart(path);
+    std::string filename = find_restart_file_name(path); 
+    bool just_restart = false;
+
+    if (filename.substr(filename.size()-4,filename.size()) == ".csv")
     {
-        pos[1] = {0, -1.101e-5, 0};
-        vel[1] = {0, 0, 0};
+        size_t _pos = filename.find_first_of("_");
+        // int file_index = stoi(filename.substr(0,filename.find_first_of("_")));
+        if (filename[_pos+1] == 'R')
+        {
+            just_restart = true;
+        }
     }
 
-    if (mu_scale)
+
+    if (!just_restart && restart==1)
     {
-        calc_mu_scale_factor();
+        loadSim(path, filename);
+        calc_v_collapse();
+        calibrate_dt(0, v_custom);
+        simInit_cond_and_center(false);
     }
-    std::cerr<<initial_radius<<std::endl;
+    else if (restart == 2 || just_restart)
+    {
 
-    m_total = getMass();
-    calc_v_collapse();
-    // std::cerr<<"INIT VCUSTOM "<<v_custom<<std::endl;
-    calibrate_dt(0, v_custom);
-    simInit_cond_and_center(true);
-    // std::cerr<<pos[0]<<std::endl;
-    // std::cerr<<vel[0]<<std::endl;
+        generate_ball_field(genBalls);
+        // Hack - Override and creation just 2 balls position and velocity.
+        pos[0] = {0, 1.101e-5, 0};
+        vel[0] = {0, 0, 0};
+        if (genBalls > 1)
+        {
+            pos[1] = {0, -1.101e-5, 0};
+            vel[1] = {0, 0, 0};
+        }
 
-    // std::cerr<<pos[1]<<std::endl;
-    // std::cerr<<vel[1]<<std::endl;
+        if (mu_scale)
+        {
+            calc_mu_scale_factor();
+        }
+        // std::cerr<<initial_radius<<std::endl;
+
+        m_total = getMass();
+        calc_v_collapse();
+        // std::cerr<<"INIT VCUSTOM "<<v_custom<<std::endl;
+        calibrate_dt(0, v_custom);
+        simInit_cond_and_center(true);
+        // std::cerr<<pos[0]<<std::endl;
+        // std::cerr<<vel[0]<<std::endl;
+
+        // std::cerr<<pos[1]<<std::endl;
+        // std::cerr<<vel[1]<<std::endl;
+    }
+    else
+    {
+        std::cerr<<"Simulation already complete. Now exiting. . .\n";
+        exit(0);
+    }
 }
 
-/// @brief For continuing a sim.
-/// @param fullpath is the filename and path excluding the suffix _simData.csv, _constants.csv, etc.
-/// @param customVel To condition for specific vMax.
-Ball_group::Ball_group(const std::string& path, const std::string& filename, const double& customVel, int start_file_index=0)
-{
-    parse_input_file(std::string(path));
-    sim_continue(path, filename,start_file_index);
-    calc_v_collapse();
-    calibrate_dt(0, customVel);
-    simInit_cond_and_center(false);
-}
+// /// @brief For continuing a sim.
+// /// @param fullpath is the filename and path excluding the suffix _simData.csv, _constants.csv, etc.
+// /// @param customVel To condition for specific vMax.
+// Ball_group::Ball_group(const std::string& path, const std::string& filename, int start_file_index=0)
+// {
+//     parse_input_file(std::string(path));
+//     sim_continue(path, filename,start_file_index);
+//     calc_v_collapse();
+//     calibrate_dt(0, v_custom);
+//     simInit_cond_and_center(false);
+// }
 
 /// @brief For two cluster sim.
 /// @param projectileName
@@ -402,6 +435,7 @@ Ball_group::Ball_group(const Ball_group& rhs)
     // torqueForce = rhs.torqueForce;
     /////////////////////////////////////
 }
+
 
 //Parses input.json file that is in the same folder the executable is in
 void Ball_group::parse_input_file(std::string location)
@@ -1664,7 +1698,7 @@ void Ball_group::loadConsts(const std::string& path, const std::string& filename
             moi[A] = std::stod(lineElement);
         }
     } else {
-        std::cerr << "Could not open constants file: " << constantsFilename << "... Existing program."
+        std::cerr << "Could not open constants file: " << constantsFilename << "... Exiting program."
                   << '\n';
         exit(EXIT_FAILURE);
     }
@@ -1884,8 +1918,22 @@ void Ball_group::generate_ball_field(const int nBalls)
 /// Make ballGroup from file data.
 void Ball_group::loadSim(const std::string& path, const std::string& filename)
 {
-    parseSimData(getLastLine(path, filename));
-    loadConsts(path, filename);
+    std::string file = filename;
+    //file we are loading is csv file
+    if (file.substr(file.size()-4,file.size()) == ".csv")
+    {
+        //decrease index by 1 so we have most recent finished sim
+        size_t _pos = file.find_first_of("_");
+        size_t _secpos = file.substr(_pos+1,file.size()).find_first_of("_");
+        _secpos += _pos+1; //add 1 to account for _pos+1 in substr above
+        
+        int file_index = stoi(file.substr(0,file.find_first_of("_")));
+        file = std::to_string(file_index-1) + file.substr(_pos,file.size());
+    }
+
+    //TODO:: These functions should go in DECCOData or call DECCOData functions
+    parseSimData(getLastLine(path, file));
+    loadConsts(path, file);
 
     calc_helpfuls();
 
@@ -2062,30 +2110,66 @@ void Ball_group::simInit_cond_and_center(bool add_prefix)
 }
 
 
-void Ball_group::sim_continue(const std::string& path, const std::string& filename, int start_file_index=0)
-{
-    // Load file data:
-    num_particles = 3 + start_file_index;
-    if (start_file_index == 0)
-    {
-        std::cerr << "Continuing Sim...\nFile: " << filename << '\n';
-        loadSim(path, filename);
-    }
-    else
-    {
-        std::cerr << "Continuing Sim...\nFile: " << start_file_index << '_' << filename << '\n';
-        loadSim(path, std::to_string(start_file_index) + "_" + filename);
-    }
+// void Ball_group::sim_continue(const std::string& path)
+// {
+//     // Load file data:
+//     std::string filename = find_file_name(path);
+//     loadSim(path, filename);
+    
+//     if (data_type == 0) //h5 data output
+//     {
+//         loadSim(path, filename);
+//     }
+//     else if (data_type == 1) //  If csv data_type is implimented, this part should go something like this
+//     {
+//         if (start_file_index == 0)
+//         {
+//             std::cerr << "Continuing Sim...\nFile: " << filename << '\n';
+//         }
+//         else
+//         {
+//             std::cerr << "Continuing Sim...\nFile: " << start_file_index << '_' << filename << '\n';
+//             loadSim(path, std::to_string(start_file_index) + "_" + filename);
+//         }
+//     }
+//     else
+//     {
+//         std::cerr<<"ERROR: ouput data type not supported yet."<<std::endl;
+//     }
+
+    
 
 
 
-    std::cerr << '\n';
-    calc_momentum("O");
+//     std::cerr << '\n';
+//     calc_momentum("O");
 
-    // Name the file based on info above:
-    // output_prefix = std::to_string(num_particles) + "_rho" + rounder(density, 4);
-    output_prefix = filename;
-}
+//     // Name the file based on info above:
+//     output_prefix = filename;
+// }
+
+// void Ball_group::sim_continue(const std::string& path, const std::string& filename, int start_file_index=0)
+// {
+//     // Load file data:
+//     if (start_file_index == 0)
+//     {
+//         std::cerr << "Continuing Sim...\nFile: " << filename << '\n';
+//         loadSim(path, filename);
+//     }
+//     else
+//     {
+//         std::cerr << "Continuing Sim...\nFile: " << start_file_index << '_' << filename << '\n';
+//         loadSim(path, std::to_string(start_file_index) + "_" + filename);
+//     }
+
+
+
+//     std::cerr << '\n';
+//     calc_momentum("O");
+
+//     // Name the file based on info above:
+//     output_prefix = filename;
+// }
 
 
 // Set's up a two cluster collision.
@@ -2167,4 +2251,114 @@ void Ball_group::sim_init_two_cluster(
     output_prefix = projectileName + targetName + "T" + rounder(KEfactor, 4) + "_vBig" +
                     scientific(vBig) + "_vSmall" + scientific(vSmall) + "_IP" +
                     rounder(impactParameter * 180 / 3.14159, 2) + "_rho" + rounder(density, 4);
+}
+
+// @brief checks if this is new job or restart.
+// @returns 0 if this is starting from scratch
+// @returns 1 if this is a restart
+// @returns 2 if this job is already finished
+int Ball_group::check_restart(std::string folder)
+{
+    std::string file;
+    // int tot_count = 0;
+    // int file_count = 0;
+    int largest_file_index = -1;
+    int file_index=0;
+    for (const auto & entry : fs::directory_iterator(folder))
+    {
+        file = entry.path();
+        size_t pos = file.find_last_of("/");
+        file = file.erase(0,pos+1);
+        
+        if (file.substr(0,file.size()-4) == "timing")
+        {
+            return 2;
+        }
+
+        //Is the data in csv format?
+        if (file.substr(file.size()-4,file.size()) == ".csv")
+        {
+            // file_count++;
+            size_t _pos = file.find_first_of("_");
+            size_t _secpos = file.substr(_pos+1,file.size()).find_first_of("_");
+            _secpos += _pos+1; //add 1 to account for _pos+1 in substr above
+            file_index = stoi(file.substr(0,file.find_first_of("_")));
+            if (file[_pos+1] == 'R')
+            {
+                file_index = 0;
+            }
+
+            if (file_index > largest_file_index)
+            {
+                largest_file_index = file_index;
+            }
+        }
+        else if (file.substr(file.size()-3,file.size()) == ".h5")
+        {
+            size_t _pos = file.find_first_of("_");
+            file_index = stoi(file.substr(0,file.find_first_of("_")));
+            if (file_index > largest_file_index)
+            {
+                largest_file_index = file_index;
+            }
+        }
+    }
+    
+    if (largest_file_index > -1)
+    {
+        return 1;
+    }
+    else
+    {
+        return 0;
+    }
+
+    
+}
+
+
+std::string Ball_group::find_restart_file_name(std::string path)
+{
+    std::string file;
+    std::string largest_file_name;
+    int largest_file_index = -1;
+    int file_index=0;
+    for (const auto & entry : fs::directory_iterator(path))
+    {
+        file = entry.path();
+        size_t pos = file.find_last_of("/");
+        file = file.erase(0,pos+1);
+
+        //Is the data in csv format?
+        if (file.substr(file.size()-4,file.size()) == ".csv")
+        {
+            // file_count++;
+            size_t _pos = file.find_first_of("_");
+            size_t _secpos = file.substr(_pos+1,file.size()).find_first_of("_");
+            _secpos += _pos+1; //add 1 to account for _pos+1 in substr above
+            file_index = stoi(file.substr(0,file.find_first_of("_")));
+            if (file[_pos+1] == 'R')
+            {
+                file_index = 0;
+            }
+
+            if (file_index > largest_file_index)
+            {
+                largest_file_index = file_index;
+                largest_file_name = file;
+            }
+        }
+        else if (file.substr(file.size()-3,file.size()) == ".h5")
+        {
+            size_t _pos = file.find_first_of("_");
+            file_index = stoi(file.substr(0,file.find_first_of("_")));
+            if (file_index > largest_file_index)
+            {
+                largest_file_index = file_index;
+                largest_file_name = file;
+            }
+        }
+    }
+
+    return largest_file_name;
 }
