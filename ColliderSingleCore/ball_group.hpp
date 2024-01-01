@@ -33,6 +33,7 @@ class Ball_group
 public:
     std::string project_path;
     std::string output_folder;
+    std::string data_directory;
     std::string projectileName;
     std::string targetName;
     std::string output_prefix;
@@ -350,6 +351,7 @@ Ball_group& Ball_group::operator=(const Ball_group& rhs)
     radiiFraction = rhs.radiiFraction;
 
     project_path=rhs.project_path;
+    data_directory = rhs.data_directory;
     output_folder=rhs.output_folder;
     projectileName=rhs.projectileName;
     targetName=rhs.targetName;
@@ -419,6 +421,7 @@ Ball_group::Ball_group(const Ball_group& rhs)
     radiiFraction = rhs.radiiFraction;
 
     project_path=rhs.project_path;
+    data_directory = rhs.data_directory;
     output_folder=rhs.output_folder;
     projectileName=rhs.projectileName;
     targetName=rhs.targetName;
@@ -488,6 +491,7 @@ void Ball_group::parse_input_file(std::string location)
     std::ifstream ifs(json_file);
     json inputs = json::parse(ifs);
     output_folder = inputs["output_folder"];
+    data_directory = inputs["data_directory"];
 
     if (inputs["dataFormat"] == "h5" || inputs["dataFormat"] == "hdf5")
     {
@@ -596,17 +600,7 @@ void Ball_group::parse_input_file(std::string location)
     z1Rot = inputs["z1Rot"];
     y1Rot = inputs["y1Rot"];
     simTimeElapsed = inputs["simTimeElapsed"];
-    // project_path = inputs["project_path"];
-    // if (project_path == std::string("default"))
-    // {
-    //     project_path = s_location;
-    // }
-    // out_folder = inputs["output_folder"];
-    // if (output_folder == std::string("default"))
-    // {
-    //     output_folder = s_location;
-    //     // out_folder = s_location;
-    // }
+
     projectileName = inputs["projectileName"];
     targetName = inputs["targetName"];
     output_prefix = inputs["output_prefix"];
@@ -1179,6 +1173,7 @@ Ball_group Ball_group::dust_agglomeration_particle_init()
     //carry over folders
     projectile.project_path = project_path;
     projectile.output_folder = output_folder;
+    projectile.data_directory = data_directory;
     projectile.projectileName = projectileName;
     projectile.targetName = targetName;
     projectile.output_prefix = output_prefix;
@@ -1357,6 +1352,7 @@ void Ball_group::merge_ball_group(const Ball_group& src)
     //carry over folders
     project_path = src.project_path;
     output_folder = src.output_folder;
+    data_directory = src.data_directory;
     projectileName = src.projectileName;
     targetName = src.targetName;
     output_prefix = src.output_prefix;

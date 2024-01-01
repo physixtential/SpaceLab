@@ -44,7 +44,8 @@
     "project_path": "default",
     "projectileName": "",
     "targetName": "",
-    "output_folder": "default",
     "output_prefix": "default",
+    "output_folder": "default",
+    "data_directory": "/home/lucas/Desktop/SpaceLab_data/",
     "project_directory": "/home/lucas/Desktop/SpaceLab/"
 }

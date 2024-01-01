@@ -7,6 +7,7 @@ relative_path = "../"
 relative_path = '/'.join(__file__.split('/')[:-1]) + '/' + relative_path
 project_path = os.path.abspath(relative_path) + '/'
 
+
 	# out = os.system("./ColliderSingleCore.o {}".format(curr_folder))
 	# out = os.system("./ColliderSingleCore.o {} 1>> {} 2>> {}".format(curr_folder,output_file,error_file))
 	
@@ -48,18 +49,17 @@ if __name__ == '__main__':
 	for attempt in attempts:
 		for n in N:
 			for Temp in Temps:
+				#load default input file
+				with open(project_path+"default_files/default_input.json",'r') as fp:
+					input_json = json.load(fp)
+				
 				# job = curr_folder + 'jobs/' + job_set_name + str(attempt) + '/'
-				job = project_path + 'jobs/' + job_set_name + str(attempt) + '/'\
+				job = input_json["data_directory"] + job_set_name + str(attempt) + '/'\
 							+ 'N_' + str(n) + '/' + 'T_' + str(Temp) + '/'
 				if not os.path.exists(job):
 					os.makedirs(job)
 				else:
 					print("Job '{}' already exists.".format(job))
-
-
-				#load default input file
-				with open(project_path+"default_files/default_input.json",'r') as fp:
-					input_json = json.load(fp)
 
 				####################################
 				######Change input values here######

@@ -70,6 +70,7 @@ if __name__ == '__main__':
     project_dir = '/'.join(__file__.split('/')[:-1]) + '/'
     #write the global directory to project_directory json variable
     update_json_file(project_dir+"default_files/default_input.json","project_directory",project_dir)
+    update_json_file(project_dir+"default_files/default_input.json","data_directory",project_dir[:-1]+"_data/")
 
     #make project folders
     if not os.path.exists("jobs/"):

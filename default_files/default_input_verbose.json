@@ -84,8 +84,10 @@
 
 	"projectileName": "",
 	"targetName": "",
+	"output_folder": "default", //absolute path to where the output from this sim will go
 	"project_path": "default", //default is wherever SpaceLab lives
-	"output_folder": "output/", //default output folder (relative to project_path)
 	"output_prefix": "default", //not sure this is necessary as it is automatically set by sim
 
+	"data_directory": "/home/lucas/Desktop/SpaceLab_data/", //absolute path to the base directory data will be stored
+    "project_directory": "/home/lucas/Desktop/SpaceLab/" //absoluted path to the base directory of the project
 }
