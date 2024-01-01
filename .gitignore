@@ -9,9 +9,9 @@
 **/*.h5
 
 #jobs
-jobs/
-jobsCosine/
-erroredJobs/
+jobs/*
+jobsCosine/*
+erroredJobs/*
 
 RenderOption*
 
