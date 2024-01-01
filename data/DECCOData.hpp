@@ -1,9 +1,38 @@
 #include "H5Cpp.h"
 #include "../default_files/dust_const.hpp"
+#include "../utilities/vec3.hpp"
 #include <filesystem>
 #include <iostream>
 #include <vector>
 #include <sstream>
+
+const int num_data_types = 4;
+const std::string data_types[num_data_types] = {"simData","energy","constants","timing"};
+const int single_ball_widths[num_data_types] = {11,6,3,2};
+
+std::string getDataStringFromIndex(const int data_index)
+{
+	if (data_index < 0 || data_index > num_data_types-1)
+	{
+		std::cerr<<"DECCOData ERROR: data_index '"<<data_index<<"' is out of range."<<std::endl;
+		return "DECCOData ERROR";
+	}
+	return data_types[data_index];
+}
+
+
+int getDataIndexFromString(std::string data_type)
+{
+	for (int i = 0; i < num_data_types; ++i)
+	{
+		if (data_type == data_types[i])
+		{
+			return i;
+		}
+	}
+	std::cerr<<"DECCOData ERROR: dataType '"<<data_type<<"' not found in class."<<std::endl;
+	return -1;
+}
 
 // class CSVHandler
 // {
@@ -118,6 +147,121 @@ class HDF5Handler {
 		    return data;
 		}
 
+		//@params datasetName is the name of the dataset you want to read
+		//@params offset specifies where to start reading in the dataset.
+		//			If this value is negative, the offset is applied from the 
+		//			end of the dataset.
+		//@param len specifies the length of data to read starting from the offset.
+		//@param file is the .h5 file you want to read
+		//@returns the data requested as a 1d vector of doubles. If the returned vector
+		//			is empty, then the read failed, or you specified len=0.	
+		// If you specify a length longer than the dataset, or an offset further away 
+		// from zero then the length of the dataset, the whole dataset is returned.
+		static std::vector<double> static_readFile(const std::string datasetName, hsize_t start=0, hsize_t len=0,bool neg_offset=false,std::string readfile="") {
+		    std::vector<double> data;
+		    if (std::filesystem::exists(readfile)) {
+		        H5::H5File file(readfile, H5F_ACC_RDONLY);
+		        H5::DataSet dataset = file.openDataSet(datasetName);
+		        H5::DataSpace dataspace = dataset.getSpace();
+
+		        hsize_t dims_out[1];
+		        dataspace.getSimpleExtentDims(dims_out, NULL);
+		        hsize_t total_size = dims_out[0];
+
+
+		        if (start > total_size)
+		        {
+		        	std::cerr<<"DECCOData ERROR: invalid start input"<<std::endl;
+		        	return data;
+		        }
+
+		        if (neg_offset)
+		        {
+		        	start = total_size - start;
+		        }
+
+		        if (len > total_size-start || len == 0)
+		        {
+		        	len = total_size-start;
+		        }
+
+		        data.resize(len);
+
+		        // std::cerr<<"START: "<<start<<std::endl;
+		        // std::cerr<<"LEN: "<<len<<std::endl;
+		        // std::cerr<<"data.size(): "<<data.size()<<std::endl;
+		        // std::cerr<<"total_size: "<<total_size<<std::endl;
+		        // //start should be 
+		        // //len should be 3
+
+		        hsize_t offset[1] = {start};
+		        hsize_t count[1] = {len};
+		        dataspace.selectHyperslab(H5S_SELECT_SET, count, offset);
+
+		        hsize_t dimsm[1] = {len};              /* memory space dimensions */
+ 		        H5::DataSpace memspace(1, dimsm);
+
+		        dataset.read(&data[0], H5::PredType::NATIVE_DOUBLE,memspace,dataspace);
+
+		        dataspace.close();
+		        memspace.close();
+			    dataset.close();
+			    file.close();
+		    } else {
+		        std::cerr << "File '" << readfile << "' does not exist." << std::endl;
+		    }
+
+		    return data;
+		}
+
+		static hsize_t get_data_length(std::string readfile,std::string datasetName)
+		{
+			hsize_t total_size;
+			if (std::filesystem::exists(readfile)) {
+		        H5::H5File file(readfile, H5F_ACC_RDONLY);
+		        H5::DataSet dataset = file.openDataSet(datasetName);
+		        H5::DataSpace dataspace = dataset.getSpace();
+
+		        hsize_t dims_out[1];
+		        dataspace.getSimpleExtentDims(dims_out, NULL);
+		        total_size = dims_out[0];
+		    } else {
+		        std::cerr << "File '" << readfile << "' does not exist." << std::endl;
+		    }
+		    return total_size;
+		}
+
+		static int get_num_particles(std::string path, std::string file)
+		{
+			hsize_t total_size = get_data_length(path+file,"constants");
+
+		    return (total_size*1.0)/(single_ball_widths[getDataIndexFromString("constants")]*1.0);
+		}
+
+		static void loadConsts(std::string path,std::string file,double *R,double *m,double *moi)
+		{
+			std::vector<double> constdata = static_readFile("constants",0,0,false,path+file);
+		
+			int j = -1;
+			for (int i = 0; i < constdata.size(); i++)
+			{
+				if (i % 3 == 0)
+				{
+					j++;
+					R[j] = constdata[i];
+				}
+				else if (i % 3 == 1)
+				{
+					m[j] = constdata[i];
+				}
+				else if (i % 3 == 2)
+				{
+					moi[j] = constdata[i];
+				}
+			}
+
+		}
+
         // std::vector<double> readFile(const std::string datasetName) {
         //     std::vector<double> data;
         //     if(std::filesystem::exists(filename)) {
@@ -181,7 +325,53 @@ class HDF5Handler {
             return;
 		}
 
-		std::string readMetadataFromDataset(const std::string& datasetName) 
+        void attachSimMetadataToDataset(const std::string& metadata, const std::string& metadataName, \
+        							const std::string& datasetName) 
+        {
+		    // Initialize the HDF5 library
+        	if(std::filesystem::exists(filename)) {
+			    H5::H5File file(filename, H5F_ACC_RDWR);
+	    		H5::DataSet dataset;
+			    // Open the specified dataset
+			    if (datasetExists(filename,datasetName)){
+			    	dataset = file.openDataSet(datasetName);
+			    	// Check if the attribute's dataspace exists
+				    if (attributeExists(dataset, metadataName)) {
+				        // std::cerr << "DECCOHDF5 Warning: Attribute 'metadata' already exists for the dataset." << std::endl;
+				        dataset.close();
+				        file.close();
+				        return;
+				    }
+			    }else{
+			    	std::vector<double> dummy;
+			    	dataset = createDataSet(dummy,datasetName);
+			    }
+
+			    // Create a string data type for the attribute
+			    H5::StrType strType(H5::PredType::C_S1, H5T_VARIABLE);
+
+			    
+
+			    // Create a dataspace for the attribute
+			    H5::DataSpace attrSpace = H5::DataSpace(H5S_SCALAR);
+
+			    // Create the attribute and write the metadata
+			    H5::Attribute metadataAttr = dataset.createAttribute(metadataName, strType, attrSpace);
+			    metadataAttr.write(strType, metadata);
+
+			    // Close resources
+			    metadataAttr.close();
+			    attrSpace.close();
+			    dataset.close();
+			    file.close();
+		    }else{
+            	std::cerr<<"File '"<<filename<<"' does not exist."<<std::endl;
+            }
+            return;
+		}
+
+		//Non static version for reading from initialized class instance
+		std::string readMetadataFromDataset(const std::string& datasetName,const std::string& metadataName="metadata") 
 		{
 		    std::string metadata;
 
@@ -198,7 +388,7 @@ class HDF5Handler {
 			    }
 
 			    // Check if the attribute's dataspace exists
-			    if (!attributeExists(dataset, "metadata")) {
+			    if (!attributeExists(dataset, metadataName)) {
 			        std::cerr << "Attribute 'metadata' does not exist for dataset '"<<datasetName<<"' in file '"<<filename<<"' ." << std::endl;
 			        dataset.close();
 			        file.close();
@@ -206,7 +396,7 @@ class HDF5Handler {
 			    }
 
 			    // Open the metadata attribute
-			    H5::Attribute metadataAttr = dataset.openAttribute("metadata");
+			    H5::Attribute metadataAttr = dataset.openAttribute(metadataName);
 
 			    // Read the metadata attribute
 			    H5::StrType strType(H5::PredType::C_S1, H5T_VARIABLE);
@@ -225,10 +415,72 @@ class HDF5Handler {
 		    return metadata;
 		}
 
+		//static version for reading when no DECCOData class instance exists
+		static std::string readMetadataFromDataset(const std::string& datasetName,const std::string& metafile,const std::string& metadataName="metadata") 
+		{
+		    std::string metadata;
+
+		    // Initialize the HDF5 library
+		    if(std::filesystem::exists(metafile)) {
+		    	H5::DataSet dataset;
+                H5::H5File file(metafile, H5F_ACC_RDONLY);
+			    // Open the specified dataset
+			    if (datasetExists(metafile,datasetName)){
+			    	dataset = file.openDataSet(datasetName);
+			    }else{
+			        std::cerr << "dataset '"<<datasetName<<"' does not exist for file '"<<metafile<<"' ." << std::endl;
+			    	return "ERROR RETRIEVING METADATA";
+			    }
+
+			    // Check if the attribute's dataspace exists
+			    if (!attributeExists(dataset, metadataName)) {
+			        std::cerr << "Attribute "<<metadataName<<" does not exist for dataset '"<<datasetName<<"' in file '"<<metafile<<"' ." << std::endl;
+			        dataset.close();
+			        file.close();
+			    	return "ERROR RETRIEVING METADATA";
+			    }
+
+			    // Open the metadata attribute
+			    H5::Attribute metadataAttr = dataset.openAttribute(metadataName);
+
+			    // Read the metadata attribute
+			    H5::StrType strType(H5::PredType::C_S1, H5T_VARIABLE);
+			    metadataAttr.read(strType, metadata);
+			    
+		    	// Close resources
+			    metadataAttr.close();
+			    dataset.close();
+			    file.close();
+            }else{
+            	std::cerr<<"File '"<<metafile<<"' does not exist."<<std::endl;
+            }
+
+
+
+		    return metadata;
+		}
+
 		bool isInitialized()
 		{
 			return initialized;
 		}
+
+        static bool datasetExists(const std::string& f, const std::string& datasetName)
+		{
+		    // Open the HDF5 file
+		    H5::H5File file(f, H5F_ACC_RDONLY);
+
+		    // Check if the dataset exists
+		    bool exists = H5Lexists(file.getId(), datasetName.c_str(), H5P_DEFAULT) > 0;
+		    file.close();
+		    return exists;
+		}
+
+        static bool attributeExists(const H5::H5Object& object, const std::string& attributeName) 
+        {
+    		return object.attrExists(attributeName);
+    	}
+
 
     private:
         std::string filename;
@@ -236,22 +488,8 @@ class HDF5Handler {
         bool initialized = false;
         
 
-        bool attributeExists(const H5::H5Object& object, const std::string& attributeName) 
-        {
-    		return object.attrExists(attributeName);
-    	}
 
 
-        bool datasetExists(const std::string& filename, const std::string& datasetName)
-		{
-		    // Open the HDF5 file
-		    H5::H5File file(filename, H5F_ACC_RDONLY);
-
-		    // Check if the dataset exists
-		    bool exists = H5Lexists(file.getId(), datasetName.c_str(), H5P_DEFAULT) > 0;
-		    file.close();
-		    return exists;
-		}
 
 		// __attribute__((optimize("O0")))
 		H5::DataSet createDataSet(std::vector<double>& data,const std::string datasetName,int fileExists=0,int max_size=-1)
@@ -445,9 +683,16 @@ public:
 		{
 			std::cerr<<"DECCOData warning: specified a non-negative number of writes (which indicates a fixed size hdf5 storage) and a storage_type other than hdf5. Defaulting to a fixed size hdf5 storage_type."<<std::endl;
 		}
-		std::cerr<<"END OF DECCODATA CONST"<<std::endl;
 
 	}
+
+	//Constructor for restarting an existing job
+	// DECCOData(std::string filename) : 
+	// 	filename(filename)
+	// {
+		
+	// }
+
 
 	//copy constructor to handle the data handlers
 	DECCOData& operator=(const DECCOData& rhs)
@@ -568,11 +813,70 @@ public:
 		return data_read;
 	}
 
-	void loadConsts(std::string path,std::string file,double *R,double *m,double *moi)
-	{
-		std::vector<double> constdata = Read("constants",true,-100,path+file);
-		//STOPPED HERE
-	}
+	void WriteMeta(const std::string& metadata, const std::string& metadataName, \
+        			const std::string& datasetName) 
+    {
+    	H.attachSimMetadataToDataset(metadata,metadataName,datasetName);
+    }
+
+
+    //This function returns the status of how many writes have happened. It also sets the written_so_far values
+    //	if there is more than zero and less then max_writes writes.
+    //@return 0 if there is no writes so far (I don't think this should happen but if it does, more stuff needs to happen).
+    //@return int >0 for how many writes there have been.
+    //@return -1 if there are writes and the sim is already finished. 
+    int setWrittenSoFar(const std::string path, const std::string file)
+    {
+    	hsize_t energy_size = H.get_data_length(path+file,"energy");
+    	int energy_width = getSingleWidth("energy");
+    	int writes_so_far=-100;
+    	if (writes*energy_width == energy_size)
+    	{
+    		return -1;
+    	}
+    	else if (energy_size == 0)
+    	{
+    		return 0;
+    	}
+    	else if (energy_size > 0 && energy_size < writes*energy_width)
+    	{
+    		writes_so_far = energy_size/energy_width;
+    	}
+    	else
+    	{
+    		std::cerr<<"ERROR: File size is outside of range known by this class."<<std::endl;
+    		exit(-100);
+    	}
+
+    	for (int i = 0; i < num_data_types; i++)
+    	{
+    		written_so_far[i] = writes_so_far*widths[i];
+    	}
+
+    	return writes_so_far;
+    }
+
+
+    void loadSimData(const std::string path, const std::string file,vec3 *pos,vec3 *w,vec3 *vel)
+    {
+    	std::vector<double> out = Read("simData",false,-1,path+file);
+    	
+    	for (int i = 0; i < num_particles; ++i)
+    	{
+    		int out_ind = i*getSingleWidth("simData");
+    		pos[i].x = out[out_ind];
+    		pos[i].y = out[out_ind+1];
+    		pos[i].z = out[out_ind+2];
+
+    		w[i].x = out[out_ind+3];
+    		w[i].y = out[out_ind+4];
+    		w[i].z = out[out_ind+5];
+
+    		vel[i].x = out[out_ind+7];
+    		vel[i].y = out[out_ind+8];
+    		vel[i].z = out[out_ind+9];
+    	}
+    }
 
 	int getNumTypes()
 	{
@@ -613,10 +917,9 @@ public:
 	}
 	
 
-
 	~DECCOData(){};
 private:
-	static const int num_data_types = 4;
+	
 	std::string storage_type;
 	std::string filename;
 	int num_particles;
@@ -630,8 +933,8 @@ private:
 	// CSVHandler C;
 
 
-    std::string data_types[num_data_types] = {"simData","energy","constants","timing"};
-    const int single_ball_widths[num_data_types] = {11,6,3,2};
+    //data types so everyone can see them
+	
     int widths[num_data_types] = {  single_ball_widths[0]*num_particles,\
     								single_ball_widths[1],\
     								single_ball_widths[2],\
@@ -702,28 +1005,7 @@ private:
 		return 1;
 	}
 
-    std::string getDataStringFromIndex(const int data_index)
-    {
-    	if (data_index < 0 || data_index > num_data_types-1)
-    	{
-			std::cerr<<"DECCOData ERROR: data_index '"<<data_index<<"' is out of range."<<std::endl;
-			return "DECCOData ERROR";
-    	}
-    	return data_types[data_index];
-    }
-
-    int getDataIndexFromString(std::string data_type)
-	{
-		for (int i = 0; i < num_data_types; ++i)
-		{
-			if (data_type == data_types[i])
-			{
-				return i;
-			}
-		}
-		std::cerr<<"DECCOData ERROR: dataType '"<<data_type<<"' not found in class."<<std::endl;
-		return -1;
-	}
+    
 
 
 	std::string genSimDataMetaData()

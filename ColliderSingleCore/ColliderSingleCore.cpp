@@ -32,7 +32,7 @@ bool inital_contact = true;
 void
 sim_one_step(const bool write_step, Ball_group &O);
 void
-sim_looper(Ball_group &O);
+sim_looper(Ball_group &O,int start_step);
 void
 safetyChecks(Ball_group &O);
 int 
@@ -99,7 +99,7 @@ void collider(std::string path, std::string projectileName, std::string targetNa
     Ball_group O = Ball_group(path,std::string(projectileName),std::string(targetName));
     safetyChecks(O);
     O.sim_init_write();
-    sim_looper(O);
+    sim_looper(O,O.start_step);
     t.end_event("collider");
     O.freeMemory();
     return;
@@ -108,7 +108,8 @@ void collider(std::string path, std::string projectileName, std::string targetNa
 void BPCA(std::string path, int num_balls)
 {
     int rest = -1;
-    Ball_group O = Ball_group(path);    
+    Ball_group O = Ball_group(path);  
+    bool mid_sim_restart = O.mid_sim_restart;
     safetyChecks(O);
     // Add projectile: For dust formation BPCA
     for (int i = O.start_index; i < num_balls; i++) {
@@ -117,13 +118,22 @@ void BPCA(std::string path, int num_balls)
         // O.zeroVel();
         contact = false;
         inital_contact = true;
-        // t.start_event("add_projectile");
-        O = O.add_projectile();
-        // t.end_event("add_projectile");
-        O.sim_init_write(i);
+        if (!mid_sim_restart)
+        {
+            // t.start_event("add_projectile");
+            O = O.add_projectile();
+            // t.end_event("add_projectile");
+            O.sim_init_write(i);
+        }
         // std::cout<<"i: "<<i<<std::endl;
-        sim_looper(O);
+        sim_looper(O,O.start_step);
+
         simTimeElapsed = 0;
+
+        if (mid_sim_restart)
+        {
+            mid_sim_restart = false;
+        } 
     }
     // O.freeMemory();
     return;
@@ -774,7 +784,7 @@ sim_one_step(const bool write_step, Ball_group &O)
 
 
 void
-sim_looper(Ball_group &O)
+sim_looper(Ball_group &O,int start_step=1)
 {
     O.num_writes = 0;
     std::cerr << "Beginning simulation...\n";
@@ -783,7 +793,7 @@ sim_looper(Ball_group &O)
 
     std::cerr<<"Stepping through "<<steps<<" steps"<<std::endl;
 
-    for (int Step = 1; Step < steps; Step++)  // Steps start at 1 because the 0 step is initial conditions.
+    for (int Step = start_step; Step < steps; Step++)  // Steps start at 1 for non-restart because the 0 step is initial conditions.
     {
         // simTimeElapsed += dt; //New code #1
         // Check if this is a write step:

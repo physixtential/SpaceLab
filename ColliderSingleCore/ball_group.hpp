@@ -40,11 +40,15 @@ public:
     double radiiFraction = -1;
     bool debug = false;
     bool write_all = false;
+    bool mid_sim_restart = false;
 
     // std::string out_folder;
     int num_particles = 0;
     int num_particles_added = 0;
     int start_index = 0;
+    int start_step = 1;
+
+    const std::string sim_meta_data_name = "sim_info";
 
 
     int seed = -1;
@@ -164,7 +168,9 @@ public:
     std::string find_restart_file_name(std::string path);
     int check_restart(std::string folder);
     void loadDatafromH5(std::string path, std::string file);
-
+    void init_data(int counter);
+    std::string get_data_info();
+    void parse_meta_data(std::string metadata);
 
     std::vector<double> energyBuffer;
     std::vector<double> ballBuffer;
@@ -231,6 +237,8 @@ Ball_group::Ball_group(std::string& path)
         }
     }
 
+    
+
     if (!just_restart && restart==1)
     {
         loadSim(path, filename);
@@ -262,11 +270,8 @@ Ball_group::Ball_group(std::string& path)
         // std::cerr<<"INIT VCUSTOM "<<v_custom<<std::endl;
         calibrate_dt(0, v_custom);
         simInit_cond_and_center(true);
-        // std::cerr<<pos[0]<<std::endl;
-        // std::cerr<<vel[0]<<std::endl;
-
-        // std::cerr<<pos[1]<<std::endl;
-        // std::cerr<<vel[1]<<std::endl;
+        
+        
     }
     else
     {
@@ -437,6 +442,28 @@ Ball_group::Ball_group(const Ball_group& rhs)
     // rollForce = rhs.rollForce;
     // torqueForce = rhs.torqueForce;
     /////////////////////////////////////
+}
+
+void Ball_group::init_data(int counter = 0)
+{
+    // std::ifstream checkForFile;
+    
+    // checkForFile.open(output_folder + std::to_string(counter) + "_data."+filetype, std::ifstream::in);
+    // // Add a counter to the file name until it isn't overwriting anything:
+    // while (checkForFile.is_open()) {
+    //     counter++;
+    //     checkForFile.close();
+    //     checkForFile.open(output_folder + std::to_string(counter) + '_' + "data." + filetype, std::ifstream::in);
+    // }
+
+    if (data != nullptr)
+    {
+        delete data;
+        data = nullptr; 
+    }
+
+    data = new DECCOData(output_folder+std::to_string(counter)+"_data."+filetype,\
+                        num_particles,steps/skip+1,steps);
 }
 
 
@@ -917,40 +944,19 @@ void Ball_group::updateGPE()
     }
 }
 
-void Ball_group::sim_init_write(int counter = 0)
+std::string Ball_group::get_data_info()
+{
+    std::string info = "steps:"+std::to_string(steps)+",skip:"+std::to_string(skip);
+    return info;
+}
+
+void Ball_group::sim_init_write(int counter=0)
 {
     // todo - filename is now a copy and this works. Need to consider how old way worked for
     // compatibility. What happens without setting output_prefix = filename? Check if file name already
     // exists.
-    std::ifstream checkForFile;
-    // std::string filenum;
-    // if (counter != 0)
-    // {
-    //     filenum = std::to_string(counter) + '_';
-    // }
-    // else
-    // {
-    //     filenum = "";
-    // }
-    // std::cerr<<output_folder +std::to_string(counter) + "_data."+filetype<<std::endl;
-    checkForFile.open(output_folder + std::to_string(counter) + "_data."+filetype, std::ifstream::in);
-    // Add a counter to the file name until it isn't overwriting anything:
-    while (checkForFile.is_open()) {
-        counter++;
-        checkForFile.close();
-        checkForFile.open(output_folder + std::to_string(counter) + '_' + "data." + filetype, std::ifstream::in);
-    }
-
-    if (data != nullptr)
-    {
-        delete data;
-        data = nullptr; 
-    }
-    // data = std::make_unique<DECCOData>(output_folder + std::to_string(counter) + "_data." + filetype,
-                                   // num_particles, steps / skip + 1, steps);
-
-    data = new DECCOData(output_folder+std::to_string(counter)+"_data."+filetype,\
-                        num_particles,steps/skip+1,steps);
+    std::cerr<<"Sim init write"<<std::endl;
+    init_data(counter);
 
     // if (counter > 0) { filename.insert(0, std::to_string(counter) + '_'); }
 
@@ -966,6 +972,7 @@ void Ball_group::sim_init_write(int counter = 0)
         pt += jump;
     }
     data->Write(constData,"constants");
+    data->WriteMeta(get_data_info(),sim_meta_data_name,"constants");
 
 
     energyBuffer = std::vector<double> (data->getWidth("energy"));
@@ -1932,18 +1939,22 @@ void Ball_group::loadSim(const std::string& path, const std::string& filename)
         size_t _lastpos = file.find_last_of("_");
         
         file_index = stoi(file.substr(0,_pos));
+
         file = std::to_string(file_index-1) + file.substr(_pos,_lastpos);
+        start_index = file_index;//shouldnt be file_index-1 because that is just the one we read, we will write to the next index
 
         parseSimData(getLastLine(path, file));
         loadConsts(path, file);
-        start_index = file_index;
     }
     else if (file.substr(file.size()-3,file.size()) == ".h5")
     {
         _pos = file.find_first_of("_");
         file_index = stoi(file.substr(0,_pos));
-        loadDatafromH5(path,file);
+        
+        //This needs to be here because its used in the following function
         start_index = file_index;
+
+        loadDatafromH5(path,file);
     }
     else
     {
@@ -1959,9 +1970,89 @@ void Ball_group::loadSim(const std::string& path, const std::string& filename)
     std::cerr << "Approximate radius: " << initial_radius << " cm.\n";
 }
 
+void Ball_group::parse_meta_data(std::string metadata)
+{
+    std::string subdata,data_t,intstr;
+    size_t comma_pos,colon_pos;
+    bool run = true;
+
+    while (run)
+    {
+        comma_pos = metadata.find_first_of(",");      
+        subdata = metadata.substr(0,comma_pos);
+        colon_pos = subdata.find_first_of(":");
+
+        data_t = subdata.substr(0,colon_pos);
+        intstr = subdata.substr(colon_pos+1,subdata.length());
+        
+        if (data_t == "steps")
+        {
+            steps = stoi(intstr);
+        }
+        else if (data_t == "skip")
+        {
+            skip = stoi(intstr);
+        }
+        else
+        {
+            std::cerr<<"DECCO ERROR: sim metadata '"<<data_t<<"' doesn't exist."<<std::endl;
+            exit(EXIT_FAILURE);
+        }
+
+
+        metadata = metadata.substr(comma_pos+1,metadata.length());
+
+        if (comma_pos == std::string::npos)
+        {
+            run = false;
+        }
+    }
+
+}
+
 void Ball_group::loadDatafromH5(std::string path,std::string file)
 {
-    data->loadConsts(path,file,m,R,moi);
+    allocate_group(HDF5Handler::get_num_particles(path,file));
+    
+    //Load constants because this can be done without an initialized instance of DECCOData
+    HDF5Handler::loadConsts(path,file,R,m,moi);
+
+    //read metadata to determine steps and skip variables
+    std::string meta = HDF5Handler::readMetadataFromDataset("constants",path+file,sim_meta_data_name);
+    parse_meta_data(meta);
+
+    //Now we have all info we need to initialze an instance of DECCOData.
+    //However, data_written_so_far needs to be determined and set since this is a restart.
+    //All this happens in the next two functions.
+    init_data(start_index);
+    //writes is 0 if there is no writes so far (I don't think this should happen but if it does, more stuff needs to happen).
+    //writes is >0 then that is how many writes there have been.
+    //writes is -1 if there are writes and the sim is already finished. 
+    int writes = data->setWrittenSoFar(path,file);
+
+    // if (writes == 0)//This should really never happen. If it did then there is an empty h5 file
+    // {
+    //     std::cerr<<"not implimented"<<std::endl;
+    //     exit(-1);
+    // }
+    if(writes > 0)
+    {
+        //This cannot be done without an instance of DECCOData, that is why these are different than loadConsts
+        data->loadSimData(path,file,pos,w,vel);
+        mid_sim_restart = true;
+        start_step = skip*writes;
+    }
+    else if(writes == -1)
+    {
+        data->loadSimData(path,file,pos,w,vel);
+        start_index++;
+    }
+    else
+    {
+        std::cerr<<"ERROR: in setWrittenSoFar() output of value '"<<writes<<"'."<<std::endl;
+        exit(EXIT_FAILURE);
+    }
+    
 }
 
 void Ball_group::distSizeSphere(const int nBalls)

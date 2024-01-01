@@ -40,7 +40,7 @@ if __name__ == '__main__':
 
 	runs_at_once = 1
 	# attempts = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20] 
-	attempts = [2] 
+	attempts = [3] 
 	N = [10]
 	# Temps = [3,10,30,100,300,1000]
 	Temps = [3]
@@ -81,6 +81,9 @@ if __name__ == '__main__':
 				#add run script and executable to folders
 				# os.system(f"cp {project_path}default_files/run_sim.py {job}run_sim.py")
 				os.system(f"cp {project_path}ColliderSingleCore/ColliderSingleCore.x {job}ColliderSingleCore.x")
+				os.system(f"cp /home/lucas/Desktop/SpaceLab/jobs/restartTest1/N_10/T_3/0_* {job}")
+				os.system(f"cp /home/lucas/Desktop/SpaceLab/jobs/restartTest1/N_10/T_3/1_* {job}")
+				os.system(f"cp /home/lucas/Desktop/SpaceLab/jobs/restartTest1/N_10/T_3/2_* {job}")
 				folders.append(job)
 	# print(folders)
 
