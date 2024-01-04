@@ -94,9 +94,10 @@ if __name__ == '__main__':
 				sbatchfile += 'module load cray-hdf5\n'
 				sbatchfile += f'export OMP_NUM_THREADS={thread}\n'
 				sbatchfile += 'export SLURM_CPU_BIND="cores"\n'
-				sbatchfile += 'module load perftools\n'
-				sbatchfile += 'pat_build ColliderSingleCore.x\n'
-				sbatchfile += f"srun -n 1 -c {thread*2} --cpu-bind=cores ./ColliderSingleCore.x+pat {job} 2>sim_err.log 1>sim_out.log\n"
+				# sbatchfile += 'module load perftools\n'
+				# sbatchfile += 'pat_build ColliderSingleCore.x\n'
+				sbatchfile += f"srun -n 1 -c {thread*2} --cpu-bind=cores ./ColliderSingleCore.x+pat 2>sim_err.log 1>sim_out.log\n"
+				# sbatchfile += 'pat_report ColliderSingleCore.x+pat+*\n'
 				
 				# sbatchfile += f"srun -c {thread*2} --cpu-bind=cores ./ColliderMultiCore.x {job} 2>sim_err.log 1>sim_out.log\n"
 				
@@ -112,12 +113,12 @@ if __name__ == '__main__':
 	# print(folders)
 
 
-	cwd = os.getcwd()
 	print(folders)
-	for folder in folders:
-		os.chdir(folder)
-		os.system("sbatch sbatchMulti.bash")
-	os.chdir(cwd)
+	# cwd = os.getcwd()
+	# for folder in folders:
+	# 	os.chdir(folder)
+	# 	os.system("sbatch sbatchMulti.bash")
+	# os.chdir(cwd)
 
 	# for i in range(0,len(folders),runs_at_once):
 	# 	with mp.Pool(processes=runs_at_once) as pool:
