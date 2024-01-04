@@ -80,8 +80,9 @@ if __name__ == '__main__':
 				#add run script and executable to folders
 				# os.system(f"cp {project_path}default_files/run_sim.py {job}run_sim.py")
 				os.system(f"cp {project_path}ColliderSingleCore/ColliderSingleCore.x {job}ColliderSingleCore.x")
-				os.system(f"cp /home/lucas/Desktop/SpaceLab_data/jobs/restartTest1/N_5/T_3/0_data.h5 {job}.")
-				os.system(f"cp /home/lucas/Desktop/SpaceLab_data/jobs/restartTest1/N_5/T_3/1_data.h5 {job}.")
+				os.system(f"cp {input_json['data_directory']}jobs/restartTest1/N_5/T_3/0_data.h5 {job}.")
+				os.system(f"cp {input_json['data_directory']}jobs/restartTest1/N_5/T_3/1_data.h5 {job}.")
+				os.system(f"cp {input_json['data_directory']}jobs/restartTest1/N_5/T_3/2_data.h5 {job}.")
 				# os.system(f"touch {job}2_data.h5")
 				# os.system(f"cp /home/lucas/Desktop/SpaceLab_data/jobs/restartTest1/N_5/T_3/3_data.h5 {job}.")
 				folders.append(job)
