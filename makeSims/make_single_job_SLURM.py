@@ -35,11 +35,12 @@ if __name__ == '__main__':
 		
 	job_set_name = "lognorm_radius_test"
 	job_set_name = "test"
-	job_set_name = "restartTest"
+	job_set_name = "crey"
 
 	# folder_name_scheme = "T_"
 
 	runs_at_once = 7
+	thread = 1
 	# attempts = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20] 
 	attempts = [1] 
 	N = [5]
@@ -78,6 +79,30 @@ if __name__ == '__main__':
 				with open(job + "input.json",'w') as fp:
 					json.dump(input_json,fp,indent=4)
 
+
+				# time = np.ceil(N[a]/15)
+
+				sbatchfile = ""
+				sbatchfile += "#!/bin/bash\n"
+				sbatchfile += "#SBATCH -A m2651\n"
+				sbatchfile += "#SBATCH -C cpu\n"
+				sbatchfile += "#SBATCH -q regular\n"
+				sbatchfile += "#SBATCH -t 0:10:00\n"
+				sbatchfile += "#SBATCH -n 1\n"
+				# sbatchfile += "#SBATCH -c 64\n\n"
+				# sbatchfile += 'module load gpu\n'
+				sbatchfile += 'module load cray-hdf5\n'
+				sbatchfile += f'export OMP_NUM_THREADS={thread}\n'
+				sbatchfile += 'export SLURM_CPU_BIND="cores"\n'
+				sbatchfile += 'module load perftools\n'
+				sbatchfile += 'pat_build ColliderSingleCore.x\n'
+				sbatchfile += f"srun -n 1 -c {thread*2} --cpu-bind=cores ./ColliderSingleCore.x+pat {job} 2>sim_err.log 1>sim_out.log\n"
+				
+				# sbatchfile += f"srun -c {thread*2} --cpu-bind=cores ./ColliderMultiCore.x {job} 2>sim_err.log 1>sim_out.log\n"
+				
+				with open(job+"sbatchMulti.bash",'w') as sfp:
+					sfp.write(sbatchfile)
+
 				#add run script and executable to folders
 				# os.system(f"cp {project_path}default_files/run_sim.py {job}run_sim.py")
 				os.system(f"cp {project_path}ColliderSingleCore/ColliderSingleCore.x {job}ColliderSingleCore.x")
@@ -87,7 +112,12 @@ if __name__ == '__main__':
 	# print(folders)
 
 
+	cwd = os.getcwd()
 	print(folders)
+	for folder in folders:
+		os.chdir(folder)
+		os.system("sbatch sbatchMulti.bash")
+	os.chdir(cwd)
 
 	# for i in range(0,len(folders),runs_at_once):
 	# 	with mp.Pool(processes=runs_at_once) as pool:
