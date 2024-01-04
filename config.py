@@ -72,8 +72,10 @@ if __name__ == '__main__':
     update_json_file(project_dir+"default_files/default_input.json","project_directory",project_dir)
     update_json_file(project_dir+"default_files/default_input.json","data_directory",project_dir[:-1]+"_data/")
 
+    os.system("git submodule init")
+    os.system("git submodule update")
     #make project folders
-    if not os.path.exists("jobs/"):
-        os.mkdir("jobs/")
+    # if not os.path.exists("jobs/"):
+    #     os.mkdir("jobs/")
 
     

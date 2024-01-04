@@ -11,10 +11,9 @@ No installation is needed for SpaceLab. All you need is a g++ compiler and you s
 
 To get started, all you need to do is run one of the "make_*.py" files and it will compile and run the specified jobs. These "make_*.py" files work by creating an input.json file for the simulation inputs, copying necessary files to the correct directores, and then compiling and running the individual jobs. Depending on your system, you may need to edit the Makefile provided.
 
-To initialize the submodule in the git folder run the following two commands
-	git submodule init
-	git submodule update
+To initialize the submodule in the git folder run the follow command
 	python3 config.py
+It will configure the external git repo and set some default project variables
 
 File/Directory scheme:
 When you make a new job set with a make_*.py file, there are several ways of organizing the resulting data. The first way to distinguish specific jobs is by setting the "job_set_name" variable in the make_*.py file. This will create a new folder in the form:
