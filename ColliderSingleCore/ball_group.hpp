@@ -25,6 +25,7 @@
 // using std::numbers::pi;
 using json = nlohmann::json;
 namespace fs = std::filesystem;
+extern const int bufferlines;
 
 
 /// @brief Facilitates the concept of a group of balls with physical properties.
@@ -48,6 +49,13 @@ public:
     int num_particles_added = 0;
     int start_index = 0;
     int start_step = 1;
+
+    int skip=-1;  // Steps thrown away before recording a step to the buffer. 500*.04 is every 20 seconds in sim.
+    int steps=-1;
+
+    double dt=-1;
+    double kin=-1;  // Spring constant
+    double kout=-1;
 
     const std::string sim_meta_data_name = "sim_info";
 
@@ -243,8 +251,9 @@ Ball_group::Ball_group(std::string& path)
     if (!just_restart && restart==1)
     {
         loadSim(path, filename);
-        calc_v_collapse();
-        calibrate_dt(0, v_custom);
+        calc_v_collapse(); 
+        if (dt < 0)
+            calibrate_dt(0, v_custom);
         simInit_cond_and_center(false);
     }
     else if (restart == 0 || just_restart)
@@ -333,6 +342,13 @@ Ball_group& Ball_group::operator=(const Ball_group& rhs)
 
     PE = rhs.PE;
     KE = rhs.KE;
+
+    skip = rhs.skip;
+    steps = rhs.steps;
+
+    dt=rhs.dt;
+    kin=rhs.kin;  // Spring constant
+    kout=rhs.kout;
 
     distances = rhs.distances;
 
@@ -428,6 +444,13 @@ Ball_group::Ball_group(const Ball_group& rhs)
     output_prefix=rhs.output_prefix;
 
     data = rhs.data;
+
+    skip = rhs.skip;
+    steps = rhs.steps;
+
+    dt=rhs.dt;
+    kin=rhs.kin;  // Spring constant
+    kout=rhs.kout;
 
     /////////////////////////////////////
     // slidDir = rhs.slidDir;
@@ -897,7 +920,6 @@ void Ball_group::offset(const double& rad1, const double& rad2, const double& im
 [[nodiscard]] double Ball_group::get_radius(const vec3& center) const
 {
     double radius = 0;
-
     if (num_particles > 1) {
         for (size_t i = 0; i < num_particles; i++) {
             const auto this_radius = (pos[i] - center).norm();
@@ -940,8 +962,13 @@ void Ball_group::updateGPE()
 
 std::string Ball_group::get_data_info()
 {
-    std::string info = "steps:"+std::to_string(steps)+",skip:"+std::to_string(skip);
-    return info;
+    std::ostringstream out_stream;
+    out_stream << std::setprecision(std::numeric_limits<double>::max_digits10);
+    
+    out_stream<<"steps:"<<steps<<",skip:"<<skip;
+    out_stream<<",kin:"<<kin<<",kout:"<<kout<<",dt:"<<dt;
+
+    return out_stream.str();
 }
 
 void Ball_group::sim_init_write(int counter=0)
@@ -1003,13 +1030,14 @@ void Ball_group::sim_init_write(int counter=0)
         ballBuffer[pt+10] = 0;
         pt += jump;
     }
-    data->Write(ballBuffer,"simData");
+    data->Write(ballBuffer,"simData",1);
 
     //Initialize ballBuffer and energyBuffer to the size they should be for actual sim
     energyBuffer.clear();
     ballBuffer.clear();
-    energyBuffer = std::vector<double> (data->getWidth("energy")*10);
-    ballBuffer = std::vector<double> (data->getWidth("simData")*10);
+
+    energyBuffer = std::vector<double> (data->getWidth("energy")*bufferlines);
+    ballBuffer = std::vector<double> (data->getWidth("simData")*bufferlines);
 
     //initialize num_writes
     num_writes = 0;
@@ -1177,6 +1205,13 @@ Ball_group Ball_group::dust_agglomeration_particle_init()
     projectile.projectileName = projectileName;
     projectile.targetName = targetName;
     projectile.output_prefix = output_prefix;
+
+    projectile.skip = skip;
+    projectile.steps = steps;
+
+    projectile.dt=dt;
+    projectile.kin=kin;  // Spring constant
+    projectile.kout=kout;
     // Particle random position at twice radius of target:
     // We want the farthest from origin since we are offsetting form origin. Not com.
     const auto cluster_radius = get_radius(vec3(0, 0, 0));
@@ -1356,6 +1391,13 @@ void Ball_group::merge_ball_group(const Ball_group& src)
     projectileName = src.projectileName;
     targetName = src.targetName;
     output_prefix = src.output_prefix;
+
+    skip = src.skip;
+    steps = src.steps;
+
+    dt=src.dt;
+    kin=src.kin;  // Spring constant
+    kout=src.kout;
     // data = src.data;
 
     calc_helpfuls();
@@ -1970,7 +2012,7 @@ void Ball_group::parse_meta_data(std::string metadata)
 {
     std::string subdata,data_t,intstr;
     size_t comma_pos,colon_pos;
-    bool run = true;
+    bool run = true;    
 
     while (run)
     {
@@ -1980,7 +2022,7 @@ void Ball_group::parse_meta_data(std::string metadata)
 
         data_t = subdata.substr(0,colon_pos);
         intstr = subdata.substr(colon_pos+1,subdata.length());
-        
+
         if (data_t == "steps")
         {
             steps = stoi(intstr);
@@ -1988,6 +2030,27 @@ void Ball_group::parse_meta_data(std::string metadata)
         else if (data_t == "skip")
         {
             skip = stoi(intstr);
+        }
+        else if (data_t == "kin")
+        {
+            std::istringstream in_stream(intstr);
+            double retrieved_double;
+            in_stream >> retrieved_double;
+            kin = retrieved_double;
+        }
+        else if (data_t == "kout")
+        {
+            std::istringstream in_stream(intstr);
+            double retrieved_double;
+            in_stream >> retrieved_double;
+            kout = retrieved_double;
+        }
+        else if (data_t == "dt")
+        {
+            std::istringstream in_stream(intstr);
+            double retrieved_double;
+            in_stream >> retrieved_double;
+            dt = retrieved_double;
         }
         else
         {
@@ -2019,26 +2082,32 @@ void Ball_group::loadDatafromH5(std::string path,std::string file)
 
     //Now we have all info we need to initialze an instance of DECCOData.
     //However, data_written_so_far needs to be determined and set since this is a restart.
-    //All this happens in the next two functions.
+    //All this happens in the next two functions. 
     init_data(start_index);
     //writes is 0 if there is no writes so far (I don't think this should happen but if it does, more stuff needs to happen).
     //writes is >0 then that is how many writes there have been.
     //writes is -1 if there are writes and the sim is already finished. 
     int writes = data->setWrittenSoFar(path,file);
-
     // if (writes == 0)//This should really never happen. If it did then there is an empty h5 file
     // {
     //     std::cerr<<"not implimented"<<std::endl;
     //     exit(-1);
     // }
-    if(writes > 0)
+    if(writes > 0) //Works
     {
         //This cannot be done without an instance of DECCOData, that is why these are different than loadConsts
         data->loadSimData(path,file,pos,w,vel);
+
+        //initiate buffers since we won't call sim_init_write on a restart
+        energyBuffer = std::vector<double> (data->getWidth("energy")*bufferlines);
+        ballBuffer = std::vector<double> (data->getWidth("simData")*bufferlines);
+        
+        std::cerr<<"mid_sim_restart"<<std::endl;
         mid_sim_restart = true;
-        start_step = skip*writes;
+        start_step = skip*(writes-1)+1;
+        start_index++;
     }
-    else if(writes == -1)
+    else if(writes == -1) //Works
     {
         data->loadSimData(path,file,pos,w,vel);
         start_index++;
@@ -2048,7 +2117,7 @@ void Ball_group::loadDatafromH5(std::string path,std::string file)
         std::cerr<<"ERROR: in setWrittenSoFar() output of value '"<<writes<<"'."<<std::endl;
         exit(EXIT_FAILURE);
     }
-    
+     
 }
 
 void Ball_group::distSizeSphere(const int nBalls)
@@ -2381,7 +2450,6 @@ int Ball_group::check_restart(std::string folder)
         
         if (file.substr(0,file.size()-4) == "timing")
         {
-            std::cerr<<"HERERER: "<<file<<std::endl;
             return 2;
         }
 

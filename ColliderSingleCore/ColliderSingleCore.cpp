@@ -16,6 +16,7 @@
 // std::stringstream ballBuffer;
 // std::stringstream energyBuffer;
 std::stringstream contactBuffer;
+extern const int bufferlines;
 
 
 // These are used within simOneStep to keep track of time.
@@ -109,8 +110,12 @@ void BPCA(std::string path, int num_balls)
 {
     int rest = -1;
     Ball_group O = Ball_group(path);  
-    bool mid_sim_restart = O.mid_sim_restart;
     safetyChecks(O);
+    if  (O.mid_sim_restart)
+    {
+        sim_looper(O,O.start_step);
+    }
+    // exit(0);
     // Add projectile: For dust formation BPCA
     for (int i = O.start_index; i < num_balls; i++) {
     // for (int i = 0; i < 250; i++) {
@@ -118,22 +123,15 @@ void BPCA(std::string path, int num_balls)
         // O.zeroVel();
         contact = false;
         inital_contact = true;
-        if (!mid_sim_restart)
-        {
-            // t.start_event("add_projectile");
-            O = O.add_projectile();
-            // t.end_event("add_projectile");
-            O.sim_init_write(i);
-        }
-        // std::cout<<"i: "<<i<<std::endl;
-        sim_looper(O,O.start_step);
+
+        // t.start_event("add_projectile");
+        O = O.add_projectile();
+        // t.end_event("add_projectile");
+        O.sim_init_write(i);
+
+        sim_looper(O,1);
 
         simTimeElapsed = 0;
-
-        if (mid_sim_restart)
-        {
-            mid_sim_restart = false;
-        } 
     }
     // O.freeMemory();
     return;
@@ -399,13 +397,13 @@ sim_one_step(const bool write_step, Ball_group &O)
     t.start_event("UpdateKinPar");
     for (int Ball = 0; Ball < O.num_particles; Ball++) {
         // Update velocity half step:
-        O.velh[Ball] = O.vel[Ball] + .5 * O.acc[Ball] * dt;
+        O.velh[Ball] = O.vel[Ball] + .5 * O.acc[Ball] * O.dt;
 
         // Update angular velocity half step:
-        O.wh[Ball] = O.w[Ball] + .5 * O.aacc[Ball] * dt;
+        O.wh[Ball] = O.w[Ball] + .5 * O.aacc[Ball] * O.dt;
 
         // Update position:
-        O.pos[Ball] += O.velh[Ball] * dt;
+        O.pos[Ball] += O.velh[Ball] * O.dt;
 
         // Reinitialize acceleration to be recalculated:
         O.acc[Ball] = {0, 0, 0};
@@ -457,9 +455,9 @@ sim_one_step(const bool write_step, Ball_group &O)
 
                 double k;
                 if (dist >= oldDist) {
-                    k = kout;
+                    k = O.kout;
                 } else {
-                    k = kin;
+                    k = O.kin;
                 }
 
                 // Cohesion (in contact) h must always be h_min:
@@ -717,8 +715,8 @@ sim_one_step(const bool write_step, Ball_group &O)
     for (int Ball = 0; Ball < O.num_particles; Ball++) 
     {
         // Velocity for next step:
-        O.vel[Ball] = O.velh[Ball] + .5 * O.acc[Ball] * dt;
-        O.w[Ball] = O.wh[Ball] + .5 * O.aacc[Ball] * dt;
+        O.vel[Ball] = O.velh[Ball] + .5 * O.acc[Ball] * O.dt;
+        O.w[Ball] = O.wh[Ball] + .5 * O.aacc[Ball] * O.dt;
 
         /////////////////////////////////
         // if (true) {
@@ -789,29 +787,31 @@ sim_looper(Ball_group &O,int start_step=1)
     O.num_writes = 0;
     std::cerr << "Beginning simulation...\n";
 
+    std::cerr<<"start step: "<<start_step<<std::endl;
+
     startProgress = time(nullptr);
 
-    std::cerr<<"Stepping through "<<steps<<" steps"<<std::endl;
+    std::cerr<<"Stepping through "<<O.steps<<" steps"<<std::endl;
 
-    for (int Step = start_step; Step < steps; Step++)  // Steps start at 1 for non-restart because the 0 step is initial conditions.
+    for (int Step = start_step; Step < O.steps; Step++)  // Steps start at 1 for non-restart because the 0 step is initial conditions.
     {
         // simTimeElapsed += dt; //New code #1
         // Check if this is a write step:
-        if (Step % skip == 0) {
+        if (Step % O.skip == 0) {
             t.start_event("writeProgressReport");
             writeStep = true;
 
             /////////////////////// Original code #1
-            simTimeElapsed += dt * skip;
+            simTimeElapsed += O.dt * O.skip;
             ///////////////////////
 
             // Progress reporting:
-            float eta = ((time(nullptr) - startProgress) / static_cast<float>(skip) *
-                         static_cast<float>(steps - Step)) /
+            float eta = ((time(nullptr) - startProgress) / static_cast<float>(O.skip) *
+                         static_cast<float>(O.steps - Step)) /
                         3600.f;  // Hours.
             float real = (time(nullptr) - start) / 3600.f;
             float simmed = static_cast<float>(simTimeElapsed / 3600.f);
-            float progress = (static_cast<float>(Step) / static_cast<float>(steps) * 100.f);
+            float progress = (static_cast<float>(Step) / static_cast<float>(O.steps) * 100.f);
             fprintf(
                 stderr,
                 "%u\t%2.0f%%\tETA: %5.2lf\tReal: %5.2f\tSim: %5.2f hrs\tR/S: %5.2f\n",
@@ -839,15 +839,11 @@ sim_looper(Ball_group &O,int start_step=1)
         ///////////
         sim_one_step(writeStep,O);
 
-
-        
-
         if (writeStep) {
-            t.start_event("writeStep");
+            // t.start_event("writeStep");
             // Write energy to stream:
             ////////////////////////////////////
             //TURN THIS ON FOR REAL RUNS!!!
-
             // O.energyBuffer = std::vector<double> (data->getWidth("energy"));
             int start = O.data->getWidth("energy")*(O.num_writes-1);
             // std::cerr<<"start,num_writes: "<<start<<','<<O.num_writes<<std::endl;
@@ -879,28 +875,42 @@ sim_looper(Ball_group &O,int start_step=1)
             // Data Export. Exports every 10 writeSteps (10 new lines of data) and also if the last write was
             // a long time ago.
             // if (time(nullptr) - lastWrite > 1800 || Step / skip % 10 == 0) {
-            if (Step / skip % 10 == 0) {
+            if (Step / O.skip % 10 == 0) {
                 // Report vMax:
 
-                std::cerr << "vMax = " << O.getVelMax() << " Steps recorded: " << Step / skip << '\n';
+                std::cerr << "vMax = " << O.getVelMax() << " Steps recorded: " << Step / O.skip << '\n';
                 std::cerr << "Data Write to "<<O.output_folder<<"\n";
                 // std::cerr<<"output_prefix: "<<output_prefix<<std::endl;
                 
-                O.data->Write(O.ballBuffer,"simData");
+                O.data->Write(O.ballBuffer,"simData",bufferlines);
+                // if (O.num_particles > 5)
+                // {
+                //     for (int i = 0; i < O.ballBuffer.size(); i++)
+                //     {
+                //         std::cerr<<O.ballBuffer[i]<<", ";
+                //     }
+                //     std::cerr<<std::endl;
+                // }
                 O.ballBuffer.clear();
-                O.ballBuffer = std::vector<double>(O.data->getWidth("simData")*10);
-
+                O.ballBuffer = std::vector<double>(O.data->getWidth("simData")*bufferlines);
                 O.data->Write(O.energyBuffer,"energy");
                 O.energyBuffer.clear();
-                O.energyBuffer = std::vector<double>(O.data->getWidth("energy")*10);
+                O.energyBuffer = std::vector<double>(O.data->getWidth("energy")*bufferlines);
 
                 O.num_writes = 0;
                 lastWrite = time(nullptr);
+
+                // if (O.num_particles > 5)
+                // {
+                //     std::cerr<<"EXITING, step: "<<Step<<std::endl;
+                //     exit(0);
+                // }
+
             }  // Data export end
 
 
             if (dynamicTime) { O.calibrate_dt(Step, false); }
-            t.end_event("writeStep");
+            // t.end_event("writeStep");
         }  // writestep end
     }
 
@@ -918,8 +928,8 @@ sim_looper(Ball_group &O,int start_step=1)
     const time_t end = time(nullptr);
 
     std::cerr << "Simulation complete!\n"
-              << O.num_particles << " Particles and " << steps << " Steps.\n"
-              << "Simulated time: " << steps * dt << " seconds\n"
+              << O.num_particles << " Particles and " << O.steps << " Steps.\n"
+              << "Simulated time: " << O.steps * O.dt << " seconds\n"
               << "Computation time: " << end - start << " seconds\n";
     std::cerr << "\n===============================================================\n";
 
@@ -942,22 +952,22 @@ safetyChecks(Ball_group &O)
         exit(EXIT_FAILURE);
     }
 
-    if (skip == 0) {
+    if (O.skip == 0) {
         fprintf(stderr, "\nSKIP NOT SET\n");
         exit(EXIT_FAILURE);
     }
 
-    if (kin < 0) {
+    if (O.kin < 0) {
         fprintf(stderr, "\nSPRING CONSTANT NOT SET\n");
         exit(EXIT_FAILURE);
     }
 
-    if (dt <= 0) {
+    if (O.dt <= 0) {
         fprintf(stderr, "\nDT NOT SET\n");
         exit(EXIT_FAILURE);
     }
 
-    if (steps == 0) {
+    if (O.steps == 0) {
         fprintf(stderr, "\nSTEPS NOT SET\n");
         exit(EXIT_FAILURE);
     }

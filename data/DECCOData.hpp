@@ -6,6 +6,7 @@
 #include <vector>
 #include <sstream>
 
+const int bufferlines = 10;
 const int num_data_types = 4;
 const std::string data_types[num_data_types] = {"simData","energy","constants","timing"};
 const int single_ball_widths[num_data_types] = {11,6,3,2};
@@ -70,7 +71,11 @@ class HDF5Handler {
 		    if(std::filesystem::exists(filename)) {
 		    	if (datasetExists(filename,datasetName))
 		    	{
-		    		appendDataSet(data,datasetName,start);
+		    		// if (fixed)
+		    		// 	appendDataSet(data,datasetName,start,);
+		    		// else
+		    			appendDataSet(data,datasetName,start);
+
 		    	}
 		    	else
 		    	{
@@ -90,7 +95,7 @@ class HDF5Handler {
 		//			is empty, then the read failed, or you specified len=0.	
 		// If you specify a length longer than the dataset, or an offset further away 
 		// from zero then the length of the dataset, the whole dataset is returned.
-		std::vector<double> readFile(const std::string datasetName, hsize_t start=0, hsize_t len=0,bool neg_offset=false) {
+		std::vector<double> readFile(const std::string datasetName, hsize_t start=0, hsize_t len=0) {
 		    std::vector<double> data;
 		    if (std::filesystem::exists(filename)) {
 		        H5::H5File file(filename, H5F_ACC_RDONLY);
@@ -108,10 +113,6 @@ class HDF5Handler {
 		        	return data;
 		        }
 
-		        if (neg_offset)
-		        {
-		        	start = total_size - start;
-		        }
 
 		        if (len > total_size-start || len == 0)
 		        {
@@ -230,6 +231,90 @@ class HDF5Handler {
 		    }
 		    return total_size;
 		}
+
+		int readWrites(const std::string path, const std::string f)
+		{
+			std::string file_read = path + f;
+			// std::cerr<<"readWrites file: "<<file_read<<std::endl;
+			const std::string datasetName("writes");
+	        H5::H5File file;
+	        H5::DataSet dataset;
+	        int value = 0; // uninitialized value
+
+	        if(std::filesystem::exists(file_read)) {
+	            file = H5::H5File(file_read, H5F_ACC_RDWR);
+	        } else {
+	            std::cerr << "File " << file_read << " doesn't exist." << std::endl;
+	            exit(-1);
+	        }
+
+	        if (datasetExists(file_read,"writes"))
+	        {
+
+	            // Attempt to open the dataset
+	            dataset = file.openDataSet(datasetName);
+
+	            // Read the current value
+	            dataset.read(&value, H5::PredType::NATIVE_INT);
+	            // std::cerr<<"value in readWrites"
+	        } 
+	        else
+	        {
+	            // If the dataset doesn't exist, it hasn't been written to yet
+	            value = 0;
+	        }
+
+	        // Write the (incremented or default) value back to the dataset
+	        // dataset.write(&value, H5::PredType::NATIVE_INT);
+
+	        // Close resources
+	        dataset.close();
+	        file.close();
+
+	        return value;
+		}
+
+		void addWrites(int additional_writes) 
+		{
+			const std::string datasetName("writes");
+	        H5::H5File file;
+	        H5::DataSet dataset;
+	        int value = additional_writes; // Default value
+
+	        if(std::filesystem::exists(filename)) {
+	            file = H5::H5File(filename, H5F_ACC_RDWR);
+	        } else {
+	            std::cerr << "File " << filename << " doesn't exist." << std::endl;
+	            exit(-1);
+	        }
+
+	        if (datasetExists(filename,"writes"))
+	        {
+	            // Attempt to open the dataset
+	            dataset = file.openDataSet(datasetName);
+
+	            // Read the current value
+	            dataset.read(&value, H5::PredType::NATIVE_INT);
+
+	            // Increment the value
+	            value+=additional_writes;
+	            // std::cerr<<"WRITES IN INCREMENT WRITES: "<<value<<std::endl;
+	        } 
+	        else
+	        {
+	            // If the dataset doesn't exist, create it with a default value of 1
+	            H5::DataSpace scalarSpace(H5S_SCALAR);
+	            dataset = file.createDataSet(datasetName, H5::PredType::NATIVE_INT, scalarSpace);
+	            // std::cerr << "Dataset " << datasetName << " created with initial value: " << value << std::endl;
+	        }
+
+	        // Write the (incremented or default) value back to the dataset
+	        dataset.write(&value, H5::PredType::NATIVE_INT);
+
+	        // Close resources
+	        dataset.close();
+	        file.close();
+	    }
 
 		static int get_num_particles(std::string path, std::string file)
 		{
@@ -557,7 +642,6 @@ class HDF5Handler {
 				std::cerr<<"File "<<filename<<" doesn't exist."<<std::endl;
 				exit(-1);
 			}
-
 	        // std::cout<<"datasetName: "<<datasetName<<std::endl;
 			// int i;
 			// for (i = 0; i < data.size()-1; i++)
@@ -707,12 +791,16 @@ public:
 	//@param data is the data to be written. Can only be an std::stringstream 
 	//		(for csv data_type) or std::vector<double> (for hdf5 data_type)
 	//@returns true if write succeeded, false otherwise
-	bool Write(std::vector<double> &data, std::string data_type)
+	bool Write(std::vector<double> &data, std::string data_type,int add_writes=0)
 	{
 		bool retVal;
 		if (h5data)
 		{
 			retVal = writeH5(data,data_type);
+			if (add_writes > 0)
+			{
+				H.addWrites(add_writes);
+			}
 		}
 		else if (csvdata)
 		{
@@ -789,7 +877,7 @@ public:
 			else
 			{
 				int data_index = getDataIndexFromString(data_type);
-				bool neg_offset = false;
+				int start = 0;
 				//if data_index is less than zero a bad data_type was input and write doesn't happen
 				if (data_index < 0)
 				{
@@ -798,11 +886,19 @@ public:
 
 				if (line < 0)
 				{
-					line = (-1)*line;
-					neg_offset = true;
+					start = (writes+line)*widths[data_index];
+				}
+				else
+				{
+					start = (line)*widths[data_index];
+					// start = line*widths[data_index];
 				}
 
-				data_read = H.readFile(data_type,line*widths[data_index],widths[data_index],neg_offset);
+				data_read = H.readFile(data_type,start,widths[data_index]);
+				// for (int i = 0; i < data_read.size(); i++)
+				// {
+				// 	std::cerr<<data_read[i]<<", ";
+				// }
 			}
 		}
 		else if (file.substr(file.size()-4,file.size()) == ".csv")
@@ -829,28 +925,24 @@ public:
     {
     	hsize_t energy_size = H.get_data_length(path+file,"energy");
     	int energy_width = getSingleWidth("energy");
-    	int writes_so_far=-100;
-    	if (writes*energy_width == energy_size)
+    	int writes_so_far=H.readWrites(path,file);
+    	writes = writes_so_far;
+
+    	if (writes_so_far*energy_width == energy_size)
     	{
     		return -1;
     	}
-    	else if (energy_size == 0)
+    	else if (writes_so_far == 0)
     	{
     		return 0;
     	}
-    	else if (energy_size > 0 && energy_size < writes*energy_width)
-    	{
-    		writes_so_far = energy_size/energy_width;
-    	}
-    	else
-    	{
-    		std::cerr<<"ERROR: File size is outside of range known by this class."<<std::endl;
-    		exit(-100);
-    	}
-
+    	
+    	// std::cerr<<writes_so_far<<std::endl;
     	for (int i = 0; i < num_data_types; i++)
     	{
     		written_so_far[i] = writes_so_far*widths[i];
+    		// std::cerr<<"widths: "<<widths[i]<<std::endl;
+    		// std::cerr<<"written so far: "<<written_so_far[i]<<std::endl;
     	}
 
     	return writes_so_far;
@@ -860,6 +952,7 @@ public:
     void loadSimData(const std::string path, const std::string file,vec3 *pos,vec3 *w,vec3 *vel)
     {
     	std::vector<double> out = Read("simData",false,-1,path+file);
+    	// printVec(out);
     	
     	for (int i = 0; i < num_particles; ++i)
     	{
@@ -1001,6 +1094,7 @@ private:
 		}
 
 		H.attachMetadataToDataset(genMetaData(data_index),data_type);
+		
 		
 		return 1;
 	}

@@ -34,8 +34,8 @@ if __name__ == '__main__':
 		exit(-1)
 		
 	job_set_name = "lognorm_radius_test"
-	job_set_name = "restartTest"
 	job_set_name = "test"
+	job_set_name = "restartTest"
 
 	# folder_name_scheme = "T_"
 
@@ -54,7 +54,7 @@ if __name__ == '__main__':
 					input_json = json.load(fp)
 				
 				# job = curr_folder + 'jobs/' + job_set_name + str(attempt) + '/'
-				job = input_json["data_directory"] + job_set_name + str(attempt) + '/'\
+				job = input_json["data_directory"] + 'jobs/' + job_set_name + str(attempt) + '/'\
 							+ 'N_' + str(n) + '/' + 'T_' + str(Temp) + '/'
 				if not os.path.exists(job):
 					os.makedirs(job)
@@ -81,6 +81,8 @@ if __name__ == '__main__':
 				#add run script and executable to folders
 				# os.system(f"cp {project_path}default_files/run_sim.py {job}run_sim.py")
 				os.system(f"cp {project_path}ColliderSingleCore/ColliderSingleCore.x {job}ColliderSingleCore.x")
+				# os.system(f"cp /home/lucas/Desktop/SpaceLab_data/test2/N_5/T_3/*data.h5 {job}.")
+				
 				folders.append(job)
 	# print(folders)
 

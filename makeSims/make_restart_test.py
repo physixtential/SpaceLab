@@ -40,7 +40,7 @@ if __name__ == '__main__':
 
 	runs_at_once = 1
 	# attempts = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20] 
-	attempts = [3] 
+	attempts = [2] 
 	N = [10]
 	# Temps = [3,10,30,100,300,1000]
 	Temps = [3]
@@ -48,18 +48,17 @@ if __name__ == '__main__':
 	for attempt in attempts:
 		for n in N:
 			for Temp in Temps:
+				#load default input file
+				with open(project_path+"default_files/default_input.json",'r') as fp:
+					input_json = json.load(fp)
+				
 				# job = curr_folder + 'jobs/' + job_set_name + str(attempt) + '/'
-				job = project_path + 'jobs/' + job_set_name + str(attempt) + '/'\
+				job = input_json["data_directory"] + 'jobs/' + job_set_name + str(attempt) + '/'\
 							+ 'N_' + str(n) + '/' + 'T_' + str(Temp) + '/'
 				if not os.path.exists(job):
 					os.makedirs(job)
 				else:
 					print("Job '{}' already exists.".format(job))
-
-
-				#load default input file
-				with open(project_path+"default_files/default_input.json",'r') as fp:
-					input_json = json.load(fp)
 
 				####################################
 				######Change input values here######
@@ -81,9 +80,10 @@ if __name__ == '__main__':
 				#add run script and executable to folders
 				# os.system(f"cp {project_path}default_files/run_sim.py {job}run_sim.py")
 				os.system(f"cp {project_path}ColliderSingleCore/ColliderSingleCore.x {job}ColliderSingleCore.x")
-				os.system(f"cp /home/lucas/Desktop/SpaceLab/jobs/restartTest1/N_10/T_3/0_* {job}")
-				os.system(f"cp /home/lucas/Desktop/SpaceLab/jobs/restartTest1/N_10/T_3/1_* {job}")
-				os.system(f"cp /home/lucas/Desktop/SpaceLab/jobs/restartTest1/N_10/T_3/2_* {job}")
+				os.system(f"cp /home/lucas/Desktop/SpaceLab_data/jobs/restartTest1/N_5/T_3/0_data.h5 {job}.")
+				os.system(f"cp /home/lucas/Desktop/SpaceLab_data/jobs/restartTest1/N_5/T_3/1_data.h5 {job}.")
+				# os.system(f"touch {job}2_data.h5")
+				# os.system(f"cp /home/lucas/Desktop/SpaceLab_data/jobs/restartTest1/N_5/T_3/3_data.h5 {job}.")
 				folders.append(job)
 	# print(folders)
 

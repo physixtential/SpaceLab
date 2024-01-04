@@ -49,12 +49,7 @@ int properties;  // Number of columns in simData file per ball
 int genBalls;
 int attempts;  // How many times to try moving every ball touching another in generator.
 
-int skip;  // Steps thrown away before recording a step to the buffer. 500*.04 is every 20 seconds in sim.
-int steps;
 
-double dt;
-double kin;  // Spring constant
-double kout;
 double spaceRange;  // Rough minimum space required
 double spaceRangeIncrement;
 double z0Rot;  // Cluster one z axis rotation
