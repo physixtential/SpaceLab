@@ -723,6 +723,12 @@ void Ball_group::calibrate_dt(int const Step, const double& customSpeed = -1.)
 
     if (Step == 0 or dtOld < 0) {
         steps = static_cast<int>(simTimeSeconds / dt);
+        // std::cout<<simTimeSeconds / dt - steps*1.0<<std::endl;
+        if (simTimeSeconds / dt == steps) //There is one too few writes in the sim if this is true
+        {
+            std::cout<<"IT HAPPENED, numparts: "<<num_particles<<std::endl;
+            steps += 1;
+        }
         if (steps < 0)
         {
             std::cerr<< "ERROR: STEPS IS NEGATIVE."<<std::endl;
@@ -731,6 +737,7 @@ void Ball_group::calibrate_dt(int const Step, const double& customSpeed = -1.)
             std::cerr<< "Exiting program now."<<std::endl;
             exit(-1);
         }
+
         std::cerr << "\tInitial Steps: " << steps << '\n';
     } else {
         steps = static_cast<int>(dtOld / dt) * (steps - Step) + Step;

@@ -1,9 +1,13 @@
 import h5py
-# f = h5py.File('/home/lucas/Desktop/SpaceLab_data/restartTest1/N_5/T_3/2_data.h5','r')
-f = h5py.File('/home/lucas/Desktop/SpaceLab_data/jobs/restartTest1/N_5/T_3/0_data.h5','r')
 
-print(f['/simData'][:])
-print(len(f['/simData'][:]))
+file = '/home/lucas/Desktop/SpaceLab_data/jobs/error2Test2/N_10/T_10/7_data.h5'
+
+# f = h5py.File('/home/lucas/Desktop/SpaceLab_data/restartTest1/N_5/T_3/2_data.h5','r')
+f = h5py.File(file,'r')
+
+data = f['/simData'][-2000:-1000]
+print(data)
+print(len(data))
 
 
 # for item in f.keys():
