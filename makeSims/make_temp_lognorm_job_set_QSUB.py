@@ -2,10 +2,18 @@ import os
 import json
 import multiprocessing as mp
 import subprocess
+import random
 
 relative_path = "../"
 relative_path = '/'.join(__file__.split('/')[:-1]) + '/' + relative_path
 project_path = os.path.abspath(relative_path) + '/'
+
+def rand_int():
+	# Generating a random integer from 0 to the maximum unsigned integer in C++
+	# In C++, the maximum value for an unsigned int is typically 2^32 - 1
+	max_unsigned_int_cpp = 2**32 - 1
+	random_unsigned_int = random.randint(0, max_unsigned_int_cpp)
+	return random_unsigned_int
 
 def run_job(location,num_balls):
 	cmd = ["python3", "{}run_sim.py".format(location), location, str(num_balls)]
@@ -63,7 +71,7 @@ if __name__ == '__main__':
 				####################################
 				######Change input values here######
 				input_json['temp'] = Temp
-				input_json['seed'] = 'default'
+				input_json['seed'] = rand_int()
 				input_json['radiiDistribution'] = 'logNormal'
 				input_json['h_min'] = 0.5
 				# input_json['u_s'] = 0.5
@@ -92,7 +100,7 @@ if __name__ == '__main__':
 
 				qsubfile += "module load default-environment\n"
 				qsubfile += "module unload gcc/5.1.0\n"
-				qsubfile += "module load gcc/9.2.0\n"
+				qsubfile += "module load gcc/12.2.0\n"
 				
 				qsubfile += "./ColliderSingleCore.x {} {}\n".format(job,n)
 

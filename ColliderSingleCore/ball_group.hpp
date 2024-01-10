@@ -532,16 +532,16 @@ void Ball_group::parse_input_file(std::string location)
 
     if (inputs["seed"] == std::string("default"))
     {
-        seed = static_cast<int>(time(nullptr));
-        std::ofstream seedFile;
-        seedFile.open(output_folder+"seedFile.txt",std::ios::app);
-        seedFile<<seed<<std::endl;
-        seedFile.close();
+        seed = static_cast<unsigned int>(time(nullptr));
     }
     else
     {
-        seed = static_cast<int>(inputs["seed"]);
+        seed = static_cast<unsigned int>(inputs["seed"]);
     }
+    std::ofstream seedFile;
+    seedFile.open(output_folder+"seedFile.txt",std::ios::app);
+    seedFile<<seed<<std::endl;
+    seedFile.close();
     random_generator.seed(seed);//This was in the else but it should be outside so random_generator is always seeded the same as srand (right?)
     srand(seed);
 
