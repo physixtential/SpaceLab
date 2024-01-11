@@ -10,6 +10,7 @@
 import os
 import glob
 import numpy as np
+import utils as u
 
 #returns the last line of the file file_path
 def tail(file_path,n):
@@ -60,20 +61,59 @@ def tail(file_path,n):
 # 	    all_read_text = ''.join(reversed(blocks))
 # 	    return '\n'.join(all_read_text.splitlines()[-total_lines_wanted:])
 
+def ck_error2_by_file(file,verbose=True ):
+	try:
+		temp = np.loadtxt(file,skiprows=1,delimiter=',')
+		if verbose:
+			print(f"shape of file: {temp.shape}")
+		x,y = temp.shape
+		if x != 51:
+			if verbose:
+				print(f"ERROR: The x dimension of the data is {x}, not 51. for file {file}")
+			return True
+	except ValueError as E:
+		if verbose:
+			print(f"ERROR ValueError: {E}")
+			print(f"for the file: {file}")
+		return True
+	return False
+
 #If the (number rows of constants)*11 != (simData columns)
 #Then there was some kind of write error
-def error2(fullpath):
+def error2(fullpath,verbose=False):
 	directory = os.fsencode(fullpath)
 	for file in os.listdir(directory):
 		filename = os.fsdecode(file)
 		if filename.endswith("simData.csv"): 
-			try:
-				np.loadtxt(fullpath+filename,skiprows=1,delimiter=',')
-			except ValueError:
+			err = ck_error2_by_file(filename,verbose)
+			if err:
 				return True
 	return False
 
-
+def error2_index(fullpath,verbose=False):
+	directory = os.fsencode(fullpath)
+	lowest_index = 9999999999
+	for file in os.listdir(directory):
+		filename = os.fsdecode(file)
+		if filename.endswith("simData.csv"): 
+			try:
+				temp = np.loadtxt(fullpath+filename,skiprows=1,delimiter=',')
+				x,y = temp.shape
+				if x != 51:
+					ind = u.index_from_file(filename)
+					if verbose:
+						print(f"ERROR: x={x} for file={filename}")
+					if ind < lowest_index:
+						lowest_index = ind
+			except ValueError as E:
+				ind = u.index_from_file(filename)
+				if verbose:
+					print(f"ERROR: {E} for file={filename}")
+				if ind < lowest_index:
+					lowest_index = ind
+	if lowest_index != 9999999999:
+		return lowest_index
+	return False
 
 
 #If fullpath has error1 in it, return 1, if not return 0
@@ -173,20 +213,93 @@ def check_error(job_base,error,\
 				job = job_base.replace("$a$",str(attempt)).replace("$n$",str(n)).replace("$t$",str(Temp))
 				if os.path.exists(job+"timing.txt"):
 					valid_count += 1
-					if error(job):
+					output = error(job)
+					if output > 0:
+						errors.append(job)
+
+	print(f"{len(errors)} errors, out of {valid_count} valid runs, out of {len(N)*len(attempts)*len(Temps)} runs.")
+	return errors
+
+def get_file_base(folder):
+	directory = os.fsencode(folder)
+	for file in os.listdir(directory):
+		filename = os.fsdecode(file)
+		if filename.endswith("simData.csv"):
+			file_base = '_' + '_'.join(filename.split('/')[-1].split('_')[1:-1]) + '_'
+			return file_base
+	return "ERROR: NO FILE FOUND"; 
+
+
+def check_final_error(job_base,error,\
+				N=[30,100,300],\
+				Temps=[3,10,30,100,300,1000],\
+				num_attempts=30):
+
+	errors = []
+	if isinstance(num_attempts,int):
+		attempts = [i for i in range(num_attempts)]
+	elif isinstance(num_attempts,list):
+		attempts = num_attempts
+	# N=[30]
+	# Temps = [3]
+	valid_count = 0
+
+	for n in N:
+		for Temp in Temps:
+			for attempt in attempts:
+				job = job_base.replace("$a$",str(attempt)).replace("$n$",str(n)).replace("$t$",str(Temp))
+				if os.path.exists(job+"timing.txt"):
+					file_base = get_file_base(job) 
+							
+					
+					valid_count += 1
+					output = error(job+str(n-1)+file_base + "simData.csv")
+					if output > 0:
 						errors.append(job)
 
 	print(f"{len(errors)} errors, out of {valid_count} valid runs, out of {len(N)*len(attempts)*len(Temps)} runs.")
 	return errors
 
 
+def where_is_smallest_error2(job_base,error,\
+				N=[30,100,300],\
+				Temps=[3,10,30,100,300,1000],\
+				num_attempts=30):
+
+	errors = []
+	output = []
+	if isinstance(num_attempts,int):
+		attempts = [i for i in range(num_attempts)]
+	elif isinstance(num_attempts,list):
+		attempts = num_attempts
+	# N=[30]
+	# Temps = [3]
+	valid_count = 0
+
+	for n in N:
+		for Temp in Temps:
+			for attempt in attempts:
+				job = job_base.replace("$a$",str(attempt)).replace("$n$",str(n)).replace("$t$",str(Temp))
+				if os.path.exists(job+"timing.txt"):
+					valid_count += 1
+					out = error(job)
+					if out > 0:
+						output.append(out)
+						# print(f"{job} errored at {output}")
+						errors.append(job)
+
+	print(f"{len(errors)} errors, out of {valid_count} valid runs, out of {len(N)*len(attempts)*len(Temps)} runs.")
+	return errors,output
 
 def main():
 
 	curr_folder = os.getcwd() + '/'
 
-	job = curr_folder + 'jobsCosine/lognorm$a$/N_$n$/T_$t$/'
+	job = curr_folder + 'jobs/tempVarianceRand_attempt$a$/N_$n$/T_$t$/'
 	job = curr_folder + 'jobs/lognorm$a$/N_$n$/T_$t$/'
+	job = curr_folder + 'jobs/weakseed$a$/N_$n$/T_$t$/'
+	job = curr_folder + 'jobsCosine/lognorm$a$/N_$n$/T_$t$/'
+	job = curr_folder + 'erroredJobs/lognorm$a$/N_$n$/T_$t$/'
 
 
 
@@ -197,15 +310,35 @@ def main():
 	# N=[30]
 
 	Temps = [3,10,30,100,300,1000]
-	# Temps = [3]
+	# Temps = [1000]
 
-	errorgen_folders = check_error(job,error_general,N,Temps,attempts)
-	error1_folders = check_error(job,error1,N,Temps,attempts)
+	# errorgen_folders = check_error(job,error_general,N,Temps,attempts)
+	# print(errorgen_folders)
+	# error1_folders = check_error(job,error1,N,Temps,attempts)
 	# print(error1_folders)
 
-	error2_folders = check_error(job,error2,N,Temps,attempts)
+	# error2_folders = check_error(job,error2,N,Temps,attempts)
 	# print(error2_folders)
 
+	###
+	### This section finds the index at which a folder had error2
+	###
+	# error2_folders,o = where_is_smallest_error2(job,error2_index,N,Temps,attempts)
+	# print(error2_folders)
+	# print(o)
+	# zipped = zip(error2_folders,o)
+	# for i in zipped:
+	# 	print(f"Error started at index {i[1]} for folder {i[0]}")
+	# mind = np.argmin(np.array(o))
+	# print(f'min index is {mind} for job {error2_folders[0][mind]}')
+
+
+	# folder = '/mnt/be2a0173-321f-4b9d-b05a-addba547276f/kolanzl/SpaceLab_stable/SpaceLab/erroredJobs/lognorm12/N_30/T_10/'
+	folder = '/mnt/be2a0173-321f-4b9d-b05a-addba547276f/kolanzl/SpaceLab_stable/SpaceLab/jobs/error2Test10/N_10/T_10/'
+	folder = '/mnt/be2a0173-321f-4b9d-b05a-addba547276f/kolanzl/SpaceLab_stable/SpaceLab/jobs/error2Test2/N_10/T_10/'
+
+	print(error2_index(folder,True))
+	print(error2(folder,True))
 
 if __name__ == '__main__':
 	main()
