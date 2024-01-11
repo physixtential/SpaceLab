@@ -956,7 +956,7 @@ public:
 	/*
 	Mandatory class input
 		storage_method: either "h5"/"hdf5" for an hdf5 file format or "csv" for a csv format. Will be whatever the file
-						extension is in "filename" variable
+						extension is in "fname" variable
 	Optional class input
 		num_particles : the number of particles in the DECCO simulation, only needed for a fixed hdf5 storage
 		writes        : the number of writes that will happen in the DECCO simulation, only needed for a fixed hdf5 storage
@@ -992,7 +992,6 @@ public:
 			csvdata = true;
 			h5data = false;
 			filename = filename.substr(0,filename.length()-4);
-			std::cerr<<"FILE: "<<filename<<std::endl;
 		}
 		else
 		{
@@ -1000,7 +999,6 @@ public:
 			exit(-1);
 		}
 
-		std::cerr<<"FILE1: "<<filename<<std::endl;
 
 		//If user specified number of writes but a storage_type other than hdf5 then default to hdf5 and warn user
 		// if (fixed && not h5data)
