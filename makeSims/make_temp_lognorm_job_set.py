@@ -7,10 +7,15 @@ relative_path = "../"
 relative_path = '/'.join(__file__.split('/')[:-1]) + '/' + relative_path
 project_path = os.path.abspath(relative_path) + '/'
 
-def run_job(location,num_balls):
-	cmd = ["python3", "{}run_sim.py".format(location), location, str(num_balls)]
-	# print(cmd)
-	subprocess.run(cmd)
+# def run_job(location,num_balls):
+# 	cmd = ["python3", "{}run_sim.py".format(location), location, str(num_balls)]
+# 	# print(cmd)
+# 	subprocess.run(cmd)
+
+def run_job(location):
+	output_file = location + "sim_output.txt"
+	error_file = location + "sim_errors.txt"
+	cmd = [f"{location}ColliderSingleCore.x",location]
 
 if __name__ == '__main__':
 	#make new output folders
@@ -71,6 +76,7 @@ if __name__ == '__main__':
 				input_json['seed'] = 'default'
 				input_json['radiiDistribution'] = 'logNormal'
 				input_json['h_min'] = 0.5
+				input_json['N'] = n
 				# input_json['u_s'] = 0.5
 				# input_json['u_r'] = 0.5
 				input_json['note'] = "Runs testing h_min = 0.5 (5e-6) with lognormal distribution"
@@ -92,14 +98,11 @@ if __name__ == '__main__':
 	# 	for i in range(len(folders))
 	# 	N = [str(N[0]) for i in range(len(folders))]
 
-	inputs = list(zip(folders,folders_N))
-	print(inputs)
 
 
 	with mp.Pool(processes=runs_at_once) as pool:
-		for i in range(0,len(folders)):
-			# input_data = inputs[i:i+runs_at_once]
-			pool.apply_async(run_job,inputs[i]) 
+		for folder in folders:
+			pool.apply_async(run_job,(folder,)) 
 
 		pool.close()
 		pool.join()

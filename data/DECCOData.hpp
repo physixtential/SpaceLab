@@ -42,22 +42,27 @@ public:
 	~CSVHandler(){};
 	CSVHandler(std::string filename) : filename(filename) 
     {
-    	initialized = true;
+    	// initialized = true;
     }
 
 	bool writeSimData(std::vector<double> data, int width, std::string filename)
 	{
+		std::cerr<<"In writeSimData: "<<filename<<std::endl;
 		filename += "simData.csv"; 
 		try
 		{
-			std::ofstream simWrite;
-			simWrite.open(filename, std::ofstream::app);
-
+			std::string meta = "";
 			if (!std::filesystem::exists(filename))
 			{
 				int num_particles = width/single_ball_widths[0];
-				simWrite << genSimDataMetaData(num_particles);	
+				meta = genSimDataMetaData(num_particles);	
 			}
+
+			std::ofstream simWrite;
+			simWrite.open(filename, std::ofstream::app);
+
+
+			simWrite << meta;
 
 			for (int i = 0; i < data.size(); ++i)
 			{
@@ -70,9 +75,10 @@ public:
 					simWrite << data[i] << ',';
 				}
 			}
-		}
-		catch{
 			simWrite.close();
+		}
+		catch(const std::exception& e)
+		{
 			return 0;
 		}
 
@@ -84,14 +90,18 @@ public:
 		filename += "energy.csv"; 
 		try
 		{
-			std::ofstream energyWrite;
-			energyWrite.open(filename, std::ofstream::app);
+			std::string meta = "";
 
 			if (!std::filesystem::exists(filename))
 			{
 				int num_particles = width/single_ball_widths[1];
-				energyWrite << genEnergyMetaData();	
+				meta = genEnergyMetaData();	
 			}
+			
+			std::ofstream energyWrite;
+			energyWrite.open(filename, std::ofstream::app);
+
+			energyWrite << meta;
 
 			for (int i = 0; i < data.size(); ++i)
 			{
@@ -104,13 +114,13 @@ public:
 					energyWrite << data[i] << ',';
 				}
 			}
-		}
-		catch{
 			energyWrite.close();
+		}
+		catch(const std::exception& e)
+		{
 			return 0;
 		}
 
-		energyWrite.close();
 		return 1;
 	}
 
@@ -119,14 +129,17 @@ public:
 		filename += "constants.csv"; 
 		try
 		{
+			//Consts has no meta data for csv
+			// std::string meta = "";
+
+			// if (!std::filesystem::exists(filename))
+			// {
+			// 	int num_particles = width/single_ball_widths[2];
+			// 	meta = genConstantsMetaData();	
+			// }
+			
 			std::ofstream constsWrite;
 			constsWrite.open(filename, std::ofstream::app);
-
-			if (!std::filesystem::exists(filename))
-			{
-				int num_particles = width/single_ball_widths[1];
-				constsWrite << genEnergyMetaData();	
-			}
 
 			for (int i = 0; i < data.size(); ++i)
 			{
@@ -139,13 +152,13 @@ public:
 					constsWrite << data[i] << ',';
 				}
 			}
-		}
-		catch{
 			constsWrite.close();
+		}
+		catch(const std::exception& e)
+		{
 			return 0;
 		}
 
-		constsWrite.close();
 		return 1;
 	}
 
@@ -949,8 +962,8 @@ public:
 		writes        : the number of writes that will happen in the DECCO simulation, only needed for a fixed hdf5 storage
 		steps   	  : the number of sims for writing out timing
 	*/
-	DECCOData(std::string filename, int num_particles, int writes=-1, int steps=-1) : 
-		filename(filename), 
+	DECCOData(std::string fname, int num_particles, int writes=-1, int steps=-1) : 
+		filename(fname), 
 		num_particles(num_particles),
 		writes(writes),
 		steps(steps)
@@ -978,17 +991,22 @@ public:
 		{
 			csvdata = true;
 			h5data = false;
+			filename = filename.substr(0,filename.length()-4);
+			std::cerr<<"FILE: "<<filename<<std::endl;
 		}
 		else
 		{
 			std::cerr<<"DECCOData ERROR: storage_type '"<<storage_type<<"' not available."<<std::endl;
+			exit(-1);
 		}
 
+		std::cerr<<"FILE1: "<<filename<<std::endl;
+
 		//If user specified number of writes but a storage_type other than hdf5 then default to hdf5 and warn user
-		if (fixed && not h5data)
-		{
-			std::cerr<<"DECCOData warning: specified a non-negative number of writes (which indicates a fixed size hdf5 storage) and a storage_type other than hdf5. Defaulting to a fixed size hdf5 storage_type."<<std::endl;
-		}
+		// if (fixed && not h5data)
+		// {
+		// 	std::cerr<<"DECCOData warning: specified a non-negative number of writes (which indicates a fixed size hdf5 storage) and a storage_type other than hdf5. Defaulting to a fixed size hdf5 storage_type."<<std::endl;
+		// }
 
 	}
 
@@ -1027,7 +1045,7 @@ public:
 		}
 		else if (csvdata)
 		{
-
+			std::cerr<<"IN WRITE: "<<filename<<std::endl;
 			retVal = writeCSV(data,data_type,filename);
 		}
 		return retVal;
@@ -1269,24 +1287,25 @@ private:
 	//@returns true if write succeeded, false otherwise
 	bool writeCSV(std::vector<double> &data, std::string data_type, std::string filename)
 	{
+		std::cerr<<"FILE in writeCSV: "<<filename<<std::endl;
 		if (getDataIndexFromString(data_type) == 0) //simData
 		{
-			return C.writeSimData(data,filename);
+			return C.writeSimData(data,widths[0],filename);
 		}
 		else if (getDataIndexFromString(data_type) == 1) //energy
 		{
-			return C.writeEnergy(data,filename);
+			return C.writeEnergy(data,widths[1],filename);
 		}
-		else if (getDataIndexFromString(data_type) == 1) //consts
+		else if (getDataIndexFromString(data_type) == 2) //consts
 		{
-			return C.writeConstants(data,filename);
+			return C.writeConstants(data,widths[2],filename);
 		}
 		// else if (getDataIndexFromString(data_type) == 1) //timing
 		// {
 		// 	return C.writeTiming(data,filename);
 		// }
 
-		return 0
+		return 0;
 	}
 
 	//Write the data given with the hdf5 method.
@@ -1338,49 +1357,49 @@ private:
 		}
 		else if (csvdata)
 		{
-			meta_data = C.genSimDataMetaData(num_particles)
+			meta_data = C.genSimDataMetaData(num_particles);
 		}
 		return meta_data;
 	}
 
 	std::string genConstantsMetaData()
 	{
-		td::string meta_data = "";
+		std::string meta_data = "";
 		if (h5data)
 		{
 			meta_data = H.genConstantsMetaData(widths[getDataIndexFromString("constants")]);
 		}
 		else if (csvdata)
 		{
-			meta_data = C.genConstantsMetaData()
+			meta_data = C.genConstantsMetaData();
 		}
 		return meta_data;
 	}
 
 	std::string genEnergyMetaData()
 	{
-		td::string meta_data = "";
+		std::string meta_data = "";
 		if (h5data)
 		{
 			meta_data = H.genEnergyMetaData(widths[getDataIndexFromString("energy")]);
 		}
 		else if (csvdata)
 		{
-			meta_data = C.genEnergyMetaData()
+			meta_data = C.genEnergyMetaData();
 		}
 		return meta_data;
 	}
 
 	std::string genTimingMetaData()
 	{
-		td::string meta_data = "";
+		std::string meta_data = "";
 		if (h5data)
 		{
 			meta_data = H.genTimingMetaData(widths[getDataIndexFromString("timing")]);
 		}
 		else if (csvdata)
 		{
-			meta_data = C.genTimingMetaData()
+			meta_data = C.genTimingMetaData();
 		}
 		return meta_data;
 	}

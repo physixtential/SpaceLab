@@ -35,7 +35,7 @@ if __name__ == '__main__':
 		
 	job_set_name = "lognorm_radius_test"
 	job_set_name = "test"
-	job_set_name = "restartTest"
+	job_set_name = "csvTest"
 
 	# folder_name_scheme = "T_"
 
@@ -70,6 +70,7 @@ if __name__ == '__main__':
 				input_json['seed'] = 100
 				input_json['radiiDistribution'] = 'logNormal'
 				input_json['h_min'] = 0.5
+				input_json['dataFormat'] = "csv"
 				# input_json['u_s'] = 0.5
 				# input_json['u_r'] = 0.5
 				input_json['note'] = "Does this work at all?"
@@ -93,13 +94,13 @@ if __name__ == '__main__':
 	# 	with mp.Pool(processes=runs_at_once) as pool:
 	# 		pool.starmap(run_job,inputs[i:i+runs_at_once]) 
 	
-	# with mp.Pool(processes=runs_at_once) as pool:
-	# 	for folder in folders:
-	# 		# input_data = inputs[i:i+runs_at_once]
-	# 		pool.apply_async(run_job, (folder,))
+	with mp.Pool(processes=runs_at_once) as pool:
+		for folder in folders:
+			# input_data = inputs[i:i+runs_at_once]
+			pool.apply_async(run_job, (folder,))
 
-	# 	pool.close()
-	# 	pool.join()
+		pool.close()
+		pool.join()
 
 
 	

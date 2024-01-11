@@ -494,7 +494,7 @@ void Ball_group::init_data(int counter = 0)
     }
     else if (data_type == 1) //csv
     {
-        sav_file = output_folder+std::to_string(counter)+"_";
+        sav_file = output_folder+std::to_string(counter)+"_.csv";
     }
     else
     {
@@ -503,6 +503,7 @@ void Ball_group::init_data(int counter = 0)
     }
     data = new DECCOData(sav_file,\
                         num_particles,steps/skip+1,steps);
+    
 }
 
 
@@ -538,8 +539,6 @@ void Ball_group::parse_input_file(std::string location)
     {
         data_type = 1;
         filetype = "csv";
-        std::cerr<<"CSV data format not implimented yet."<<std::endl;
-        exit(-1);
     }
 
 
