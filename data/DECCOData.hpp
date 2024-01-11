@@ -35,13 +35,199 @@ int getDataIndexFromString(std::string data_type)
 	return -1;
 }
 
-// class CSVHandler
-// {
-// public:
-// 	CSVHandler()=default;
-// 	~CSVHandler()=default;
-	
-// };
+class CSVHandler
+{
+public:
+	CSVHandler()=default;
+	~CSVHandler(){};
+	CSVHandler(std::string filename) : filename(filename) 
+    {
+    	initialized = true;
+    }
+
+	bool writeSimData(std::vector<double> data, int width, std::string filename)
+	{
+		filename += "simData.csv"; 
+		try
+		{
+			std::ofstream simWrite;
+			simWrite.open(filename, std::ofstream::app);
+
+			if (!std::filesystem::exists(filename))
+			{
+				int num_particles = width/single_ball_widths[0];
+				simWrite << genSimDataMetaData(num_particles);	
+			}
+
+			for (int i = 0; i < data.size(); ++i)
+			{
+				if (i%width == width-1)
+				{
+					simWrite << data[i] << '\n';
+				}
+				else
+				{
+					simWrite << data[i] << ',';
+				}
+			}
+		}
+		catch{
+			simWrite.close();
+			return 0;
+		}
+
+		return 1;
+	}
+
+	bool writeEnergy(std::vector<double> data, int width, std::string filename)
+	{
+		filename += "energy.csv"; 
+		try
+		{
+			std::ofstream energyWrite;
+			energyWrite.open(filename, std::ofstream::app);
+
+			if (!std::filesystem::exists(filename))
+			{
+				int num_particles = width/single_ball_widths[1];
+				energyWrite << genEnergyMetaData();	
+			}
+
+			for (int i = 0; i < data.size(); ++i)
+			{
+				if (i%width == width-1)
+				{
+					energyWrite << data[i] << '\n';
+				}
+				else
+				{
+					energyWrite << data[i] << ',';
+				}
+			}
+		}
+		catch{
+			energyWrite.close();
+			return 0;
+		}
+
+		energyWrite.close();
+		return 1;
+	}
+
+	bool writeConstants(std::vector<double> data, int width, std::string filename)
+	{
+		filename += "constants.csv"; 
+		try
+		{
+			std::ofstream constsWrite;
+			constsWrite.open(filename, std::ofstream::app);
+
+			if (!std::filesystem::exists(filename))
+			{
+				int num_particles = width/single_ball_widths[1];
+				constsWrite << genEnergyMetaData();	
+			}
+
+			for (int i = 0; i < data.size(); ++i)
+			{
+				if (i%width == width-1)
+				{
+					constsWrite << data[i] << '\n';
+				}
+				else
+				{
+					constsWrite << data[i] << ',';
+				}
+			}
+		}
+		catch{
+			constsWrite.close();
+			return 0;
+		}
+
+		constsWrite.close();
+		return 1;
+	}
+
+	// bool writeTiming(std::vector<double> data, int width, std::string filename)
+	// {
+	// 	filename += "timing.csv"; 
+	// 	try
+	// 	{
+	// 		std::ofstream constsWrite;
+	// 		constsWrite.open(filename, std::ofstream::app);
+
+	// 		if (!std::filesystem::exists(filename))
+	// 		{
+	// 			int num_particles = width/single_ball_widths[1];
+	// 			constsWrite << genEnergyMetaData();	
+	// 		}
+
+	// 		for (int i = 0; i < data.size(); ++i)
+	// 		{
+	// 			if (i%width == width-1)
+	// 			{
+	// 				constsWrite << data[i] << '\n';
+	// 			}
+	// 			else
+	// 			{
+	// 				constsWrite << data[i] << ',';
+	// 			}
+	// 		}
+	// 	}
+	// 	catch{
+	// 		constsWrite.close();
+	// 		return 0;
+	// 	}
+
+	// 	constsWrite.close();
+	// 	return 1;
+	// }
+
+    std::string genSimDataMetaData(int num_particles)
+	{
+		std::ostringstream meta_data;
+		meta_data << "x0,y0,z0,wx0,wy0,wz0,wmag0,vx0,vy0,vz0,bound0";
+
+		for (int Ball = 1; Ball < num_particles; Ball++)  // Start at 2nd ball because first one was just written^.
+	    {
+	        // std::cout<<Ball<<','<<num_particles<<std::endl;
+	        std::string thisBall = std::to_string(Ball);
+	        meta_data << ",x" + thisBall << ",y" + thisBall << ",z" + thisBall << ",wx" + thisBall
+	                  << ",wy" + thisBall << ",wz" + thisBall << ",wmag" + thisBall << ",vx" + thisBall
+	                  << ",vy" + thisBall << ",vz" + thisBall << ",bound" + thisBall;
+	        // std::cout << ",x" + thisBall << ",y" + thisBall << ",z" + thisBall << ",wx" + thisBall
+	        //           << ",wy" + thisBall << ",wz" + thisBall << ",wmag" + thisBall << ",vx" + thisBall
+	        //           << ",vy" + thisBall << ",vz" + thisBall << ",bound" + thisBall;
+
+	    }
+	    meta_data << '\n';
+
+		return meta_data.str();
+	}
+
+	std::string genConstantsMetaData()
+	{
+		//There is no metadata for constant file with csv format. THis is just
+		//here to be complete and stay compatable with the previous version.
+		return "";
+	}
+
+	std::string genEnergyMetaData()
+	{
+		return "Time,PE,KE,E,p,L";
+	}
+
+	std::string genTimingMetaData()
+	{
+		//There is no metadata for timing file with csv format. THis is just
+		//here to be complete and stay compatable with the previous version.
+		return "";
+	}
+
+private:
+	std::string filename;
+};
 
 void printVec(std::vector<double> v)
 {
@@ -214,6 +400,8 @@ class HDF5Handler {
 
 		    return data;
 		}
+
+		
 
 		static hsize_t get_data_length(std::string readfile,std::string datasetName)
 		{
@@ -566,6 +754,40 @@ class HDF5Handler {
     		return object.attrExists(attributeName);
     	}
 
+    	std::string genSimDataMetaData(int width)
+		{
+			std::string meta_data = "";
+			meta_data = "Columns: posx[ball],posy[ball],posz[ball],wx[ball],wy[ball],wz[ball],wtot[ball],velx[ball],vely[ball],velz[ball],bound[ball]\n";
+			meta_data += "rows: writes\n";
+			meta_data += "row width: " + std::to_string(width);
+
+			return meta_data;
+		}
+
+		std::string genConstantsMetaData(int width)
+		{
+			std::string meta_data = "Columns: radius, mass, moment of inertia\n";
+			meta_data += "rows: balls\n";	
+			meta_data += "row width: " + std::to_string(width);
+
+			return meta_data;
+		}
+
+		std::string genEnergyMetaData(int width)
+		{
+			std::string meta_data = "Columns: time, PE, KE, Etot, p, L\n";
+			meta_data += "rows: writes\n";	
+			meta_data += "row width: " + std::to_string(width);
+			return meta_data;	
+		}
+
+		std::string genTimingMetaData(int width)
+		{
+			std::string meta_data = "Columns: number of balls, time spent in sim_one_step\n";
+			meta_data += "rows: sims\n";	
+			meta_data += "row width: " + std::to_string(width);
+			return meta_data;	
+		}
 
     private:
         std::string filename;
@@ -781,6 +1003,7 @@ public:
 	//copy constructor to handle the data handlers
 	DECCOData& operator=(const DECCOData& rhs)
 	{
+		C=rhs.C;
 		H=rhs.H;
 		return *this;
 	}
@@ -804,8 +1027,8 @@ public:
 		}
 		else if (csvdata)
 		{
-			return -1;
-			// retVal = writeCSV(data,data_type);
+
+			retVal = writeCSV(data,data_type,filename);
 		}
 		return retVal;
 	}
@@ -1023,7 +1246,7 @@ private:
 	bool h5data;
 	bool csvdata;
 	HDF5Handler H; 
-	// CSVHandler C;
+	CSVHandler C;
 
 
     //data types so everyone can see them
@@ -1042,24 +1265,28 @@ private:
 	//This includes taking care of headers for csv and metadata for hdf5
 	//@param data_type is one of "simData", "constants", "energy", "timing",
 	//@param data is the data to be written.  
+	//@param filename is the absolute path to the base save file (everything except which data it is and the file extension)
 	//@returns true if write succeeded, false otherwise
-	bool writeCSV(std::vector<double> &data, std::string data_type)
+	bool writeCSV(std::vector<double> &data, std::string data_type, std::string filename)
 	{
-		int data_index = getDataIndexFromString(data_type);
-		//if data_index is less than zero a bad data_type was input and write doesn't happen
-		if (data_index < 0)
+		if (getDataIndexFromString(data_type) == 0) //simData
 		{
-			return 0;
+			return C.writeSimData(data,filename);
 		}
+		else if (getDataIndexFromString(data_type) == 1) //energy
+		{
+			return C.writeEnergy(data,filename);
+		}
+		else if (getDataIndexFromString(data_type) == 1) //consts
+		{
+			return C.writeConstants(data,filename);
+		}
+		// else if (getDataIndexFromString(data_type) == 1) //timing
+		// {
+		// 	return C.writeTiming(data,filename);
+		// }
 
-		//TODO
-		
-		// std::cerr<<"HERE: "<< std::is_same<T, std::stringstream>::value<<std::endl;
-		// std::cerr<<"HERE: "<< std::is_same<T, std::vector<double>>::value<<std::endl;
-		// //check that data is of correct type
-
-		
-		return 0;
+		return 0
 	}
 
 	//Write the data given with the hdf5 method.
@@ -1104,34 +1331,57 @@ private:
 
 	std::string genSimDataMetaData()
 	{
-		std::string meta_data = "Columns: posx[ball],posy[ball],posz[ball],wx[ball],wy[ball],wz[ball],wtot[ball],velx[ball],vely[ball],velz[ball],bound[ball]\n";
-		meta_data += "rows: writes\n";
-		meta_data += "row width: " + std::to_string(widths[getDataIndexFromString("simData")]);
+		std::string meta_data = "";
+		if (h5data)
+		{
+			meta_data = H.genSimDataMetaData(widths[getDataIndexFromString("simData")]);
+		}
+		else if (csvdata)
+		{
+			meta_data = C.genSimDataMetaData(num_particles)
+		}
 		return meta_data;
 	}
 
 	std::string genConstantsMetaData()
 	{
-		std::string meta_data = "Columns: radius, mass, moment of inertia\n";
-		meta_data += "rows: balls\n";	
-		meta_data += "row width: " + std::to_string(widths[getDataIndexFromString("constants")]);
-
+		td::string meta_data = "";
+		if (h5data)
+		{
+			meta_data = H.genConstantsMetaData(widths[getDataIndexFromString("constants")]);
+		}
+		else if (csvdata)
+		{
+			meta_data = C.genConstantsMetaData()
+		}
 		return meta_data;
 	}
 
 	std::string genEnergyMetaData()
 	{
-		std::string meta_data = "Columns: time, PE, KE, Etot, p, L\n";
-		meta_data += "rows: writes\n";	
-		meta_data += "row width: " + std::to_string(widths[getDataIndexFromString("energy")]);
-		return meta_data;	
+		td::string meta_data = "";
+		if (h5data)
+		{
+			meta_data = H.genEnergyMetaData(widths[getDataIndexFromString("energy")]);
+		}
+		else if (csvdata)
+		{
+			meta_data = C.genEnergyMetaData()
+		}
+		return meta_data;
 	}
 
 	std::string genTimingMetaData()
 	{
-		std::string meta_data = "Columns: number of balls, time spent in sim_one_step\n";
-		meta_data += "rows: sims\n";	
-		meta_data += "row width: " + std::to_string(widths[getDataIndexFromString("timing")]);
-		return meta_data;	
+		td::string meta_data = "";
+		if (h5data)
+		{
+			meta_data = H.genTimingMetaData(widths[getDataIndexFromString("timing")]);
+		}
+		else if (csvdata)
+		{
+			meta_data = C.genTimingMetaData()
+		}
+		return meta_data;
 	}
 };

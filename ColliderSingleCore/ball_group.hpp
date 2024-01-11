@@ -59,7 +59,6 @@ public:
 
     const std::string sim_meta_data_name = "sim_info";
 
-
     int seed = -1;
     int output_width = -1;
     enum distributions {constant, logNorm};
@@ -488,7 +487,21 @@ void Ball_group::init_data(int counter = 0)
         data = nullptr; 
     }
 
-    data = new DECCOData(output_folder+std::to_string(counter)+"_data."+filetype,\
+    std::string sav_file;
+    if (data_type == 0) //h5
+    {
+        sav_file = output_folder+std::to_string(counter)+"_data."+filetype;
+    }
+    else if (data_type == 1) //csv
+    {
+        sav_file = output_folder+std::to_string(counter)+"_";
+    }
+    else
+    {
+        std::cerr<<"ERROR: data_type '"<<filetype<<"' not supported."<<std::endl;
+        exit(EXIT_FAILURE);
+    }
+    data = new DECCOData(sav_file,\
                         num_particles,steps/skip+1,steps);
 }
 
@@ -999,8 +1012,12 @@ void Ball_group::sim_init_write(int counter=0)
         constData[pt+2] = moi[i];
         pt += jump;
     }
+
+    if (data_type == 0) //This meta write is for restarting jobs. Only necessary for hdf5
+    {
+        data->WriteMeta(get_data_info(),sim_meta_data_name,"constants");
+    }
     data->Write(constData,"constants");
-    data->WriteMeta(get_data_info(),sim_meta_data_name,"constants");
 
 
     energyBuffer = std::vector<double> (data->getWidth("energy"));
@@ -1048,7 +1065,6 @@ void Ball_group::sim_init_write(int counter=0)
 
     //initialize num_writes
     num_writes = 0;
-    
 
     std::cerr << "\nSimulating " << steps * dt / 60 / 60 << " hours.\n";
     std::cerr << "Total mass: " << m_total << '\n';
